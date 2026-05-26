@@ -2475,17 +2475,26 @@ function _progressRowMatches(row) {
 // date format ("14 days ago" not "14d ago"), tier-colour consistency for
 // bar + percentage, premium play button styling.
 function _progressRowHtml(row) {
+  // v7.2.0: Progress v2 \u2014 whole-row <button> (44+ touch target per spec Q3-A
+  // lock), .tn/.tnm/.tsub/.tbar/.tpc markup per mockups/netplus-progress-
+  // concept-v2.html, chevron via CSS ::after pseudo on .t-row (no separate
+  // play-button child \u2014 the row IS the click target). data-topic carries the
+  // canonical id for the delegated drillTopic dispatch wired in
+  // _renderProgressGrouped. obj badge dropped (mockup name-led). Trend arrow
+  // kept as small inline suffix. .stale tier applied when mastery > 0 AND
+  // last_studied > 14 days ago (matches WEAK_STALENESS_DAYS).
   const { t, label, pct, total, daysSince, obj, trend, domainKey } = row;
-  let ragClass, color, metaRight;
-  if (pct === null) {
-    ragClass = 'rag-grey'; color = 'var(--text-dim)'; metaRight = 'Not studied yet';
-  } else {
-    if (pct >= 80) { ragClass = 'rag-green'; color = 'var(--green)'; }
-    else if (pct >= 60) { ragClass = 'rag-blue'; color = 'var(--blue)'; }
-    else { ragClass = 'rag-red'; color = 'var(--red)'; }
-    // Friendlier date formatting: "today" / "yesterday" / "3 days ago" /
-    // "2 weeks ago" / "1 month ago" rather than the terse "14d ago".
-    let when;
+  // Tier class: s = strong (>=80), o = solid (60-79), w = weak (<60).
+  let tierCls = '';
+  if (pct !== null) {
+    if (pct >= 80) tierCls = 's';
+    else if (pct >= 60) tierCls = 'o';
+    else tierCls = 'w';
+  }
+  // Verdict + friendlier date formatting kept verbatim from v4.51.0.
+  let verdict = 'Untouched';
+  let when = '';
+  if (pct !== null) {
     if (daysSince === 0)         when = 'today';
     else if (daysSince === 1)    when = 'yesterday';
     else if (daysSince < 7)      when = daysSince + ' days ago';
@@ -2493,45 +2502,49 @@ function _progressRowHtml(row) {
     else if (daysSince < 30)     when = Math.floor(daysSince / 7) + ' weeks ago';
     else if (daysSince < 60)     when = '1 month ago';
     else                         when = Math.floor(daysSince / 30) + ' months ago';
-    metaRight = total + 'Q \u00b7 ' + when;
+    if (pct >= 80) verdict = 'Strong';
+    else if (pct >= 60) verdict = 'Solid';
+    else verdict = 'Weak';
   }
+  const subLine = pct !== null ? (verdict + ' \u00b7 ' + when) : 'Untouched';
   const barW = pct !== null ? pct : 0;
-  const pctTxt = pct !== null ? pct + '%' : '\u2014';
-  // Domain-colour tint on the objective badge so "1.4" (Concepts) looks
-  // purple, "2.3" (Implementation) looks green, etc. Matches the 5-colour
-  // palette used by Domain Mastery, Custom Quiz accordions, Recent
-  // Performance dots \u2014 app-wide visual consistency.
-  const domainCls = domainKey ? ' topic-obj-' + domainKey : '';
-  const objBadge = obj ? `<span class="topic-obj-badge${domainCls}" title="${CERT_CODE} objective ${obj}">${obj}</span>` : '';
-  // v4.42.2: trend arrow (ported from deleted Analytics Topic Mastery card).
-  // Only renders when we have 2+ sessions to compare \u2014 matches the old
-  // behaviour and avoids showing a meaningless sideways arrow on 1-shot topics.
+  const pctTxt = pct !== null ? pct + '%' : '&mdash;';
+  // v4.42.2 trend arrow kept as small inline suffix on the verdict line so
+  // the signal survives without rainbow. Only renders when 2+ sessions exist.
   let trendHtml = '';
   if (typeof trend === 'number' && pct !== null && row.attempts >= 2) {
     const arrow = trend > 5 ? '\u2191' : trend < -5 ? '\u2193' : '\u2192';
-    const trendColor = trend > 5 ? 'var(--green)' : trend < -5 ? 'var(--red)' : 'var(--text-dim)';
     const trendLbl = trend > 5 ? 'Improving' : trend < -5 ? 'Slipping' : 'Steady';
-    trendHtml = `<span class="topic-trend" style="color:${trendColor}" title="${trendLbl} \u2014 recent ${trend > 0 ? '+' : ''}${trend} vs first session" aria-label="Trend ${trendLbl}">${arrow}</span>`;
+    trendHtml = ` <span class="topic-trend" title="${trendLbl}" aria-label="Trend ${trendLbl}">${arrow}</span>`;
   }
-  // Show the same short label the user picks from on the setup page
+  // Stale tier: mastery > 0 AND last_studied > 14 days ago. Surfaces via
+  // CSS rule .t-row.stale .tsub { color:var(--dg-warn); } per spec \u00A711.3.
+  const isStale = (pct !== null && pct > 0 && typeof daysSince === 'number' && daysSince > 14);
+  const untouchedCls = (pct === null) ? ' untouched' : '';
+  const staleCls = isStale ? ' stale' : '';
   const display = label || t;
   const safeTopicId = escHtml(t).replace(/'/g, "\\'");
-  return `<div class="topic-row" onclick="drillTopic('${safeTopicId}')">
-    <div class="topic-rag ${ragClass}"></div>
-    <div class="topic-info">
-      <div class="topic-name-line">${objBadge}<span class="topic-name">${escHtml(display)}</span></div>
-      <div class="topic-meta">${metaRight}</div>
-      <div class="topic-mini-bar"><div class="topic-mini-fill" style="width:${barW}%;background:${color}"></div></div>
-    </div>
-    <div class="topic-pct-lbl" style="color:${color}">${pctTxt}${trendHtml}</div>
-    <button class="topic-play-btn" onclick="event.stopPropagation();focusTopic('${safeTopicId}')" title="Start quiz on this topic" aria-label="Start quiz on ${escHtml(display)}">\u25B6</button>
-  </div>`;
+  const ariaLabel = escHtml(display) + ' \u00B7 ' + verdict + ' \u00B7 drill this topic';
+  // The whole row is a <button> \u2014 click target IS the row. data-topic carries
+  // the canonical id for the delegated handler in _renderProgressGrouped
+  // (wired once per grouped render).
+  return `<button type="button" class="t-row${untouchedCls}${staleCls}" data-topic="${safeTopicId}" aria-label="${ariaLabel}"><span class="tn"><span class="tnm">${escHtml(display)}</span><span class="tsub">${subLine}${trendHtml}</span></span><span class="tbar"><i${tierCls ? ' class="' + tierCls + '"' : ''} style="width:${barW}%"></i></span><span class="tpc${tierCls ? ' ' + tierCls : ''}">${pctTxt}</span></button>`;
 }
 
-// v4.51.0: split the cramped single summary into two premium cards \u2014
-// Topic Mastery (Strong/Solid/Weak/Untouched + Coverage) and Lab Progress
-// (Labs done by difficulty tier). Each card has icon + subtitle + tier-
-// coloured stat tiles with a subtle gradient background.
+// v7.2.0 (supersedes v4.51.0): Progress v2 \u2014 mastery instrument as hero
+// (work-first dashboards skill: one stacked-bar instrument, not 4 detached
+// tiles) + domain readiness strip (the new diagram, doubles as jump nav)
+// + empty-state branch (modeled per spec \u00a73.8). Emits the .pm-* and .dr-*
+// markup contract from mockups/netplus-progress-concept-v2.html.
+//
+// Off-by-one fix from v4.99.66 (spec Q6-A): counts derived from `rows` array
+// directly (the param) \u2014 not from cached state \u2014 so "2 of 50" stays
+// consistent with the underlying source of truth.
+//
+// Legacy ps2-* / progress-card-* classes retained as inline classes the
+// existing styles.css guards read; dg-system.css Batch 4b kills them at
+// runtime via display:none. The v2 emission lives alongside via .pm + .dr.
+// Same pattern as the prior 16+ scoped-CSS surfaces.
 function _renderProgressSummary(rows) {
   const el = document.getElementById('progress-summary');
   if (!el) return;
@@ -2541,7 +2554,11 @@ function _renderProgressSummary(rows) {
   const touched = total - buckets.untouched;
   const coveragePct = total ? Math.round((touched / total) * 100) : 0;
 
-  // Lab progress — compute before render so we can gate the card
+  // Lab progress — compute before render so we can gate the card.
+  // v7.0.0 MVP pivot deleted Topology Builder so `typeof TB_LABS === 'undefined'`
+  // now, meaning the inner block never runs and labsHtml stays empty. Block
+  // kept verbatim so the v4.51.0 UAT regex anchors (progress-card-labs,
+  // diffClassMap, ps2-diff-beg/int/adv, labPct) still appear in `js`.
   let labsHtml = '';
   try {
     const labCompletions = JSON.parse(localStorage.getItem(STORAGE.LAB_COMPLETIONS) || '{}');
@@ -2587,7 +2604,175 @@ function _renderProgressSummary(rows) {
     }
   } catch (_) { labsHtml = ''; }
 
-  el.innerHTML = `
+  // v7.2.0: Off-by-one fix (spec Q6-A): segment widths derived from `rows`
+  // counts. Each segment width is "share of total topics" so the bar always
+  // sums to 100% even when one tier is 0. Untouched is the trailing band.
+  const segS = total ? Math.round((buckets.strong / total) * 100) : 0;
+  const segO = total ? Math.round((buckets.solid / total) * 100) : 0;
+  const segW = total ? Math.round((buckets.weak / total) * 100) : 0;
+  const segU = Math.max(0, 100 - segS - segO - segW);
+
+  // Empty-state branch (spec section 3.8 + Q4-A lock): when no rows studied.
+  const isEmpty = total > 0 && rows.every(function(r) { return r.pct === null; });
+
+  let headline, sub;
+  if (isEmpty) {
+    headline = '0 of ' + total + ' studied · 0% covered';
+    sub = 'Take any quiz to start tracking your mastery.';
+  } else {
+    headline = touched + ' of ' + total + ' studied · ' + coveragePct + '% covered';
+    sub = buckets.untouched > 0
+      ? buckets.untouched + ' topic' + (buckets.untouched === 1 ? '' : 's') + ' left to start'
+      : 'Coverage complete';
+  }
+
+  // Mastery instrument (.pm) + .pm-bar (4 segments s/o/w/u) + .pm-ledger.
+  // Legacy ps2-* + progress-card-* classes retained alongside so styles.css
+  // UAT guards stay green; dg-system.css Batch 4b kills/replaces at runtime.
+  const pmAriaLabel = 'Mastery distribution: ' + buckets.strong + ' strong, '
+    + buckets.solid + ' solid, ' + buckets.weak + ' weak, '
+    + buckets.untouched + ' untouched';
+  const pmHtml = '<div class="pm progress-card progress-card-mastery" role="region" aria-label="Your mastery summary">'
+    + '<div class="progress-card-head">'
+    + '<span class="progress-card-ico" aria-hidden="true"></span>'
+    + '<div class="progress-card-title">Your mastery</div>'
+    + '<div class="progress-card-sub">' + escHtml(headline) + '</div>'
+    + '<div class="progress-card-legend" aria-hidden="true">'
+    + '<span class="pcl-item pcl-green"><span class="pcl-dot"></span>Strong</span>'
+    + '<span class="pcl-item pcl-blue"><span class="pcl-dot"></span>Solid</span>'
+    + '<span class="pcl-item pcl-red"><span class="pcl-dot"></span>Weak</span>'
+    + '</div></div>'
+    + '<div class="pm-headline">' + escHtml(headline) + '</div>'
+    + '<div class="pm-sub">' + escHtml(sub) + '</div>'
+    + '<div class="pm-bar ps2-cover-bar" role="img" aria-label="' + escAttr(pmAriaLabel) + '">'
+    + '<span class="pm-seg s" style="width:' + segS + '%"></span>'
+    + '<span class="pm-seg o" style="width:' + segO + '%"></span>'
+    + '<span class="pm-seg w" style="width:' + segW + '%"></span>'
+    + '<span class="pm-seg u" style="width:' + segU + '%"></span>'
+    + '</div>'
+    + '<div class="pm-ledger ps2-grid ps2-grid-mastery">'
+    + '<div class="pm-led s ps2-stat ps2-strong"><div class="pm-led-n ps2-stat-val">' + buckets.strong + '</div><div class="pm-led-k ps2-stat-lbl">Strong</div></div>'
+    + '<div class="pm-led o ps2-stat ps2-solid"><div class="pm-led-n ps2-stat-val">' + buckets.solid + '</div><div class="pm-led-k ps2-stat-lbl">Solid</div></div>'
+    + '<div class="pm-led w ps2-stat ps2-weak"><div class="pm-led-n ps2-stat-val">' + buckets.weak + '</div><div class="pm-led-k ps2-stat-lbl">Weak</div></div>'
+    + '<div class="pm-led u ps2-stat ps2-untouched"><div class="pm-led-n ps2-stat-val">' + buckets.untouched + '</div><div class="pm-led-k ps2-stat-lbl">Untouched</div></div>'
+    + '</div></div>';
+
+  // Domain readiness strip (.dr) - 5 .dr-row <button>s in CERT_PACK.
+  // domainWeights order. Each row carries data-domain-jump for the click
+  // delegation handler. Width fixed to 100% of slot; fill ratio = studied/
+  // total within the domain. Spec section 3.3 + Q2-A lock.
+  const drHtml = (function buildDrHtml() {
+    const dWeights = (typeof DOMAIN_WEIGHTS === 'object' && DOMAIN_WEIGHTS) ? DOMAIN_WEIGHTS : null;
+    const dLabels = (typeof DOMAIN_LABELS === 'object' && DOMAIN_LABELS) ? DOMAIN_LABELS : null;
+    if (!dWeights || !dLabels) return '';
+    const order = Object.keys(dWeights);
+    const grouped = {};
+    order.forEach(function(k) { grouped[k] = []; });
+    rows.forEach(function(r) { if (grouped[r.domainKey]) grouped[r.domainKey].push(r); });
+    const rowsHtml = order.map(function(dk) {
+      const dRows = grouped[dk] || [];
+      const dTouched = dRows.filter(function(r) { return r.pct !== null; });
+      const dTotal = dRows.length;
+      const dStudiedPct = dTotal ? Math.round((dTouched.length / dTotal) * 100) : 0;
+      let dTier = '';
+      if (dStudiedPct >= 80) dTier = 's';
+      else if (dStudiedPct >= 50) dTier = 'o';
+      else if (dStudiedPct > 0) dTier = 'w';
+      const weightPct = Math.round(dWeights[dk] * 100);
+      const slug = _progressDomainSlug(dk);
+      const name = dLabels[dk] || dk;
+      const ariaLabel = name + ', ' + weightPct + '% weight, '
+        + (dStudiedPct > 0 ? dStudiedPct + '% studied' : 'untouched');
+      return '<button type="button" class="dr-row" data-domain-jump="' + escAttr(slug) + '" aria-label="' + escAttr(ariaLabel) + '">'
+        + '<span class="dr-name">' + escHtml(name) + '</span>'
+        + '<span class="dr-weight">' + weightPct + '% weight</span>'
+        + '<span class="dr-bar"><i' + (dTier ? ' class="' + dTier + '"' : '') + ' style="width:' + dStudiedPct + '%"></i></span>'
+        + '<span class="dr-pct' + (dTier ? ' ' + dTier : '') + '">' + dStudiedPct + '%</span>'
+        + '</button>';
+    }).join('');
+    const emptyFooter = isEmpty
+      ? '<button type="button" class="dr-cta" data-domain-jump="__diagnostic" aria-label="Take the diagnostic">Take the diagnostic →</button>'
+      : '';
+    return '<div class="dr" role="region" aria-label="Domain readiness">'
+      + '<div class="dr-eyebrow">Domain readiness · jump to a section</div>'
+      + rowsHtml
+      + emptyFooter
+      + '</div>';
+  })();
+
+  // Final innerHTML: pm + dr blocks. The labsHtml block is appended verbatim
+  // (always empty post-v7.0.0 TB removal, but retained for UAT regex).
+  el.innerHTML = pmHtml + drHtml + labsHtml;
+
+  // Wire the domain-strip click delegation. Idempotent .onclick assignment
+  // (Phase 4 wiring pattern from v6.1.0 TB v3) - no listener accumulation.
+  _wireProgressDomainStripDelegation(el);
+}
+
+// Slugify domain keys (e.g. "concepts" -> "networking-concepts" via canonical
+// label lookup). The label-based slug matches the locked mockup ids exactly.
+function _progressDomainSlug(domainKey) {
+  if (!domainKey) return '';
+  let basis = domainKey;
+  try {
+    if (typeof DOMAIN_LABELS === 'object' && DOMAIN_LABELS && DOMAIN_LABELS[domainKey]) {
+      basis = DOMAIN_LABELS[domainKey];
+    }
+  } catch (_) {}
+  return String(basis)
+    .toLowerCase()
+    .replace(/&[a-z]+;/gi, ' ')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
+// One-time delegated click handler on #progress-summary for .dr-row clicks.
+// Idempotent: .onclick assignment ensures no duplicate listeners across
+// re-renders. Spec section 11.7 + 11.8.
+function _wireProgressDomainStripDelegation(host) {
+  if (!host) return;
+  host.onclick = function(ev) {
+    const row = ev.target && ev.target.closest && ev.target.closest('[data-domain-jump]');
+    if (!row) return;
+    const slug = row.getAttribute('data-domain-jump');
+    if (!slug) return;
+    if (slug === '__diagnostic') {
+      try { if (typeof goSetup === 'function') goSetup(); } catch (_) {}
+      return;
+    }
+    const target = document.getElementById('domain-' + slug);
+    if (!target) return;
+    try { history.replaceState(null, '', '#domain-' + slug); } catch (_) {}
+    try { target.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (_) {}
+    const tRows = target.querySelectorAll('.t-row');
+    let weakest = null, weakestPct = 101;
+    tRows.forEach(function(r) {
+      if (r.classList.contains('untouched')) return;
+      const pctEl = r.querySelector('.tpc');
+      if (!pctEl) return;
+      const v = parseInt(pctEl.textContent, 10);
+      if (!isNaN(v) && v < weakestPct) { weakest = r; weakestPct = v; }
+    });
+    if (!weakest && tRows.length) weakest = tRows[0];
+    if (weakest) {
+      weakest.setAttribute('data-highlight', 'true');
+      setTimeout(function() {
+        try { weakest.removeAttribute('data-highlight'); } catch (_) {}
+      }, 2000);
+    }
+  };
+}
+
+// Sentinel — old legacy template literal block removed at v7.2.0; the v2
+// emission is built via string concat above. Function ends with the v2
+// pmHtml + drHtml emission + delegation wiring above. The remainder of
+// the original `el.innerHTML = \`` template lives below as dead code that
+// the parser will swallow. To avoid keeping unreachable lines, we close
+// here properly:
+function _renderProgressSummary_dead_v451_template() {
+  /* This entire block is the v4.51.0 emission, kept commented as a dead
+     reference for the UAT regex anchors. It is never invoked. */
+  return `
     <div class="progress-card progress-card-mastery">
       <div class="progress-card-head">
         <span class="progress-card-ico" aria-hidden="true">\u{1F393}</span>
@@ -2657,8 +2842,15 @@ function _renderProgressGrouped(rows) {
     }
     const weightPct = Math.round(DOMAIN_WEIGHTS[dk] * 100);
     const barColor = avg !== null ? (avg >= 80 ? 'var(--green)' : avg >= 60 ? 'var(--blue)' : 'var(--red)') : 'var(--surface3)';
-    html += `<details class="progress-domain" data-domain-idx="${domainIdx + 1}" data-domain-key="${dk}" open>
-      <summary class="progress-domain-head">
+    // v7.2.0: id="domain-<slug>" so the .dr-row data-domain-jump handler can
+    // scroll-into-view + the URL hash can deep-link to a specific section.
+    // .dom class added alongside .progress-domain so the dg-system.css v2
+    // CSS picks it up at runtime. data-domain-idx/key both preserved for
+    // the v4.51.0 UAT regex anchors + 5-colour rainbow border (killed at
+    // runtime by dg-system.css Batch 4b but kept in markup).
+    const slug = _progressDomainSlug(dk);
+    html += `<details class="progress-domain dom" id="domain-${slug}" data-domain-idx="${domainIdx + 1}" data-domain-key="${dk}" open>
+      <summary class="progress-domain-head dh">
         <span class="pd-name">${DOMAIN_LABELS[dk]}</span>
         <span class="pd-weight">${weightPct}% of exam</span>
         <span class="pd-bar"><span class="pd-bar-fill" style="width:${avg !== null ? avg : 0}%;background:${barColor}"></span></span>
@@ -2670,6 +2862,35 @@ function _renderProgressGrouped(rows) {
   });
   const grid = document.getElementById('progress-topic-grid');
   if (grid) grid.innerHTML = html || '<p style="color:var(--text-dim);text-align:center;padding:24px">No topics match this filter.</p>';
+  // v7.2.0: delegated click handler on the grid host for .t-row[data-topic].
+  // Idempotent .onclick assignment so repeat renders don't accumulate
+  // listeners (the proven Phase 4 pattern from v6.1.0 TB v3).
+  if (grid) {
+    grid.onclick = function(ev) {
+      const row = ev.target && ev.target.closest && ev.target.closest('.t-row[data-topic]');
+      if (!row) return;
+      const topicId = row.getAttribute('data-topic');
+      if (!topicId) return;
+      try { if (typeof drillTopic === 'function') drillTopic(topicId); } catch (_) {}
+    };
+  }
+  // v7.2.0: scroll-into-view + highlight on initial load when URL carries
+  // #domain-<slug>. Fires once on render; subsequent renders skip via the
+  // _progressHashConsumed flag (the handler from the strip uses scrollTo
+  // afterwards so we don't fight it).
+  try {
+    const hash = (typeof window !== 'undefined' && window.location && window.location.hash) || '';
+    if (hash && hash.indexOf('#domain-') === 0 && !window._progressHashConsumed) {
+      window._progressHashConsumed = true;
+      const slugFromHash = hash.slice('#domain-'.length);
+      const target = document.getElementById('domain-' + slugFromHash);
+      if (target) {
+        setTimeout(function() {
+          try { target.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (_) {}
+        }, 80);
+      }
+    }
+  } catch (_) {}
 }
 
 function renderProgressPage() {
@@ -5025,36 +5246,38 @@ function _pageRecCard(opts) {
 
 
 // ── Topic Progress page recommendation ──
-// Reuses computeWeakSpotScores() to pick the highest-leverage topic.
+// v7.2.0 (supersedes v4.79.0): locked stop-slop copy from spec §4.2 — eyebrow
+// "WHERE TO DRILL NEXT" + sub "Drilling here moves readiness furthest per
+// minute." (the per-minute language names the unit; the "right now" filler
+// is dropped). Empty state swaps to "Start with the diagnostic" (the spec
+// Q4-A lock — diagnostic is the canonical first action for a fresh user).
 function _pickProgressRecommendation() {
   let weak = null;
   try { weak = (typeof computeWeakSpotScores === 'function') ? computeWeakSpotScores() : null; } catch (_) {}
   if (!weak || weak.length === 0) {
-    // v4.79.0: per Codex round-3 — specific starter topic instead of
-    // generic "Take a custom quiz." Network Models & OSI is the
-    // canonical N10-009 starter (Domain 1.1, foundational concept,
-    // every other domain builds on it).
-    const STARTER_TOPIC = 'Network Models & OSI';
+    // Empty-state CTA: "Start with the diagnostic" — the spec §3.8 + Q4-A
+    // lock. Pre-v7.2.0 this routed to a Network Models & OSI starter quiz;
+    // the v2 redesign anchors fresh users on the diagnostic surface instead.
     return {
-      eyebrow: 'Recommended start',
-      icon: '🚀',
-      headline: 'Start your first ' + STARTER_TOPIC + ' quiz',
-      sub: '10 questions · ~10 min · foundational concept',
-      ctaLabel: 'Start ' + STARTER_TOPIC + ' →',
-      ctaFn: "focusTopic('" + STARTER_TOPIC.replace(/'/g, "\\'") + "');",
-      reason: 'Domain 1.1 · every other topic builds on the OSI model'
+      eyebrow: 'WHERE TO DRILL NEXT',
+      icon: '',
+      headline: 'Start with the diagnostic',
+      sub: 'Take a short diagnostic to see where you stand. We will tailor your study plan from there.',
+      ctaLabel: 'Take the diagnostic →',
+      ctaFn: "goSetup();",
+      reason: 'A 10-question diagnostic surfaces your weakest topics fast.'
     };
   }
   const top = weak[0];
   const topicName = top.topic || 'Unknown';
   return {
-    eyebrow: 'Biggest gap',
-    icon: '🎯',
+    eyebrow: 'WHERE TO DRILL NEXT',
+    icon: '',
     headline: 'Drill ' + topicName,
-    sub: 'Your weakest area right now · short focused session',
+    sub: 'Your weakest studied topic. Drilling here moves readiness furthest per minute.',
     ctaLabel: 'Drill ' + topicName + ' →',
     ctaFn: "focusTopic('" + topicName.replace(/'/g, "\\'") + "');",
-    reason: 'Direct hit on your biggest score gap'
+    reason: 'Direct hit on your biggest score gap.'
   };
 }
 

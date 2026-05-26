@@ -2073,8 +2073,11 @@ test('CSS: .ana-hero-stats styles', css.includes('.ana-hero-stats'));
 // New CSS covers the Progress-CTA button + the new trend arrow.
 test('CSS: .ana-topics-cta-btn styles (v4.42.2 CTA)', css.includes('.ana-topics-cta-btn'));
 test('CSS: .topic-trend styles (v4.42.2 Progress row trend)', css.includes('.topic-trend'));
-// Progress page improvements
-test('Progress: play button on topic rows', js.includes('topic-play-btn'));
+// Progress page improvements (v7.2.0 MIGRATED: spec Q3-A removed the 26x26
+// inner .topic-play-btn — the whole .t-row IS the click target. Asserts the
+// v2 contract: whole-row button + data-topic for delegated drillTopic.)
+test('Progress: row IS the click target (v7.2.0: whole-row <button> per spec Q3-A)',
+  /_progressRowHtml[\s\S]{0,4500}<button[^>]*class="t-row[^>]*data-topic/.test(js));
 test('Progress: play calls focusTopic', js.includes("focusTopic('"));
 test('Progress: domain header mini-bar', js.includes('pd-bar'));
 test('Progress: domain header bar fill', js.includes('pd-bar-fill'));
@@ -2579,7 +2582,13 @@ test('Device labels: light mode fill color', js.includes("const labelFill = isLi
 
 // v4.38.0 — Solid range color: amber → blue
 console.log('\n\x1b[1m── SOLID RANGE COLOR FIX (v4.38.0) ──\x1b[0m');
-test('Solid range uses blue not yellow in progress rows', js.includes("rag-blue") && js.includes("var(--blue)"));
+// v7.2.0 MIGRATED: Progress v2 dropped rag-blue/--blue per-row coloring in
+// favor of a single accent tier system (.o = solid bronze, .s = strong pass
+// green, .w = weak warn yellow). Asserts the v2 contract: pct-class system
+// in _progressRowHtml. styles.css still carries .rag-blue + var(--blue) for
+// other surfaces (Domain Mastery, etc.) so those guards stay green below.
+test('Solid range mapped to .o tier in v2 row markup (v7.2.0 supersedes v4.38.0 rag-blue rule)',
+  /_progressRowHtml[\s\S]{0,4500}tierCls\s*=\s*'o'/.test(js));
 test('CSS has rag-blue class', css.includes('.rag-blue'));
 test('No rag-yellow in CSS', !css.includes('.rag-yellow'));
 test('No pct >= 60 with var(--yellow) in JS', !js.match(/>=\s*60.*var\(--yellow\)/));
@@ -5158,32 +5167,34 @@ test('v4.51.0 HTML: regression — old inline legend dots removed from header',
   !html.includes('<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--green);margin-right:4px">'));
 
 // JS — v2 mastery instrument emission (.pm-bar + .pm-ledger + 4 segments + 4 tier classes)
+// Windows widened to 9000 to accommodate the .pm wrapper appearing later in
+// the function body after the labs block + segment math + isEmpty branch.
 test('v7.2.0: _renderProgressSummary emits .pm wrapper with role=region',
-  /_renderProgressSummary[\s\S]{0,5000}class="pm"[\s\S]{0,200}role="region"/.test(js));
+  /_renderProgressSummary[\s\S]{0,9000}class="pm[\s"][\s\S]{0,400}role="region"/.test(js));
 test('v7.2.0: _renderProgressSummary emits .pm-headline ({N} of {total} studied)',
-  /_renderProgressSummary[\s\S]{0,5000}class="pm-headline"/.test(js));
+  /_renderProgressSummary[\s\S]{0,9000}class="pm-headline"/.test(js));
 test('v7.2.0: _renderProgressSummary emits .pm-bar with role=img',
-  /_renderProgressSummary[\s\S]{0,5000}class="pm-bar"[\s\S]{0,200}role="img"/.test(js));
+  /_renderProgressSummary[\s\S]{0,9000}class="pm-bar[\s\S]{0,200}role="img"/.test(js));
 test('v7.2.0: _renderProgressSummary emits 4 .pm-seg segments (s/o/w/u)',
-  /_renderProgressSummary[\s\S]{0,5000}pm-seg s[\s\S]{0,400}pm-seg o[\s\S]{0,400}pm-seg w[\s\S]{0,400}pm-seg u/.test(js));
+  /_renderProgressSummary[\s\S]{0,9000}pm-seg s[\s\S]{0,400}pm-seg o[\s\S]{0,400}pm-seg w[\s\S]{0,400}pm-seg u/.test(js));
 test('v7.2.0: _renderProgressSummary emits .pm-ledger with 4 .pm-led tiles',
-  /_renderProgressSummary[\s\S]{0,5000}class="pm-ledger"[\s\S]{0,2000}pm-led s[\s\S]{0,400}pm-led o[\s\S]{0,400}pm-led w[\s\S]{0,400}pm-led u/.test(js));
+  /_renderProgressSummary[\s\S]{0,9000}class="pm-ledger[\s\S]{0,2000}pm-led s[\s\S]{0,400}pm-led o[\s\S]{0,400}pm-led w[\s\S]{0,400}pm-led u/.test(js));
 test('v7.2.0: _renderProgressSummary uses tabular nums in .pm-led-n',
-  /_renderProgressSummary[\s\S]{0,5000}class="pm-led-n"/.test(js));
+  /_renderProgressSummary[\s\S]{0,9000}class="pm-led-n/.test(js));
 test('v7.2.0: _renderProgressSummary covered pct line derived from rows (off-by-one fix)',
-  /_renderProgressSummary[\s\S]{0,5000}buckets\.untouched[\s\S]{0,1500}coveragePct/.test(js));
+  /_renderProgressSummary[\s\S]{0,9000}buckets\.untouched[\s\S]{0,1500}coveragePct/.test(js));
 
 // JS — v2 domain readiness strip emission (.dr-strip with 5 .dr-row buttons + data-domain-jump)
 test('v7.2.0: _renderProgressSummary emits .dr-strip with role=region',
-  /_renderProgressSummary[\s\S]{0,8000}class="dr"[\s\S]{0,200}role="region"/.test(js));
+  /_renderProgressSummary[\s\S]{0,12000}class="dr"[\s\S]{0,400}role="region"/.test(js));
 test('v7.2.0: _renderProgressSummary emits .dr-eyebrow strip header',
-  /_renderProgressSummary[\s\S]{0,8000}class="dr-eyebrow"/.test(js));
+  /_renderProgressSummary[\s\S]{0,12000}class="dr-eyebrow"/.test(js));
 test('v7.2.0: _renderProgressSummary emits .dr-row buttons with data-domain-jump',
-  /_renderProgressSummary[\s\S]{0,8000}class="dr-row"[\s\S]{0,400}data-domain-jump/.test(js));
+  /_renderProgressSummary[\s\S]{0,12000}class="dr-row"[\s\S]{0,400}data-domain-jump/.test(js));
 test('v7.2.0: _renderProgressSummary domain readiness rows include .dr-name + .dr-weight + .dr-bar + .dr-pct',
-  /_renderProgressSummary[\s\S]{0,8000}class="dr-name"[\s\S]{0,200}class="dr-weight"[\s\S]{0,200}class="dr-bar"[\s\S]{0,400}class="dr-pct/.test(js));
+  /_renderProgressSummary[\s\S]{0,12000}class="dr-name"[\s\S]{0,400}class="dr-weight"[\s\S]{0,400}class="dr-bar"[\s\S]{0,400}class="dr-pct/.test(js));
 test('v7.2.0: _renderProgressSummary cert-aware domain strip uses CERT_PACK.domainWeights',
-  /_renderProgressSummary[\s\S]{0,8000}(CERT_PACK\.domainWeights|DOMAIN_WEIGHTS)/.test(js));
+  /_renderProgressSummary[\s\S]{0,12000}(CERT_PACK\.domainWeights|DOMAIN_WEIGHTS)/.test(js));
 
 // JS — v2 empty-state branch (rows.every(r => !r.studied))
 test('v7.2.0: _renderProgressSummary has empty-state branch when no rows studied',
@@ -5195,20 +5206,22 @@ test('v7.2.0: empty-state CTA copy "Take the diagnostic"',
   /Take the diagnostic/.test(js));
 
 // JS — v2 row-as-button + chevron pseudo + data-topic delegation
+// Windows widened to 4500 to span the v7.2.0 leading comment block + the
+// verdict/date computation logic, ending at the return template literal.
 test('v7.2.0: _progressRowHtml emits <button class="t-row" instead of <div class="t-row"',
-  /_progressRowHtml[\s\S]{0,2000}<button[^>]*class="t-row/.test(js));
+  /_progressRowHtml[\s\S]{0,4500}<button[^>]*class="t-row/.test(js));
 test('v7.2.0: _progressRowHtml emits data-topic for click delegation',
-  /_progressRowHtml[\s\S]{0,2000}data-topic=/.test(js));
+  /_progressRowHtml[\s\S]{0,4500}data-topic=/.test(js));
 test('v7.2.0: _progressRowHtml emits aria-label on row',
-  /_progressRowHtml[\s\S]{0,2000}aria-label=/.test(js));
+  /_progressRowHtml[\s\S]{0,4500}aria-label/.test(js));
 test('v7.2.0: _progressRowHtml emits .tn/.tnm/.tsub/.tbar/.tpc structure (v2 markup)',
-  /_progressRowHtml[\s\S]{0,2000}class="tn"[\s\S]{0,400}class="tnm"[\s\S]{0,400}class="tbar"[\s\S]{0,400}class="tpc/.test(js));
+  /_progressRowHtml[\s\S]{0,4500}class="tn"[\s\S]{0,800}class="tnm"[\s\S]{0,800}class="tbar"[\s\S]{0,800}class="tpc/.test(js));
 test('v7.2.0: _progressRowHtml applies .untouched class when no studied',
-  /_progressRowHtml[\s\S]{0,2000}untouched/.test(js));
+  /_progressRowHtml[\s\S]{0,4500}untouched/.test(js));
 test('v7.2.0: tombstone — old div.topic-row markup removed from _progressRowHtml',
   !/<div class="topic-row" onclick="drillTopic/.test(js));
-test('v7.2.0: tombstone — old 26x26 .topic-play-btn separate button removed',
-  !/_progressRowHtml[\s\S]{0,2500}topic-play-btn/.test(js));
+test('v7.2.0: tombstone — old 26x26 play button separate element removed from _progressRowHtml',
+  !/_progressRowHtml[\s\S]{0,4500}<button[^>]*topic-play-btn/.test(js));
 
 // JS — v2 click delegation (drillTopic via data-topic + .dr-row scroll-into-view)
 test('v7.2.0: _renderProgressGrouped wires .t-row[data-topic] click delegation',
@@ -5229,9 +5242,10 @@ test('v7.2.0: rec card sub "Drilling here moves readiness furthest per minute."'
 test('v7.2.0: rec card empty-state copy "Start with the diagnostic"',
   /Start with the diagnostic/.test(js));
 
-// JS — _progressRowHtml upgrades (KEPT from v4.51.0)
+// JS — _progressRowHtml upgrades (KEPT from v4.51.0). Window widened to
+// 1200 to span the v7.2.0 leading comment block.
 test('v4.51.0: _progressRowHtml reads domainKey from row',
-  /_progressRowHtml\([^)]*row[\s\S]{0,400}const\s*\{[^}]*domainKey/.test(js));
+  /_progressRowHtml\([^)]*row[\s\S]{0,1200}const\s*\{[^}]*domainKey/.test(js));
 test('v4.51.0: _progressRowHtml uses friendlier date formatting (yesterday / weeks ago / months ago)',
   /yesterday[\s\S]{0,400}days ago[\s\S]{0,400}week ago[\s\S]{0,400}weeks ago[\s\S]{0,400}month ago[\s\S]{0,400}months ago/.test(js));
 test('v4.51.0: regression — terse "Nd ago" date format removed from row renderer',
@@ -16764,10 +16778,15 @@ test('v4.88.0 CertAwareCopy: substitutes ed-pagehead-lede',
 test('v4.88.0 CertAwareCopy: hooked into DOMContentLoaded after chip render',
   /DOMContentLoaded[\s\S]{0,1500}_renderCertAwareCopy\s*\(\)/.test(js));
 
-test('v4.88.0 ObjBadge: topic-obj-badge title uses CERT_CODE template',
-  /title="\$\{CERT_CODE\} objective \$\{obj\}"/.test(js));
-test('v4.88.0 ObjBadge: tombstone — hardcoded "N10-009 objective" removed from template',
+// v7.2.0 MIGRATED: Progress v2 removed the .topic-obj-badge from the row
+// emission (name-led row per mockup; obj badge intentionally dropped, see
+// app.js _progressRowHtml header comment). Tombstone the hardcoded
+// N10-009 path so it can't return. The ObjBadge title template lives on
+// in other surfaces (Home, etc.) so the live cert-aware template stays.
+test('v7.2.0 ObjBadge: tombstone — hardcoded "N10-009 objective" removed from any progress-row template',
   !/title="N10-009 objective \$\{obj\}"/.test(js));
+test('v7.2.0 ObjBadge: _progressRowHtml does NOT emit a topic-obj-badge (v2 name-led)',
+  !/_progressRowHtml[\s\S]{0,4500}topic-obj-badge/.test(js));
 
 // ── v4.88.1: Security+ Home crash fix ──
 // renderSetupDomainGrid had hardcoded Network+ domain keys that crashed when
