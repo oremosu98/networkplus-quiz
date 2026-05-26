@@ -22985,6 +22985,33 @@ test('TB v3 walk: walkthroughs script tag is parser-friendly (no async / no modu
   return !!m && !/\basync\b|type=["']module/.test(m[0]);
 })());
 
+// ─────────────────────────────────────────────────────────────────────
+// Phase 9 Coach · PBQ catalog scaffold (v6.5.19 Task 1)
+// Mirrors the walkthroughs UAT pair above — asserts the sibling PBQ
+// catalog file exists with the expected exports, and is wired in
+// index.html as a parser-friendly script tag loaded after walkthroughs.
+// ─────────────────────────────────────────────────────────────────────
+test('TB v3 PBQs: catalog file exists and exports TB_V3_PBQS array', (function () {
+  const pbqsJs = read('features/topology-builder-v3-pbqs.js');
+  return /var TB_V3_PBQS = \[/.test(pbqsJs);
+})());
+
+test('TB v3 PBQs: catalog file exports PBQ_VERSION constant', (function () {
+  const pbqsJs = read('features/topology-builder-v3-pbqs.js');
+  return /var PBQ_VERSION = ['"][0-9]+\.[0-9]+\.[0-9]+['"]/.test(pbqsJs);
+})());
+
+test('TB v3 PBQs: pbqs script tag is parser-friendly (no async / no module)', (function () {
+  const m = html.match(/<script[^>]*topology-builder-v3-pbqs\.js[^>]*><\/script>/);
+  return !!m && !/\basync\b|type=["']module/.test(m[0]);
+})());
+
+test('TB v3 PBQs: pbqs script tag is loaded after walkthroughs', (function () {
+  const walkIdx = html.indexOf('topology-builder-v3-walkthroughs.js');
+  const pbqsIdx = html.indexOf('topology-builder-v3-pbqs.js');
+  return walkIdx > 0 && pbqsIdx > 0 && pbqsIdx > walkIdx;
+})());
+
 test('TB v3 walk: state declares activeWalkthroughId field', (function () {
   return /activeWalkthroughId\s*:\s*null/.test(tbV3JsForWalk);
 })());
