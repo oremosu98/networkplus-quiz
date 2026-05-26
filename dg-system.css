@@ -3996,6 +3996,11 @@ html[data-theme] body #page-setup .continue-card .cc-action:active{transform:sca
    Spec: docs/superpowers/specs/2026-05-26-tb-v3-coach-design.md §3.3
    ───────────────────────────────────────────────────────────────────── */
 
+/* v6.5.19 Task 15: Coach panel is hidden until the body opts it open.
+   The rrail Coach pill toggles #tb3-body.coach-open in Task 16. */
+#tb3-body .tb3-coach{ display:none; }
+#tb3-body.coach-open .tb3-coach{ display:flex; }
+
 .tb3-coach{
   width:360px;
   background:var(--surface);

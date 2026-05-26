@@ -23903,6 +23903,102 @@ test('TB v3 Coach: PBQ footer has NO free-form input (no .tb3-coach__ask)', (fun
   return ok;
 })());
 
+// ─────────────────────────────────────────────────────────────────────
+// Phase 9 Coach · Mount + render orchestration (v6.5.19 Task 15)
+// mount(host) marks the host element and renders the panel inside it.
+// Idempotent — re-mounting replaces the existing panel rather than
+// appending. setState patches the in-memory _coachState; getCanvasState
+// pulls from window._getState() with a defensive fallback.
+// ─────────────────────────────────────────────────────────────────────
+test('TB v3 Coach: getState returns initial state with sane defaults', (function () {
+  const Coach = _loadCoachWithDom();
+  const s = Coach.getState();
+  const ok = s && s.activePbqId === null
+      && s.currentStepIndex === 0
+      && s.hintsUsed === 0
+      && Array.isArray(s.fbMessages)
+      && s.panelCollapsed === false;
+  _teardownDom();
+  return ok;
+})());
+
+test('TB v3 Coach: setState patches and returns new state, preserves other fields', (function () {
+  const Coach = _loadCoachWithDom();
+  const before = Coach.getState();
+  const after = Coach.setState({ activePbqId: 'pbq-x', hintsUsed: 2 });
+  const ok = after.activePbqId === 'pbq-x'
+      && after.hintsUsed === 2
+      && after.currentStepIndex === before.currentStepIndex
+      && after.panelCollapsed === before.panelCollapsed;
+  _teardownDom();
+  return ok;
+})());
+
+test('TB v3 Coach: getCanvasState reads window._getState when present', (function () {
+  const Coach = _loadCoachWithDom();
+  global.window._getState = function () { return { devices: [{ id: 'r1', type: 'router' }], cables: [] }; };
+  const s = Coach.getCanvasState();
+  delete global.window._getState;
+  _teardownDom();
+  return s && Array.isArray(s.devices) && s.devices.length === 1 && s.devices[0].id === 'r1';
+})());
+
+test('TB v3 Coach: getCanvasState returns empty default when window._getState missing', (function () {
+  const Coach = _loadCoachWithDom();
+  const s = Coach.getCanvasState();
+  _teardownDom();
+  return s && Array.isArray(s.devices) && s.devices.length === 0
+      && Array.isArray(s.cables) && s.cables.length === 0;
+})());
+
+test('TB v3 Coach: mount() marks the host with data-coach-host attr', (function () {
+  const Coach = _loadCoachWithDom();
+  const host = global.document.createElement('div');
+  // Need replaceWith for our shim — provide a real-DOM-like fallback.
+  Coach.mount(host);
+  const ok = host.getAttribute('data-coach-host') === 'true'
+      && !!host.querySelector('.tb3-coach');
+  _teardownDom();
+  return ok;
+})());
+
+test('TB v3 Coach: render() renders FB mode by default (no PBQ active)', (function () {
+  const Coach = _loadCoachWithDom();
+  Coach.setState({ activePbqId: null, currentStepIndex: 0, hintsUsed: 0, fbMessages: [], panelCollapsed: false });
+  const host = global.document.createElement('div');
+  Coach.render(host);
+  const ok = !!host.querySelector('.tb3-coach__mode--fb')
+      && !!host.querySelector('.tb3-coach__feed');
+  _teardownDom();
+  return ok;
+})());
+
+test('TB v3 Coach: render() switches to PBQ mode when activePbqId is set + in range', (function () {
+  const Coach = _loadCoachWithDom([{
+    id: 'pbq-x',
+    task: 'Do the thing.',
+    steps: [{ id: 's1', instruction: 'first', hints: ['a','b','c'], aiPromptSeed: 'x' }],
+  }]);
+  Coach.setState({ activePbqId: 'pbq-x', currentStepIndex: 0, hintsUsed: 0, fbMessages: [], panelCollapsed: false });
+  const host = global.document.createElement('div');
+  Coach.render(host);
+  const ok = !!host.querySelector('.tb3-coach__mode--pbq')
+      && !!host.querySelector('.tb3-coach__hint-rail');
+  // Reset state so other tests don't inherit a PBQ-active mode.
+  Coach.setState({ activePbqId: null, currentStepIndex: 0, hintsUsed: 0, fbMessages: [], panelCollapsed: false });
+  _teardownDom();
+  return ok;
+})());
+
+test('TB v3 Coach: TB v3 module wires a Coach mount call', (function () {
+  // The integration line lives in features/topology-builder-v3.js after
+  // the right-rail is built. Asserts the wire exists (the real mount
+  // verification is in Playwright E2E during Task 19/20).
+  const tbV3Src = read('features/topology-builder-v3.js');
+  return /window\.TbV3Coach[\s\S]*\.mount/.test(tbV3Src)
+      || /TbV3Coach\.mount/.test(tbV3Src);
+})());
+
 test('TB v3 walk: state declares activeWalkthroughId field', (function () {
   return /activeWalkthroughId\s*:\s*null/.test(tbV3JsForWalk);
 })());

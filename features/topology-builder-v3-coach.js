@@ -519,6 +519,86 @@
     return wrap;
   }
 
+  // ── Module-scope ephemeral UI state (Task 15) ──────────────────────
+  // In-memory only; wipes on reload (Memory Level A per spec §3.7).
+  // The cache (Task 5) is the only thing that survives a reload.
+  var _coachState = {
+    activePbqId: null,
+    currentStepIndex: 0,
+    hintsUsed: 0,
+    fbMessages: [],
+    panelCollapsed: false,
+  };
+
+  function getState() { return _coachState; }
+
+  function setState(patch) {
+    if (!patch) return _coachState;
+    var next = {};
+    for (var k in _coachState) {
+      if (Object.prototype.hasOwnProperty.call(_coachState, k)) next[k] = _coachState[k];
+    }
+    for (var k2 in patch) {
+      if (Object.prototype.hasOwnProperty.call(patch, k2)) next[k2] = patch[k2];
+    }
+    _coachState = next;
+    return _coachState;
+  }
+
+  function getCanvasState() {
+    if (typeof window !== 'undefined' && typeof window._getState === 'function') {
+      try { return window._getState() || {}; } catch (e) { /* fall through */ }
+    }
+    return { devices: [], cables: [] };
+  }
+
+  // bindActions is a stub at Task 15; Task 16 fills it in.
+  function bindActions(/* shell, host */) {}
+
+  // ── Mount + render orchestration (Task 15) ─────────────────────────
+  // mount(host) marks the host with [data-coach-host], renders the
+  // panel inside it. Idempotent — subsequent calls replace the panel
+  // rather than appending.
+  function render(host) {
+    if (!host) return;
+    var canvas = getCanvasState();
+    var combined = {};
+    for (var k in canvas) {
+      if (Object.prototype.hasOwnProperty.call(canvas, k)) combined[k] = canvas[k];
+    }
+    for (var k2 in _coachState) {
+      if (Object.prototype.hasOwnProperty.call(_coachState, k2)) combined[k2] = _coachState[k2];
+    }
+    var mode = getCoachMode(combined);
+    var shell = renderShell({ mode: mode, state: combined });
+    var body = shell.querySelector('.tb3-coach__body');
+    var footer = shell.querySelector('.tb3-coach__footer');
+    if (mode === 'pbq') {
+      if (body) body.appendChild(renderPbqBody(combined));
+      if (footer) footer.appendChild(renderPbqFooter());
+    } else {
+      if (body) body.appendChild(renderFbBody(_coachState.fbMessages));
+      if (footer) footer.appendChild(renderFbFooter());
+    }
+    bindActions(shell, host);
+
+    var existing = host.querySelector('.tb3-coach');
+    if (existing && typeof existing.replaceWith === 'function') {
+      existing.replaceWith(shell);
+    } else if (existing && existing.parentNode) {
+      existing.parentNode.removeChild(existing);
+      host.appendChild(shell);
+    } else {
+      host.appendChild(shell);
+    }
+  }
+
+  function mount(host) {
+    if (!host) return;
+    host.setAttribute('data-coach-host', 'true');
+    render(host);
+  }
+
   // ── Module export ──────────────────────────────────────────────────
   var TbV3Coach = {
     COACH_VERSION: COACH_VERSION,
@@ -546,6 +626,11 @@
     renderPbqFooter: renderPbqFooter,
     renderFbFooter: renderFbFooter,
     el: el,
+    mount: mount,
+    render: render,
+    getState: getState,
+    setState: setState,
+    getCanvasState: getCanvasState,
   };
 
   if (typeof window !== 'undefined') {

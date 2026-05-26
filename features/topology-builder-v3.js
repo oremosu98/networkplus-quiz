@@ -132,6 +132,17 @@
     _loadState();
     _migrateStateTypesToV1();
     _renderWorkspace();
+    _mountCoachPanel();
+  }
+
+  // v6.5.19 Phase 9 Task 15 — mount the Coach side panel into the TB v3
+  // body. The panel stays CSS-hidden until #tb3-body carries the
+  // `coach-open` class (Task 16 wires the rrail Coach pill to toggle).
+  function _mountCoachPanel() {
+    var body = document.getElementById('tb3-body');
+    if (!body || typeof window.TbV3Coach !== 'object') return;
+    // Mount once; idempotent calls just re-render against current state.
+    window.TbV3Coach.mount(body);
   }
 
   // ───────────────────────────────────────────────────────────
