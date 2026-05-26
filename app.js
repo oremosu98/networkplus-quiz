@@ -798,8 +798,6 @@ const STORAGE = {
   // pair is active based on CURRENT_CERT.
   SAB_MASTERY: 'nplus_sab_mastery',
   SAB_LESSONS: 'nplus_sab_lessons',
-  AMM_MASTERY: 'nplus_amm_mastery',  // v4.94.0: Security+ Attack-to-Mitigation Match drill
-  AMM_LESSONS: 'nplus_amm_lessons',
   CTS_MASTERY: 'nplus_cts_mastery',  // v4.95.0: Security+ Control Type Sorter drill
   CTS_LESSONS: 'nplus_cts_lessons',
   PT_MASTERY:  'nplus_pt_mastery',   // v4.96.0: Network+ Packet Trace drill (per-scenario)
@@ -2083,15 +2081,12 @@ const PRO_ONLY_PAGES = {
   'topology-builder': 'Network Builder',
   'acl': 'ACL Builder',
   'acronyms': 'Acronym Blitz',
-  'amm': 'Attack-to-Mitigation Match',
+  // MVP-QUIZ-ONLY (Ship 1): 'amm'/'cts'/'irw'/'pht' Pro-only page labels removed.
   'cables': 'Cable & Connector ID',
-  'cts': 'Control Type Sorter',
   'guided-lab': 'Topology Lab',
-  'irw': 'IR War Room',
   'monitor': 'Network Monitor',
   'network-analysis': 'Network Analysis',
   'osi-sorter': 'OSI Sorter',
-  'pht': 'Phishing Triage Lab',
   'ports': 'Port Drill',
   'ptr': 'Packet Trace',
   'subnet': 'Subnet Trainer'
@@ -2223,7 +2218,7 @@ function _renderSecPlusDrillsLauncher() {
   pageEl.innerHTML = ''
     + '<div class="ed-pagehead"><div class="ed-section-meta">Security+ Drills</div>'
     +   '<h1 class="ed-pagehead-h1">Pick a drill</h1>'
-    +   '<p class="ed-pagehead-lede">SY0-701-specific drills designed to move you closer to passing. All 5 are live: Acronym Blitz, Attack-to-Mitigation, Control Type Sorter, plus the two flagships — Incident Response War Room (Domain 4) and Phishing Triage Lab (Domain 2).</p>'
+    +   '<p class="ed-pagehead-lede">SY0-701-specific drills designed to move you closer to passing. Quiz + Acronym Blitz are the MVP path — the flagship drills + sorters return in a future ship.</p>'
     + '</div>'
     + '<div class="secplus-drill-grid">'
     +   '<a class="secplus-drill-tile" href="#" onclick="showPage(\'acronyms\');startAcronymBlitz();return false;">'
@@ -2231,13 +2226,6 @@ function _renderSecPlusDrillsLauncher() {
     +     '<div class="secplus-drill-tile-icon" aria-hidden="true"></div>'
     +     '<div class="secplus-drill-tile-title">Acronym Blitz</div>'
     +     '<div class="secplus-drill-tile-sub">120 SY0-701 acronyms across 7 categories. Recognition speed = exam speed.</div>'
-    +     '<div class="secplus-drill-tile-meta">All 5 domains · ~5 min/session</div>'
-    +   '</a>'
-    +   '<a class="secplus-drill-tile" href="#" onclick="showPage(\'amm\');startAttackMitigation();return false;">'
-    +     '<span class="secplus-drill-tile-badge">LIVE</span>'
-    +     '<div class="secplus-drill-tile-icon" aria-hidden="true"></div>'
-    +     '<div class="secplus-drill-tile-title">Attack-to-Mitigation Match</div>'
-    +     '<div class="secplus-drill-tile-sub">96 attack/mitigation pairs across 5 categories. Build the "if I see X, the answer is Y" muscle memory.</div>'
     +     '<div class="secplus-drill-tile-meta">All 5 domains · ~5 min/session</div>'
     +   '</a>'
     +   '<a class="secplus-drill-tile" href="#" onclick="showPage(\'cts\');startControlTypeSorter();return false;">'
@@ -16460,20 +16448,6 @@ const AB_LESSONS = _USE_SECPLUS_AB && Array.isArray(CERT_PACK.acronymLessons)
 const _AB_MASTERY_KEY = _USE_SECPLUS_AB ? STORAGE.SAB_MASTERY : STORAGE.AB_MASTERY;
 const _AB_LESSONS_KEY = _USE_SECPLUS_AB ? STORAGE.SAB_LESSONS : STORAGE.AB_LESSONS;
 
-// ── Attack-to-Mitigation Match (v4.94.0, issue #301) ────────────────────
-// Cert-pack-only drill: Security+ users get AMM data from the secplus pack;
-// Network+ has no AMM (the bank is empty in netplus.js). Same cert-aware
-// pattern as SAB above: read CERT_PACK at module load + gate sidebar entry
-// on _USE_SECPLUS_AMM. Visual contract locked to mockup State 3.
-const _SECPLUS_HAS_AMM = typeof CERT_PACK === 'object' && CERT_PACK !== null
-  && Array.isArray(CERT_PACK.attackMitigationPairs) && CERT_PACK.attackMitigationPairs.length > 0;
-const _USE_SECPLUS_AMM = (typeof CURRENT_CERT !== 'undefined') && CURRENT_CERT === 'secplus' && _SECPLUS_HAS_AMM;
-const AMM_DATA = _USE_SECPLUS_AMM ? CERT_PACK.attackMitigationPairs : [];
-const AMM_CATEGORIES = _USE_SECPLUS_AMM ? CERT_PACK.attackMitigationCategories : {};
-const AMM_CAT_IDS = Object.keys(AMM_CATEGORIES);
-const AMM_LESSONS = _USE_SECPLUS_AMM && Array.isArray(CERT_PACK.attackMitigationLessons)
-  ? CERT_PACK.attackMitigationLessons : [];
-
 // ── Control Type Sorter (v4.95.0, issue #302) ───────────────────────────
 // Cert-pack-only drill: Security+ users get 120 controls across the CompTIA
 // 6-types × 4-categories matrix. Dual-axis MCQ — pick TYPE (1-of-6) AND
@@ -16971,346 +16945,6 @@ function startOsiSorter() {
   osRenderLevelBadge();
   // v4.81.10: Drill Mission Card (Codex r8)
   if (typeof renderOsiMission === 'function') renderOsiMission();
-}
-
-// ── Attack-to-Mitigation Match (v4.94.0, issue #301) ──────────────────────
-// Standalone drill (not via createDrillScaffold) — simpler than AB. 10-question
-// session, mastery weighted toward weakest categories. Visual contract locked
-// to mockup State 3: attack-card → "↓ pick the right defense" → 2x2 option
-// grid → reveal panel with `why` explanation.
-let ammQ = null, ammIdx = 0, ammCorrect = 0, ammTotal = 0, ammStreak = 0;
-let ammSessionLength = 10, ammSessionDone = false;
-let ammQuestionStartTime = 0;
-
-function getAmmMastery() {
-  try {
-    const raw = JSON.parse(localStorage.getItem(STORAGE.AMM_MASTERY) || 'null');
-    if (raw && raw.perPair) return raw;
-  } catch (_) {}
-  return ammInitMastery();
-}
-
-function ammInitMastery() {
-  const m = { totalAnswered: 0, totalCorrect: 0, perPair: {}, perCategory: {} };
-  AMM_DATA.forEach(p => { m.perPair[p.id] = { seen: 0, correct: 0, box: 1, streak: 0, lastSeen: null }; });
-  AMM_CAT_IDS.forEach(c => { m.perCategory[c] = { seen: 0, correct: 0, streak: 0 }; });
-  return m;
-}
-
-function saveAmmMastery(m) {
-  try { localStorage.setItem(STORAGE.AMM_MASTERY, JSON.stringify(m)); _cloudFlush(STORAGE.AMM_MASTERY); } catch (_) {}
-}
-
-function updateAmmMastery(pairId, wasCorrect) {
-  const m = getAmmMastery();
-  const pair = AMM_DATA.find(p => p.id === pairId);
-  if (!pair) return;
-  if (!m.perPair[pairId]) m.perPair[pairId] = { seen: 0, correct: 0, box: 1, streak: 0, lastSeen: null };
-  if (!m.perCategory[pair.cat]) m.perCategory[pair.cat] = { seen: 0, correct: 0, streak: 0 };
-  const pi = m.perPair[pairId];
-  const pc = m.perCategory[pair.cat];
-  pi.seen++; pc.seen++; m.totalAnswered++;
-  if (wasCorrect) {
-    pi.correct++; pc.correct++; m.totalCorrect++;
-    pi.streak++; pc.streak++;
-    pi.box = Math.min(5, pi.box + 1);
-  } else {
-    pi.streak = 0; pc.streak = 0;
-    pi.box = Math.max(1, pi.box - 1);
-  }
-  pi.lastSeen = Date.now();
-  saveAmmMastery(m);
-}
-
-function ammPickPair() {
-  // Weight toward weakest categories + un-mastered pairs (box < 3)
-  const m = getAmmMastery();
-  // Compute category weights — lower mastery → higher weight
-  const catScores = {};
-  AMM_CAT_IDS.forEach(c => {
-    const pc = m.perCategory[c] || { seen: 0, correct: 0 };
-    const acc = pc.seen > 0 ? pc.correct / pc.seen : 0;
-    catScores[c] = 1.5 - acc;  // 0.5 if perfect, 1.5 if untouched
-  });
-  // Build weighted candidate pool — un-mastered pairs first
-  const unmastered = AMM_DATA.filter(p => {
-    const pi = m.perPair[p.id] || { box: 1 };
-    return pi.box < 3;
-  });
-  const pool = unmastered.length >= 5 ? unmastered : AMM_DATA;
-  // Weighted random pick
-  const weights = pool.map(p => catScores[p.cat] || 1);
-  const total = weights.reduce((s, w) => s + w, 0);
-  let r = Math.random() * total;
-  for (let i = 0; i < pool.length; i++) {
-    r -= weights[i];
-    if (r <= 0) return pool[i];
-  }
-  return pool[pool.length - 1];
-}
-
-function ammNextQuestion() {
-  if (ammIdx >= ammSessionLength) { ammEndSession(); return; }
-  ammIdx++;
-  const pair = ammPickPair();
-  // Build options: correct + 3 distractors (already authored), shuffled
-  const opts = [
-    { ...pair.correct, isCorrect: true },
-    ...pair.distractors.map(d => ({ ...d, isCorrect: false }))
-  ].sort(() => Math.random() - 0.5);
-  ammQ = { pair, opts };
-  ammQuestionStartTime = Date.now();
-  ammRenderQuestion();
-}
-
-function ammRenderQuestion() {
-  const card = document.getElementById('amm-q-card');
-  if (!card || !ammQ) return;
-  const pair = ammQ.pair;
-  const cat = AMM_CATEGORIES[pair.cat];
-  const diffPips = Array.from({length: 3}, (_, i) => `<i class="amm-pip${i < (pair.diff || 1) ? ' on' : ''}"></i>`).join('');
-  card.classList.remove('amm-q-revealed');
-  card.innerHTML = `
-    <div class="amm-q-eyebrow">Attack &rarr; Mitigation</div>
-    <div class="amm-q-attack-card">
-      <span class="amm-q-attack-icon"></span>
-      <div>
-        <div class="amm-q-attack-name">${escHtml(pair.attack)}</div>
-        <div class="amm-q-attack-sub">${escHtml(cat ? cat.label : pair.cat)}</div>
-        <div class="amm-q-attack-meta">SY0-701 &middot; Domain ${escHtml(pair.obj || '?')} &middot; <span class="amm-pips">${diffPips}</span></div>
-      </div>
-    </div>
-    <div class="amm-q-arrow">&darr; pick the right defense</div>
-    <div class="amm-q-grid">
-      ${ammQ.opts.map((o, i) => `
-        <button class="amm-q-opt" data-amm-opt="${i}" onclick="ammPickAnswer(${i})">
-          <div class="amm-q-opt-name">${escHtml(o.name)}</div>
-          <div class="amm-q-opt-sub">${escHtml(o.sub)}</div>
-        </button>
-      `).join('')}
-    </div>
-    <div id="amm-reveal" class="is-hidden"></div>
-    <div class="amm-q-foot">
-      <span class="amm-q-foot-diff">Difficulty: <span class="amm-pips">${diffPips}</span></span>
-      <span class="amm-q-progress">Q ${ammIdx} / ${ammSessionLength}</span>
-    </div>
-  `;
-  // Update stats strip
-  const scoreEl = document.getElementById('amm-score');
-  const streakEl = document.getElementById('amm-streak');
-  const progEl = document.getElementById('amm-q-progress');
-  const badgeEl = document.getElementById('amm-streak-badge');
-  if (scoreEl) scoreEl.textContent = ammCorrect + ' / ' + ammTotal;
-  if (streakEl) streakEl.textContent = ammStreak;
-  if (progEl) progEl.textContent = 'Q ' + ammIdx + ' / ' + ammSessionLength;
-  if (badgeEl) badgeEl.textContent = ammStreak;
-}
-
-function ammPickAnswer(optIdx) {
-  if (!ammQ) return;
-  const opt = ammQ.opts[optIdx];
-  if (!opt) return;
-  const pair = ammQ.pair;
-  ammTotal++;
-  const isCorrect = !!opt.isCorrect;
-  if (isCorrect) { ammCorrect++; ammStreak++; } else { ammStreak = 0; }
-  updateAmmMastery(pair.id, isCorrect);
-
-  // Highlight options + show reveal
-  document.querySelectorAll('.amm-q-opt').forEach((btn, i) => {
-    btn.disabled = true;
-    const o = ammQ.opts[i];
-    if (o.isCorrect) btn.classList.add('is-correct');
-    if (i === optIdx && !isCorrect) btn.classList.add('is-wrong');
-  });
-  const reveal = document.getElementById('amm-reveal');
-  if (reveal) {
-    const correctOpt = ammQ.opts.find(o => o.isCorrect);
-    reveal.classList.remove('is-hidden');
-    reveal.innerHTML = `
-      <div class="amm-reveal">
-        <div class="amm-reveal-head">${isCorrect ? 'Correct' : 'Why ' + escHtml(correctOpt.name) + ' beats the trap'}</div>
-        <p class="amm-reveal-prose">${escHtml(pair.why)}</p>
-        <div class="amm-reveal-actions">
-          <button class="btn btn-primary amm-reveal-btn" onclick="ammNextQuestion()">${ammIdx >= ammSessionLength ? 'See results &rarr;' : 'Next question &rarr;'}</button>
-        </div>
-      </div>
-    `;
-  }
-  // Update stats
-  const scoreEl = document.getElementById('amm-score');
-  const streakEl = document.getElementById('amm-streak');
-  const badgeEl = document.getElementById('amm-streak-badge');
-  if (scoreEl) scoreEl.textContent = ammCorrect + ' / ' + ammTotal;
-  if (streakEl) streakEl.textContent = ammStreak;
-  if (badgeEl) badgeEl.textContent = ammStreak;
-  if (typeof evaluateMilestones === 'function') evaluateMilestones();
-}
-
-function ammEndSession() {
-  ammSessionDone = true;
-  const card = document.getElementById('amm-q-card');
-  const endCard = document.getElementById('amm-end-card');
-  if (card) card.classList.add('is-hidden');
-  if (!endCard) return;
-  endCard.classList.remove('is-hidden');
-  // Compute weakest category
-  const m = getAmmMastery();
-  let weakest = null, weakestAcc = 1.1;
-  AMM_CAT_IDS.forEach(c => {
-    const pc = m.perCategory[c] || { seen: 0, correct: 0 };
-    if (pc.seen >= 1) {
-      const acc = pc.correct / pc.seen;
-      if (acc < weakestAcc) { weakestAcc = acc; weakest = c; }
-    }
-  });
-  const weakestLabel = weakest ? AMM_CATEGORIES[weakest].label : '—';
-  const acc = ammTotal > 0 ? Math.round((ammCorrect / ammTotal) * 100) : 0;
-  endCard.innerHTML = `
-    <div class="amm-eos-card">
-      <div class="amm-eos-burst"></div>
-      <h2 class="amm-eos-title">Drill complete.</h2>
-      <p class="amm-eos-sub">${ammCorrect}/${ammTotal} right &middot; ${ammStreak >= 5 ? ammStreak + '-question streak!' : 'Keep stacking those reps.'}</p>
-      <div class="amm-eos-score-row">
-        <div class="amm-eos-score-tile"><div class="amm-eos-score-num">${acc}%</div><div class="amm-eos-score-lbl">accuracy</div></div>
-        <div class="amm-eos-score-tile"><div class="amm-eos-score-num">${ammCorrect}</div><div class="amm-eos-score-lbl">correct</div></div>
-        <div class="amm-eos-score-tile"><div class="amm-eos-score-num">${m.totalAnswered}</div><div class="amm-eos-score-lbl">total seen</div></div>
-      </div>
-      ${weakest ? `<div class="amm-eos-weak"><strong>Next focus:</strong> ${escHtml(weakestLabel)} (${Math.round(weakestAcc * 100)}% mastered) — drill weighted there next.</div>` : ''}
-      <div class="amm-eos-actions">
-        <button class="btn btn-primary" onclick="startAttackMitigation()">Practice again →</button>
-        <button class="btn btn-ghost" onclick="setAmmTab('dashboard')">Back to dashboard</button>
-      </div>
-    </div>
-  `;
-}
-
-function ammRenderLessons() {
-  const host = document.getElementById('amm-lessons-content');
-  if (!host) return;
-  if (!AMM_LESSONS.length) {
-    host.innerHTML = '<p style="text-align:center;color:var(--text-mid);padding:32px">No lessons available for this cert.</p>';
-    return;
-  }
-  host.innerHTML = AMM_LESSONS.map(l => {
-    const cat = AMM_CATEGORIES[l.cat] || { label: l.cat, icon: '', color: 'var(--accent)' };
-    return `
-      <div class="amm-lesson-card">
-        <div class="amm-lesson-head">
-          <div class="amm-lesson-icon"></div>
-          <div>
-            <div class="amm-lesson-title">${escHtml(l.title)}</div>
-            <div class="amm-lesson-sub">${escHtml(l.summary)}</div>
-          </div>
-        </div>
-        <div class="amm-lesson-pair-table">
-          <div class="amm-lesson-pair-h">Attack</div>
-          <div class="amm-lesson-pair-h">Best mitigation</div>
-          ${(l.keyPairs || []).map(([a, m]) => `
-            <div class="amm-lesson-pair-cell amm-pair-attack">${escHtml(a)}</div>
-            <div class="amm-lesson-pair-cell amm-pair-mit">${escHtml(m)}</div>
-          `).join('')}
-        </div>
-      </div>
-    `;
-  }).join('');
-}
-
-function ammRenderDashboard() {
-  const host = document.getElementById('amm-dashboard-content');
-  if (!host) return;
-  const m = getAmmMastery();
-  const totalMastered = Object.values(m.perPair).filter(p => p.box >= 3).length;
-  const totalSeen = Object.values(m.perPair).filter(p => p.seen > 0).length;
-  const overallAcc = m.totalAnswered > 0 ? Math.round((m.totalCorrect / m.totalAnswered) * 100) : 0;
-
-  // Find weakest category
-  const catRows = AMM_CAT_IDS.map(c => {
-    const cat = AMM_CATEGORIES[c];
-    const pc = m.perCategory[c] || { seen: 0, correct: 0 };
-    const total = AMM_DATA.filter(p => p.cat === c).length;
-    const mastered = AMM_DATA.filter(p => p.cat === c && (m.perPair[p.id] || {}).box >= 3).length;
-    const pct = total > 0 ? Math.round((mastered / total) * 100) : 0;
-    return { c, cat, mastered, total, pct, seen: pc.seen, correct: pc.correct };
-  });
-  const weakestCat = catRows.filter(r => r.seen > 0).sort((a, b) => a.pct - b.pct)[0] || null;
-
-  host.innerHTML = `
-    <div class="amm-dash">
-      <div class="amm-dash-card">
-        <div class="amm-dash-card-head">Categories &middot; mastery</div>
-        <div class="amm-dash-cat-list">
-          ${catRows.map(r => `
-            <div class="amm-dash-cat-row">
-              <span class="amm-dash-cat-icon"></span>
-              <div>
-                <div class="amm-dash-cat-name">${escHtml(r.cat.label)}</div>
-                <div class="amm-dash-cat-bar"><div class="amm-dash-cat-bar-fill" style="width:${r.pct}%"></div></div>
-              </div>
-              <span class="amm-dash-cat-pct">${r.mastered}/${r.total}</span>
-              <span class="amm-dash-cat-count">${r.pct}%</span>
-            </div>
-          `).join('')}
-        </div>
-      </div>
-      <div class="amm-dash-side">
-        <div class="amm-dash-streak">
-          <div class="amm-dash-streak-flame"></div>
-          <div class="amm-dash-streak-num">${ammStreak}</div>
-          <div class="amm-dash-streak-lbl">current streak</div>
-        </div>
-        ${weakestCat ? `
-          <div class="amm-dash-card amm-dash-weakest">
-            <div class="amm-dash-card-head">Weakest category</div>
-            <div class="amm-dash-weak-name">${escHtml(weakestCat.cat.label)}</div>
-            <div class="amm-dash-weak-sub">${weakestCat.total - weakestCat.mastered} pairs not mastered yet. Drill weighted there.</div>
-          </div>
-        ` : ''}
-        <button class="amm-dash-cta" onclick="startAttackMitigation()">Start ${ammSessionLength}-question drill →</button>
-        <div class="amm-dash-overall">
-          <div><span class="amm-dash-overall-num">${totalMastered}</span><span class="amm-dash-overall-lbl">mastered</span></div>
-          <div><span class="amm-dash-overall-num">${totalSeen}</span><span class="amm-dash-overall-lbl">seen</span></div>
-          <div><span class="amm-dash-overall-num">${overallAcc}%</span><span class="amm-dash-overall-lbl">accuracy</span></div>
-        </div>
-      </div>
-    </div>
-  `;
-}
-
-function setAmmTab(tabId) {
-  // Highlight tab buttons
-  document.querySelectorAll('.amm-tab-btn').forEach(b => {
-    const id = b.id.replace('amm-tab-btn-', '');
-    const active = id === tabId;
-    b.classList.toggle('amm-tab-active', active);
-    b.setAttribute('aria-selected', active ? 'true' : 'false');
-    b.tabIndex = active ? 0 : -1;
-  });
-  // Show/hide panels
-  ['practice', 'lessons', 'dashboard'].forEach(p => {
-    const panel = document.getElementById('amm-tab-' + p);
-    if (!panel) return;
-    panel.classList.toggle('is-hidden', p !== tabId);
-  });
-  if (tabId === 'lessons') ammRenderLessons();
-  else if (tabId === 'dashboard') ammRenderDashboard();
-}
-
-function startAttackMitigation() {
-  if (!_USE_SECPLUS_AMM) {
-    if (typeof showToast === 'function') showToast('Attack-to-Mitigation drill is Security+ only.', 'info');
-    return;
-  }
-  // Reset session state
-  ammIdx = 0; ammCorrect = 0; ammTotal = 0; ammStreak = 0;
-  ammSessionDone = false;
-  // Show practice tab + render first question
-  setAmmTab('practice');
-  const card = document.getElementById('amm-q-card');
-  const endCard = document.getElementById('amm-end-card');
-  if (card) card.classList.remove('is-hidden');
-  if (endCard) endCard.classList.add('is-hidden');
-  ammNextQuestion();
 }
 
 // ── Control Type Sorter (v4.95.0, issue #302) ──────────────────────────────
@@ -19033,13 +18667,10 @@ const APP_SIDEBAR_DRILLS = [
 // they ship. The Acronym Blitz handler reuses startAcronymBlitz — the
 // scaffold itself is cert-aware via _USE_SECPLUS_AB at module load.
 const APP_SIDEBAR_DRILLS_SECPLUS = [
-  { page: 'acronyms', label: 'Acronym Blitz', handler: () => { showPage('acronyms'); if (typeof startAcronymBlitz === 'function') startAcronymBlitz(); } },
-  { page: 'amm', label: 'Attack-to-Mitigation', handler: () => { showPage('amm'); if (typeof startAttackMitigation === 'function') startAttackMitigation(); } },
-  { page: 'cts', label: 'Control Type Sorter', handler: () => { showPage('cts'); if (typeof startControlTypeSorter === 'function') startControlTypeSorter(); } }
-  // v4.98.6: IR War Room (#312) + Phishing Triage Lab (#313) moved to the
-  // Practice section as Sec+ flagships — they no longer appear here so the
-  // sidebar isn't duplicating them. Mirrors the Network+ pattern where the
-  // flagships (TB + ACL) live in Practice + the supporting drills live here.
+  { page: 'acronyms', label: 'Acronym Blitz', handler: () => { showPage('acronyms'); if (typeof startAcronymBlitz === 'function') startAcronymBlitz(); } }
+  // MVP-QUIZ-ONLY (Ship 1): Attack-to-Mitigation (#amm) entry deleted.
+  // Control Type Sorter (#cts) entry deleted in next pass.
+  // Previously deleted: IRW + PHT flagships (Ship 1 part 1).
 ];
 
 // Map arbitrary page names to their sidebar highlight target. Quiz/exam/review
@@ -19056,11 +18687,8 @@ const SIDEBAR_ACTIVE_MAP = {
   'subnet': 'subnet',
   'ports': 'ports',
   'acronyms': 'acronyms',
-  'amm': 'amm',  // v4.94.0: Attack-to-Mitigation drill highlights itself
-  'cts': 'cts',  // v4.95.0: Control Type Sorter drill highlights itself
+  // MVP-QUIZ-ONLY (Ship 1): 'amm'/'cts'/'irw'/'pht' highlight entries removed.
   'ptr': 'ptr', // v4.96.0: Packet Trace drill highlights itself (NOT 'pt' — Port Drill owns that prefix)
-  'irw': 'irw',  // v4.97.0: IR War Room flagship highlights itself
-  'pht': 'pht',  // v4.98.0: Phishing Triage Lab flagship highlights itself
   'osi-sorter': 'osi-sorter',
   'cables': 'cables',
   'network-analysis': 'network-analysis',
@@ -19078,8 +18706,7 @@ function _sbNavIcon(pageId) {
     'analytics': '<svg viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.6"/><rect x="14" y="3" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.6"/><rect x="3" y="14" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.6"/><rect x="14" y="14" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.6"/></svg>',
     'topology-builder': '<svg viewBox="0 0 24 24" fill="none"><circle cx="7" cy="7" r="2.5" stroke="currentColor" stroke-width="1.6"/><circle cx="17" cy="7" r="2.5" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="17" r="2.5" stroke="currentColor" stroke-width="1.6"/><path d="M9 8l3 7M15 8l-3 7" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>',
     'acl': '<svg viewBox="0 0 24 24" fill="none"><path d="M4 6h16M4 10h16M4 14h16M4 18h16" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M8 6v12" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" opacity="0.5"/></svg>',
-    'irw': '<svg viewBox="0 0 24 24" fill="none"><path d="M12 3l9 4.5v5c0 5-4 9.5-9 10.5-5-1-9-5.5-9-10.5v-5L12 3z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M12 8v4M12 15h.01" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>',
-    'pht': '<svg viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M3 7l9 5 9-5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    // MVP-QUIZ-ONLY (Ship 1): 'irw' + 'pht' sidebar nav icons removed.
     'subnet': '<svg viewBox="0 0 24 24" fill="none"><path d="M12 3v1M12 20v1M4.22 4.22l.7.7M18.36 18.36l.7.7M1 12h1M22 12h1M4.22 19.78l.7-.7M18.36 5.64l.7-.7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.6"/></svg>',
     'ports': '<svg viewBox="0 0 24 24" fill="none"><path d="M5 5h4v4H5zM15 5h4v4h-4zM5 15h4v4H5z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M17 15v6M14 18h6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>',
     'acronyms': '<svg viewBox="0 0 24 24" fill="none"><path d="M4 7h6M4 12h4M4 17h8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M14 7h6M12 12h8M16 17h4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" opacity="0.5"/></svg>',
@@ -19088,7 +18715,7 @@ function _sbNavIcon(pageId) {
     'network-analysis': '<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.6"/><path d="M12 7v5l3 3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>',
     'ptr': '<svg viewBox="0 0 24 24" fill="none"><path d="M5 12h14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M12 5l7 7-7 7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>',
     'settings': '<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.6"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1.08-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1.08 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1.08 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1.08z" stroke="currentColor" stroke-width="1.4"/></svg>',
-    'amm': '<svg viewBox="0 0 24 24" fill="none"><path d="M6 18L18 6M18 18L6 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="6" cy="6" r="2" stroke="currentColor" stroke-width="1.4"/><circle cx="18" cy="18" r="2" stroke="currentColor" stroke-width="1.4"/></svg>',
+    // MVP-QUIZ-ONLY (Ship 1): 'amm' sidebar nav icon removed.
     'cts': '<svg viewBox="0 0 24 24" fill="none"><path d="M4 6h7M13 6h7M4 12h7M13 12h7M4 18h7M13 18h7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="7" cy="6" r="1.5" fill="currentColor"/><circle cx="17" cy="12" r="1.5" fill="currentColor"/><circle cx="7" cy="18" r="1.5" fill="currentColor"/></svg>',
     'topology-builder-v2': '<svg viewBox="0 0 24 24" fill="none"><circle cx="7" cy="7" r="2.5" stroke="currentColor" stroke-width="1.6"/><circle cx="17" cy="7" r="2.5" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="17" r="2.5" stroke="currentColor" stroke-width="1.6"/><path d="M9 8l3 7M15 8l-3 7" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M7 10v2M17 10v2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" opacity="0.5"/></svg>'
   };
@@ -19356,11 +18983,9 @@ const TOPBAR_CRUMBS = {
   'subnet': 'Subnet Mastery',
   'ports': 'Port Drill',
   'acronyms': 'Acronym Blitz',
-  'amm': 'Attack-to-Mitigation',  // v4.94.0
+  // MVP-QUIZ-ONLY (Ship 1): 'amm'/'irw'/'pht' crumb labels removed. 'cts' next pass.
   'cts': 'Control Type Sorter',  // v4.95.0
   'ptr': 'Packet Trace',         // v4.96.0 (page id is 'ptr' to avoid pt- collision with Port Drill)
-  'irw': 'IR War Room',          // v4.97.0 (Sec+ flagship #1 — incident response)
-  'pht': 'Phishing Triage Lab',  // v4.98.0 (Sec+ flagship #2 — click-the-flag inbox)
   'osi-sorter': 'OSI Sorter',
   'cables': 'Cable ID',
   'network-analysis': 'Network Analysis',
