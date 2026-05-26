@@ -23376,6 +23376,28 @@ test('TB v3 Coach: CSS defines .tb3-picker-row-pbq with accent border + reduced-
 })());
 
 // ─────────────────────────────────────────────────────────────────────
+// Phase 9 Coach · Motion polish (v6.5.19 Task 22)
+// Panel entrance animation with emil-design-eng tokens + reduced-motion
+// gate. Never starts from scale(0) — always from ~0.985 + translateY.
+// ─────────────────────────────────────────────────────────────────────
+
+test('TB v3 Coach: dg-system.css declares tb3CoachIn entrance keyframe with ease-out cubic-bezier', (function () {
+  const dgCss = read('dg-system.css');
+  return /@keyframes tb3CoachIn/.test(dgCss)
+      && /cubic-bezier\(0\.23,\s*1,\s*0\.32,\s*1\)/.test(dgCss)
+      && /scale\(0\.985\)/.test(dgCss)
+      && /coach-open[\s\S]{0,200}animation:\s*tb3CoachIn/.test(dgCss);
+})());
+
+test('TB v3 Coach: panel entrance respects prefers-reduced-motion (no scale(0))', (function () {
+  const dgCss = read('dg-system.css');
+  // Tombstone — animation must never start from scale(0).
+  const noScaleZero = !/from\s*\{[^}]*scale\(0\)/.test(dgCss.match(/@keyframes tb3CoachIn[\s\S]*?\}\s*\}/)?.[0] || '');
+  const hasReducedMotionGate = /prefers-reduced-motion[\s\S]{0,200}coach-open[\s\S]{0,80}animation:none/.test(dgCss);
+  return noScaleZero && hasReducedMotionGate;
+})());
+
+// ─────────────────────────────────────────────────────────────────────
 // Phase 9 Coach · FB action narration (v6.5.19 Task 7)
 // Scripted strings keyed by canvas event type. AI is NOT invoked for
 // narration — silence is preferable to noise for unknown events.
