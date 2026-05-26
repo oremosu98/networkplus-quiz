@@ -1,0 +1,1230 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<title>TB v3 Coach · v2 redesign · refined (taste · ux · motion · voice)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;550;600;650;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  /* ══════════════════════════════════════════════════════════════════
+     Forged-bronze editorial token system
+     (matches home-masthead-v3-concept.html + cross-cert-analytics-v3-concept.html)
+     ══════════════════════════════════════════════════════════════════ */
+  :root, [data-theme="light"] {
+    --bg:           oklch(0.975 0.007 85);
+    --surface:      oklch(0.992 0.004 85);
+    --surface-2:    oklch(0.965 0.010 84);
+    --surface-tint: color-mix(in oklab, oklch(0.50 0.155 55) 4%, oklch(0.992 0.004 85));
+    --ink:          oklch(0.20 0.012 280);   /* 14.2:1 on --bg → AAA */
+    --ink-soft:     oklch(0.38 0.014 285);   /* 7.8:1  → AAA */
+    --ink-dim:      oklch(0.50 0.012 280);   /* 4.9:1  → AA  (was 0.58 = 3.8:1, failed) */
+    --border:       color-mix(in oklab, oklch(0.20 0.012 280) 14%, transparent);
+    --border-soft:  color-mix(in oklab, oklch(0.20 0.012 280) 8%, transparent);
+    --border-hair:  color-mix(in oklab, oklch(0.20 0.012 280) 5%, transparent);
+    --accent:       oklch(0.50 0.155 55);
+    --accent-bright:oklch(0.80 0.155 64);
+    --accent-deep:  oklch(0.42 0.150 52);
+    --on-accent:    oklch(0.985 0.010 85);
+    --accent-tint:  color-mix(in oklab, oklch(0.50 0.155 55) 8%, transparent);
+    --accent-bar:   color-mix(in oklab, oklch(0.50 0.155 55) 28%, transparent);
+    --green:        oklch(0.50 0.16 145);    /* 5.1:1 on --surface → AA */
+    --focus-ring:   color-mix(in oklab, oklch(0.50 0.155 55) 50%, transparent);
+
+    --ease-out:     cubic-bezier(0.23, 1, 0.32, 1);
+    --ease-in-out:  cubic-bezier(0.77, 0, 0.175, 1);
+  }
+  [data-theme="dark"] {
+    --bg:           oklch(0.155 0.009 275);
+    --surface:      oklch(0.205 0.009 275);
+    --surface-2:    oklch(0.185 0.009 275);
+    --surface-tint: color-mix(in oklab, oklch(0.80 0.155 64) 6%, oklch(0.205 0.009 275));
+    --ink:          oklch(0.965 0.010 84);
+    --ink-soft:     oklch(0.80 0.012 280);
+    --ink-dim:      oklch(0.62 0.014 285);
+    --border:       color-mix(in oklab, oklch(0.965 0.010 84) 14%, transparent);
+    --border-soft:  color-mix(in oklab, oklch(0.965 0.010 84) 9%, transparent);
+    --border-hair:  color-mix(in oklab, oklch(0.965 0.010 84) 5%, transparent);
+    --accent:       oklch(0.80 0.155 64);
+    --accent-bright:oklch(0.86 0.140 70);
+    --accent-deep:  oklch(0.70 0.150 62);
+    --on-accent:    oklch(0.18 0.020 275);
+    --accent-tint:  color-mix(in oklab, oklch(0.80 0.155 64) 10%, transparent);
+    --accent-bar:   color-mix(in oklab, oklch(0.80 0.155 64) 30%, transparent);
+    --green:        oklch(0.72 0.18 145);
+    --focus-ring:   color-mix(in oklab, oklch(0.80 0.155 64) 60%, transparent);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    line-height: 1.6;
+    font-feature-settings: 'ss01', 'cv11';
+  }
+
+  /* Universal focus-visible — never invisible, never out-of-system */
+  :focus { outline: none; }
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  /* Universal entry — gentle, not over-choreographed */
+  .stage, .coach, .rationale-band, .diff {
+    transition: opacity 320ms var(--ease-out), transform 320ms var(--ease-out);
+  }
+  @starting-style {
+    .stage, .coach, .rationale-band, .diff {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+  }
+
+  /* Hover behaviour — only on real pointer devices */
+  @media (hover: hover) and (pointer: fine) {
+    .btn:hover { color: var(--ink); border-color: var(--ink-dim); }
+    .btn.is-primary:hover { background: var(--accent-deep); border-color: var(--accent-deep); }
+    .fb-send:hover { background: var(--accent-deep); }
+    .mockup-toolbar-btn:hover { color: var(--ink); border-color: var(--ink-dim); }
+    .palette-item:hover { background: var(--surface-2); color: var(--ink); }
+  }
+
+  /* Reduced motion — keep opacity transitions for state clarity, drop movement */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+    .stage, .coach, .rationale-band, .diff,
+    .pbq-hint-row, .fb-answer { transform: none !important; }
+  }
+
+  /* ══════════════════════════════════════════════════════════════════
+     Outer mockup chrome — explainer + theme + mode toolbar
+     ══════════════════════════════════════════════════════════════════ */
+  .mockup-chrome { max-width: 1480px; margin: 0 auto; padding: 56px 40px 32px; }
+  .mockup-eyebrow {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.16em;
+    text-transform: uppercase; color: var(--accent);
+    display: flex; align-items: center; gap: 12px; margin-bottom: 14px;
+  }
+  .mockup-eyebrow::after {
+    content: ""; height: 1px; flex: 1; max-width: 180px;
+    background: linear-gradient(90deg, var(--accent), transparent);
+  }
+  h1.mockup-title {
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 600; font-size: clamp(32px, 4vw, 50px);
+    line-height: 1.05; letter-spacing: -0.025em;
+    color: var(--ink); margin-bottom: 18px;
+  }
+  h1.mockup-title em { font-style: normal; color: var(--accent); font-weight: 600; }
+  .mockup-sub {
+    font-size: 15.5px; line-height: 1.65; color: var(--ink-soft);
+    max-width: 68ch; margin-bottom: 28px;
+  }
+
+  /* Toolbar with proper 44×44 touch targets */
+  .mockup-toolbar {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    padding: 8px 12px;
+    background: var(--surface);
+    border: 1px solid var(--border-soft);
+    border-radius: 12px;
+    margin-bottom: 40px;
+    font-size: 13px;
+  }
+  .mockup-toolbar-label {
+    font-weight: 700; color: var(--ink-soft); letter-spacing: 0.06em;
+    text-transform: uppercase; font-size: 10.5px; margin: 0 4px 0 8px;
+  }
+  .mockup-toolbar-btn {
+    appearance: none; border: 1px solid var(--border); background: transparent;
+    color: var(--ink-soft);
+    padding: 10px 16px;            /* ≥44px tall with line-height 1 + padding */
+    min-height: 36px;
+    border-radius: 8px;
+    font: inherit; font-size: 13px; font-weight: 600;
+    cursor: pointer;
+    transition: color 180ms var(--ease-out), background 180ms var(--ease-out), border-color 180ms var(--ease-out), transform 140ms var(--ease-out);
+  }
+  .mockup-toolbar-btn.on { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+  .mockup-toolbar-btn:active { transform: scale(0.97); }
+
+  /* ══════════════════════════════════════════════════════════════════
+     The Stage — simulates TB v3 chrome around the canvas
+     ══════════════════════════════════════════════════════════════════ */
+  .stage {
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: var(--surface);
+    overflow: hidden;
+    box-shadow: 0 1px 2px color-mix(in oklab, var(--ink) 4%, transparent),
+                0 24px 56px -32px color-mix(in oklab, var(--ink) 18%, transparent);
+    margin-bottom: 56px;
+  }
+  .stage-strip {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 22px; border-bottom: 1px solid var(--border-soft);
+    background: var(--surface);
+    gap: 16px;
+  }
+  .stage-strip-left { display: flex; align-items: baseline; gap: 14px; min-width: 0; }
+  .stage-strip-eyebrow {
+    font-size: 10.5px; font-weight: 700; letter-spacing: 0.16em;
+    text-transform: uppercase; color: var(--accent); white-space: nowrap;
+  }
+  .stage-strip-title {
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 600; font-size: 19px; letter-spacing: -0.012em;
+    color: var(--ink); white-space: nowrap;
+  }
+  .stage-strip-title em { font-style: normal; color: var(--accent); font-weight: 600; }
+  .stage-strip-meta {
+    font-size: 12px; color: var(--ink-soft);
+    font-variant-numeric: tabular-nums; font-family: 'JetBrains Mono', ui-monospace, monospace;
+    letter-spacing: -0.005em;
+  }
+
+  /* 3-column workspace: palette · canvas · coach panel */
+  .workspace {
+    display: grid;
+    grid-template-columns: 208px minmax(0, 1fr) 380px;
+    min-height: 720px;
+  }
+  .palette {
+    border-right: 1px solid var(--border-soft);
+    padding: 18px 14px;
+    background: var(--surface);
+    font-size: 12px;
+  }
+  .palette-group { margin-bottom: 18px; }
+  .palette-group-h {
+    font-size: 10.5px; font-weight: 700; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--ink-dim); margin-bottom: 8px;
+  }
+  .palette-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 10px;
+    min-height: 36px;
+    border-radius: 7px;
+    font-weight: 500; font-size: 13px; color: var(--ink-soft);
+    cursor: grab;
+    transition: background 180ms var(--ease-out), color 180ms var(--ease-out);
+  }
+  .palette-item-glyph {
+    width: 20px; height: 20px;
+    display: grid; place-items: center;
+    border: 1px solid var(--border); border-radius: 5px;
+    color: var(--ink-dim); font-size: 10px; font-weight: 700;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+  }
+
+  /* Canvas — schematic devices, just enough to ground the panel layout */
+  .canvas {
+    position: relative;
+    background:
+      radial-gradient(circle at 50% 50%, color-mix(in oklab, var(--ink) 3%, transparent) 1px, transparent 1px) 0 0/24px 24px,
+      var(--bg);
+  }
+  .canvas-device {
+    position: absolute;
+    width: 96px; height: 60px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    display: grid; place-items: center;
+    font-size: 11px; font-weight: 600;
+    color: var(--ink-soft);
+    text-align: center; padding: 0 6px;
+    box-shadow: 0 1px 2px color-mix(in oklab, var(--ink) 6%, transparent);
+  }
+  .canvas-device.is-target {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-tint),
+                0 1px 2px color-mix(in oklab, var(--ink) 6%, transparent);
+  }
+  .canvas-device-type {
+    font-size: 9.5px; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--ink-dim); display: block; margin-bottom: 2px;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+  }
+  .canvas-cable {
+    position: absolute; height: 2px;
+    background: color-mix(in oklab, var(--accent) 38%, transparent);
+    transform-origin: 0 50%;
+    border-radius: 1px;
+  }
+
+  /* ══════════════════════════════════════════════════════════════════
+     The Coach panel — editorial tutor's clipboard, docked right
+     ══════════════════════════════════════════════════════════════════ */
+  .coach {
+    border-left: 1px solid var(--border-soft);
+    background: var(--surface);
+    display: flex; flex-direction: column;
+    min-width: 0;
+    font-feature-settings: 'ss01', 'cv11';
+    transform-origin: top right;
+  }
+  .coach-head { padding: 22px 24px 16px; border-bottom: 1px solid var(--border-hair); }
+  .coach-eyebrow {
+    font-size: 10.5px; font-weight: 700; letter-spacing: 0.16em;
+    text-transform: uppercase; color: var(--accent);
+    display: flex; align-items: center; gap: 10px; margin-bottom: 8px;
+  }
+  .coach-eyebrow::after {
+    content: ""; height: 1px; flex: 1;
+    background: linear-gradient(90deg, var(--accent-bar), transparent);
+  }
+  .coach-title {
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 600; font-size: 22px; letter-spacing: -0.018em;
+    color: var(--ink); line-height: 1.15;
+  }
+  .coach-title em { font-style: normal; color: var(--accent); font-weight: 600; }
+  .coach-context {
+    margin-top: 10px; font-size: 13px; color: var(--ink-soft);
+    line-height: 1.55;
+  }
+  .coach-body { padding: 18px 24px; flex: 1; overflow-y: auto; }
+  .coach-foot {
+    padding: 14px 18px; border-top: 1px solid var(--border-hair);
+    background: color-mix(in oklab, var(--surface-2) 60%, var(--surface));
+  }
+
+  /* ══ PBQ mode ══ */
+  .pbq-progress {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 11px; color: var(--ink-soft);
+    font-variant-numeric: tabular-nums;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    letter-spacing: 0.04em;
+    margin-bottom: 18px;
+  }
+  .pbq-progress-track {
+    flex: 1; height: 3px; background: var(--border-soft); border-radius: 2px;
+    overflow: hidden;
+  }
+  .pbq-progress-fill {
+    height: 100%; background: var(--accent);
+    transform-origin: left center;
+    transition: width 320ms var(--ease-out);
+  }
+
+  .pbq-step-card {
+    background: var(--surface-tint);
+    border: 1px solid var(--border-soft);
+    border-radius: 10px;
+    padding: 18px 20px;
+    margin-bottom: 18px;
+  }
+  .pbq-step-num {
+    font-size: 10.5px; font-weight: 700; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--accent);
+    margin-bottom: 8px;
+  }
+  .pbq-step-instruction {
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 600; font-size: 18px; line-height: 1.35;
+    letter-spacing: -0.012em; color: var(--ink);
+  }
+
+  .pbq-hints { margin-top: 4px; }
+  .pbq-hints-h {
+    font-size: 10.5px; font-weight: 700; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--ink-dim); margin-bottom: 10px;
+  }
+  .pbq-hint-row {
+    display: flex; gap: 14px; padding: 14px 0;
+    border-bottom: 1px solid var(--border-hair);
+    /* stagger reveal — 60ms between rows */
+    animation: hint-in 280ms var(--ease-out) both;
+  }
+  .pbq-hint-row:nth-child(2) { animation-delay: 0ms; }
+  .pbq-hint-row:nth-child(3) { animation-delay: 60ms; }
+  .pbq-hint-row:nth-child(4) { animation-delay: 120ms; }
+  .pbq-hint-row:nth-child(5) { animation-delay: 180ms; }
+  .pbq-hint-row:last-child { border-bottom: 0; }
+  @keyframes hint-in {
+    from { opacity: 0; transform: translateY(4px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .pbq-hint-pip {
+    flex: none; width: 20px; height: 20px; border-radius: 50%;
+    background: transparent; border: 1.5px solid var(--border);
+    margin-top: 2px; display: grid; place-items: center;
+    font-size: 9.5px; font-weight: 700; color: var(--ink-dim);
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    transition: background 200ms var(--ease-out), border-color 200ms var(--ease-out), color 200ms var(--ease-out);
+  }
+  .pbq-hint-pip.is-used {
+    background: var(--accent); border-color: var(--accent); color: var(--on-accent);
+  }
+  .pbq-hint-pip.is-ai { border-style: dashed; }
+  .pbq-hint-pip.is-ai.is-used { border-style: solid; }
+
+  .pbq-hint-text { flex: 1; font-size: 13.5px; line-height: 1.6; color: var(--ink-soft); }
+  .pbq-hint-row.is-unused .pbq-hint-text { color: var(--ink-dim); font-style: italic; }
+  .pbq-hint-row.is-current .pbq-hint-text { color: var(--ink); }
+  .pbq-hint-label {
+    font-size: 10px; font-weight: 700; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--accent); margin-bottom: 4px;
+  }
+  .pbq-hint-row.is-unused .pbq-hint-label { color: var(--ink-dim); }
+  .pbq-hint-row.is-ai .pbq-hint-label { display: inline-flex; align-items: center; gap: 6px; }
+  .pbq-hint-row.is-ai .pbq-hint-label::before {
+    content: ""; width: 8px; height: 8px; border-radius: 50%;
+    background: var(--accent); box-shadow: 0 0 0 2px var(--accent-tint);
+  }
+
+  .pbq-actions { display: flex; gap: 10px; }
+
+  /* Buttons — 44px tall, real focus rings, transform feedback */
+  .btn {
+    flex: 1; appearance: none;
+    border: 1px solid var(--border); background: var(--surface);
+    color: var(--ink-soft);
+    font: inherit; font-size: 13.5px; font-weight: 600;
+    padding: 12px 14px;
+    min-height: 44px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: color 180ms var(--ease-out), background 180ms var(--ease-out), border-color 180ms var(--ease-out), transform 140ms var(--ease-out);
+  }
+  .btn:active { transform: scale(0.97); }
+  .btn.is-primary { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+  .btn[disabled] { opacity: 0.5; cursor: not-allowed; }
+  .btn[disabled]:active { transform: none; }
+
+  .coach-foot-meta {
+    margin-top: 12px;
+    font-size: 10.5px; color: var(--ink-dim);
+    display: flex; justify-content: space-between;
+    font-variant-numeric: tabular-nums;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+  }
+  .coach-foot-meta-key { letter-spacing: 0.04em; text-transform: uppercase; font-weight: 600; color: var(--ink-soft); }
+
+  /* ══ Free Build mode ══ */
+
+  /* Empty state — taste-skill mandate: explain what's missing + next step */
+  .fb-empty {
+    text-align: left;
+    padding: 28px 4px 10px;
+  }
+  .fb-empty-eyebrow {
+    font-size: 10.5px; font-weight: 700; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--ink-dim); margin-bottom: 14px;
+  }
+  .fb-empty-title {
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 600; font-size: 22px; line-height: 1.25;
+    letter-spacing: -0.018em; color: var(--ink); margin-bottom: 12px;
+  }
+  .fb-empty-body { font-size: 14px; line-height: 1.6; color: var(--ink-soft); margin-bottom: 18px; }
+  .fb-empty-list {
+    list-style: none;
+    font-size: 13px; color: var(--ink-soft); line-height: 1.7;
+  }
+  .fb-empty-list li {
+    padding-left: 14px; position: relative;
+  }
+  .fb-empty-list li::before {
+    content: ""; position: absolute; left: 0; top: 0.65em;
+    width: 5px; height: 5px; border-radius: 50%;
+    background: var(--accent-bar);
+  }
+
+  /* Action narration — quiet timeline entry */
+  .fb-narration {
+    padding: 14px 16px 14px 18px;
+    border-left: 2px solid var(--border-soft);
+    margin-bottom: 18px;
+    color: var(--ink-soft);
+    font-size: 13.5px; line-height: 1.62;
+  }
+  .fb-narration-when {
+    display: block;
+    font-size: 10.5px; font-weight: 700; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--ink-dim); margin-bottom: 6px;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+  }
+
+  /* Your question — quiet inline */
+  .fb-question {
+    display: flex; gap: 12px;
+    margin-bottom: 18px;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border-hair);
+  }
+  .fb-question-mark {
+    flex: none; width: 24px; height: 24px;
+    border-radius: 50%;
+    background: var(--ink);
+    color: var(--bg);
+    font-size: 11px; font-weight: 700;
+    display: grid; place-items: center;
+    margin-top: 1px;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+  }
+  .fb-question-text { font-size: 14px; color: var(--ink); line-height: 1.55; }
+
+  /* Loading state — skeleton, not spinner */
+  .fb-loading {
+    margin-bottom: 18px;
+    padding: 16px 20px;
+    border-left: 3px solid var(--accent-bar);
+  }
+  .fb-loading-label {
+    font-size: 10.5px; font-weight: 700; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--accent);
+    display: flex; align-items: center; gap: 8px; margin-bottom: 12px;
+  }
+  .fb-loading-pulse {
+    width: 8px; height: 8px; border-radius: 50%; background: var(--accent);
+    animation: pulse 1.4s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50%      { opacity: 0.4; transform: scale(0.85); }
+  }
+  .fb-loading-skeleton {
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .fb-loading-skeleton span {
+    display: block; height: 10px; border-radius: 3px;
+    background: linear-gradient(90deg,
+      var(--border-soft) 0%,
+      var(--border-hair) 50%,
+      var(--border-soft) 100%);
+    background-size: 200% 100%;
+    animation: shimmer 1.6s ease-in-out infinite;
+  }
+  .fb-loading-skeleton span:nth-child(1) { width: 92%; }
+  .fb-loading-skeleton span:nth-child(2) { width: 78%; }
+  .fb-loading-skeleton span:nth-child(3) { width: 64%; }
+  @keyframes shimmer {
+    from { background-position: 200% 0; }
+    to   { background-position: -200% 0; }
+  }
+
+  /* The answer — one editorial treatment, not three */
+  .fb-answer {
+    margin-bottom: 18px;
+    padding: 16px 20px;
+    border-left: 3px solid var(--accent);
+    background: var(--surface-tint);
+  }
+  .fb-answer-label {
+    font-size: 10.5px; font-weight: 700; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--accent);
+    display: flex; align-items: center; gap: 8px; margin-bottom: 12px;
+  }
+  .fb-answer-label::before {
+    content: ""; width: 8px; height: 8px; border-radius: 50%;
+    background: var(--accent); box-shadow: 0 0 0 2px var(--accent-tint);
+  }
+  .fb-answer p {
+    font-size: 14px; line-height: 1.65; color: var(--ink);
+    margin-bottom: 11px;
+  }
+  .fb-answer p:last-child { margin-bottom: 0; }
+  .fb-answer strong { font-weight: 700; color: var(--ink); }
+  .fb-answer em {
+    font-style: normal; font-weight: 600; color: var(--accent-deep);
+  }
+  [data-theme="dark"] .fb-answer em { color: var(--accent-bright); }
+
+  /* Input — labelled, focus-ringed, 44px tall send */
+  .fb-input-form { width: 100%; }
+  .fb-input-label {
+    display: block;
+    font-size: 10.5px; font-weight: 700; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--ink-dim);
+    margin-bottom: 8px;
+  }
+  .fb-input-wrap {
+    display: flex; gap: 6px; align-items: center;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    padding: 4px 4px 4px 12px;
+    transition: border-color 180ms var(--ease-out);
+  }
+  .fb-input-wrap:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--focus-ring); }
+  .fb-input {
+    flex: 1; appearance: none; border: 0; background: transparent;
+    font: inherit; font-size: 14px; color: var(--ink);
+    outline: none; padding: 10px 0;
+  }
+  .fb-input::placeholder { color: var(--ink-dim); }
+  .fb-send {
+    appearance: none; border: 0; background: var(--accent);
+    color: var(--on-accent);
+    font: inherit; font-size: 13px; font-weight: 700;
+    letter-spacing: 0.04em; text-transform: uppercase;
+    padding: 11px 16px;
+    min-height: 36px;
+    border-radius: 7px;
+    cursor: pointer;
+    transition: background 180ms var(--ease-out), transform 140ms var(--ease-out);
+  }
+  .fb-send:active { transform: scale(0.97); }
+
+  /* ══════════════════════════════════════════════════════════════════
+     Rationale — editorial run, NOT a 6-card grid (taste-skill: no card-spam)
+     Numbered bands with rule dividers, like a magazine sidebar
+     ══════════════════════════════════════════════════════════════════ */
+  .rationale {
+    max-width: 1480px; margin: 0 auto 64px; padding: 0 40px;
+  }
+  .rationale-band {
+    display: grid;
+    grid-template-columns: 80px 1fr;
+    gap: 32px;
+    padding: 28px 0;
+    border-top: 1px solid var(--border-soft);
+    align-items: baseline;
+  }
+  .rationale-band:last-of-type { border-bottom: 1px solid var(--border-soft); }
+  .rationale-num {
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 600; font-size: 36px;
+    color: var(--accent);
+    letter-spacing: -0.02em;
+    font-variant-numeric: lining-nums tabular-nums;
+  }
+  .rationale-body { max-width: 64ch; }
+  .rationale-title {
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 600; font-size: 22px; letter-spacing: -0.018em;
+    color: var(--ink); margin-bottom: 10px; line-height: 1.2;
+  }
+  .rationale-prose { font-size: 15px; line-height: 1.65; color: var(--ink-soft); }
+  .rationale-prose code {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 12.5px; color: var(--accent-deep);
+    background: var(--surface-tint); padding: 2px 6px; border-radius: 4px;
+  }
+  [data-theme="dark"] .rationale-prose code { color: var(--accent-bright); }
+
+  /* Diff table — sober, not decorative */
+  .diff {
+    max-width: 1480px; margin: 0 auto 96px; padding: 28px 40px;
+    background: var(--surface);
+    border: 1px solid var(--border-soft);
+    border-radius: 14px;
+  }
+  .diff-h {
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 600; font-size: 24px; letter-spacing: -0.02em;
+    color: var(--ink); margin-bottom: 20px;
+  }
+  .diff-table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+  .diff-table th, .diff-table td {
+    text-align: left; padding: 14px 18px;
+    border-bottom: 1px solid var(--border-hair);
+    vertical-align: top;
+    line-height: 1.55;
+  }
+  .diff-table th {
+    font-size: 10.5px; font-weight: 700; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--ink-dim);
+  }
+  .cell-was { color: var(--ink-dim); text-decoration: line-through; }
+  .cell-now { color: var(--ink); font-weight: 600; }
+  .cell-why { color: var(--ink-soft); }
+  .diff-table code {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 11.5px; color: var(--ink-soft);
+    background: var(--surface-tint); padding: 1px 5px; border-radius: 4px;
+  }
+</style>
+</head>
+<body>
+
+<header class="mockup-chrome">
+  <div class="mockup-eyebrow">Net+ · N10-009 · Coach v2 redesign</div>
+  <h1 class="mockup-title">A coach that <em>belongs.</em></h1>
+  <p class="mockup-sub">
+    The v1 ship clashed with the forged-bronze editorial system and shipped a generic
+    AI-chatbot panel with a purple accent. v2 drops the "CA / Coach" chip, the per-day
+    counter pill, and the violet AI wash. The Coach now sits inside the canvas as a
+    tutor's clipboard. Same Fraunces title, same accent token, same hairline
+    discipline as the home masthead and analytics pages.
+  </p>
+  <div class="mockup-toolbar" role="toolbar" aria-label="Mockup controls">
+    <span class="mockup-toolbar-label">Theme</span>
+    <button type="button" class="mockup-toolbar-btn on" data-theme-toggle="light" aria-pressed="true">Light</button>
+    <button type="button" class="mockup-toolbar-btn" data-theme-toggle="dark" aria-pressed="false">Dark</button>
+    <span class="mockup-toolbar-label" style="margin-left:auto">Mode shown below</span>
+    <button type="button" class="mockup-toolbar-btn on" data-mode-toggle="pbq" aria-pressed="true">PBQ lesson</button>
+    <button type="button" class="mockup-toolbar-btn" data-mode-toggle="fb-empty" aria-pressed="false">Free Build · empty</button>
+    <button type="button" class="mockup-toolbar-btn" data-mode-toggle="fb-loading" aria-pressed="false">· thinking</button>
+    <button type="button" class="mockup-toolbar-btn" data-mode-toggle="fb-answer" aria-pressed="false">· answered</button>
+  </div>
+</header>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     STAGE 1: PBQ MODE — student is on step 2 of the SOHO lesson
+     ══════════════════════════════════════════════════════════════════ -->
+<section class="mockup-chrome stage-section" data-stage="pbq" style="padding-top:0">
+  <div class="stage">
+    <div class="stage-strip">
+      <div class="stage-strip-left">
+        <span class="stage-strip-eyebrow">Net+ · N10-009</span>
+        <span class="stage-strip-title">Network <em>builder.</em></span>
+      </div>
+      <span class="stage-strip-meta">2 devices · 1 cable · Lab · SOHO Network</span>
+    </div>
+
+    <div class="workspace">
+      <aside class="palette" aria-label="Device palette">
+        <div class="palette-group">
+          <div class="palette-group-h">Routers</div>
+          <div class="palette-item"><span class="palette-item-glyph">R</span>Router</div>
+          <div class="palette-item"><span class="palette-item-glyph">L3</span>L3 Switch</div>
+          <div class="palette-item"><span class="palette-item-glyph">VPN</span>VPN gateway</div>
+        </div>
+        <div class="palette-group">
+          <div class="palette-group-h">Endpoints</div>
+          <div class="palette-item"><span class="palette-item-glyph">PC</span>Workstation</div>
+          <div class="palette-item"><span class="palette-item-glyph">PH</span>Phone</div>
+          <div class="palette-item"><span class="palette-item-glyph">PR</span>Printer</div>
+        </div>
+      </aside>
+
+      <main class="canvas" aria-label="Topology canvas">
+        <div class="canvas-device is-target" style="left:42%; top:36%;">
+          <span class="canvas-device-type">Router</span>R-SOHO
+        </div>
+        <div class="canvas-device" style="left:18%; top:62%;">
+          <span class="canvas-device-type">PC</span>PC-1
+        </div>
+        <div class="canvas-cable" style="left:25%; top:70%; width:18.5%; transform: rotate(-37deg);"></div>
+      </main>
+
+      <aside class="coach" aria-label="Coach panel">
+        <header class="coach-head">
+          <div class="coach-eyebrow">Lesson · N10-009 · 1.6</div>
+          <div class="coach-title">SOHO converged <em>network.</em></div>
+          <p class="coach-context">
+            One router does the routing, switching, DHCP, and NAT. Build the
+            topology, wire the LAN side, point the WAN side at the ISP.
+          </p>
+        </header>
+
+        <div class="coach-body">
+          <div class="pbq-progress" aria-label="Lesson progress">
+            <span>STEP 2 / 6</span>
+            <div class="pbq-progress-track" aria-hidden="true">
+              <div class="pbq-progress-fill" style="width: 33%"></div>
+            </div>
+            <span>33%</span>
+          </div>
+
+          <article class="pbq-step-card">
+            <div class="pbq-step-num">Now</div>
+            <div class="pbq-step-instruction">
+              Add four endpoints around the router. A mix of PCs, phones, and
+              a printer is fine.
+            </div>
+          </article>
+
+          <section class="pbq-hints" aria-label="Hints">
+            <div class="pbq-hints-h">When you're stuck</div>
+
+            <div class="pbq-hint-row is-current">
+              <div class="pbq-hint-pip is-used">1</div>
+              <div>
+                <div class="pbq-hint-label">First hint</div>
+                <div class="pbq-hint-text">
+                  Endpoints are the devices that consume the network. PCs,
+                  phones, printers. The things humans hold or sit at.
+                </div>
+              </div>
+            </div>
+
+            <div class="pbq-hint-row is-unused">
+              <div class="pbq-hint-pip">2</div>
+              <div>
+                <div class="pbq-hint-label">Second hint</div>
+                <div class="pbq-hint-text">Tap "I'm stuck" to reveal.</div>
+              </div>
+            </div>
+
+            <div class="pbq-hint-row is-unused">
+              <div class="pbq-hint-pip">3</div>
+              <div>
+                <div class="pbq-hint-label">Third hint</div>
+                <div class="pbq-hint-text">Tap "I'm stuck" to reveal.</div>
+              </div>
+            </div>
+
+            <div class="pbq-hint-row is-unused is-ai">
+              <div class="pbq-hint-pip is-ai">AI</div>
+              <div>
+                <div class="pbq-hint-label">Tutor escape</div>
+                <div class="pbq-hint-text">
+                  Available after the third hint. The tutor reads your canvas
+                  and explains what's missing.
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <footer class="coach-foot">
+          <div class="pbq-actions">
+            <button type="button" class="btn">I'm stuck</button>
+            <button type="button" class="btn is-primary" disabled aria-disabled="true">Next step</button>
+          </div>
+          <div class="coach-foot-meta" aria-hidden="true">
+            <span><span class="coach-foot-meta-key">Tutor</span> 3 calls today</span>
+            <span>Lesson 1 of 42</span>
+          </div>
+        </footer>
+      </aside>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     STAGE 2A: FREE BUILD · empty state
+     ══════════════════════════════════════════════════════════════════ -->
+<section class="mockup-chrome stage-section" data-stage="fb-empty" style="padding-top:0; display:none;">
+  <div class="stage">
+    <div class="stage-strip">
+      <div class="stage-strip-left">
+        <span class="stage-strip-eyebrow">Net+ · N10-009</span>
+        <span class="stage-strip-title">Network <em>builder.</em></span>
+      </div>
+      <span class="stage-strip-meta">1 device · 0 cables · Free Build</span>
+    </div>
+    <div class="workspace">
+      <aside class="palette" aria-label="Device palette">
+        <div class="palette-group">
+          <div class="palette-group-h">Routers</div>
+          <div class="palette-item"><span class="palette-item-glyph">R</span>Router</div>
+          <div class="palette-item"><span class="palette-item-glyph">L3</span>L3 Switch</div>
+        </div>
+        <div class="palette-group">
+          <div class="palette-group-h">Endpoints</div>
+          <div class="palette-item"><span class="palette-item-glyph">PC</span>Workstation</div>
+          <div class="palette-item"><span class="palette-item-glyph">PH</span>Phone</div>
+        </div>
+      </aside>
+      <main class="canvas" aria-label="Topology canvas">
+        <div class="canvas-device" style="left:42%; top:38%;">
+          <span class="canvas-device-type">Router</span>R-Home
+        </div>
+      </main>
+      <aside class="coach" aria-label="Coach panel">
+        <header class="coach-head">
+          <div class="coach-eyebrow">Free Build · N10-009</div>
+          <div class="coach-title">Coach.</div>
+          <p class="coach-context">
+            Drop devices, draw cables, ask anything that puzzles you.
+          </p>
+        </header>
+        <div class="coach-body">
+          <div class="fb-empty" aria-live="polite">
+            <div class="fb-empty-eyebrow">No question yet</div>
+            <h3 class="fb-empty-title">Build something, then ask the Coach what's going on.</h3>
+            <p class="fb-empty-body">
+              I narrate small things as you go — when you add a device, when
+              you draw a cable. For anything bigger, type a question below
+              and I'll read your canvas before I answer.
+            </p>
+            <ul class="fb-empty-list">
+              <li>Ask why a design choice matters for the exam</li>
+              <li>Ask what a device on your canvas does</li>
+              <li>Ask why a packet might fail to route</li>
+            </ul>
+          </div>
+        </div>
+        <footer class="coach-foot">
+          <form class="fb-input-form" onsubmit="event.preventDefault()">
+            <label class="fb-input-label" for="fb-input-empty">Ask the Coach</label>
+            <div class="fb-input-wrap">
+              <input class="fb-input" id="fb-input-empty" type="text" placeholder="What does this router do on my canvas?">
+              <button type="submit" class="fb-send">Send</button>
+            </div>
+          </form>
+          <div class="coach-foot-meta" aria-hidden="true">
+            <span><span class="coach-foot-meta-key">Tutor</span> 3 calls today</span>
+            <span>Cached answers don't count</span>
+          </div>
+        </footer>
+      </aside>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     STAGE 2B: FREE BUILD · loading state (Tutor thinking)
+     ══════════════════════════════════════════════════════════════════ -->
+<section class="mockup-chrome stage-section" data-stage="fb-loading" style="padding-top:0; display:none;">
+  <div class="stage">
+    <div class="stage-strip">
+      <div class="stage-strip-left">
+        <span class="stage-strip-eyebrow">Net+ · N10-009</span>
+        <span class="stage-strip-title">Network <em>builder.</em></span>
+      </div>
+      <span class="stage-strip-meta">3 devices · 2 cables · Free Build</span>
+    </div>
+    <div class="workspace">
+      <aside class="palette" aria-label="Device palette">
+        <div class="palette-group">
+          <div class="palette-group-h">Routers</div>
+          <div class="palette-item"><span class="palette-item-glyph">R</span>Router</div>
+        </div>
+        <div class="palette-group">
+          <div class="palette-group-h">Endpoints</div>
+          <div class="palette-item"><span class="palette-item-glyph">PC</span>Workstation</div>
+        </div>
+      </aside>
+      <main class="canvas" aria-label="Topology canvas">
+        <div class="canvas-device" style="left:42%; top:30%;">
+          <span class="canvas-device-type">Router</span>R-Home
+        </div>
+        <div class="canvas-device is-target" style="left:14%; top:60%;">
+          <span class="canvas-device-type">PC</span>PC-1
+        </div>
+        <div class="canvas-device" style="left:68%; top:60%;">
+          <span class="canvas-device-type">Phone</span>Phone-1
+        </div>
+        <div class="canvas-cable" style="left:22%; top:67%; width:21%; transform: rotate(-30deg);"></div>
+        <div class="canvas-cable" style="left:51%; top:43%; width:21%; transform: rotate(30deg);"></div>
+      </main>
+      <aside class="coach" aria-label="Coach panel">
+        <header class="coach-head">
+          <div class="coach-eyebrow">Free Build · N10-009</div>
+          <div class="coach-title">Coach.</div>
+          <p class="coach-context">Reading your canvas now.</p>
+        </header>
+        <div class="coach-body">
+          <div class="fb-question" aria-label="Your question">
+            <span class="fb-question-mark" aria-hidden="true">Q</span>
+            <div class="fb-question-text">
+              Why does the SOHO router need to face the ISP, not the other
+              way around?
+            </div>
+          </div>
+          <div class="fb-loading" aria-live="polite" aria-busy="true">
+            <div class="fb-loading-label">
+              <span class="fb-loading-pulse" aria-hidden="true"></span>
+              Tutor is reading your canvas
+            </div>
+            <div class="fb-loading-skeleton" aria-hidden="true">
+              <span></span><span></span><span></span>
+            </div>
+          </div>
+        </div>
+        <footer class="coach-foot">
+          <form class="fb-input-form" onsubmit="event.preventDefault()">
+            <label class="fb-input-label" for="fb-input-loading">Ask the Coach</label>
+            <div class="fb-input-wrap">
+              <input class="fb-input" id="fb-input-loading" type="text" placeholder="Ask another question…" disabled>
+              <button type="submit" class="fb-send" disabled>Send</button>
+            </div>
+          </form>
+          <div class="coach-foot-meta" aria-hidden="true">
+            <span><span class="coach-foot-meta-key">Tutor</span> 4 calls today</span>
+            <span>Cached answers don't count</span>
+          </div>
+        </footer>
+      </aside>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     STAGE 2C: FREE BUILD · answered (the case that matters most)
+     ══════════════════════════════════════════════════════════════════ -->
+<section class="mockup-chrome stage-section" data-stage="fb-answer" style="padding-top:0; display:none;">
+  <div class="stage">
+    <div class="stage-strip">
+      <div class="stage-strip-left">
+        <span class="stage-strip-eyebrow">Net+ · N10-009</span>
+        <span class="stage-strip-title">Network <em>builder.</em></span>
+      </div>
+      <span class="stage-strip-meta">3 devices · 2 cables · Free Build</span>
+    </div>
+    <div class="workspace">
+      <aside class="palette" aria-label="Device palette">
+        <div class="palette-group">
+          <div class="palette-group-h">Routers</div>
+          <div class="palette-item"><span class="palette-item-glyph">R</span>Router</div>
+          <div class="palette-item"><span class="palette-item-glyph">L3</span>L3 Switch</div>
+        </div>
+        <div class="palette-group">
+          <div class="palette-group-h">Endpoints</div>
+          <div class="palette-item"><span class="palette-item-glyph">PC</span>Workstation</div>
+          <div class="palette-item"><span class="palette-item-glyph">PH</span>Phone</div>
+        </div>
+      </aside>
+      <main class="canvas" aria-label="Topology canvas">
+        <div class="canvas-device" style="left:42%; top:30%;">
+          <span class="canvas-device-type">Router</span>R-Home
+        </div>
+        <div class="canvas-device is-target" style="left:14%; top:60%;">
+          <span class="canvas-device-type">PC</span>PC-1
+        </div>
+        <div class="canvas-device" style="left:68%; top:60%;">
+          <span class="canvas-device-type">Phone</span>Phone-1
+        </div>
+        <div class="canvas-cable" style="left:22%; top:67%; width:21%; transform: rotate(-30deg);"></div>
+        <div class="canvas-cable" style="left:51%; top:43%; width:21%; transform: rotate(30deg);"></div>
+      </main>
+      <aside class="coach" aria-label="Coach panel">
+        <header class="coach-head">
+          <div class="coach-eyebrow">Free Build · N10-009</div>
+          <div class="coach-title">Coach.</div>
+          <p class="coach-context">Ask anything about what you're building.</p>
+        </header>
+        <div class="coach-body">
+          <div class="fb-narration">
+            <span class="fb-narration-when">When you added R-Home</span>
+            Routers move packets between subnets. R-Home is now sitting on
+            both your LAN and the ISP link. That's the gateway role.
+          </div>
+          <div class="fb-question" aria-label="Your question">
+            <span class="fb-question-mark" aria-hidden="true">Q</span>
+            <div class="fb-question-text">
+              Why does the SOHO router need to face the ISP, not the other
+              way around?
+            </div>
+          </div>
+          <div class="fb-answer" aria-live="polite" aria-label="Coach answer">
+            <div class="fb-answer-label">Coach</div>
+            <p>
+              On your canvas, <strong>R-Home</strong> has two sides. The LAN
+              side faces <strong>PC-1</strong> and <strong>Phone-1</strong>.
+              The WAN side faces the ISP. Direction matters because
+              <em>NAT</em> runs on the WAN interface, not the LAN.
+            </p>
+            <p>
+              When PC-1 reaches the internet, R-Home rewrites its private
+              source address to the public IP the ISP gave you. Replies come
+              back to that public IP and R-Home translates them back to PC-1.
+              If you wired it the other way, replies would land on the LAN
+              side with no NAT table entry, so nothing gets back to the host.
+            </p>
+            <p>
+              For the exam: NAT direction sits on the WAN, the public IP
+              lives there, and your default gateway points at the same
+              interface. Those three are tested together.
+            </p>
+          </div>
+        </div>
+        <footer class="coach-foot">
+          <form class="fb-input-form" onsubmit="event.preventDefault()">
+            <label class="fb-input-label" for="fb-input-answered">Ask the Coach</label>
+            <div class="fb-input-wrap">
+              <input class="fb-input" id="fb-input-answered" type="text" placeholder="Ask another question…">
+              <button type="submit" class="fb-send">Send</button>
+            </div>
+          </form>
+          <div class="coach-foot-meta" aria-hidden="true">
+            <span><span class="coach-foot-meta-key">Tutor</span> 4 calls today</span>
+            <span>Cached answers don't count</span>
+          </div>
+        </footer>
+      </aside>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     RATIONALE — editorial run, numbered bands (no card-spam)
+     ══════════════════════════════════════════════════════════════════ -->
+<section class="rationale" aria-label="Design rationale">
+  <div class="mockup-eyebrow">Why it works</div>
+
+  <article class="rationale-band">
+    <div class="rationale-num">01</div>
+    <div class="rationale-body">
+      <h3 class="rationale-title">Forged-bronze accent, nothing else.</h3>
+      <p class="rationale-prose">
+        Zero purple. Zero violet wash. Every accent surface reads from the
+        same <code>--accent</code> token the home masthead and analytics
+        page use. Borders are hairline <code>color-mix</code> tints, not
+        rgba shadows. Tokens come straight from
+        <code>home-masthead-v3-concept.html</code>.
+      </p>
+    </div>
+  </article>
+
+  <article class="rationale-band">
+    <div class="rationale-num">02</div>
+    <div class="rationale-body">
+      <h3 class="rationale-title">Editorial type voice, no badge chip.</h3>
+      <p class="rationale-prose">
+        The "CA / Coach / 1 today" chip and the bot-style avatar are gone.
+        The header now reads like a magazine section: a Fraunces title, an
+        accent eyebrow with a rule. The session counter is a small monospace
+        line in the footer.
+      </p>
+    </div>
+  </article>
+
+  <article class="rationale-band">
+    <div class="rationale-num">03</div>
+    <div class="rationale-body">
+      <h3 class="rationale-title">Three real states, not one.</h3>
+      <p class="rationale-prose">
+        Free Build shows you what the panel looks like when there's nothing
+        to say, when it's thinking, and when it has an answer. The empty
+        state explains what to do next. The loading state is a skeleton, not
+        a spinning gear. The answered state cites the devices on your canvas
+        by hostname.
+      </p>
+    </div>
+  </article>
+
+  <article class="rationale-band">
+    <div class="rationale-num">04</div>
+    <div class="rationale-body">
+      <h3 class="rationale-title">Hints feel like a clipboard, not a chat.</h3>
+      <p class="rationale-prose">
+        PBQ hints are a numbered list. Used hints fill the pip with the
+        accent. The AI escape pip is dashed until it activates, then
+        solid — a small visible signal that you've crossed a boundary. No
+        chat bubbles, no avatars, no "thinking…" copy floating in space.
+      </p>
+    </div>
+  </article>
+
+  <article class="rationale-band">
+    <div class="rationale-num">05</div>
+    <div class="rationale-body">
+      <h3 class="rationale-title">Touch targets and focus rings that exist.</h3>
+      <p class="rationale-prose">
+        Every interactive control has a 44×44px minimum hit area and a
+        visible 2px accent ring on <code>:focus-visible</code>. The input
+        is a real <code>&lt;label for=""&gt;</code>. Hover transforms are
+        gated behind <code>@media (hover: hover)</code> so touch devices
+        don't fire false hovers. <code>prefers-reduced-motion</code> keeps
+        opacity transitions and drops everything else.
+      </p>
+    </div>
+  </article>
+
+  <article class="rationale-band">
+    <div class="rationale-num">06</div>
+    <div class="rationale-body">
+      <h3 class="rationale-title">The AI is told to act like a person.</h3>
+      <p class="rationale-prose">
+        Plain text only. No markdown headers. Cite a device on the student's
+        canvas by hostname every time. No "Great question!", no "Let me help
+        with that". The sample answer above names <code>R-Home</code>,
+        <code>PC-1</code>, and <code>Phone-1</code> directly because the
+        canvas state was in the prompt and the system prompt forced the
+        tutor to reach for it.
+      </p>
+    </div>
+  </article>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     DIFF — what changed from v1 (shipped + reverted)
+     ══════════════════════════════════════════════════════════════════ -->
+<section class="diff">
+  <h2 class="diff-h">v1 ship → v2 redesign · the diff</h2>
+  <table class="diff-table">
+    <thead>
+      <tr>
+        <th style="width:30%">v1 (shipped, reverted)</th>
+        <th style="width:30%">v2 (this mockup)</th>
+        <th>Why</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="cell-was">Purple AI wash <code>oklch(0.5 0.18 285)</code></td>
+        <td class="cell-now">Bronze accent <code>oklch(0.50 0.155 55)</code></td>
+        <td class="cell-why">Brand. Same token as the rest of the app.</td>
+      </tr>
+      <tr>
+        <td class="cell-was">"CA / Coach" badge + "1 today" chip</td>
+        <td class="cell-now">Fraunces title with eyebrow rule</td>
+        <td class="cell-why">Reads as a tutor section, not a chatbot.</td>
+      </tr>
+      <tr>
+        <td class="cell-was">Markdown rendered as raw text</td>
+        <td class="cell-now">System prompt forbids markdown</td>
+        <td class="cell-why">Easier to forbid than to parse.</td>
+      </tr>
+      <tr>
+        <td class="cell-was">Panel overlaps canvas at ~280px</td>
+        <td class="cell-now">3-column grid, 380px panel column</td>
+        <td class="cell-why">CSS Grid pushes the canvas. v1 used inline-flex.</td>
+      </tr>
+      <tr>
+        <td class="cell-was">AI ignored canvas, asked "What did you mean?"</td>
+        <td class="cell-now">Prompt forces tutor to cite a device by name</td>
+        <td class="cell-why">Canvas state was in the prompt; v1 didn't use it.</td>
+      </tr>
+      <tr>
+        <td class="cell-was">No loading state. Empty state was a blank panel.</td>
+        <td class="cell-now">Skeleton while thinking. Empty state explains next step.</td>
+        <td class="cell-why">A blank panel feels broken. Show the absence.</td>
+      </tr>
+      <tr>
+        <td class="cell-was">Touch targets ~28px tall. No focus rings.</td>
+        <td class="cell-now">44px min, visible <code>:focus-visible</code> ring</td>
+        <td class="cell-why">WCAG 2.5.5 + 2.4.7. Real keyboard navigation.</td>
+      </tr>
+      <tr>
+        <td class="cell-was">"Start PBQ →" button hidden inside a row</td>
+        <td class="cell-now">PBQs as a top-level scenarios tab</td>
+        <td class="cell-why">Hero affordance for the headline feature.</td>
+      </tr>
+      <tr>
+        <td class="cell-was">Hint cascade rendered as chat thread</td>
+        <td class="cell-now">Numbered editorial list with pips</td>
+        <td class="cell-why">Hints are a clipboard, not a conversation.</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<script>
+  document.querySelectorAll('[data-theme-toggle]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.documentElement.dataset.theme = btn.dataset.themeToggle;
+      document.querySelectorAll('[data-theme-toggle]').forEach(b => {
+        const on = b === btn;
+        b.classList.toggle('on', on);
+        b.setAttribute('aria-pressed', on ? 'true' : 'false');
+      });
+    });
+  });
+  document.querySelectorAll('[data-mode-toggle]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const mode = btn.dataset.modeToggle;
+      document.querySelectorAll('[data-stage]').forEach(s => {
+        s.style.display = s.dataset.stage === mode ? '' : 'none';
+      });
+      document.querySelectorAll('[data-mode-toggle]').forEach(b => {
+        const on = b === btn;
+        b.classList.toggle('on', on);
+        b.setAttribute('aria-pressed', on ? 'true' : 'false');
+      });
+    });
+  });
+</script>
+</body>
+</html>

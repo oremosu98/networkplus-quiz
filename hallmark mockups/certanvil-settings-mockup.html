@@ -1,0 +1,1221 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f7f2e8">
+<title>Your settings · CertAnvil</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500;1,9..144,600&family=Inter:wght@400;500;550;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap">
+
+<style>
+/* CertAnvil · settings · forged-bronze editorial
+ * Brand: BRAND.md v5.5.12 · light-default (founder's primary)
+ * Macrostructure: Long Document · single accent bronze · 0 purple · 0 emoji · 0 em-dash
+ * Tokens-only, OKLCH + color-mix() for every tint and shadow
+ */
+
+:root {
+  /* — Light theme (founder primary) — */
+  --bg:            oklch(0.975 0.007 85);
+  --surface:       oklch(0.992 0.004 85);
+  --surface-2:     oklch(0.965 0.010 84);
+  --ink:           oklch(0.22  0.015 280);
+  --ink-soft:      oklch(0.36  0.014 280);
+  --muted:         oklch(0.50  0.013 280);
+  --border:        oklch(0.86  0.008 85);
+  --border-soft:   oklch(0.91  0.006 85);
+  --accent:        oklch(0.50  0.155 55);
+  --accent-bright: oklch(0.80  0.155 64);
+  --accent-deep:   oklch(0.42  0.150 52);
+  --on-accent:     oklch(0.985 0.010 85);
+  --pass:          oklch(0.52  0.13 150);
+  --warn:          oklch(0.62  0.14 70);
+  --danger:        oklch(0.55  0.17 25);
+
+  /* — Type — */
+  --font-display:  "Fraunces", ui-serif, Georgia, serif;
+  --font-body:     "Inter", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono:     "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+  /* — Scale (1.25 major-third anchored at 16px) — */
+  --t-1:           0.75rem;
+  --t0:            0.875rem;
+  --t-base:        1rem;
+  --t1:            1.125rem;
+  --t2:            1.4375rem;
+  --t3:            1.875rem;
+  --t4:            2.625rem;
+  --t-display:     clamp(2.5rem, 4.5vw + 1rem, 4rem);
+
+  /* — Space (4 pt) — */
+  --space-3xs:     0.125rem;
+  --space-2xs:     0.25rem;
+  --space-xs:      0.5rem;
+  --space-sm:      0.75rem;
+  --space-md:      1rem;
+  --space-lg:      1.5rem;
+  --space-xl:      2.25rem;
+  --space-2xl:     3.5rem;
+  --space-3xl:     5.5rem;
+
+  /* — Motion — */
+  --ease-out:      cubic-bezier(0.16, 1, 0.3, 1);
+  --dur-fast:      150ms;
+  --dur-short:     220ms;
+
+  /* — Radii — */
+  --radius-input:  10px;
+  --radius-card:   14px;
+  --radius-pill:   999px;
+}
+
+html[data-theme="dark"] {
+  --bg:            oklch(0.16  0.009 275);
+  --surface:       oklch(0.205 0.009 275);
+  --surface-2:     oklch(0.185 0.009 275);
+  --ink:           oklch(0.96  0.006 275);
+  --ink-soft:      oklch(0.78  0.010 275);
+  --muted:         oklch(0.60  0.013 275);
+  --border:        oklch(0.30  0.008 275);
+  --border-soft:   oklch(0.26  0.008 275);
+  --accent:        oklch(0.80  0.155 64);
+  --accent-bright: oklch(0.86  0.140 70);
+  --accent-deep:   oklch(0.70  0.150 62);
+  --on-accent:     oklch(0.18  0.020 275);
+  --pass:          oklch(0.74  0.150 152);
+  --warn:          oklch(0.80  0.130 75);
+  --danger:        oklch(0.66  0.17 25);
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html, body { overflow-x: clip; }
+html {
+  background: var(--bg);
+  color: var(--ink);
+  -webkit-text-size-adjust: 100%;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+body {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: var(--t-base);
+  font-weight: 400;
+  line-height: 1.55;
+  color: var(--ink);
+  background: var(--bg);
+}
+html[data-theme="dark"] body { font-weight: 400; }
+
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.022em;
+  line-height: 1.08;
+  margin: 0;
+  color: var(--ink);
+}
+h1 em, h2 em, h3 em, h4 em {
+  font-style: italic;
+  font-weight: 500;
+  color: var(--accent);
+}
+p { margin: 0; }
+a { color: inherit; text-decoration: none; }
+button, input, select, textarea { font: inherit; color: inherit; }
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+/* — Shell — */
+.shell {
+  max-width: 1140px;
+  margin: 0 auto;
+  padding: var(--space-lg) clamp(1rem, 4vw, 3rem) var(--space-3xl);
+}
+
+/* — Top bar · C/A monogram + theme toggle — */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  padding-bottom: var(--space-2xl);
+}
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  color: var(--ink);
+}
+.brand__mark {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+}
+.brand__mark svg { display: block; width: 100%; height: 100%; }
+.brand__name {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: var(--t1);
+  letter-spacing: -0.02em;
+}
+.brand__name em { font-style: italic; font-weight: 500; color: var(--accent); }
+
+.topbar__nav {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+.crumb {
+  font-family: var(--font-mono);
+  font-size: var(--t-1);
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+.crumb a {
+  border-bottom: 1px solid transparent;
+  padding: 2px 0;
+  transition: color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out);
+}
+@media (hover: hover) and (pointer: fine) {
+  .crumb a:hover { color: var(--ink); border-bottom-color: var(--border); }
+}
+.theme-toggle {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--ink-soft);
+  font-family: var(--font-mono);
+  font-size: var(--t-1);
+  letter-spacing: 0.06em;
+  padding: 0.45em 0.85em;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  transition: color var(--dur-fast) var(--ease-out),
+              border-color var(--dur-fast) var(--ease-out),
+              background-color var(--dur-fast) var(--ease-out),
+              transform 100ms var(--ease-out);
+}
+@media (hover: hover) and (pointer: fine) {
+  .theme-toggle:hover { color: var(--ink); border-color: var(--accent); }
+}
+.theme-toggle:active { transform: scale(0.97); }
+
+/* — Document opening — */
+.opening { margin-bottom: var(--space-3xl); max-width: 60ch; }
+.opening__kicker {
+  display: inline-block;
+  font-family: var(--font-body);
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: var(--space-md);
+}
+.opening h1 {
+  font-size: var(--t-display);
+  margin-bottom: var(--space-md);
+}
+.opening__lede {
+  font-size: var(--t1);
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+.opening__lede em {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 500;
+  color: var(--accent);
+}
+
+/* — Document body grid — */
+.doc {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: clamp(2rem, 5vw, 4.5rem);
+  align-items: start;
+}
+
+/* — Sticky numbered rail — */
+.rail {
+  position: sticky;
+  top: var(--space-xl);
+  padding-top: var(--space-xs);
+}
+.rail__label {
+  font-family: var(--font-body);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: var(--space-md);
+  padding-bottom: var(--space-sm);
+  border-bottom: 1px solid var(--border);
+}
+.rail ol { list-style: none; padding: 0; margin: 0; }
+.rail__item {
+  position: relative;
+  display: grid;
+  grid-template-columns: 2.4em 1fr;
+  align-items: baseline;
+  gap: var(--space-2xs);
+  padding: var(--space-sm) 0;
+  border-bottom: 1px solid var(--border-soft);
+  color: var(--ink-soft);
+  transition: color var(--dur-fast) var(--ease-out);
+}
+.rail__item:last-child { border-bottom: 0; }
+@media (hover: hover) and (pointer: fine) {
+  .rail__item:hover { color: var(--ink); }
+}
+.rail__item[aria-current="true"] { color: var(--ink); }
+.rail__item[aria-current="true"]::before {
+  content: "";
+  position: absolute;
+  left: -10px;
+  top: calc(var(--space-sm) + 0.5em);
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+.rail__num {
+  font-family: var(--font-mono);
+  font-size: var(--t-1);
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+.rail__name {
+  font-family: var(--font-display);
+  font-size: var(--t0);
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+.rail__name em { font-style: italic; color: var(--accent); }
+
+/* — Mobile rail · pill row — */
+.rail-mobile {
+  display: none;
+  margin-bottom: var(--space-xl);
+  padding-bottom: var(--space-md);
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.rail-mobile::-webkit-scrollbar { display: none; }
+.rail-mobile__inner { display: inline-flex; gap: var(--space-xs); padding: var(--space-xs) 0; }
+.rail-mobile a {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  padding: 0.45em 0.9em;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  font-family: var(--font-mono);
+  font-size: var(--t-1);
+  letter-spacing: 0.04em;
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+.rail-mobile a[aria-current="true"] {
+  color: var(--ink);
+  border-color: var(--accent);
+  background: color-mix(in oklab, var(--accent) 9%, transparent);
+}
+
+/* — Sections — */
+.section { margin-bottom: var(--space-3xl); scroll-margin-top: var(--space-xl); }
+.section:last-of-type { margin-bottom: var(--space-2xl); }
+.section__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-md);
+  margin-bottom: var(--space-md);
+  padding-bottom: var(--space-sm);
+  border-bottom: 1px solid var(--border);
+}
+.section__num {
+  font-family: var(--font-mono);
+  font-size: var(--t-1);
+  letter-spacing: 0.16em;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.section__title {
+  font-size: var(--t2);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+.section__lede {
+  max-width: 62ch;
+  color: var(--ink-soft);
+  margin-bottom: var(--space-lg);
+  font-size: var(--t0);
+  line-height: 1.6;
+}
+.section__lede em {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 500;
+  color: var(--accent);
+}
+
+/* — Card — */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  padding: var(--space-lg);
+  box-shadow:
+    0 1px 0 color-mix(in oklab, var(--ink) 4%, transparent),
+    0 18px 40px -28px color-mix(in oklab, var(--ink) 20%, transparent);
+}
+.card + .card { margin-top: var(--space-md); }
+.card__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-sm) var(--space-md);
+  margin-bottom: var(--space-xs);
+}
+.card__title {
+  font-family: var(--font-display);
+  font-size: var(--t1);
+  font-weight: 600;
+  letter-spacing: -0.014em;
+}
+.card__title em { font-style: italic; font-weight: 500; color: var(--accent); }
+.card__hint {
+  font-size: var(--t-1);
+  color: var(--muted);
+}
+.card__body {
+  color: var(--ink-soft);
+  font-size: var(--t0);
+  line-height: 1.6;
+}
+.card__body p + p { margin-top: var(--space-sm); }
+.card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  margin-top: var(--space-md);
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--border-soft);
+  align-items: center;
+}
+.card__status {
+  flex: 1 1 18em;
+  min-width: 0;
+  font-family: var(--font-mono);
+  font-size: var(--t-1);
+  letter-spacing: 0.02em;
+  color: var(--muted);
+}
+.card__status code {
+  font-family: var(--font-mono);
+  color: var(--ink-soft);
+  background: var(--surface-2);
+  padding: 0.1em 0.4em;
+  border-radius: 4px;
+  border: 1px solid var(--border-soft);
+}
+
+/* — Tag — */
+.tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.3em 0.7em;
+  font-family: var(--font-body);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  color: var(--ink-soft);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.tag--active {
+  color: var(--accent);
+  border-color: color-mix(in oklab, var(--accent) 40%, var(--border));
+  background: color-mix(in oklab, var(--accent) 9%, transparent);
+}
+.tag--pass {
+  color: var(--pass);
+  border-color: color-mix(in oklab, var(--pass) 40%, var(--border));
+  background: color-mix(in oklab, var(--pass) 10%, transparent);
+}
+
+/* — Buttons — */
+.btn {
+  -webkit-appearance: none;
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5em;
+  padding: 0.7em 1.15em;
+  font-family: var(--font-body);
+  font-size: var(--t0);
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.005em;
+  white-space: nowrap;
+  background: transparent;
+  color: var(--ink);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  transition: background-color var(--dur-fast) var(--ease-out),
+              border-color var(--dur-fast) var(--ease-out),
+              color var(--dur-fast) var(--ease-out),
+              transform 100ms var(--ease-out);
+}
+@media (hover: hover) and (pointer: fine) {
+  .btn:hover, .btn.is-hover {
+    border-color: color-mix(in oklab, var(--accent) 50%, var(--border));
+    color: var(--ink);
+    background: color-mix(in oklab, var(--accent) 7%, transparent);
+  }
+}
+.btn:focus-visible, .btn.is-focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.btn:active, .btn.is-active { transform: scale(0.97); }
+.btn[disabled], .btn.is-disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+.btn[data-state="loading"], .btn.is-loading { cursor: progress; color: var(--muted); }
+.btn[data-state="loading"]::before, .btn.is-loading::before {
+  content: "";
+  width: 0.85em;
+  height: 0.85em;
+  border: 1.5px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: ca-spin 0.7s linear infinite;
+}
+.btn[data-state="error"], .btn.is-error {
+  border-color: color-mix(in oklab, var(--danger) 50%, var(--border));
+  color: var(--danger);
+}
+.btn[data-state="success"], .btn.is-success {
+  border-color: color-mix(in oklab, var(--pass) 50%, var(--border));
+  color: var(--pass);
+}
+@keyframes ca-spin { to { transform: rotate(360deg); } }
+
+.btn--primary {
+  background: var(--accent);
+  color: var(--on-accent);
+  border-color: var(--accent-deep);
+}
+@media (hover: hover) and (pointer: fine) {
+  .btn--primary:hover, .btn--primary.is-hover {
+    background: var(--accent-deep);
+    color: var(--on-accent);
+    border-color: var(--accent-deep);
+  }
+}
+
+.btn--ghost { border-color: transparent; color: var(--ink-soft); }
+@media (hover: hover) and (pointer: fine) {
+  .btn--ghost:hover, .btn--ghost.is-hover {
+    border-color: var(--border);
+    background: var(--surface-2);
+    color: var(--ink);
+  }
+}
+
+.btn--danger {
+  border-color: color-mix(in oklab, var(--danger) 35%, var(--border));
+  color: var(--danger);
+}
+@media (hover: hover) and (pointer: fine) {
+  .btn--danger:hover, .btn--danger.is-hover {
+    background: color-mix(in oklab, var(--danger) 10%, transparent);
+    border-color: var(--danger);
+  }
+}
+
+.btn--sm { padding: 0.55em 0.9em; font-size: var(--t-1); }
+
+/* — Segmented control — */
+.seg {
+  display: inline-grid;
+  grid-auto-flow: column;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  padding: 3px;
+  gap: 0;
+}
+.seg__opt {
+  position: relative;
+  padding: 0.55em 1.1em;
+  font-size: var(--t0);
+  font-weight: 600;
+  color: var(--ink-soft);
+  border: 0;
+  background: transparent;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out), transform 100ms var(--ease-out);
+}
+.seg__opt:active { transform: scale(0.97); }
+.seg__opt[aria-pressed="true"] {
+  color: var(--on-accent);
+  background: var(--accent);
+}
+@media (hover: hover) and (pointer: fine) {
+  .seg__opt:hover:not([aria-pressed="true"]) { color: var(--ink); }
+}
+
+/* — Radio cards — */
+.radios {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-sm);
+}
+.radio {
+  position: relative;
+  display: block;
+  padding: var(--space-md);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-input);
+  cursor: pointer;
+  transition: border-color var(--dur-fast) var(--ease-out),
+              background-color var(--dur-fast) var(--ease-out),
+              transform 100ms var(--ease-out);
+}
+.radio input { position: absolute; opacity: 0; pointer-events: none; }
+.radio:active { transform: scale(0.99); }
+@media (hover: hover) and (pointer: fine) {
+  .radio:hover { border-color: color-mix(in oklab, var(--accent) 35%, var(--border)); }
+}
+.radio:has(input:checked) {
+  border-color: var(--accent);
+  background: color-mix(in oklab, var(--accent) 8%, transparent);
+}
+.radio:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+.radio__swatches { display: flex; gap: 4px; margin-bottom: var(--space-sm); }
+.radio__swatches span {
+  width: 18px; height: 18px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+}
+.radio__name {
+  display: block;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: var(--t1);
+  letter-spacing: -0.014em;
+  color: var(--ink);
+  margin-bottom: 0.15em;
+}
+.radio__name em { font-style: italic; font-weight: 500; color: var(--accent); }
+.radio__hint {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: var(--t-1);
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
+.radio--ivory  .radio__swatches .s1 { background: oklch(0.975 0.007 85); }
+.radio--ivory  .radio__swatches .s2 { background: oklch(0.965 0.010 84); }
+.radio--ivory  .radio__swatches .s3 { background: oklch(0.50  0.155 55); }
+.radio--midnight .radio__swatches .s1 { background: oklch(0.16  0.009 275); }
+.radio--midnight .radio__swatches .s2 { background: oklch(0.205 0.009 275); }
+.radio--midnight .radio__swatches .s3 { background: oklch(0.80  0.155 64); }
+.radio--auto .radio__swatches .s1 { background: linear-gradient(135deg, oklch(0.975 0.007 85) 50%, oklch(0.16 0.009 275) 50%); }
+.radio--auto .radio__swatches .s2 { background: linear-gradient(135deg, oklch(0.965 0.010 84) 50%, oklch(0.205 0.009 275) 50%); }
+.radio--auto .radio__swatches .s3 { background: linear-gradient(135deg, oklch(0.50 0.155 55) 50%, oklch(0.80 0.155 64) 50%); }
+
+/* — Inputs — */
+.field {
+  display: grid;
+  gap: var(--space-xs);
+  margin-top: var(--space-md);
+  min-width: 0;
+}
+.field__label {
+  font-family: var(--font-body);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.input, .select {
+  -webkit-appearance: none;
+  appearance: none;
+  padding: 0.75em 0.95em;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-input);
+  color: var(--ink);
+  font-size: var(--t0);
+  width: 100%;
+  min-width: 0;
+  transition: border-color var(--dur-fast) var(--ease-out);
+}
+.input:hover, .select:hover { border-color: color-mix(in oklab, var(--accent) 30%, var(--border)); }
+.input:focus-visible, .select:focus-visible {
+  border-color: var(--accent);
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.input--mono { font-family: var(--font-mono); letter-spacing: 0.01em; }
+.input[aria-invalid="true"] { border-color: var(--danger); }
+.input[disabled] { opacity: 0.5; cursor: not-allowed; }
+.input::placeholder { color: var(--muted); }
+
+.input-pair {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-sm);
+}
+
+/* — Toggle row — */
+.toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  padding: var(--space-md) 0;
+  border-top: 1px solid var(--border-soft);
+}
+.toggle-row:first-of-type { border-top: 0; padding-top: 0; }
+.toggle-row__text { min-width: 0; flex: 1 1 18em; }
+.toggle-row__name { font-weight: 600; color: var(--ink); }
+.toggle-row__hint { font-size: var(--t-1); color: var(--muted); margin-top: 2px; line-height: 1.5; }
+
+.switch {
+  position: relative;
+  width: 40px; height: 22px;
+  flex-shrink: 0;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  transition: background-color var(--dur-fast) var(--ease-out),
+              border-color var(--dur-fast) var(--ease-out);
+}
+.switch::after {
+  content: "";
+  position: absolute;
+  top: 2px; left: 2px;
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  background: var(--muted);
+  transition: transform var(--dur-short) var(--ease-out),
+              background-color var(--dur-fast) var(--ease-out);
+}
+.switch input { position: absolute; opacity: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
+.switch:has(input:checked) { background: color-mix(in oklab, var(--accent) 18%, transparent); border-color: var(--accent); }
+.switch:has(input:checked)::after { transform: translateX(18px); background: var(--accent); }
+.switch:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* — Metric strip — */
+.meta-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: var(--space-md);
+  margin-top: var(--space-md);
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--border-soft);
+}
+.meta {
+  font-family: var(--font-body);
+  font-size: var(--t-1);
+  color: var(--muted);
+  letter-spacing: 0.02em;
+  line-height: 1.4;
+}
+.meta__num {
+  display: block;
+  font-family: var(--font-display);
+  font-size: var(--t2);
+  font-weight: 600;
+  color: var(--ink);
+  font-variant-numeric: lining-nums tabular-nums;
+  font-feature-settings: "lnum", "tnum";
+  letter-spacing: -0.01em;
+  line-height: 1.0;
+  margin-bottom: 4px;
+}
+
+/* — Danger section subtle differentiation — */
+.section--danger .section__num { color: var(--danger); }
+.section--danger .section__lede em { color: var(--danger); }
+.section--danger .card {
+  border-color: color-mix(in oklab, var(--danger) 22%, var(--border));
+}
+
+/* — Footer — */
+.foot {
+  margin-top: var(--space-3xl);
+  padding-top: var(--space-lg);
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-md);
+  font-family: var(--font-mono);
+  font-size: var(--t-1);
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  flex-wrap: wrap;
+}
+.foot em {
+  font-family: var(--font-display);
+  font-style: italic;
+  letter-spacing: -0.01em;
+  color: var(--accent);
+  font-size: var(--t0);
+}
+
+/* — Mockup tag — */
+.mockup-tag {
+  position: fixed;
+  bottom: 14px;
+  right: 14px;
+  padding: 0.4em 0.85em;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  font-family: var(--font-mono);
+  font-size: var(--t-1);
+  letter-spacing: 0.06em;
+  color: var(--ink-soft);
+  box-shadow: 0 8px 24px -12px color-mix(in oklab, var(--ink) 22%, transparent);
+  z-index: 50;
+}
+.mockup-tag em { font-family: var(--font-display); font-style: italic; color: var(--accent); }
+
+/* — Responsive — */
+@media (max-width: 900px) {
+  .doc { grid-template-columns: 1fr; gap: 0; }
+  .rail { display: none; }
+  .rail-mobile { display: block; }
+  .radios { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 540px) {
+  .shell { padding-top: var(--space-md); padding-bottom: var(--space-2xl); }
+  .topbar { padding-bottom: var(--space-xl); }
+  .opening h1 { font-size: clamp(2.25rem, 9vw, 3rem); }
+  .section__title { font-size: var(--t1); }
+  .card { padding: var(--space-md); }
+  .input-pair { grid-template-columns: 1fr; }
+  .meta-row { grid-template-columns: 1fr 1fr; }
+  .foot { flex-direction: column; align-items: flex-start; gap: var(--space-2xs); }
+}
+
+@media (max-width: 380px) {
+  .opening h1 { word-break: break-word; overflow-wrap: anywhere; min-width: 0; }
+  .brand__name { font-size: var(--t-base); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .btn:active, .seg__opt:active, .radio:active { transform: none; }
+}
+</style>
+</head>
+
+<body>
+
+<div class="shell">
+
+  <!-- Top bar · C/A monogram + crumb + theme toggle -->
+  <header class="topbar">
+    <span class="brand" aria-label="CertAnvil">
+      <span class="brand__mark" aria-hidden="true">
+        <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M22 9 A11 11 0 1 0 22 31" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" fill="none" style="color: var(--accent)"/>
+          <path d="M8 32 L24 8" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="color: var(--accent); opacity: 0.55"/>
+          <path d="M18 31 L26 9 L34 31 M21 24 L31 24" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" fill="none" style="color: var(--accent)"/>
+        </svg>
+      </span>
+      <span class="brand__name">CertAnvil · your <em>settings.</em></span>
+    </span>
+    <span class="topbar__nav">
+      <span class="crumb"><a href="#">Home</a> · Settings</span>
+      <button class="theme-toggle" type="button" onclick="document.documentElement.dataset.theme = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light'">Theme</button>
+    </span>
+  </header>
+
+  <!-- Opening · Long Document lede -->
+  <section class="opening">
+    <span class="opening__kicker">§ Your preferences</span>
+    <h1>Your <em>settings.</em></h1>
+    <p class="opening__lede">
+      Six numbered sections. Changes save the moment you make them.
+      Where something is destructive you will be asked to <em>type the name</em>
+      before it runs · no other confirmation lives in this app.
+    </p>
+  </section>
+
+  <!-- Mobile rail -->
+  <nav class="rail-mobile" aria-label="Sections, compact">
+    <div class="rail-mobile__inner">
+      <a href="#s-01" aria-current="true">§ 01 · Study setup</a>
+      <a href="#s-02">§ 02 · Appearance</a>
+      <a href="#s-03">§ 03 · AI provider</a>
+      <a href="#s-04">§ 04 · Exam target</a>
+      <a href="#s-05">§ 05 · Data &amp; backups</a>
+      <a href="#s-06">§ 06 · Danger zone</a>
+    </div>
+  </nav>
+
+  <div class="doc">
+
+    <!-- Sticky desktop rail -->
+    <aside class="rail" aria-label="Sections">
+      <div class="rail__label">Document</div>
+      <ol>
+        <li><a class="rail__item" href="#s-01" aria-current="true"><span class="rail__num">§ 01</span><span class="rail__name">Study <em>setup.</em></span></a></li>
+        <li><a class="rail__item" href="#s-02"><span class="rail__num">§ 02</span><span class="rail__name">Appearance &amp; <em>theme.</em></span></a></li>
+        <li><a class="rail__item" href="#s-03"><span class="rail__num">§ 03</span><span class="rail__name">AI <em>provider.</em></span></a></li>
+        <li><a class="rail__item" href="#s-04"><span class="rail__num">§ 04</span><span class="rail__name">Exam <em>target.</em></span></a></li>
+        <li><a class="rail__item" href="#s-05"><span class="rail__num">§ 05</span><span class="rail__name">Data &amp; <em>backups.</em></span></a></li>
+        <li><a class="rail__item" href="#s-06"><span class="rail__num">§ 06</span><span class="rail__name">Danger <em>zone.</em></span></a></li>
+      </ol>
+    </aside>
+
+    <main>
+
+      <!-- § 01 — Study setup -->
+      <section class="section" id="s-01">
+        <header class="section__head">
+          <span class="section__num">§ 01</span>
+          <h2 class="section__title">Study <em>setup.</em></h2>
+        </header>
+        <p class="section__lede">
+          Two packs ship today · <em>Network+</em> (N10-009) and <em>Security+</em> (SY0-701).
+          Each pack carries its own question banks, drills, and lessons.
+          Switching swaps the active pack on next load · the other pack's progress is preserved.
+        </p>
+
+        <div class="card">
+          <div class="card__head">
+            <div>
+              <div class="card__title">Active cert <em>pack.</em></div>
+              <div class="card__hint">Tap to switch packs.</div>
+            </div>
+            <span class="tag tag--active">Net+ active</span>
+          </div>
+          <div role="radiogroup" aria-label="Active pack" style="margin-top: var(--space-md);">
+            <div class="seg">
+              <button class="seg__opt" type="button" aria-pressed="true">Network+ N10-009</button>
+              <button class="seg__opt" type="button" aria-pressed="false">Security+ SY0-701</button>
+            </div>
+          </div>
+
+          <div class="meta-row">
+            <div class="meta"><span class="meta__num">14</span>days since last quiz</div>
+            <div class="meta"><span class="meta__num">317</span>questions answered</div>
+            <div class="meta"><span class="meta__num">23</span>topics covered</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card__head">
+            <div class="card__title">Daily <em>goal.</em></div>
+            <span class="tag tag--pass">On pace today</span>
+          </div>
+          <div class="card__body">
+            <p>How many questions you want to answer each day. The home screen will
+            roll over to the next day at midnight in your local time.</p>
+          </div>
+          <div class="field">
+            <label class="field__label" for="daily-goal">Questions per day</label>
+            <div class="input-pair">
+              <input class="input input--mono" id="daily-goal" type="number" min="5" max="200" step="5" value="40">
+              <button class="btn btn--sm" type="button">Save</button>
+            </div>
+          </div>
+          <div class="card__actions">
+            <span class="card__status">Last 7 days · 38 · 41 · 42 · 0 · 35 · 47 · 39</span>
+            <button class="btn btn--ghost btn--sm" type="button">Light · 20</button>
+            <button class="btn btn--ghost btn--sm" type="button">Standard · 40</button>
+            <button class="btn btn--ghost btn--sm" type="button">Heavy · 80</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- § 02 — Appearance & theme -->
+      <section class="section" id="s-02">
+        <header class="section__head">
+          <span class="section__num">§ 02</span>
+          <h2 class="section__title">Appearance &amp; <em>theme.</em></h2>
+        </header>
+        <p class="section__lede">
+          Ivory is the default · the typography reads cleaner on warm paper.
+          Switch to midnight or follow your OS if that is not you.
+        </p>
+
+        <div class="card">
+          <div class="radios" role="radiogroup" aria-label="Theme">
+            <label class="radio radio--ivory">
+              <input type="radio" name="theme" value="light" checked>
+              <span class="radio__swatches"><span class="s1"></span><span class="s2"></span><span class="s3"></span></span>
+              <span class="radio__name"><em>Ivory.</em></span>
+              <span class="radio__hint">Default · paper warm</span>
+            </label>
+            <label class="radio radio--midnight">
+              <input type="radio" name="theme" value="dark">
+              <span class="radio__swatches"><span class="s1"></span><span class="s2"></span><span class="s3"></span></span>
+              <span class="radio__name"><em>Midnight.</em></span>
+              <span class="radio__hint">Charcoal · same bronze</span>
+            </label>
+            <label class="radio radio--auto">
+              <input type="radio" name="theme" value="auto">
+              <span class="radio__swatches"><span class="s1"></span><span class="s2"></span><span class="s3"></span></span>
+              <span class="radio__name"><em>Auto.</em></span>
+              <span class="radio__hint">Follow your OS</span>
+            </label>
+          </div>
+
+          <div class="toggle-row" style="margin-top: var(--space-lg); padding-top: var(--space-md); border-top: 1px solid var(--border-soft);">
+            <div class="toggle-row__text">
+              <div class="toggle-row__name">Reduced motion</div>
+              <div class="toggle-row__hint">Disables transitions and reveal animations across the app.</div>
+            </div>
+            <label class="switch"><input type="checkbox"></label>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-row__text">
+              <div class="toggle-row__name">Larger reading size</div>
+              <div class="toggle-row__hint">Bumps body copy by one step in lessons and explanations.</div>
+            </div>
+            <label class="switch"><input type="checkbox"></label>
+          </div>
+        </div>
+      </section>
+
+      <!-- § 03 — AI provider -->
+      <section class="section" id="s-03">
+        <header class="section__head">
+          <span class="section__num">§ 03</span>
+          <h2 class="section__title">AI <em>provider.</em></h2>
+        </header>
+        <p class="section__lede">
+          Coach Grade, hint ladders, and AI Generate route through your own key.
+          The key stays in this browser · it never leaves your device, never touches our server.
+        </p>
+
+        <div class="card">
+          <div class="card__head">
+            <div class="card__title">Anthropic API <em>key.</em></div>
+            <span class="tag tag--pass">Connected</span>
+          </div>
+
+          <div class="field">
+            <label class="field__label" for="api-key">Secret key</label>
+            <div class="input-pair">
+              <input class="input input--mono" id="api-key" type="password" value="sk-ant-•••••••••••••••••••••3b9f" autocomplete="off">
+              <button class="btn btn--sm" type="button">Show</button>
+            </div>
+          </div>
+
+          <div class="field">
+            <label class="field__label" for="model">Model</label>
+            <select class="select" id="model">
+              <option>Claude Sonnet 4.6 · recommended for grading</option>
+              <option>Claude Opus 4.7 · slower, deeper hint ladders</option>
+              <option>Claude Haiku 4.5 · fastest, cheapest</option>
+            </select>
+          </div>
+
+          <div class="card__actions">
+            <span class="card__status">Verified 4 min ago · 1,247 requests this month</span>
+            <button class="btn btn--ghost" type="button">Verify key</button>
+            <button class="btn btn--primary" type="button">Save</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- § 04 — Exam target -->
+      <section class="section" id="s-04">
+        <header class="section__head">
+          <span class="section__num">§ 04</span>
+          <h2 class="section__title">Exam <em>target.</em></h2>
+        </header>
+        <p class="section__lede">
+          A date and a scaled-score goal. Both surface on the home screen and
+          drive the spaced-repetition queue volume · the closer the date, the heavier the queue.
+        </p>
+
+        <div class="card">
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--space-md);">
+            <div class="field" style="margin-top: 0;">
+              <label class="field__label" for="exam-date">Target exam date</label>
+              <input class="input" id="exam-date" type="date" value="2026-07-29">
+            </div>
+            <div class="field" style="margin-top: 0;">
+              <label class="field__label" for="exam-score">Scaled-score goal</label>
+              <input class="input input--mono" id="exam-score" type="number" min="100" max="900" step="5" value="800">
+            </div>
+          </div>
+
+          <div class="card__actions">
+            <span class="card__status">CompTIA N10-009 · pass mark 720 / 900 · last attempt 767 on 2026-05-05</span>
+            <button class="btn btn--sm" type="button">Reset</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- § 05 — Data & backups -->
+      <section class="section" id="s-05">
+        <header class="section__head">
+          <span class="section__num">§ 05</span>
+          <h2 class="section__title">Data &amp; <em>backups.</em></h2>
+        </header>
+        <p class="section__lede">
+          Export to disk, import a JSON snapshot, or roll back to a recent automatic backup.
+        </p>
+
+        <div class="card">
+          <div class="card__head">
+            <div class="card__title">Automatic <em>backups.</em></div>
+            <span class="tag">7-day window</span>
+          </div>
+          <div class="card__body">
+            <p>
+              Daily rolling snapshots of every progress key in your browser.
+              Kept for the last 7 days plus any pre-restore safety snapshots.
+              Restore rolls back ALL of your data to that day's state · the current
+              state is auto-snapshotted first so you can roll forward again.
+            </p>
+          </div>
+          <div class="card__actions">
+            <span class="card__status">Latest snapshot · 2026-05-20 · 04:11 UTC · 184 KB</span>
+            <button class="btn" type="button">Download latest</button>
+            <button class="btn btn--primary" type="button">Snapshot now</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card__head">
+            <div class="card__title">Manual export &amp; <em>import.</em></div>
+          </div>
+          <div class="card__body">
+            <p>
+              Exports all quiz history, streaks, drill stats, topology saves,
+              and ACL state to a JSON file. Import merges into your current local data.
+            </p>
+          </div>
+          <div class="card__actions">
+            <span class="card__status">Last export · never</span>
+            <button class="btn" type="button">Import data</button>
+            <button class="btn btn--primary" type="button">Export data</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- § 06 — Danger zone -->
+      <section class="section section--danger" id="s-06">
+        <header class="section__head">
+          <span class="section__num">§ 06</span>
+          <h2 class="section__title">Danger <em>zone.</em></h2>
+        </header>
+        <p class="section__lede">
+          Destructive actions. Cannot be undone from the Edit menu.
+          Use the automatic backups in <em>§ 05</em> to recover if needed.
+        </p>
+
+        <div class="card">
+          <div class="card__head">
+            <div class="card__title">Wrong Answers <em>Bank.</em></div>
+            <span class="tag">0 entries</span>
+          </div>
+          <div class="card__body">
+            <p>
+              Removes every saved mistake. The "Drill Mistakes" preset on the
+              home page fires a drill quiz from this bank.
+            </p>
+          </div>
+          <div class="card__actions">
+            <span class="card__status">Type <code>clear-bank</code> below to confirm.</span>
+            <button class="btn btn--danger" type="button" disabled>Clear Wrong Answers Bank</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card__head">
+            <div class="card__title">Reset <em>progress.</em></div>
+            <span class="tag">Net+ only</span>
+          </div>
+          <div class="card__body">
+            <p>
+              Wipes streaks, topic mastery scores, the spaced-repetition queue,
+              and any topology saves on the active pack. Backups are not touched.
+            </p>
+          </div>
+          <div class="card__actions">
+            <span class="card__status">Affects the active pack only.</span>
+            <button class="btn btn--danger" type="button">Reset Net+ progress</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card__head">
+            <div class="card__title">Wipe <em>everything.</em></div>
+          </div>
+          <div class="card__body">
+            <p>
+              Clears all CertAnvil data in this browser · progress, backups,
+              API key, theme. You start the next session as a new user. There is no path back.
+            </p>
+          </div>
+          <div class="card__actions">
+            <span class="card__status">Type <code>wipe-everything</code> below to confirm.</span>
+            <button class="btn btn--danger" type="button" disabled>Wipe all CertAnvil data</button>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Footer · single inline line -->
+  <footer class="foot">
+    <span>CertAnvil · v5.7.0 · <em>built quietly.</em></span>
+    <span>Settings document · last opened just now</span>
+  </footer>
+
+</div>
+
+<div class="mockup-tag">Hallmark <em>mockup.</em></div>
+
+</body>
+</html>

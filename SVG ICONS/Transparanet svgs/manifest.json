@@ -1,0 +1,133 @@
+{
+  "pack": "certanvil_30_more_random_transparent_svg_icons_v3",
+  "background": "transparent",
+  "palette": {
+    "ink": "#202932",
+    "orange": "#C95500",
+    "orange_2": "#E27822",
+    "cream": "#FFF8EE",
+    "stone": "#D8D0C6"
+  },
+  "icons": [
+    {
+      "file": "01_adaptive_quiz.svg",
+      "title": "Adaptive quiz"
+    },
+    {
+      "file": "02_objective_pin.svg",
+      "title": "Objective pin"
+    },
+    {
+      "file": "03_score_trend.svg",
+      "title": "Score trend"
+    },
+    {
+      "file": "04_time_pressure.svg",
+      "title": "Time pressure"
+    },
+    {
+      "file": "05_drag_drop_builder.svg",
+      "title": "Drag drop builder"
+    },
+    {
+      "file": "06_subnet_calculator.svg",
+      "title": "Subnet calculator"
+    },
+    {
+      "file": "07_port_map.svg",
+      "title": "Port map"
+    },
+    {
+      "file": "08_arp_table.svg",
+      "title": "ARP table"
+    },
+    {
+      "file": "09_vlan_switch.svg",
+      "title": "VLAN switch"
+    },
+    {
+      "file": "10_firewall_rule.svg",
+      "title": "Firewall rule"
+    },
+    {
+      "file": "11_zero_trust.svg",
+      "title": "Zero trust shield"
+    },
+    {
+      "file": "12_encryption_key.svg",
+      "title": "Encryption key"
+    },
+    {
+      "file": "13_identity_card.svg",
+      "title": "Identity card"
+    },
+    {
+      "file": "14_access_token.svg",
+      "title": "Access token"
+    },
+    {
+      "file": "15_cloud_region.svg",
+      "title": "Cloud region"
+    },
+    {
+      "file": "16_database_lake.svg",
+      "title": "Database lake"
+    },
+    {
+      "file": "17_api_plug.svg",
+      "title": "API plug"
+    },
+    {
+      "file": "18_sync_arrows.svg",
+      "title": "Sync arrows"
+    },
+    {
+      "file": "19_release_notes.svg",
+      "title": "Release notes"
+    },
+    {
+      "file": "20_question_generator.svg",
+      "title": "Question generator"
+    },
+    {
+      "file": "21_confidence_scale.svg",
+      "title": "Confidence scale"
+    },
+    {
+      "file": "22_topic_heatmap.svg",
+      "title": "Topic heatmap"
+    },
+    {
+      "file": "23_milestone_flag.svg",
+      "title": "Milestone flag"
+    },
+    {
+      "file": "24_trophy_cert.svg",
+      "title": "Trophy certification"
+    },
+    {
+      "file": "25_bookmark_review.svg",
+      "title": "Bookmark review"
+    },
+    {
+      "file": "26_mobile_sync.svg",
+      "title": "Mobile sync"
+    },
+    {
+      "file": "27_focus_study.svg",
+      "title": "Focus study"
+    },
+    {
+      "file": "28_exam_day.svg",
+      "title": "Exam day"
+    },
+    {
+      "file": "29_practice_queue.svg",
+      "title": "Practice queue"
+    },
+    {
+      "file": "30_cert_anvil_mark.svg",
+      "title": "CertAnvil mark"
+    }
+  ]
+}

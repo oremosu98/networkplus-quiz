@@ -74,8 +74,6 @@
 </section>
 
 <section class="dx-card-stack">
-  <p class="dx-admin-notice">⚠ Admin view · you can see Security+ which isn't yet visible to end users</p>
-
   <!-- Network+ tile (always visible) -->
   <button type="button" class="dx-cert-tile is-selected" data-cert="network-plus" id="dx-cert-network-plus" aria-pressed="true">
     <span class="dx-cert-tile-icon">N+</span>
@@ -87,7 +85,7 @@
   </button>
 
   <!-- Security+ tile (admin only) -->
-  <button type="button" class="dx-cert-tile is-admin-only dx-admin-tile" data-cert="security-plus" id="dx-cert-security-plus" aria-pressed="false">
+  <button type="button" class="dx-cert-tile" data-cert="security-plus" id="dx-cert-security-plus" aria-pressed="false">
     <span class="dx-cert-tile-icon">S+</span>
     <span class="dx-cert-tile-content">
       <span class="dx-cert-tile-title">Security+ <span class="dx-cert-code">· SY0-701</span></span>
@@ -141,22 +139,14 @@
   </div>
 </footer>
 
-<!-- Supabase client (for is_admin() RPC check only · no full auth UI on this page) -->
-<script src="../lib/supabase-umd.min.js"></script>
-<script src="../lib/supabase.js"></script>
+<!-- v7.1.0 Sec+ public launch — admin gate removed. Sec+ tile is visible to all visitors. -->
 
 <script>
 // ══════════════════════════════════════════
-// D.1 · Cert picker · v4.99.52
+// D.1 · Cert picker · v7.1.0
 // ══════════════════════════════════════════
 // Pure client-side · sessionStorage state · 24h cooldown enforced client-
-// side + server-side at /api/diagnostic/generate (when D.3 ships).
-//
-// Admin gate: silent is_admin() RPC fires on load. If admin (and signed in)
-// the body gets a `.is-admin` class, which CSS uses to reveal:
-//   • the orange "Admin view" notice strip
-//   • the Security+ tile
-// Anonymous + non-admin users see only Network+ + "More coming".
+// side + server-side at /api/diagnostic/generate.
 
 (function() {
   'use strict';
@@ -214,24 +204,6 @@
     // Persist any prior intake data tied to this cert · handled per-page
     window.location.href = '/diagnostic/' + selectedCert + '/intake';
   });
-
-  // ── 4. Admin gate · silent is_admin() RPC ──
-  // Fires async after the page renders. If the user happens to be the founder
-  // (signed-in admin) we unhide the Security+ tile. Anonymous users see nothing
-  // unusual.
-  (async function checkAdmin() {
-    try {
-      if (!window.certanvilSupabase) return;
-      var session = await window.certanvilSupabase.auth.getSession();
-      if (!session || !session.data || !session.data.session) return;  // not signed in
-      var result = await window.certanvilSupabase.rpc('is_admin');
-      if (result && result.data === true) {
-        document.body.classList.add('is-admin');
-      }
-    } catch (_) {
-      // Silent · anonymous users or RLS failures don't affect the page
-    }
-  })();
 })();
 </script>
 

@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Logo animation — placement wireframe</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    /* ─────────────────────────────────────────────────────────
+       CertAnvil forged-bronze tokens
+       Dark default, light via [data-theme="light"]
+       ───────────────────────────────────────────────────────── */
+    :root {
+      --bg: #0E0F13;
+      --surface: #15161B;
+      --surface-2: #1B1D24;
+      --border: rgba(232, 180, 112, 0.14);
+      --border-strong: rgba(232, 180, 112, 0.28);
+      --text: #E8E6E3;
+      --text-mid: #9E9C97;
+      --text-dim: #6E6C68;
+      --accent: #E8B470;
+      --accent-deep: #C99757;
+      --spark: #F59E0B;
+
+      --t-mono: 'JetBrains Mono', 'SF Mono', 'Menlo', monospace;
+      --t-serif: 'Fraunces', Georgia, 'Times New Roman', serif;
+      --t-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+
+      --ease: cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    [data-theme="light"] {
+      --bg: #F5EDDB;
+      --surface: #FBF7EC;
+      --surface-2: #F0E7D2;
+      --border: rgba(139, 105, 20, 0.18);
+      --border-strong: rgba(139, 105, 20, 0.38);
+      --text: #2C2C2C;
+      --text-mid: #5C5C5C;
+      --text-dim: #8B8B8B;
+      --accent: #8B6914;
+      --accent-deep: #A0813F;
+      --spark: #B45309;
+    }
+
+    * { box-sizing: border-box; margin: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: var(--t-sans);
+      font-feature-settings: "ss01", "cv11";
+      background-color: var(--bg);
+      color: var(--text);
+      line-height: 1.55;
+      padding: 72px 32px 120px;
+      transition: background-color 320ms var(--ease), color 320ms var(--ease);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    .wrap { max-width: 1180px; margin: 0 auto; }
+
+    /* ─────────────────────────────────────────────────────────
+       Editorial header
+       ───────────────────────────────────────────────────────── */
+    .pagehead {
+      padding-bottom: 36px;
+      margin-bottom: 80px;
+      border-bottom: 1px solid var(--border);
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 32px;
+      align-items: end;
+    }
+    .head-eyebrow {
+      color: var(--accent);
+      font-family: var(--t-mono);
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      margin-bottom: 18px;
+    }
+    .head-eyebrow::before {
+      content: '';
+      display: inline-block;
+      width: 24px;
+      height: 1px;
+      background: var(--accent);
+      margin-right: 12px;
+      transform: translateY(-3px);
+    }
+    h1 {
+      font-family: var(--t-serif);
+      font-weight: 300;
+      font-size: clamp(40px, 6vw, 64px);
+      letter-spacing: -0.015em;
+      line-height: 1.02;
+      font-variant-numeric: lining-nums;
+    }
+    h1 em { font-style: italic; color: var(--accent); font-weight: 400; }
+    .head-sub {
+      color: var(--text-mid);
+      font-size: 15px;
+      margin-top: 20px;
+      max-width: 560px;
+      line-height: 1.6;
+    }
+
+    /* Editorial theme toggle — small mono control, not a button */
+    .theme-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: transparent;
+      border: 0;
+      padding: 14px 4px;
+      color: var(--text-mid);
+      font-family: var(--t-mono);
+      font-size: 10.5px;
+      font-weight: 500;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: color 180ms ease, transform 160ms ease-out;
+      min-height: 44px;
+    }
+    /* Gate hover behind pointer:fine so touch devices don't fire on tap */
+    @media (hover: hover) and (pointer: fine) {
+      .theme-toggle:hover { color: var(--accent); }
+    }
+    /* Press feedback — buttons must feel responsive */
+    .theme-toggle:active { transform: scale(0.97); }
+    .theme-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: var(--accent);
+      box-shadow: 0 0 0 4px color-mix(in oklab, var(--accent) 14%, transparent);
+      transition: background-color 200ms ease, box-shadow 200ms ease;
+    }
+
+    /* ─────────────────────────────────────────────────────────
+       Option block — editorial, hairline-led, no card
+       Entry: opacity + translateY (never scale(0)), staggered
+       ───────────────────────────────────────────────────────── */
+    .option {
+      padding: 56px 0 64px;
+      border-top: 1px solid var(--border);
+      position: relative;
+      transition: border-color 200ms ease;
+      opacity: 1;
+      animation: optionEnter 520ms var(--ease) both;
+    }
+    .option:first-of-type { border-top: 0; padding-top: 0; }
+    .option:nth-of-type(1) { animation-delay: 60ms; }
+    .option:nth-of-type(2) { animation-delay: 140ms; }
+    .option:nth-of-type(3) { animation-delay: 220ms; }
+    @media (hover: hover) and (pointer: fine) {
+      .option:hover { border-top-color: var(--border-strong); }
+    }
+    @keyframes optionEnter {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .option.is-recommended::before {
+      content: '';
+      position: absolute;
+      left: -16px;
+      top: 56px;
+      bottom: 64px;
+      width: 2px;
+      background: var(--accent);
+      opacity: 0.7;
+    }
+    @media (max-width: 920px) {
+      .option.is-recommended::before { left: -12px; }
+    }
+
+    /* Option head — numeral as visual anchor */
+    .option-head {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 24px;
+      align-items: baseline;
+      margin-bottom: 36px;
+    }
+    .option-num {
+      font-family: var(--t-serif);
+      font-size: 56px;
+      color: var(--accent);
+      font-weight: 300;
+      line-height: 0.85;
+      letter-spacing: -0.02em;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    .option-titleblock { display: flex; flex-direction: column; gap: 6px; }
+    .option-tag {
+      color: var(--accent);
+      font-family: var(--t-mono);
+      font-size: 9.5px;
+      font-weight: 500;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+    }
+    .option-title {
+      font-family: var(--t-serif);
+      font-size: 28px;
+      font-weight: 300;
+      letter-spacing: -0.005em;
+      color: var(--text);
+      line-height: 1.15;
+    }
+    .option-url {
+      color: var(--text-dim);
+      font-family: var(--t-mono);
+      font-size: 11.5px;
+      letter-spacing: 0.02em;
+      align-self: end;
+      padding-bottom: 4px;
+    }
+
+    /* Body grid — wireframe + annotations */
+    .option-body {
+      display: grid;
+      grid-template-columns: 1fr 320px;
+      gap: 40px;
+      align-items: start;
+    }
+
+    /* ─────────────────────────────────────────────────────────
+       Wireframe frame — editorial, hairline-led
+       ───────────────────────────────────────────────────────── */
+    .wf {
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      overflow: hidden;
+      background: var(--surface);
+      position: relative;
+    }
+    .wf-chrome {
+      height: 32px;
+      background: var(--surface-2);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+    }
+    .wf-url {
+      flex: 1;
+      font-family: var(--t-mono);
+      font-size: 10px;
+      color: var(--text-dim);
+      letter-spacing: 0.02em;
+    }
+    .wf-url::before {
+      content: '';
+      display: inline-block;
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: var(--text-dim);
+      margin-right: 10px;
+      transform: translateY(-1px);
+    }
+    .wf-body {
+      padding: 36px 28px;
+      min-height: 380px;
+      position: relative;
+    }
+
+    /* ─────────────────────────────────────────────────────────
+       THE animation slot — the focal point with calm pulse
+       ───────────────────────────────────────────────────────── */
+    .slot {
+      border: 2px dashed var(--accent);
+      background: color-mix(in oklab, var(--accent) 6%, transparent);
+      border-radius: 6px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      position: relative;
+      animation: slotPulse 2.4s ease-in-out infinite;
+    }
+    .slot::before {
+      content: '';
+      position: absolute;
+      inset: 5px;
+      border: 1px solid color-mix(in oklab, var(--accent) 32%, transparent);
+      border-radius: 3px;
+      pointer-events: none;
+    }
+    .slot-label {
+      color: var(--accent);
+      font-family: var(--t-mono);
+      font-size: 9px;
+      font-weight: 500;
+      letter-spacing: 0.24em;
+      text-transform: uppercase;
+      position: relative;
+      z-index: 1;
+    }
+    .slot-size {
+      color: var(--text-dim);
+      font-family: var(--t-mono);
+      font-size: 9px;
+      letter-spacing: 0.04em;
+      position: relative;
+      z-index: 1;
+    }
+    @keyframes slotPulse {
+      0%, 100% {
+        border-color: var(--accent);
+        background: color-mix(in oklab, var(--accent) 6%, transparent);
+      }
+      50% {
+        border-color: color-mix(in oklab, var(--accent) 55%, transparent);
+        background: color-mix(in oklab, var(--accent) 12%, transparent);
+      }
+    }
+    /* Reduced motion: kill motion (transforms + keyframes), preserve
+       color/opacity transitions for comprehension. Emil's rule:
+       "fewer and gentler animations, not zero." */
+    @media (prefers-reduced-motion: reduce) {
+      .slot { animation: none; }
+      .option {
+        animation: none;
+        opacity: 1;
+        transform: none;
+      }
+      .theme-toggle:active { transform: none; }
+      html { scroll-behavior: auto; }
+    }
+
+    /* ─────────────────────────────────────────────────────────
+       Annotation column — hairline strip, no card
+       ───────────────────────────────────────────────────────── */
+    .anno {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      padding-top: 8px;
+    }
+    .anno-row {
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 16px;
+    }
+    .anno-row:last-child { border-bottom: 0; padding-bottom: 0; }
+    .anno-key {
+      color: var(--text-dim);
+      font-family: var(--t-mono);
+      font-size: 9px;
+      font-weight: 500;
+      letter-spacing: 0.24em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .anno-val {
+      color: var(--text);
+      font-size: 13.5px;
+      line-height: 1.6;
+      letter-spacing: -0.005em;
+    }
+    .anno-row.tradeoff .anno-val {
+      color: var(--text-mid);
+      font-style: italic;
+    }
+
+    /* ─────────────────────────────────────────────────────────
+       Surface 01 — Landing page hero
+       ───────────────────────────────────────────────────────── */
+    .landing-hero {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 22px;
+      padding: 28px 0 8px;
+    }
+    .landing-eyebrow {
+      color: var(--accent);
+      font-family: var(--t-mono);
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.26em;
+      text-transform: uppercase;
+    }
+    .landing-title {
+      font-family: var(--t-serif);
+      font-size: 30px;
+      font-weight: 300;
+      line-height: 1.1;
+      letter-spacing: -0.015em;
+      max-width: 520px;
+      margin-top: 2px;
+    }
+    .landing-title em { font-style: italic; color: var(--accent); font-weight: 400; }
+    .landing-sub {
+      color: var(--text-mid);
+      font-size: 13px;
+      max-width: 420px;
+      line-height: 1.6;
+    }
+    .landing-ctas {
+      display: flex;
+      gap: 12px;
+      margin-top: 12px;
+    }
+    .btn-primary {
+      background: var(--accent);
+      color: var(--bg);
+      padding: 12px 22px;
+      border-radius: 6px;
+      font-size: 12.5px;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+      font-family: var(--t-sans);
+    }
+    .btn-ghost {
+      border: 1px solid var(--border-strong);
+      color: var(--text);
+      padding: 11px 22px;
+      border-radius: 6px;
+      font-size: 12.5px;
+      font-weight: 500;
+      font-family: var(--t-sans);
+    }
+
+    /* ─────────────────────────────────────────────────────────
+       Surface 02 — Loading screen
+       ───────────────────────────────────────────────────────── */
+    .loading-page {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 26px;
+      padding: 32px 0;
+    }
+    .loading-eyebrow {
+      color: var(--accent);
+      font-family: var(--t-mono);
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.26em;
+      text-transform: uppercase;
+    }
+    .loading-status {
+      color: var(--text-mid);
+      font-size: 13px;
+      font-family: var(--t-sans);
+      letter-spacing: -0.005em;
+    }
+    .loading-bar {
+      width: 320px;
+      height: 3px;
+      background: color-mix(in oklab, var(--text) 8%, transparent);
+      border-radius: 2px;
+      position: relative;
+      overflow: hidden;
+    }
+    .loading-bar::after {
+      content: '';
+      position: absolute;
+      left: 0; top: 0;
+      width: 44%;
+      height: 100%;
+      background: var(--accent);
+      border-radius: 2px;
+    }
+    .loading-prog {
+      color: var(--text-dim);
+      font-family: var(--t-mono);
+      font-size: 10px;
+      letter-spacing: 0.04em;
+    }
+
+    /* ─────────────────────────────────────────────────────────
+       Surface 03 — Home masthead (with real sidebar chrome)
+       ───────────────────────────────────────────────────────── */
+    .home-layout {
+      display: grid;
+      grid-template-columns: 56px 1fr;
+      gap: 22px;
+      align-items: stretch;
+      min-height: 320px;
+    }
+    .home-sidebar {
+      background: color-mix(in oklab, var(--text) 3%, transparent);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      padding: 18px 0;
+    }
+    .home-brand-mark {
+      width: 28px;
+      height: 28px;
+      border-radius: 4px;
+      background: color-mix(in oklab, var(--accent) 24%, transparent);
+      border: 1px solid color-mix(in oklab, var(--accent) 40%, transparent);
+    }
+    .home-nav-tick {
+      width: 22px;
+      height: 3px;
+      border-radius: 2px;
+      background: color-mix(in oklab, var(--text) 12%, transparent);
+    }
+    .home-nav-tick.is-active { background: var(--accent); }
+    .home-main {
+      display: grid;
+      grid-template-columns: 1fr 132px;
+      gap: 24px;
+      padding: 8px 8px 8px 0;
+    }
+    .home-hero {
+      display: grid;
+      grid-template-columns: 110px 1fr;
+      gap: 22px;
+      align-items: center;
+    }
+    .home-hero-text { display: flex; flex-direction: column; gap: 10px; }
+    .home-greet {
+      font-family: var(--t-serif);
+      font-size: 21px;
+      line-height: 1.2;
+      font-weight: 300;
+      letter-spacing: -0.005em;
+    }
+    .home-greet em { font-style: italic; color: var(--accent); font-weight: 400; }
+    .home-lede {
+      color: var(--text-mid);
+      font-size: 12.5px;
+      max-width: 340px;
+      line-height: 1.55;
+    }
+    .home-band {
+      grid-column: 1 / -1;
+      height: 64px;
+      margin-top: 22px;
+      background: color-mix(in oklab, var(--accent) 7%, transparent);
+      border-left: 2px solid var(--accent);
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      padding: 0 20px;
+    }
+    .home-band-eyebrow {
+      color: var(--accent);
+      font-family: var(--t-mono);
+      font-size: 9px;
+      font-weight: 500;
+      letter-spacing: 0.24em;
+      text-transform: uppercase;
+    }
+    .home-band-text {
+      color: var(--text);
+      font-size: 12.5px;
+      margin-top: 4px;
+      letter-spacing: -0.005em;
+    }
+    .home-rail {
+      background: color-mix(in oklab, var(--text) 5%, transparent);
+      border-radius: 4px;
+      height: 252px;
+    }
+
+    /* ─────────────────────────────────────────────────────────
+       Conclusion — editorial leadership + supporting columns
+       ───────────────────────────────────────────────────────── */
+    .conclusion {
+      margin-top: 96px;
+      padding-top: 56px;
+      border-top: 1px solid var(--border);
+    }
+    .conclusion-eyebrow {
+      color: var(--accent);
+      font-family: var(--t-mono);
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      margin-bottom: 22px;
+    }
+    .conclusion-eyebrow::before {
+      content: '';
+      display: inline-block;
+      width: 24px;
+      height: 1px;
+      background: var(--accent);
+      margin-right: 12px;
+      transform: translateY(-3px);
+    }
+    .conclusion-lead {
+      font-family: var(--t-serif);
+      font-size: clamp(22px, 3vw, 30px);
+      font-weight: 300;
+      line-height: 1.32;
+      letter-spacing: -0.01em;
+      max-width: 820px;
+      margin-bottom: 56px;
+    }
+    .conclusion-lead em { font-style: italic; color: var(--accent); font-weight: 400; }
+    .conclusion-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 40px;
+      padding-top: 32px;
+      border-top: 1px solid var(--border);
+    }
+    .conclusion-col h3 {
+      color: var(--text);
+      font-family: var(--t-serif);
+      font-size: 17px;
+      font-weight: 400;
+      letter-spacing: -0.005em;
+      margin-bottom: 10px;
+    }
+    .conclusion-col .num {
+      color: var(--accent);
+      font-family: var(--t-mono);
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    .conclusion-col p {
+      color: var(--text-mid);
+      font-size: 13px;
+      line-height: 1.65;
+      letter-spacing: -0.005em;
+    }
+
+    /* ─────────────────────────────────────────────────────────
+       Responsive
+       ───────────────────────────────────────────────────────── */
+    @media (max-width: 920px) {
+      body { padding: 56px 20px 96px; }
+      .pagehead { grid-template-columns: 1fr; gap: 24px; }
+      .option-body { grid-template-columns: 1fr; gap: 32px; }
+      .option-head { grid-template-columns: auto 1fr; }
+      .option-url { grid-column: 1 / -1; padding-bottom: 0; padding-top: 4px; }
+      .conclusion-grid { grid-template-columns: 1fr; gap: 28px; }
+      .home-main { grid-template-columns: 1fr; }
+      .home-hero { grid-template-columns: 80px 1fr; }
+      .home-rail { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+
+    <!-- ─── Header ─── -->
+    <header class="pagehead">
+      <div>
+        <div class="head-eyebrow">Wireframe · v2 · editorial</div>
+        <h1>Where the C/A reveal <em>lives</em>.</h1>
+        <p class="head-sub">Three candidate surfaces for the 3-second logo animation. Ranked by frequency, first-impression value, and implementation risk. One is the recommended first ship.</p>
+      </div>
+      <button class="theme-toggle" type="button" onclick="document.documentElement.dataset.theme = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light'">
+        <span class="theme-dot"></span>
+        <span>Toggle theme</span>
+      </button>
+    </header>
+
+    <!-- ─── Option 01 — Landing hero ─── -->
+    <section class="option">
+      <div class="option-head">
+        <span class="option-num">01</span>
+        <div class="option-titleblock">
+          <span class="option-tag">Marketing surface</span>
+          <span class="option-title">Landing page hero</span>
+        </div>
+        <span class="option-url">certanvil.com</span>
+      </div>
+      <div class="option-body">
+        <div class="wf">
+          <div class="wf-chrome">
+            <span class="wf-url">certanvil.com</span>
+          </div>
+          <div class="wf-body">
+            <div class="landing-hero">
+              <div class="slot" style="width: 200px; height: 200px;">
+                <span class="slot-label">Logo reveal</span>
+                <span class="slot-size">200 × 200 · once on load</span>
+              </div>
+              <div class="landing-eyebrow">Forge your proof</div>
+              <div class="landing-title">Know where you actually stand on <em>Network+</em>.</div>
+              <div class="landing-sub">A 20-question diagnostic scored against the real exam blueprint. Free. Anonymous. No signup until you've seen the result.</div>
+              <div class="landing-ctas">
+                <span class="btn-primary">Take the diagnostic →</span>
+                <span class="btn-ghost">See pricing</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="anno">
+          <div class="anno-row"><div class="anno-key">Trigger</div><div class="anno-val">First page load. Plays once, then settles to the static logo. No replay on scroll.</div></div>
+          <div class="anno-row"><div class="anno-key">Size</div><div class="anno-val">200 × 200 inline, anchored above the headline.</div></div>
+          <div class="anno-row"><div class="anno-key">Why this</div><div class="anno-val">Highest cold-visitor first-impression slot. The brand moment lands before a word is read.</div></div>
+          <div class="anno-row tradeoff"><div class="anno-key">Tradeoff</div><div class="anno-val">Only seen on first visit. Returning users who deep-link past the hero bypass it entirely.</div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─── Option 02 — Loading screen · RECOMMENDED ─── -->
+    <section class="option is-recommended">
+      <div class="option-head">
+        <span class="option-num">02</span>
+        <div class="option-titleblock">
+          <span class="option-tag">Recommended first ship</span>
+          <span class="option-title">Cert-app loading screen</span>
+        </div>
+        <span class="option-url">networkplus.certanvil.com · #page-loading</span>
+      </div>
+      <div class="option-body">
+        <div class="wf">
+          <div class="wf-chrome">
+            <span class="wf-url">networkplus.certanvil.com</span>
+          </div>
+          <div class="wf-body">
+            <div class="loading-page">
+              <div class="slot" style="width: 140px; height: 140px;">
+                <span class="slot-label">Logo reveal</span>
+                <span class="slot-size">140 × 140 · every load</span>
+              </div>
+              <div class="loading-eyebrow">Forging your quiz</div>
+              <div class="loading-status">Generating 20 questions from the N10-009 blueprint…</div>
+              <div class="loading-bar"></div>
+              <div class="loading-prog">12 / 20 · 4s remaining</div>
+            </div>
+          </div>
+        </div>
+        <div class="anno">
+          <div class="anno-row"><div class="anno-key">Trigger</div><div class="anno-val">Every AI generation: quiz, exam, drill, diagnostic, Topic Deep Dive. Plays once per load.</div></div>
+          <div class="anno-row"><div class="anno-key">Size</div><div class="anno-val">140 × 140 above the progress bar — fills the natural wait moment.</div></div>
+          <div class="anno-row"><div class="anno-key">Why this</div><div class="anno-val">Highest cumulative exposure. Paid users hit AI generation 10+ × per session — by week 2 they have seen the reveal 50 + times.</div></div>
+          <div class="anno-row tradeoff"><div class="anno-key">Tradeoff</div><div class="anno-val">Only seen by users who hit AI generation paths. Consider a once-per-day cap after the first week to avoid fatigue.</div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─── Option 03 — Home masthead ─── -->
+    <section class="option">
+      <div class="option-head">
+        <span class="option-num">03</span>
+        <div class="option-titleblock">
+          <span class="option-tag">Daily-entry anchor</span>
+          <span class="option-title">Cert-app home masthead</span>
+        </div>
+        <span class="option-url">networkplus.certanvil.com · #page-setup</span>
+      </div>
+      <div class="option-body">
+        <div class="wf">
+          <div class="wf-chrome">
+            <span class="wf-url">networkplus.certanvil.com</span>
+          </div>
+          <div class="wf-body">
+            <div class="home-layout">
+              <div class="home-sidebar">
+                <div class="home-brand-mark"></div>
+                <div class="home-nav-tick is-active"></div>
+                <div class="home-nav-tick"></div>
+                <div class="home-nav-tick"></div>
+                <div class="home-nav-tick"></div>
+                <div class="home-nav-tick"></div>
+              </div>
+              <div class="home-main">
+                <div class="home-hero">
+                  <div class="slot" style="width: 110px; height: 110px;">
+                    <span class="slot-label">Logo</span>
+                    <span class="slot-size">110 × 110</span>
+                  </div>
+                  <div class="home-hero-text">
+                    <div class="home-greet">Welcome back, <em>Simi.</em></div>
+                    <div class="home-lede">Where do you stand on N10-009? 522 / 900 ready · trajectory up 18 this week.</div>
+                  </div>
+                  <div class="home-band">
+                    <div>
+                      <div class="home-band-eyebrow">Next best move</div>
+                      <div class="home-band-text">Drill Subnetting & IP Addressing · 4 in your wrong bank</div>
+                    </div>
+                  </div>
+                </div>
+                <div class="home-rail"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="anno">
+          <div class="anno-row"><div class="anno-key">Trigger</div><div class="anno-val">Once per session on first home-page visit. Gated by sessionStorage so back-navigation doesn't replay.</div></div>
+          <div class="anno-row"><div class="anno-key">Size</div><div class="anno-val">110 × 110 to the left of the greeting line. Anchors the masthead without dominating.</div></div>
+          <div class="anno-row"><div class="anno-key">Why this</div><div class="anno-val">Daily-entry brand anchor. The most-visited surface for active users reinforces identity over time.</div></div>
+          <div class="anno-row tradeoff"><div class="anno-key">Tradeoff</div><div class="anno-val">Smaller scale means a less dramatic reveal. Requires sessionStorage logic; without it, the page replays on every back-navigation.</div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─── Conclusion — editorial leadership + supporting cols ─── -->
+    <section class="conclusion">
+      <div class="conclusion-eyebrow">Recommended path</div>
+      <p class="conclusion-lead">
+        Ship <em>Option 02</em> first. The surface already exists, the wait already exists, and the animation fills a moment users currently spend looking at a progress bar. Then Option 01 for landing-page polish — Option 03 only if you want a third touchpoint.
+      </p>
+      <div class="conclusion-grid">
+        <div class="conclusion-col">
+          <div class="num">01 · First impression</div>
+          <h3>Landing hero</h3>
+          <p>Cold-visitor moment. Highest marketing payoff, biggest implementation risk — any layout shift on the most-tested page.</p>
+        </div>
+        <div class="conclusion-col">
+          <div class="num">02 · Frequency</div>
+          <h3>Loading screen</h3>
+          <p>Daily-use exposure. Lowest UX risk — the slot is empty, the wait exists, the animation runs during a real beat.</p>
+        </div>
+        <div class="conclusion-col">
+          <div class="num">03 · Daily anchor</div>
+          <h3>Home masthead</h3>
+          <p>Once-per-session reinforcement. Middle effort, middle exposure, requires sessionStorage gating to avoid fatigue.</p>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</body>
+</html>

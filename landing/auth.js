@@ -394,12 +394,13 @@
     // Network+ — every signed-in user sees it (everyone's entitled to N+ free)
     applyTileState('netplus', 'active', 'Resume studying →');
 
-    // Security+ — un-hide for admin only (private builder cert)
-    if (role === 'admin') {
-      var secTile = document.getElementById('cert-tile-secplus');
-      if (secTile) secTile.removeAttribute('hidden');
-      applyTileState('secplus', 'active', 'Resume studying →');
-    }
+    // v7.1.0 Sec+ public launch: Sec+ tile visible to ALL signed-in users.
+    // Pro gating happens in-app on the secplus.certanvil.com subdomain, not
+    // at landing-tile visibility. Pro users see "Resume studying →"; Free
+    // users see the tile + upgrade prompt when they click in.
+    var secTile = document.getElementById('cert-tile-secplus');
+    if (secTile) secTile.removeAttribute('hidden');
+    applyTileState('secplus', 'active', 'Resume studying →');
   }
 
   // ── My certs modal (v4.93.0 — data-driven) ─────────────────────────────
@@ -454,22 +455,24 @@
       activeMeta: 'studying — no exam booked',
       href: 'https://networkplus.certanvil.com/?cert=netplus'
     }));
-    if (role === 'admin') {
-      rows.push(rowForCert({
-        id: 'secplus',
-        glyph: 'S+',
-        glyphClass: 'cert-glyph-secplus',
-        name: 'Security+',
-        code: 'SY0-701',
-        activeMeta: 'target exam 2026-07-29',
-        href: 'https://networkplus.certanvil.com/?cert=secplus'
-      }));
-    }
+    // v7.1.0 Sec+ public launch — Sec+ row visible to ALL signed-in users
+    // (was admin-only). Pro gating happens in-app on the secplus.certanvil.com
+    // subdomain, not at this list-visibility layer.
+    rows.push(rowForCert({
+      id: 'secplus',
+      glyph: 'S+',
+      glyphClass: 'cert-glyph-secplus',
+      name: 'Security+',
+      code: 'SY0-701',
+      activeMeta: 'available now',
+      href: 'https://secplus.certanvil.com/'
+    }));
     listEl.innerHTML = rows.join('');
 
     // Show Security+ analytics quick link in the cross-cert modal too
     var secplusLink = document.getElementById('cca-link-secplus');
-    if (secplusLink && role === 'admin') secplusLink.removeAttribute('hidden');
+    // v7.1.0 Sec+ public launch — visible to all signed-in users.
+    if (secplusLink) secplusLink.removeAttribute('hidden');
   }
 
   function buildMyCertRow(c) {

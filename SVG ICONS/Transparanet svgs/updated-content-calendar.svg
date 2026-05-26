@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="title desc">
+<title id="title">Updated content calendar</title>
+<desc id="desc">CertAnvil brand SVG icon with transparent background.</desc>
+
+<defs>
+  <linearGradient id="orangeGrad" x1="20" y1="10" x2="110" y2="118" gradientUnits="userSpaceOnUse">
+    <stop offset="0" stop-color="#F08A24"/>
+    <stop offset="1" stop-color="#B94700"/>
+  </linearGradient>
+  <linearGradient id="creamGrad" x1="14" y1="6" x2="116" y2="126" gradientUnits="userSpaceOnUse">
+    <stop offset="0" stop-color="#FFFDF8"/>
+    <stop offset="1" stop-color="#F7EBDC"/>
+  </linearGradient>
+  <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+    <feDropShadow dx="0" dy="5" stdDeviation="5" flood-color="#172033" flood-opacity="0.08"/>
+  </filter>
+  <style>
+    .ink{stroke:#172033;stroke-width:5.2;stroke-linecap:round;stroke-linejoin:round;fill:none}
+    .ink-thin{stroke:#172033;stroke-width:3.5;stroke-linecap:round;stroke-linejoin:round;fill:none}
+    .muted{stroke:#CFC3B6;stroke-width:4;stroke-linecap:round;stroke-linejoin:round;fill:none}
+    .orange{stroke:#C95000;stroke-width:5.2;stroke-linecap:round;stroke-linejoin:round;fill:none}
+    .orange-thin{stroke:#C95000;stroke-width:3.5;stroke-linecap:round;stroke-linejoin:round;fill:none}
+    .fill-cream{fill:url(#creamGrad);stroke:#E7DDD0;stroke-width:2.2;stroke-linejoin:round}
+    .fill-orange{fill:url(#orangeGrad)}
+    .fill-ink{fill:#172033}
+    .fill-soft{fill:#FFF7EC;stroke:#E7DDD0;stroke-width:2.2;stroke-linejoin:round}
+  </style>
+</defs>
+
+<rect class="fill-cream" filter="url(#softShadow)" x="22" y="30" width="84" height="74" rx="14"/>
+<path class="ink" d="M22 52h84M43 20v20M85 20v20"/>
+<path class="orange" d="M45 72l8 8 17-20"/>
+<path class="ink-thin" d="M78 70h10M78 84h10"/>
+<circle class="fill-orange" cx="94" cy="28" r="5"/>
+
+</svg>

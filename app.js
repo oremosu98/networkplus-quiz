@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v7.0.0
+// Network+ AI Quiz — app.js  v7.1.0
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '7.0.0';
+const APP_VERSION = '7.1.0';
 // v4.99.45 (Phase 6b): expose APP_VERSION on window so the web-vitals
 // collector (lib/web-vitals-collector.js, loaded BEFORE app.js so its
 // PerformanceObservers attach earlier) can stamp this version onto every
@@ -1381,7 +1381,7 @@ async function renderWebVitals() {
   }
 
   if (rows.length === 0) {
-    summary.innerHTML = '<div class="wv-empty">No telemetry in the last 7 days. Once signed-in users hit prod (networkplus.certanvil.com / secplus-*) and switch tabs, rows will appear here.</div>';
+    summary.innerHTML = '<div class="wv-empty">No telemetry in the last 7 days. Once signed-in users hit prod (networkplus.certanvil.com / secplus.certanvil.com) and switch tabs, rows will appear here.</div>';
     byCert.innerHTML = ''; byVer.innerHTML = ''; byPlat.innerHTML = ''; recent.innerHTML = '';
     return;
   }
@@ -9663,7 +9663,8 @@ const _DOMAIN_IDX = (() => {
 //
 // Why post-load substitution: the static HTML stays human-readable (no
 // template syntax), Network+ has zero flash, Security+ accepts a tiny
-// flash on initial load — acceptable since secplus is the private builder URL.
+// flash on initial load — acceptable trade-off. v7.1.0 Sec+ now publicly
+// launched at secplus.certanvil.com (Pro tier).
 //
 // Targets — the user-visible Network+/N10-009 hardcodes that swap:
 //   - .diagnostic-cta-title       "🧪 Where do you stand on N10-009?"

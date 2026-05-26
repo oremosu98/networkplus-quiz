@@ -1,0 +1,830 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f7f2e8">
+<title>Pricing · CertAnvil</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500;1,9..144,600&family=Inter:wght@400;500;550;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap">
+
+<style>
+/* CertAnvil · pricing · Stat-Led
+ * Brand: BRAND.md v5.5.12 (locked forged-bronze)
+ * Macrostructure: Stat-Led · three prices as the hero typographic figure
+ * Differs from Long Document (settings), Catalogue (v1 rejected), Manifesto (v2 rejected)
+ * Theme locked per multi-page consistency rule · prices visible in first viewport
+ */
+
+:root {
+  --bg:            oklch(0.975 0.007 85);
+  --surface:       oklch(0.992 0.004 85);
+  --surface-2:     oklch(0.965 0.010 84);
+  --ink:           oklch(0.22  0.015 280);
+  --ink-soft:      oklch(0.36  0.014 280);
+  --muted:         oklch(0.50  0.013 280);
+  --border:        oklch(0.86  0.008 85);
+  --border-soft:   oklch(0.91  0.006 85);
+  --accent:        oklch(0.50  0.155 55);
+  --accent-bright: oklch(0.80  0.155 64);
+  --accent-deep:   oklch(0.42  0.150 52);
+  --on-accent:     oklch(0.985 0.010 85);
+  --pass:          oklch(0.52  0.13 150);
+  --warn:          oklch(0.62  0.14 70);
+  --danger:        oklch(0.55  0.17 25);
+
+  --font-display:  "Fraunces", ui-serif, Georgia, serif;
+  --font-body:     "Inter", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono:     "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+  --t-1:           0.75rem;
+  --t0:            0.875rem;
+  --t-base:        1rem;
+  --t1:            1.125rem;
+  --t2:            1.4375rem;
+  --t3:            1.875rem;
+  --t4:            2.625rem;
+  --t-display:     clamp(2.25rem, 4.5vw + 0.75rem, 4rem);
+  --t-stat:        clamp(3.5rem, 8vw + 0.5rem, 7rem);
+  --t-stat-team:   clamp(2.25rem, 4.5vw + 0.75rem, 4rem);
+
+  --space-3xs:     0.125rem;
+  --space-2xs:     0.25rem;
+  --space-xs:      0.5rem;
+  --space-sm:      0.75rem;
+  --space-md:      1rem;
+  --space-lg:      1.5rem;
+  --space-xl:      2.25rem;
+  --space-2xl:     3.5rem;
+  --space-3xl:     5.5rem;
+
+  --ease-out:      cubic-bezier(0.16, 1, 0.3, 1);
+  --dur-fast:      150ms;
+  --dur-short:     220ms;
+
+  --radius-input:  10px;
+  --radius-pill:   999px;
+}
+
+html[data-theme="dark"] {
+  --bg:            oklch(0.16  0.009 275);
+  --surface:       oklch(0.205 0.009 275);
+  --surface-2:     oklch(0.185 0.009 275);
+  --ink:           oklch(0.96  0.006 275);
+  --ink-soft:      oklch(0.78  0.010 275);
+  --muted:         oklch(0.60  0.013 275);
+  --border:        oklch(0.30  0.008 275);
+  --border-soft:   oklch(0.26  0.008 275);
+  --accent:        oklch(0.80  0.155 64);
+  --accent-bright: oklch(0.86  0.140 70);
+  --accent-deep:   oklch(0.70  0.150 62);
+  --on-accent:     oklch(0.18  0.020 275);
+  --pass:          oklch(0.74  0.150 152);
+  --warn:          oklch(0.80  0.130 75);
+  --danger:        oklch(0.66  0.17 25);
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html, body { overflow-x: clip; }
+html {
+  background: var(--bg);
+  color: var(--ink);
+  -webkit-text-size-adjust: 100%;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+body {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: var(--t-base);
+  font-weight: 400;
+  line-height: 1.55;
+  color: var(--ink);
+  background: var(--bg);
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.022em;
+  line-height: 1.05;
+  margin: 0;
+  color: var(--ink);
+}
+h1 em, h2 em, h3 em, h4 em {
+  font-style: italic;
+  font-weight: 500;
+  color: var(--accent);
+}
+p { margin: 0; }
+a { color: inherit; text-decoration: none; }
+button, input, select, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+
+/* — Shell — */
+.shell {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: var(--space-lg) clamp(1rem, 4vw, 3rem) var(--space-3xl);
+}
+
+/* — Top bar (same as siblings) — */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  padding-bottom: var(--space-xl);
+}
+.brand { display: inline-flex; align-items: center; gap: var(--space-sm); color: var(--ink); }
+.brand__mark { width: 28px; height: 28px; flex-shrink: 0; }
+.brand__mark svg { display: block; width: 100%; height: 100%; }
+.brand__name {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: var(--t1);
+  letter-spacing: -0.02em;
+}
+.brand__name em { font-style: italic; font-weight: 500; color: var(--accent); }
+.topbar__nav { display: inline-flex; align-items: center; gap: var(--space-md); }
+.crumb {
+  font-family: var(--font-mono);
+  font-size: var(--t-1);
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+.crumb a {
+  border-bottom: 1px solid transparent;
+  padding: 2px 0;
+  transition: color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out);
+}
+@media (hover: hover) and (pointer: fine) {
+  .crumb a:hover { color: var(--ink); border-bottom-color: var(--border); }
+}
+.theme-toggle {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--ink-soft);
+  font-family: var(--font-mono);
+  font-size: var(--t-1);
+  letter-spacing: 0.06em;
+  padding: 0.45em 0.85em;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  transition: color var(--dur-fast) var(--ease-out),
+              border-color var(--dur-fast) var(--ease-out),
+              background-color var(--dur-fast) var(--ease-out),
+              transform 100ms var(--ease-out);
+}
+@media (hover: hover) and (pointer: fine) {
+  .theme-toggle:hover { color: var(--ink); border-color: var(--accent); }
+}
+.theme-toggle:active { transform: scale(0.97); }
+
+/* — Headline strip — */
+.headline {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  gap: clamp(2rem, 5vw, 5rem);
+  align-items: end;
+  margin-bottom: var(--space-xl);
+  padding-bottom: var(--space-lg);
+  border-bottom: 1px solid var(--border);
+}
+.headline__meta {
+  font-family: var(--font-mono);
+  font-size: var(--t-1);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: var(--space-sm);
+}
+.headline h1 {
+  font-size: var(--t-display);
+  letter-spacing: -0.025em;
+  line-height: 1.05;
+  max-width: 14ch;
+}
+.headline__lede {
+  font-family: var(--font-body);
+  font-size: var(--t0);
+  color: var(--ink-soft);
+  line-height: 1.55;
+  max-width: 38ch;
+  align-self: end;
+}
+.headline__lede em {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 500;
+  color: var(--accent);
+}
+
+/* — Stat triptych · the price hero — */
+.stats {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
+  gap: 0;
+  margin-bottom: var(--space-2xl);
+}
+.stat {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-lg) clamp(0.75rem, 2vw, 1.75rem);
+  border-right: 1px solid var(--border);
+}
+.stat:last-child { border-right: 0; }
+.stat--pro {
+  background: color-mix(in oklab, var(--accent) 5%, transparent);
+}
+.stat__eyebrow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-xs);
+  font-family: var(--font-body);
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: var(--space-md);
+}
+.stat__eyebrow strong {
+  color: var(--ink);
+  font-weight: 800;
+}
+.stat--pro .stat__eyebrow strong { color: var(--accent); }
+.stat__pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2em 0.55em;
+  border-radius: var(--radius-pill);
+  font-size: 9.5px;
+  letter-spacing: 0.1em;
+  font-weight: 700;
+  color: var(--accent);
+  background: color-mix(in oklab, var(--accent) 14%, transparent);
+  border: 1px solid color-mix(in oklab, var(--accent) 35%, var(--border));
+  text-transform: uppercase;
+}
+
+.stat__price {
+  display: flex;
+  align-items: baseline;
+  gap: 0.1em;
+  font-family: var(--font-display);
+  font-variant-numeric: lining-nums tabular-nums;
+  font-feature-settings: "lnum", "tnum";
+  line-height: 1.0;
+  margin-bottom: var(--space-md);
+}
+.stat__currency {
+  font-size: clamp(1.5rem, 3vw, 2.25rem);
+  font-weight: 500;
+  color: var(--ink-soft);
+  align-self: flex-start;
+  margin-top: 0.5em;
+}
+.stat__amount {
+  font-size: var(--t-stat);
+  font-weight: 600;
+  color: var(--ink);
+  letter-spacing: -0.03em;
+}
+.stat--pro .stat__amount { color: var(--accent); }
+.stat__suffix {
+  font-family: var(--font-mono);
+  font-size: var(--t-1);
+  font-weight: 500;
+  color: var(--muted);
+  letter-spacing: 0.04em;
+  margin-left: 0.25em;
+  align-self: flex-end;
+  padding-bottom: 0.6em;
+}
+.stat--team .stat__amount {
+  font-size: var(--t-stat-team);
+  font-style: italic;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+.stat__sub {
+  font-family: var(--font-body);
+  font-size: var(--t0);
+  line-height: 1.5;
+  color: var(--ink-soft);
+  margin-bottom: var(--space-md);
+  min-height: 2.6em;
+}
+.stat__sub em {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 500;
+  color: var(--ink);
+}
+.stat__monthly {
+  font-family: var(--font-mono);
+  font-size: var(--t-1);
+  letter-spacing: 0.03em;
+  color: var(--muted);
+  margin-bottom: var(--space-md);
+}
+.stat__monthly strong { color: var(--ink-soft); font-weight: 500; }
+
+.stat__cta {
+  margin-top: auto;
+  align-self: flex-start;
+}
+
+/* — Buttons (8 states) — */
+.btn {
+  -webkit-appearance: none;
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5em;
+  padding: 0.7em 1.15em;
+  font-family: var(--font-body);
+  font-size: var(--t0);
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.005em;
+  white-space: nowrap;
+  background: transparent;
+  color: var(--ink);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  transition: background-color var(--dur-fast) var(--ease-out),
+              border-color var(--dur-fast) var(--ease-out),
+              color var(--dur-fast) var(--ease-out),
+              transform 100ms var(--ease-out);
+}
+@media (hover: hover) and (pointer: fine) {
+  .btn:hover, .btn.is-hover {
+    border-color: color-mix(in oklab, var(--accent) 50%, var(--border));
+    background: color-mix(in oklab, var(--accent) 7%, transparent);
+  }
+}
+.btn:focus-visible, .btn.is-focus { outline: 2px solid var(--accent); outline-offset: 2px; }
+.btn:active, .btn.is-active { transform: scale(0.97); }
+.btn[disabled], .btn.is-disabled { opacity: 0.45; cursor: not-allowed; pointer-events: none; }
+.btn[data-state="loading"], .btn.is-loading { cursor: progress; color: var(--muted); }
+.btn[data-state="loading"]::before, .btn.is-loading::before {
+  content: "";
+  width: 0.85em;
+  height: 0.85em;
+  border: 1.5px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: ca-spin 0.7s linear infinite;
+}
+.btn[data-state="error"], .btn.is-error {
+  border-color: color-mix(in oklab, var(--danger) 50%, var(--border));
+  color: var(--danger);
+}
+.btn[data-state="success"], .btn.is-success {
+  border-color: color-mix(in oklab, var(--pass) 50%, var(--border));
+  color: var(--pass);
+}
+@keyframes ca-spin { to { transform: rotate(360deg); } }
+.btn--primary {
+  background: var(--accent);
+  color: var(--on-accent);
+  border-color: var(--accent-deep);
+}
+@media (hover: hover) and (pointer: fine) {
+  .btn--primary:hover, .btn--primary.is-hover {
+    background: var(--accent-deep);
+    border-color: var(--accent-deep);
+  }
+}
+
+/* — Pass-guarantee strip — */
+.guarantee {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  padding: var(--space-md) var(--space-lg);
+  background: color-mix(in oklab, var(--accent) 7%, transparent);
+  border: 1px solid color-mix(in oklab, var(--accent) 25%, var(--border));
+  border-radius: var(--radius-pill);
+  margin-bottom: var(--space-2xl);
+  font-size: var(--t0);
+  color: var(--ink);
+  flex-wrap: wrap;
+}
+.guarantee__seal {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 500;
+  font-size: var(--t1);
+  color: var(--accent);
+  white-space: nowrap;
+}
+.guarantee__text { flex: 1 1 30ch; min-width: 0; line-height: 1.4; }
+.guarantee__text em { font-family: var(--font-display); font-style: italic; font-weight: 500; color: var(--accent); }
+.guarantee__link {
+  color: var(--accent);
+  border-bottom: 1px solid currentColor;
+  padding-bottom: 1px;
+  white-space: nowrap;
+}
+@media (hover: hover) and (pointer: fine) {
+  .guarantee__link:hover { color: var(--accent-deep); }
+}
+
+/* — Comparison ledger (compact, hairline) — */
+.ledger {
+  margin-bottom: var(--space-2xl);
+}
+.ledger__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-md);
+  margin-bottom: var(--space-md);
+  padding-bottom: var(--space-sm);
+  border-bottom: 1px solid var(--border);
+}
+.ledger__title {
+  font-family: var(--font-display);
+  font-size: var(--t1);
+  font-weight: 600;
+  letter-spacing: -0.014em;
+  color: var(--ink);
+}
+.ledger__title em { font-style: italic; font-weight: 500; color: var(--accent); }
+.ledger__hint {
+  font-family: var(--font-mono);
+  font-size: var(--t-1);
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+.ledger__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
+  gap: 0 clamp(0.75rem, 2vw, 1.5rem);
+  align-items: baseline;
+}
+.ledger__col-head {
+  font-family: var(--font-mono);
+  font-size: var(--t-1);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: var(--space-sm) 0;
+  text-align: right;
+  border-bottom: 1px solid var(--border-soft);
+}
+.ledger__col-head:first-child { text-align: left; }
+.ledger__col-head--pro { color: var(--accent); }
+.ledger__row { display: contents; }
+.ledger__cell {
+  padding: var(--space-sm) 0;
+  border-bottom: 1px solid var(--border-soft);
+  font-size: var(--t0);
+  line-height: 1.4;
+  text-align: right;
+}
+.ledger__cell--label {
+  text-align: left;
+  color: var(--ink);
+}
+.ledger__cell--value {
+  font-family: var(--font-mono);
+  font-size: var(--t-1);
+  letter-spacing: 0.04em;
+  color: var(--ink-soft);
+}
+.ledger__cell--pro {
+  font-family: var(--font-mono);
+  font-size: var(--t-1);
+  letter-spacing: 0.04em;
+  color: var(--ink);
+}
+.ledger__cell--accent {
+  color: var(--accent);
+  font-weight: 500;
+}
+.ledger__cell--muted { color: var(--muted); }
+
+/* — FAQ (compact) — */
+.faq { margin-bottom: var(--space-2xl); }
+.faq__head {
+  font-family: var(--font-display);
+  font-size: var(--t1);
+  font-weight: 600;
+  letter-spacing: -0.014em;
+  margin-bottom: var(--space-md);
+  padding-bottom: var(--space-sm);
+  border-bottom: 1px solid var(--border);
+}
+.faq__head em { font-style: italic; font-weight: 500; color: var(--accent); }
+.faq__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--space-lg) clamp(2rem, 5vw, 4rem);
+}
+.faq__item {
+  padding: var(--space-sm) 0;
+}
+.faq__q {
+  font-family: var(--font-display);
+  font-size: var(--t-base);
+  font-weight: 600;
+  letter-spacing: -0.014em;
+  color: var(--ink);
+  margin-bottom: var(--space-2xs);
+}
+.faq__q em { font-style: italic; font-weight: 500; color: var(--accent); }
+.faq__a {
+  font-size: var(--t-1);
+  color: var(--ink-soft);
+  line-height: 1.5;
+  max-width: 48ch;
+}
+
+/* — Cohort note (tiny inline) — */
+.cohort {
+  font-size: var(--t-1);
+  color: var(--muted);
+  font-family: var(--font-mono);
+  letter-spacing: 0.03em;
+  text-align: center;
+  margin-bottom: var(--space-xl);
+}
+.cohort a {
+  color: var(--accent);
+  border-bottom: 1px solid currentColor;
+  padding-bottom: 1px;
+}
+@media (hover: hover) and (pointer: fine) {
+  .cohort a:hover { color: var(--accent-deep); }
+}
+
+/* — Footer — */
+.foot {
+  margin-top: var(--space-2xl);
+  padding-top: var(--space-lg);
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-md);
+  font-family: var(--font-mono);
+  font-size: var(--t-1);
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  flex-wrap: wrap;
+}
+.foot em {
+  font-family: var(--font-display);
+  font-style: italic;
+  letter-spacing: -0.01em;
+  color: var(--accent);
+  font-size: var(--t0);
+}
+
+/* — Mockup tag — */
+.mockup-tag {
+  position: fixed;
+  bottom: 14px;
+  right: 14px;
+  padding: 0.4em 0.85em;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  font-family: var(--font-mono);
+  font-size: var(--t-1);
+  letter-spacing: 0.06em;
+  color: var(--ink-soft);
+  box-shadow: 0 8px 24px -12px color-mix(in oklab, var(--ink) 22%, transparent);
+  z-index: 50;
+}
+.mockup-tag em { font-family: var(--font-display); font-style: italic; color: var(--accent); }
+
+/* — Responsive — */
+@media (max-width: 960px) {
+  .headline { grid-template-columns: 1fr; gap: var(--space-md); align-items: start; }
+  .headline__lede { max-width: none; }
+  .stats { grid-template-columns: 1fr; gap: 0; }
+  .stat { border-right: 0; border-bottom: 1px solid var(--border); padding: var(--space-lg) 0; }
+  .stat:last-child { border-bottom: 0; }
+  .stat__sub { min-height: auto; }
+  .ledger__grid { grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr); }
+  .faq__grid { grid-template-columns: 1fr; gap: var(--space-md); }
+}
+
+@media (max-width: 540px) {
+  .shell { padding-top: var(--space-md); padding-bottom: var(--space-2xl); }
+  .topbar { padding-bottom: var(--space-md); }
+  .headline h1 { font-size: clamp(2rem, 9vw, 2.75rem); }
+  .stat { padding: var(--space-md) 0; }
+  .stat__amount { font-size: clamp(3.5rem, 16vw, 5rem); }
+  .stat--team .stat__amount { font-size: clamp(2rem, 9vw, 2.75rem); }
+  .ledger__grid { gap: 0 var(--space-sm); }
+  .ledger__col-head, .ledger__cell--value, .ledger__cell--pro { font-size: 10.5px; }
+  .foot { flex-direction: column; align-items: flex-start; gap: var(--space-2xs); }
+}
+
+@media (max-width: 380px) {
+  .headline h1 { word-break: break-word; overflow-wrap: anywhere; min-width: 0; }
+  .brand__name { font-size: var(--t-base); }
+  .ledger__grid { grid-template-columns: minmax(0, 1.4fr) auto auto auto; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .btn:active, .theme-toggle:active { transform: none; }
+}
+</style>
+</head>
+
+<body>
+
+<div class="shell">
+
+  <!-- Top bar -->
+  <header class="topbar">
+    <span class="brand" aria-label="CertAnvil">
+      <span class="brand__mark" aria-hidden="true">
+        <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M22 9 A11 11 0 1 0 22 31" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" fill="none" style="color: var(--accent)"/>
+          <path d="M8 32 L24 8" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="color: var(--accent); opacity: 0.55"/>
+          <path d="M18 31 L26 9 L34 31 M21 24 L31 24" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" fill="none" style="color: var(--accent)"/>
+        </svg>
+      </span>
+      <span class="brand__name">CertAnvil · <em>pricing.</em></span>
+    </span>
+    <span class="topbar__nav">
+      <span class="crumb"><a href="#">Home</a> · Pricing</span>
+      <button class="theme-toggle" type="button" onclick="document.documentElement.dataset.theme = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light'">Theme</button>
+    </span>
+  </header>
+
+  <!-- Headline -->
+  <section class="headline">
+    <div>
+      <div class="headline__meta">Pricing</div>
+      <h1>Free until it's <em>working.</em> Then <em>$89/yr.</em></h1>
+    </div>
+    <p class="headline__lede">
+      <em>Pass guarantee</em> on Pro · we extend free until you pass.
+    </p>
+  </section>
+
+  <!-- Stat triptych · the price hero -->
+  <section class="stats" aria-label="Plans">
+
+    <!-- Free -->
+    <article class="stat stat--free">
+      <div class="stat__eyebrow"><strong>Free</strong><span>Forever</span></div>
+      <div class="stat__price">
+        <span class="stat__currency">$</span>
+        <span class="stat__amount">0</span>
+      </div>
+      <p class="stat__sub">One cert, twenty questions a day. <em>No card.</em></p>
+      <div class="stat__monthly">Cancel never · no expiry</div>
+      <div class="stat__cta"><button class="btn" type="button">Start free →</button></div>
+    </article>
+
+    <!-- Pro -->
+    <article class="stat stat--pro">
+      <div class="stat__eyebrow"><strong>Pro</strong><span class="stat__pill">Most popular</span></div>
+      <div class="stat__price">
+        <span class="stat__currency">$</span>
+        <span class="stat__amount">89</span>
+        <span class="stat__suffix">/yr</span>
+      </div>
+      <p class="stat__sub">All certs unlocked. <em>Full Exam Simulator.</em></p>
+      <div class="stat__monthly">Or <strong>$9.99</strong>/mo · cancel any time</div>
+      <div class="stat__cta"><button class="btn btn--primary" type="button">Start Pro →</button></div>
+    </article>
+
+    <!-- Team -->
+    <article class="stat stat--team">
+      <div class="stat__eyebrow"><strong>Team</strong><span>Cohorts</span></div>
+      <div class="stat__price">
+        <span class="stat__amount">Talk to us.</span>
+      </div>
+      <p class="stat__sub">Cohort dashboard, SSO, centralised <em>invoicing.</em></p>
+      <div class="stat__monthly">Per-cohort seat pricing</div>
+      <div class="stat__cta"><button class="btn" type="button">Email us →</button></div>
+    </article>
+
+  </section>
+
+  <!-- Pass-guarantee strip (1 line) -->
+  <section class="guarantee" aria-label="Pass guarantee">
+    <span class="guarantee__seal"><em>Pass guarantee</em></span>
+    <p class="guarantee__text">
+      Use Pro for 30+ days, sit a mock exam, then take the real one. Miss
+      the pass mark first try? We extend Pro <em>free</em> until you pass.
+    </p>
+    <a class="guarantee__link" href="#">Read the policy →</a>
+  </section>
+
+  <!-- Comparison ledger -->
+  <section class="ledger" aria-label="Compare plans">
+    <header class="ledger__head">
+      <h2 class="ledger__title">Compare, <em>line by line.</em></h2>
+      <span class="ledger__hint">7 things that change</span>
+    </header>
+    <div class="ledger__grid" role="table">
+      <div class="ledger__col-head" role="columnheader">What</div>
+      <div class="ledger__col-head" role="columnheader">Free</div>
+      <div class="ledger__col-head ledger__col-head--pro" role="columnheader">Pro</div>
+      <div class="ledger__col-head" role="columnheader">Team</div>
+
+      <div class="ledger__row" role="row">
+        <div class="ledger__cell ledger__cell--label" role="cell">Certs unlocked</div>
+        <div class="ledger__cell ledger__cell--value" role="cell">1</div>
+        <div class="ledger__cell ledger__cell--pro ledger__cell--accent" role="cell">all</div>
+        <div class="ledger__cell ledger__cell--value" role="cell">all</div>
+      </div>
+      <div class="ledger__row" role="row">
+        <div class="ledger__cell ledger__cell--label" role="cell">Questions per day</div>
+        <div class="ledger__cell ledger__cell--value" role="cell">20</div>
+        <div class="ledger__cell ledger__cell--pro ledger__cell--accent" role="cell">unlimited</div>
+        <div class="ledger__cell ledger__cell--value" role="cell">unlimited</div>
+      </div>
+      <div class="ledger__row" role="row">
+        <div class="ledger__cell ledger__cell--label" role="cell">Exam Simulator (90-Q timed)</div>
+        <div class="ledger__cell ledger__cell--value ledger__cell--muted" role="cell">·</div>
+        <div class="ledger__cell ledger__cell--pro ledger__cell--accent" role="cell">✓</div>
+        <div class="ledger__cell ledger__cell--value" role="cell">✓</div>
+      </div>
+      <div class="ledger__row" role="row">
+        <div class="ledger__cell ledger__cell--label" role="cell">PBQs · CLI · topology · ACL</div>
+        <div class="ledger__cell ledger__cell--value ledger__cell--muted" role="cell">·</div>
+        <div class="ledger__cell ledger__cell--pro ledger__cell--accent" role="cell">✓</div>
+        <div class="ledger__cell ledger__cell--value" role="cell">✓</div>
+      </div>
+      <div class="ledger__row" role="row">
+        <div class="ledger__cell ledger__cell--label" role="cell">Advanced analytics</div>
+        <div class="ledger__cell ledger__cell--value ledger__cell--muted" role="cell">basic</div>
+        <div class="ledger__cell ledger__cell--pro ledger__cell--accent" role="cell">full</div>
+        <div class="ledger__cell ledger__cell--value" role="cell">full</div>
+      </div>
+      <div class="ledger__row" role="row">
+        <div class="ledger__cell ledger__cell--label" role="cell">Pass guarantee</div>
+        <div class="ledger__cell ledger__cell--value ledger__cell--muted" role="cell">·</div>
+        <div class="ledger__cell ledger__cell--pro ledger__cell--accent" role="cell">✓</div>
+        <div class="ledger__cell ledger__cell--value" role="cell">✓</div>
+      </div>
+      <div class="ledger__row" role="row">
+        <div class="ledger__cell ledger__cell--label" role="cell">Cohort dashboard · SSO · invoicing</div>
+        <div class="ledger__cell ledger__cell--value ledger__cell--muted" role="cell">·</div>
+        <div class="ledger__cell ledger__cell--pro ledger__cell--value ledger__cell--muted" role="cell">·</div>
+        <div class="ledger__cell ledger__cell--pro ledger__cell--accent" role="cell">✓</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ (compact, 2 Q's) -->
+  <section class="faq" aria-label="FAQ">
+    <h2 class="faq__head">Two <em>questions.</em></h2>
+    <div class="faq__grid">
+      <div class="faq__item">
+        <h3 class="faq__q">Can I cancel <em>anytime?</em></h3>
+        <p class="faq__a">Yes. Pro bills monthly or annually · cancel from your account dashboard. Annual plans run to the end of the term.</p>
+      </div>
+      <div class="faq__item">
+        <h3 class="faq__q">Do you charge for the <em>AI tokens?</em></h3>
+        <p class="faq__a">No. We cover the Claude API cost on both Pro and Free. No "bring your own key" setup.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Cohort note · 1 line, tiny -->
+  <p class="cohort">
+    Building a cohort or running a bootcamp? <a href="#">Email us</a> about seat pricing.
+  </p>
+
+  <!-- Footer -->
+  <footer class="foot">
+    <span>CertAnvil · v5.7.0 · <em>built quietly.</em></span>
+    <span>Pricing · last refreshed today</span>
+  </footer>
+
+</div>
+
+<div class="mockup-tag">Hallmark <em>mockup.</em></div>
+
+</body>
+</html>

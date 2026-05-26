@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="title desc">
+<title id="title">Streak flame</title>
+<desc id="desc">CertAnvil brand SVG icon with transparent background.</desc>
+
+<defs>
+  <linearGradient id="orangeGrad" x1="20" y1="10" x2="110" y2="118" gradientUnits="userSpaceOnUse">
+    <stop offset="0" stop-color="#F08A24"/>
+    <stop offset="1" stop-color="#B94700"/>
+  </linearGradient>
+  <linearGradient id="creamGrad" x1="14" y1="6" x2="116" y2="126" gradientUnits="userSpaceOnUse">
+    <stop offset="0" stop-color="#FFFDF8"/>
+    <stop offset="1" stop-color="#F7EBDC"/>
+  </linearGradient>
+  <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+    <feDropShadow dx="0" dy="5" stdDeviation="5" flood-color="#172033" flood-opacity="0.08"/>
+  </filter>
+  <style>
+    .ink{stroke:#172033;stroke-width:5.2;stroke-linecap:round;stroke-linejoin:round;fill:none}
+    .ink-thin{stroke:#172033;stroke-width:3.5;stroke-linecap:round;stroke-linejoin:round;fill:none}
+    .muted{stroke:#CFC3B6;stroke-width:4;stroke-linecap:round;stroke-linejoin:round;fill:none}
+    .orange{stroke:#C95000;stroke-width:5.2;stroke-linecap:round;stroke-linejoin:round;fill:none}
+    .orange-thin{stroke:#C95000;stroke-width:3.5;stroke-linecap:round;stroke-linejoin:round;fill:none}
+    .fill-cream{fill:url(#creamGrad);stroke:#E7DDD0;stroke-width:2.2;stroke-linejoin:round}
+    .fill-orange{fill:url(#orangeGrad)}
+    .fill-ink{fill:#172033}
+    .fill-soft{fill:#FFF7EC;stroke:#E7DDD0;stroke-width:2.2;stroke-linejoin:round}
+  </style>
+</defs>
+
+<path class="fill-cream" filter="url(#softShadow)" d="M64 113c23 0 39-16 39-38 0-16-7-27-18-37 1 13-5 19-14 23 4-21-9-36-24-46 1 19-13 30-20 42-5 8-7 14-7 24 0 19 17 32 44 32Z"/>
+<path class="fill-orange" d="M66 98c12 0 21-8 21-20 0-9-5-17-12-23-1 8-5 12-11 15 2-12-5-20-14-26 1 12-8 19-12 27-3 5-3 9-3 14 0 8 8 13 31 13Z"/>
+<path class="ink" d="M64 113c23 0 39-16 39-38 0-16-7-27-18-37 1 13-5 19-14 23 4-21-9-36-24-46 1 19-13 30-20 42"/>
+
+</svg>

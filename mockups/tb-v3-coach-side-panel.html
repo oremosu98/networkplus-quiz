@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>TB v3 Coach · Side Panel · Both Modes</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --tb3-bg:        oklch(0.985 0.008 85);
+    --tb3-surface:   oklch(1 0 0);
+    --tb3-surface-2: oklch(0.97 0.006 85);
+    --tb3-text:      oklch(0.22 0.012 280);
+    --tb3-text-mid:  oklch(0.42 0.014 285);
+    --tb3-text-dim:  oklch(0.58 0.012 280);
+    --tb3-border:        color-mix(in oklab, oklch(0.22 0.012 280) 14%, transparent);
+    --tb3-border-soft:   color-mix(in oklab, oklch(0.22 0.012 280) 7%, transparent);
+    --tb3-border-hair:   color-mix(in oklab, oklch(0.22 0.012 280) 4%, transparent);
+    --tb3-accent:        oklch(0.5 0.155 55);
+    --tb3-accent-soft:   oklch(0.94 0.05 60);
+    --tb3-accent-deep:   oklch(0.42 0.18 55);
+    --tb3-pass:          oklch(0.55 0.16 145);
+    --tb3-ai:            oklch(0.5 0.18 285);
+    --tb3-ai-soft:       oklch(0.96 0.03 285);
+    --ease-out:    cubic-bezier(0.23, 1, 0.32, 1);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    background: var(--tb3-bg);
+    color: var(--tb3-text);
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    line-height: 1.5;
+  }
+
+  .page { max-width: 1280px; margin: 0 auto; padding: 64px 40px 96px; }
+
+  .page-head {
+    border-bottom: 1px solid var(--tb3-border-soft);
+    padding-bottom: 32px;
+    margin-bottom: 56px;
+  }
+  .eyebrow {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--tb3-text-dim);
+    font-weight: 500;
+    margin-bottom: 14px;
+  }
+  h1 {
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 500;
+    font-size: 38px;
+    letter-spacing: -0.03em;
+    color: var(--tb3-text);
+    margin-bottom: 12px;
+    line-height: 1.1;
+  }
+  .page-head .sub {
+    font-size: 14px;
+    color: var(--tb3-text-mid);
+    max-width: 760px;
+  }
+
+  .panels {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 48px;
+    margin-bottom: 72px;
+  }
+  .panel-frame { position: relative; }
+  .frame-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--tb3-text-dim);
+    font-weight: 600;
+    margin-bottom: 16px;
+    padding-left: 4px;
+  }
+
+  .panel {
+    width: 360px;
+    background: var(--tb3-surface);
+    border: 1px solid var(--tb3-border-soft);
+    border-radius: 12px;
+    box-shadow:
+      0 1px 2px color-mix(in oklab, var(--tb3-text) 4%, transparent),
+      0 24px 48px -24px color-mix(in oklab, var(--tb3-text) 12%, transparent);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    min-height: 540px;
+  }
+
+  .ph {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--tb3-border-hair);
+    background: var(--tb3-surface);
+  }
+  .ph-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .ph-mono {
+    width: 24px;
+    height: 24px;
+    border-radius: 5px;
+    background: var(--tb3-text);
+    color: var(--tb3-bg);
+    font-family: 'Fraunces', Georgia, serif;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .ph-name {
+    font-family: 'Fraunces', Georgia, serif;
+    font-size: 16px;
+    font-weight: 500;
+    letter-spacing: -0.015em;
+  }
+  .ph-counter {
+    font-size: 11px;
+    color: var(--tb3-text-mid);
+    font-variant-numeric: tabular-nums;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 9px;
+    border: 1px solid var(--tb3-border-soft);
+    border-radius: 999px;
+    background: var(--tb3-surface-2);
+  }
+  .ph-counter::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--tb3-ai);
+  }
+
+  .mode-strip {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 18px;
+    border-bottom: 1px solid var(--tb3-border-hair);
+    background: var(--tb3-surface-2);
+    font-size: 12px;
+  }
+  .mode-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    transition: background 180ms var(--ease-out);
+  }
+  .mode-strip.pbq .mode-dot { background: var(--tb3-accent); }
+  .mode-strip.fb .mode-dot { background: var(--tb3-text-dim); }
+  .mode-label {
+    font-weight: 600;
+    color: var(--tb3-text);
+    letter-spacing: -0.005em;
+  }
+  .mode-step,
+  .mode-hint {
+    margin-left: auto;
+    color: var(--tb3-text-mid);
+    font-variant-numeric: tabular-nums;
+  }
+  .mode-hint { font-style: italic; }
+
+  .ph-body {
+    flex: 1;
+    padding: 20px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    overflow: hidden;
+  }
+  .lesson-title {
+    font-family: 'Fraunces', Georgia, serif;
+    font-size: 18px;
+    font-weight: 500;
+    letter-spacing: -0.015em;
+    margin-bottom: 8px;
+    line-height: 1.25;
+  }
+  .lesson-task {
+    font-size: 13px;
+    color: var(--tb3-text-mid);
+    line-height: 1.55;
+    margin-bottom: 14px;
+  }
+  .lesson-list { list-style: none; margin: 0; padding: 0; }
+  .lesson-list li {
+    position: relative;
+    padding: 6px 0 6px 22px;
+    font-size: 13px;
+    color: var(--tb3-text);
+    border-bottom: 1px solid var(--tb3-border-hair);
+    transition: color 220ms ease, text-decoration-color 220ms ease;
+  }
+  .lesson-list li:last-child { border-bottom: none; }
+  .lesson-list li::before {
+    content: '';
+    position: absolute;
+    left: 4px;
+    top: 13px;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    border: 1.5px solid var(--tb3-text-dim);
+    transition: background 220ms var(--ease-out), border-color 220ms var(--ease-out);
+  }
+  .lesson-list li.done::before {
+    background: var(--tb3-pass);
+    border-color: var(--tb3-pass);
+  }
+  .lesson-list li.done {
+    color: var(--tb3-text-mid);
+    text-decoration: line-through;
+    text-decoration-color: var(--tb3-border);
+  }
+
+  .hint-rail {
+    padding: 14px 14px;
+    background: var(--tb3-accent-soft);
+    border: 1px solid color-mix(in oklab, var(--tb3-accent) 25%, transparent);
+    border-radius: 8px;
+  }
+  .hint-rail-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--tb3-accent-deep);
+    font-weight: 600;
+    margin-bottom: 10px;
+  }
+  .hint-pips {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .pip {
+    width: 24px;
+    height: 6px;
+    border-radius: 3px;
+    background: color-mix(in oklab, var(--tb3-accent) 25%, transparent);
+    border: 1px solid color-mix(in oklab, var(--tb3-accent) 40%, transparent);
+    transition: background 180ms var(--ease-out), border-color 180ms var(--ease-out);
+  }
+  .pip.filled {
+    background: var(--tb3-accent);
+    border-color: var(--tb3-accent);
+  }
+  .pip.ai {
+    width: auto;
+    padding: 0 8px;
+    height: 16px;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: var(--tb3-ai);
+    background: var(--tb3-ai-soft);
+    border-color: color-mix(in oklab, var(--tb3-ai) 30%, transparent);
+    display: flex;
+    align-items: center;
+    border-radius: 4px;
+  }
+  .hint-note {
+    font-size: 11px;
+    color: var(--tb3-accent-deep);
+    line-height: 1.4;
+  }
+
+  .ph-foot {
+    padding: 14px 18px;
+    border-top: 1px solid var(--tb3-border-hair);
+    background: var(--tb3-surface);
+    display: flex;
+    gap: 8px;
+  }
+  .btn {
+    flex: 1;
+    height: 40px;
+    border-radius: 6px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: -0.005em;
+    cursor: pointer;
+    border: 1px solid var(--tb3-border);
+    background: var(--tb3-surface);
+    color: var(--tb3-text);
+    transition: background 150ms var(--ease-out), border-color 150ms var(--ease-out), transform 160ms var(--ease-out);
+  }
+  .btn:hover { background: var(--tb3-surface-2); }
+  .btn:active { transform: scale(0.97); }
+  .btn:focus-visible {
+    outline: 2px solid var(--tb3-accent);
+    outline-offset: 2px;
+  }
+  .btn.ghost {
+    color: var(--tb3-accent-deep);
+    border-color: color-mix(in oklab, var(--tb3-accent) 40%, transparent);
+  }
+  .btn.ghost:hover {
+    background: color-mix(in oklab, var(--tb3-accent) 6%, transparent);
+    border-color: color-mix(in oklab, var(--tb3-accent) 60%, transparent);
+  }
+  .btn.primary {
+    background: var(--tb3-text);
+    color: var(--tb3-bg);
+    border-color: var(--tb3-text);
+  }
+  .btn.primary:hover {
+    background: color-mix(in oklab, var(--tb3-text) 88%, transparent);
+    border-color: color-mix(in oklab, var(--tb3-text) 88%, transparent);
+  }
+  .ph-foot.input { gap: 8px; }
+  .ask {
+    flex: 1;
+    height: 40px;
+    padding: 0 12px;
+    font-family: inherit;
+    font-size: 13px;
+    color: var(--tb3-text);
+    background: var(--tb3-surface-2);
+    border: 1px solid var(--tb3-border-soft);
+    border-radius: 6px;
+    outline: none;
+    transition: border-color 150ms var(--ease-out);
+  }
+  .ask::placeholder { color: var(--tb3-text-dim); }
+  .ask:focus-visible {
+    border-color: var(--tb3-accent);
+    outline: 2px solid color-mix(in oklab, var(--tb3-accent) 30%, transparent);
+    outline-offset: 1px;
+  }
+  .ph-foot.input .btn { flex: 0 0 auto; padding: 0 16px; }
+
+  .feed { gap: 14px; }
+  .msg {
+    display: flex;
+    gap: 10px;
+    padding: 12px 12px;
+    border-radius: 8px;
+    background: var(--tb3-surface-2);
+    border: 1px solid var(--tb3-border-hair);
+    font-size: 12.5px;
+    line-height: 1.5;
+  }
+  .msg-icon {
+    flex-shrink: 0;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    margin-top: 1px;
+  }
+  .msg.scripted .msg-icon { color: var(--tb3-text-dim); }
+  .msg.ai {
+    background: var(--tb3-ai-soft);
+    border-color: color-mix(in oklab, var(--tb3-ai) 18%, transparent);
+  }
+  .msg.ai .msg-icon { color: var(--tb3-ai); }
+  .msg.you {
+    background: transparent;
+    border: 1px dashed var(--tb3-border);
+  }
+  .msg-meta {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--tb3-text-dim);
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .msg.ai .msg-meta { color: var(--tb3-ai); }
+
+  .annotations {
+    margin-top: 24px;
+    list-style: none;
+    padding: 0;
+  }
+  .annotations li {
+    padding: 8px 0 8px 18px;
+    font-size: 12.5px;
+    color: var(--tb3-text-mid);
+    line-height: 1.55;
+    position: relative;
+  }
+  .annotations li::before {
+    content: '';
+    position: absolute;
+    left: 2px;
+    top: 16px;
+    width: 8px;
+    height: 1px;
+    background: var(--tb3-border);
+  }
+  .annotations li strong {
+    color: var(--tb3-text);
+    font-weight: 600;
+  }
+
+  .design-notes {
+    border-top: 1px solid var(--tb3-border-soft);
+    padding-top: 40px;
+  }
+  .notes-title {
+    font-family: 'Fraunces', Georgia, serif;
+    font-size: 22px;
+    font-weight: 500;
+    letter-spacing: -0.02em;
+    margin-bottom: 24px;
+  }
+  .notes-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+  }
+  .note {
+    padding: 18px 20px;
+    background: var(--tb3-surface);
+    border: 1px solid var(--tb3-border-hair);
+    border-radius: 8px;
+  }
+  .note-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--tb3-text-dim);
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+  .note p {
+    font-size: 13px;
+    color: var(--tb3-text-mid);
+    line-height: 1.5;
+  }
+
+  .footnote {
+    margin-top: 64px;
+    padding-top: 24px;
+    border-top: 1px solid var(--tb3-border-soft);
+    font-size: 11px;
+    color: var(--tb3-text-dim);
+    text-align: center;
+    letter-spacing: 0.02em;
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header class="page-head">
+    <div class="eyebrow">TB v3 · Phase 9 · Coach side panel</div>
+    <h1>Two modes, one shell</h1>
+    <p class="sub">Persistent right-rail panel · ~360px wide · slots alongside Inspector / Picker / Trace / OSI. Mode is canvas-driven: a PBQ active on the canvas swaps the body into PBQ shape; otherwise the panel shows Free Build.</p>
+  </header>
+
+  <section class="panels">
+
+    <article class="panel-frame">
+      <div class="frame-label">PBQ mode · soho-network-converged · Step 2 of 6</div>
+      <div class="panel">
+        <header class="ph">
+          <div class="ph-brand">
+            <span class="ph-mono">CA</span>
+            <span class="ph-name">Coach</span>
+          </div>
+          <div class="ph-counter">3 today</div>
+        </header>
+        <div class="mode-strip pbq">
+          <span class="mode-dot"></span>
+          <span class="mode-label">PBQ · SOHO Network</span>
+          <span class="mode-step">Step 2 of 6</span>
+        </div>
+        <main class="ph-body">
+          <div>
+            <h2 class="lesson-title">Build the SOHO topology</h2>
+            <p class="lesson-task">One router does everything: routing, switching, DHCP, NAT. Connect four endpoints. The router faces the ISP link upstream.</p>
+            <ul class="lesson-list">
+              <li class="done">Place the SOHO router at the centre.</li>
+              <li>Add four endpoints (PCs, phone, printer).</li>
+              <li>Wire each endpoint to the router's LAN ports.</li>
+              <li>Set the WAN link to the ISP.</li>
+            </ul>
+          </div>
+          <div class="hint-rail">
+            <div class="hint-rail-label">Stuck-escape</div>
+            <div class="hint-pips">
+              <span class="pip filled"></span>
+              <span class="pip"></span>
+              <span class="pip"></span>
+              <span class="pip ai">AI</span>
+            </div>
+            <p class="hint-note">1 of 3 scripted hints used. AI fires on the fourth.</p>
+          </div>
+        </main>
+        <footer class="ph-foot">
+          <button class="btn ghost">I'm stuck</button>
+          <button class="btn primary">Next step</button>
+        </footer>
+      </div>
+      <ul class="annotations">
+        <li><strong>Header</strong> &mdash; Coach badge + session AI counter. Cost-conscious affordance, never hidden.</li>
+        <li><strong>Mode strip</strong> &mdash; warm accent dot signals PBQ; scenario + step indicator locks the UI into exam shape.</li>
+        <li><strong>Hint rail</strong> &mdash; three scripted pips + AI rung as the fourth. Pip fills as hints used; AI label visible from step 1.</li>
+        <li><strong>Footer</strong> &mdash; scripted action buttons only. No free-form input in PBQ &mdash; escape only via the hint cascade.</li>
+      </ul>
+    </article>
+
+    <article class="panel-frame">
+      <div class="frame-label">Free Build mode · canvas active, no PBQ running</div>
+      <div class="panel">
+        <header class="ph">
+          <div class="ph-brand">
+            <span class="ph-mono">CA</span>
+            <span class="ph-name">Coach</span>
+          </div>
+          <div class="ph-counter">3 today</div>
+        </header>
+        <div class="mode-strip fb">
+          <span class="mode-dot"></span>
+          <span class="mode-label">Free Build</span>
+          <span class="mode-hint">ask anything about your topology</span>
+        </div>
+        <main class="ph-body feed">
+          <div class="msg scripted">
+            <span class="msg-icon" aria-hidden="true">&#9711;</span>
+            <div>
+              <div class="msg-meta">You added a router</div>
+              Routers move packets between subnets at L3. This one will likely be your gateway.
+            </div>
+          </div>
+          <div class="msg scripted">
+            <span class="msg-icon" aria-hidden="true">&#9711;</span>
+            <div>
+              <div class="msg-meta">You added a switch</div>
+              Switches forward frames within a subnet at L2. Multiple endpoints share one L2 broadcast domain.
+            </div>
+          </div>
+          <div class="msg you">
+            <div>
+              <div class="msg-meta">You asked</div>
+              What is NAT and do I need it here?
+            </div>
+          </div>
+          <div class="msg ai">
+            <span class="msg-icon" aria-hidden="true">&#9733;</span>
+            <div>
+              <div class="msg-meta">Coach &middot; AI</div>
+              NAT rewrites outbound source addresses so the ISP sees one public IP. For SOHO you need it: the ISP gives one public IP, but multiple devices want internet&hellip;
+            </div>
+          </div>
+        </main>
+        <footer class="ph-foot input">
+          <input class="ask" placeholder="Ask Coach about your topology&hellip;">
+          <button class="btn primary">Send</button>
+        </footer>
+      </div>
+      <ul class="annotations">
+        <li><strong>Mode strip</strong> &mdash; neutral dot, calmer copy. Same component, different signal.</li>
+        <li><strong>Feed</strong> &mdash; time-ordered. Scripted narration (&#9711;) and AI replies (&#9733;) visually distinct; AI messages use a violet wash.</li>
+        <li><strong>Input bar</strong> &mdash; free-form question. AI fires on send per the routing rule.</li>
+        <li><strong>Same shell</strong> &mdash; header / counter / footer pattern is identical to PBQ. Only the body and footer shape change.</li>
+      </ul>
+    </article>
+
+  </section>
+
+  <section class="design-notes">
+    <h2 class="notes-title">Design decisions baked in</h2>
+    <div class="notes-grid">
+      <div class="note">
+        <div class="note-label">Position</div>
+        <p>Right rail, persistent, ~360px wide. Sits alongside Inspector / Picker / Trace / OSI &mdash; same panel family.</p>
+      </div>
+      <div class="note">
+        <div class="note-label">Mode switching</div>
+        <p>Canvas state-driven. PBQ active &rarr; PBQ body. No tabs, no toggle &mdash; the canvas decides the shape.</p>
+      </div>
+      <div class="note">
+        <div class="note-label">PBQ entry point</div>
+        <p>"Start PBQ" CTA inside the existing scenarios catalog. New filter / tab alongside the walkthroughs the PBQs are built off.</p>
+      </div>
+      <div class="note">
+        <div class="note-label">AI visibility</div>
+        <p>Session counter top-right of every panel header. Star (&#9733;) marks AI messages; circle (&#9711;) marks scripted. Students always know who's talking.</p>
+      </div>
+      <div class="note">
+        <div class="note-label">Routing in UI</div>
+        <p>PBQ has no free-form input &mdash; escape only via the hint cascade. Free Build has the input bar &mdash; AI fires on send.</p>
+      </div>
+      <div class="note">
+        <div class="note-label">Cost shape</div>
+        <p>AI fires in exactly two places: FB student questions, PBQ 4th hint. Everywhere else, scripts run. Bounded by design.</p>
+      </div>
+    </div>
+  </section>
+
+  <footer class="footnote">Mockup &middot; TB v3 Phase 9 &middot; Coach v1 MVP side panel &middot; Slice A &middot; soho-network-converged</footer>
+
+</div>
+</body>
+</html>

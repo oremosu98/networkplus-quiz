@@ -48,14 +48,12 @@
       const params = new URLSearchParams(location.search);
       if (params.get('builder') === '1') isBuilder = true;
     } catch (e) {}
+    // v7.1.0 Sec+ public launch — tile visible to all; in-app Pro gate handles tier.
+    const secplusTile = document.getElementById('cert-tile-secplus');
+    if (secplusTile) secplusTile.removeAttribute('hidden');
+    const secplusComingSoon = document.getElementById('cert-tile-secplus-soon');
+    if (secplusComingSoon) secplusComingSoon.setAttribute('hidden', '');
     if (isBuilder) {
-      const secplusTile = document.getElementById('cert-tile-secplus');
-      if (secplusTile) secplusTile.removeAttribute('hidden');
-      // v4.99.19 — hide the public-facing "coming soon" Security+ tile
-      // when builder mode is on, so admin sees the private/active tile
-      // instead. Mutually exclusive — only one Security+ tile renders.
-      const secplusComingSoon = document.getElementById('cert-tile-secplus-soon');
-      if (secplusComingSoon) secplusComingSoon.setAttribute('hidden', '');
       const pill = document.getElementById('builder-pill');
       if (pill) pill.removeAttribute('hidden');
     }

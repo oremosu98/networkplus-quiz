@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Exam calendar">
+  <defs>
+    <linearGradient id="caOrange" x1="22" y1="18" x2="106" y2="110" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#E27822"/>
+      <stop offset="1" stop-color="#C95500"/>
+    </linearGradient>
+    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="#202932" flood-opacity=".10"/>
+    </filter>
+  </defs>
+
+  <g fill="none" stroke="#202932" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" filter="url(#softShadow)">
+    <rect x="25" y="29" width="78" height="74" rx="13" fill="#FFF8EE"/>
+    <path d="M25 51h78M45 23v13M83 23v13"/>
+    <path d="M42 67h13M64 67h13M42 84h13M64 84h13"/>
+    <circle cx="88" cy="84" r="9" fill="url(#caOrange)" stroke="#C95500"/>
+  </g>
+</svg>

@@ -72,17 +72,17 @@
   // reloads. Session cookie is on .certanvil.com apex so auth survives
   // the reload — only the cert pack changes.
   //
-  // Cert-list policy:
-  //   - admin → both Network+ AND Security+ (Security+ is private builder)
-  //   - regular user → Network+ only (Security+ not yet customer-facing)
+  // v7.1.0 (Sec+ public launch — Pattern A subdomain-per-cert):
+  // Both Network+ AND Security+ now visible to ALL users in the cert switcher.
+  // Tier gating handled at switch-time + on-page (Sec+ is Pro-only; Free users
+  // see the cert in the dropdown but switching triggers the Pro upgrade modal).
   // Future Phase G (entitlements) replaces this with a query against
   // cert_entitlements table.
   function getAvailableCerts(role) {
-    var certs = [{ id: 'netplus', name: 'Network+', code: 'N10-009' }];
-    if (role === 'admin') {
-      certs.push({ id: 'secplus', name: 'Security+', code: 'SY0-701' });
-    }
-    return certs;
+    return [
+      { id: 'netplus', name: 'Network+',  code: 'N10-009', tier: 'free' },
+      { id: 'secplus', name: 'Security+', code: 'SY0-701', tier: 'pro'  }
+    ];
   }
 
   function getActiveCertId() {
@@ -92,7 +92,12 @@
     } catch (e) {}
     try {
       var host = window.location.hostname || '';
-      if (host.indexOf('secplus-') === 0 || host.indexOf('secplus.') === 0) return 'secplus';
+      // v7.1.0 Pattern A subdomain detection — any host starting with
+      // 'secplus' or 'secplus.' (e.g. secplus.certanvil.com, secplus-*.vercel.app)
+      // routes to the Security+ cert pack.
+      if (host.indexOf('secplus.') === 0
+          || host.indexOf('secplus-') === 0
+          || host === 'secplus.certanvil.com') return 'secplus';
     } catch (e) {}
     return 'netplus';
   }
@@ -104,9 +109,20 @@
   // pattern via its KEY_PREFIX const).
   var CERT_OVERRIDE_KEY = 'nplus_' + 'dev_cert';
 
-  // Public: called from inline onclick when user picks a cert in the dropdown
+  // Public: called from inline onclick when user picks a cert in the dropdown.
+  // v7.1.0 Sec+ public launch: Sec+ is Pro-only. Free users see Sec+ in the
+  // dropdown (so they know it exists) but switching to it triggers the Pro
+  // upgrade modal instead of swapping. Pro/admin users switch normally.
   window.tadSwitchCert = function (certId) {
     if (certId !== 'netplus' && certId !== 'secplus') return false;
+    if (certId === 'secplus') {
+      var role = (window._certanvilRole || '').toLowerCase();
+      var isPro = role === 'pro' || role === 'admin';
+      if (!isPro && typeof window._gateProOnly === 'function') {
+        try { window._gateProOnly('Security+ (SY0-701)'); } catch (e) {}
+        return false;
+      }
+    }
     try { localStorage.setItem(CERT_OVERRIDE_KEY, certId); } catch (e) {}
     try { window.location.reload(); } catch (e) {}
     return false;
@@ -115,17 +131,25 @@
   function buildCertSwitcherHtml(activeCertId, role) {
     var certs = getAvailableCerts(role);
     if (certs.length < 2) return ''; // hide entirely if user has only one cert
+    // v7.1.0: surface Pro tier on Sec+ for Free users so they understand
+    // why switching triggers an upgrade modal.
+    var roleLower = (role || '').toLowerCase();
+    var isPro = roleLower === 'pro' || roleLower === 'admin';
     var rows = certs.map(function (c) {
       var isActive = c.id === activeCertId;
       var checkmark = isActive
         ? '<span class="tad-cert-check">✓</span>'
         : '<span class="tad-cert-check tad-cert-check-empty"></span>';
       var clickAttr = isActive ? '' : ' onclick="return tadSwitchCert(\'' + c.id + '\')"';
+      var proBadge = (c.tier === 'pro' && !isPro)
+        ? '<span class="tad-cert-tier-pill">PRO</span>'
+        : '';
       return ''
         + '<a class="tad-cert-row' + (isActive ? ' is-active' : '') + '" href="#"' + clickAttr + '>'
         +   checkmark
         +   '<span class="tad-cert-name">' + escapeHtml(c.name) + '</span>'
         +   '<span class="tad-cert-code">' + escapeHtml(c.code) + '</span>'
+        +   proBadge
         + '</a>';
     }).join('');
     return ''

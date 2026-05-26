@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Pass badge">
+  <defs>
+    <linearGradient id="caOrange" x1="22" y1="18" x2="106" y2="110" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#E27822"/>
+      <stop offset="1" stop-color="#C95500"/>
+    </linearGradient>
+    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="#202932" flood-opacity=".10"/>
+    </filter>
+  </defs>
+
+  <g fill="none" stroke="#202932" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" filter="url(#softShadow)">
+    <path d="M64 18l12 12 17-1 5 16 14 9-7 16 3 17-17 5-10 14-17-7-17 7-10-14-17-5 3-17-7-16 14-9 5-16 17 1z" fill="#FFF8EE"/>
+    <path d="M47 65l12 12 25-31" stroke="url(#caOrange)" stroke-width="8"/>
+  </g>
+</svg>

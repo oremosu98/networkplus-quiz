@@ -1,0 +1,358 @@
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+<defs>
+  <linearGradient id="orangeGrad" x1="20" y1="10" x2="110" y2="118" gradientUnits="userSpaceOnUse">
+    <stop offset="0" stop-color="#F08A24"/>
+    <stop offset="1" stop-color="#B94700"/>
+  </linearGradient>
+  <linearGradient id="creamGrad" x1="14" y1="6" x2="116" y2="126" gradientUnits="userSpaceOnUse">
+    <stop offset="0" stop-color="#FFFDF8"/>
+    <stop offset="1" stop-color="#F7EBDC"/>
+  </linearGradient>
+  <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+    <feDropShadow dx="0" dy="5" stdDeviation="5" flood-color="#172033" flood-opacity="0.08"/>
+  </filter>
+  <style>
+    .ink{stroke:#172033;stroke-width:5.2;stroke-linecap:round;stroke-linejoin:round;fill:none}
+    .ink-thin{stroke:#172033;stroke-width:3.5;stroke-linecap:round;stroke-linejoin:round;fill:none}
+    .muted{stroke:#CFC3B6;stroke-width:4;stroke-linecap:round;stroke-linejoin:round;fill:none}
+    .orange{stroke:#C95000;stroke-width:5.2;stroke-linecap:round;stroke-linejoin:round;fill:none}
+    .orange-thin{stroke:#C95000;stroke-width:3.5;stroke-linecap:round;stroke-linejoin:round;fill:none}
+    .fill-cream{fill:url(#creamGrad);stroke:#E7DDD0;stroke-width:2.2;stroke-linejoin:round}
+    .fill-orange{fill:url(#orangeGrad)}
+    .fill-ink{fill:#172033}
+    .fill-soft{fill:#FFF7EC;stroke:#E7DDD0;stroke-width:2.2;stroke-linejoin:round}
+  </style>
+</defs>
+<symbol id="faq-question-bubble" viewBox="0 0 128 128">
+
+<path class="fill-cream" filter="url(#softShadow)" d="M24 28h58c12 0 22 9 22 21v24c0 12-10 21-22 21H55l-20 16v-16H24C12 94 6 84 6 73V49c0-12 8-21 18-21Z"/>
+<path class="ink" d="M53 51c2-8 18-9 22 0 5 11-11 13-11 23"/>
+<circle class="fill-orange" cx="64" cy="86" r="4"/>
+<path class="orange-thin" d="M92 38l4-4m3 13h7"/>
+
+</symbol>
+<symbol id="answer-check-bubble" viewBox="0 0 128 128">
+
+<path class="fill-cream" filter="url(#softShadow)" d="M35 25h69c10 0 18 8 18 18v34c0 10-8 18-18 18H76l-18 15V95H35c-10 0-18-8-18-18V43c0-10 8-18 18-18Z"/>
+<circle class="fill-soft" cx="46" cy="59" r="18"/>
+<path class="orange" d="M37 59l7 7 15-18"/>
+<path class="ink-thin" d="M74 50h29M74 65h20"/>
+<path class="orange-thin" d="M107 35l5 5 9-12"/>
+
+</symbol>
+<symbol id="accordion-plus-row" viewBox="0 0 128 128">
+
+<rect class="fill-cream" filter="url(#softShadow)" x="10" y="34" width="108" height="60" rx="15"/>
+<path class="ink-thin" d="M26 54h45M26 72h31"/>
+<circle class="fill-soft" cx="96" cy="64" r="16"/>
+<path class="orange" d="M96 56v16M88 64h16"/>
+
+</symbol>
+<symbol id="accordion-open-minus" viewBox="0 0 128 128">
+
+<rect class="fill-cream" filter="url(#softShadow)" x="10" y="22" width="108" height="84" rx="16"/>
+<path class="ink-thin" d="M26 45h50M26 63h72M26 78h58"/>
+<circle class="fill-soft" cx="96" cy="45" r="14"/>
+<path class="orange" d="M88 45h16"/>
+
+</symbol>
+<symbol id="search-help" viewBox="0 0 128 128">
+
+<circle class="fill-cream" filter="url(#softShadow)" cx="55" cy="55" r="34"/>
+<path class="ink" d="M80 80l28 28"/>
+<path class="orange" d="M47 47c2-7 16-7 19 0 4 9-10 11-10 21"/>
+<circle class="fill-orange" cx="56" cy="80" r="4"/>
+
+</symbol>
+<symbol id="instant-snapshot" viewBox="0 0 128 128">
+
+<rect class="fill-cream" filter="url(#softShadow)" x="24" y="22" width="80" height="86" rx="14"/>
+<path class="ink" d="M43 45h42M43 64h30M43 83h38"/>
+<circle class="fill-soft" cx="90" cy="88" r="19"/>
+<path class="orange" d="M90 77v22M79 88h22"/>
+<path class="orange-thin" d="M36 32h12"/>
+
+</symbol>
+<symbol id="study-plan-list" viewBox="0 0 128 128">
+
+<rect class="fill-cream" filter="url(#softShadow)" x="22" y="18" width="84" height="92" rx="14"/>
+<path class="orange" d="M42 43h.1M42 64h.1M42 85h.1"/>
+<path class="ink" d="M55 43h34M55 64h34M55 85h24"/>
+<path class="muted" d="M35 27h58"/>
+<path class="orange-thin" d="M83 27l5-5 5 5"/>
+
+</symbol>
+<symbol id="track-progress-shield" viewBox="0 0 128 128">
+
+<path class="fill-cream" filter="url(#softShadow)" d="M64 14l39 15v30c0 25-16 43-39 55-23-12-39-30-39-55V29l39-15Z"/>
+<path class="ink" d="M45 64l13 13 27-31"/>
+<path class="orange" d="M35 95c11 9 20 14 29 19 19-10 32-24 37-42"/>
+
+</symbol>
+<symbol id="baseline-diagnostic" viewBox="0 0 128 128">
+
+<circle class="fill-cream" filter="url(#softShadow)" cx="64" cy="64" r="45"/>
+<circle class="ink" cx="64" cy="64" r="28"/>
+<circle class="ink-thin" cx="64" cy="64" r="9"/>
+<path class="ink" d="M64 14v16M64 98v16M14 64h16M98 64h16"/>
+<path class="orange" d="M82 45c8 9 10 21 5 33"/>
+<path class="orange-thin" d="M45 82l38-38"/>
+
+</symbol>
+<symbol id="pass-guarantee-badge" viewBox="0 0 128 128">
+
+<path class="fill-cream" filter="url(#softShadow)" d="M64 15l12 10 16-2 7 15 15 7-2 16 10 12-10 12 2 16-15 7-7 15-16-2-12 10-12-10-16 2-7-15-15-7 2-16-10-12 10-12-2-16 15-7 7-15 16 2 12-10Z" transform="scale(.88) translate(9 7)"/>
+<path class="orange" d="M43 65l14 14 31-35"/>
+<circle class="ink-thin" cx="64" cy="64" r="38"/>
+
+</symbol>
+<symbol id="no-account-needed" viewBox="0 0 128 128">
+
+<rect class="fill-cream" filter="url(#softShadow)" x="17" y="28" width="94" height="70" rx="15"/>
+<circle class="fill-soft" cx="49" cy="63" r="17"/>
+<path class="ink" d="M49 57a8 8 0 1 0 0 16M70 52h23M70 67h17"/>
+<path class="orange" d="M90 82l10 10 19-22"/>
+<path class="orange-thin" d="M30 39h12"/>
+
+</symbol>
+<symbol id="ai-explanation-spark" viewBox="0 0 128 128">
+
+<path class="fill-cream" filter="url(#softShadow)" d="M28 31h62c10 0 18 8 18 18v22c0 10-8 18-18 18H65l-18 16V89H28c-10 0-18-8-18-18V49c0-10 8-18 18-18Z"/>
+<path class="ink" d="M37 55h33M37 70h49"/>
+<path class="orange" d="M91 31l4 12 12 4-12 4-4 12-4-12-12-4 12-4 4-12Z"/>
+<path class="orange-thin" d="M24 19l2 6 6 2-6 2-2 6-2-6-6-2 6-2 2-6Z"/>
+
+</symbol>
+<symbol id="question-bank" viewBox="0 0 128 128">
+
+<path class="fill-cream" filter="url(#softShadow)" d="M34 24h61a12 12 0 0 1 12 12v72H46a12 12 0 0 1-12-12V24Z"/>
+<path class="fill-soft" d="M21 18h61a12 12 0 0 1 12 12v72H33a12 12 0 0 1-12-12V18Z"/>
+<path class="ink" d="M41 40h34M41 58h26M41 78h34"/>
+<path class="orange" d="M75 71c1-6 12-6 15 0 3 8-8 9-8 18"/>
+<circle class="fill-orange" cx="82" cy="99" r="3.5"/>
+
+</symbol>
+<symbol id="support-chat" viewBox="0 0 128 128">
+
+<path class="fill-cream" filter="url(#softShadow)" d="M20 31h48c9 0 16 7 16 16v16c0 9-7 16-16 16H49L33 92V79H20c-9 0-16-7-16-16V47c0-9 7-16 16-16Z"/>
+<path class="fill-soft" d="M60 54h48c9 0 16 7 16 16v16c0 9-7 16-16 16H95v13L79 102H60c-9 0-16-7-16-16V70c0-9 7-16 16-16Z"/>
+<path class="orange" d="M33 54h.1M48 54h.1M63 54h.1"/>
+<path class="ink" d="M69 78l8 8 16-18"/>
+
+</symbol>
+<symbol id="mobile-faq" viewBox="0 0 128 128">
+
+<rect class="fill-cream" filter="url(#softShadow)" x="38" y="12" width="52" height="104" rx="14"/>
+<path class="ink-thin" d="M56 24h16M52 96h24"/>
+<path class="orange" d="M56 47c2-7 16-7 19 0 4 9-10 11-10 21"/>
+<circle class="fill-orange" cx="65" cy="80" r="4"/>
+<path class="ink-thin" d="M26 38l-8 8 8 8M102 74l8 8-8 8"/>
+
+</symbol>
+<symbol id="cancel-anytime" viewBox="0 0 128 128">
+
+<rect class="fill-cream" filter="url(#softShadow)" x="20" y="22" width="88" height="84" rx="16"/>
+<path class="ink" d="M42 49h44M42 67h34"/>
+<circle class="fill-soft" cx="82" cy="83" r="18"/>
+<path class="orange" d="M74 75l16 16M90 75L74 91"/>
+<path class="orange-thin" d="M34 32h10"/>
+
+</symbol>
+<symbol id="pbq-simulator" viewBox="0 0 128 128">
+
+<rect class="fill-cream" filter="url(#softShadow)" x="15" y="24" width="98" height="76" rx="14"/>
+<path class="ink" d="M15 45h98"/>
+<circle class="fill-orange" cx="30" cy="35" r="4"/>
+<circle class="fill-soft" cx="45" cy="35" r="4"/>
+<path class="ink-thin" d="M35 71h20M73 61h20M73 82h20M55 71c11 0 7-10 18-10M55 71c11 0 7 11 18 11"/>
+<rect class="fill-orange" x="30" y="64" width="14" height="14" rx="3"/>
+<rect class="fill-soft" x="86" y="54" width="14" height="14" rx="3"/>
+<rect class="fill-soft" x="86" y="75" width="14" height="14" rx="3"/>
+
+</symbol>
+<symbol id="originality-fingerprint" viewBox="0 0 128 128">
+
+<path class="ink" d="M35 76c0-25 14-42 31-42s31 15 31 37"/>
+<path class="ink" d="M49 80c0-19 7-31 17-31s17 10 17 25c0 18-8 29-8 40"/>
+<path class="ink" d="M64 65c2 18-9 27-9 47"/>
+<path class="muted" d="M31 59c5-25 20-40 40-39"/>
+<path class="orange" d="M91 31l4 12 12 4-12 4-4 12-4-12-12-4 12-4 4-12Z"/>
+
+</symbol>
+<symbol id="updated-content-calendar" viewBox="0 0 128 128">
+
+<rect class="fill-cream" filter="url(#softShadow)" x="22" y="30" width="84" height="74" rx="14"/>
+<path class="ink" d="M22 52h84M43 20v20M85 20v20"/>
+<path class="orange" d="M45 72l8 8 17-20"/>
+<path class="ink-thin" d="M78 70h10M78 84h10"/>
+<circle class="fill-orange" cx="94" cy="28" r="5"/>
+
+</symbol>
+<symbol id="readiness-meter" viewBox="0 0 128 128">
+
+<path class="ink" d="M25 81a39 39 0 0 1 78 0"/>
+<path class="orange" d="M87 40a39 39 0 0 1 16 41"/>
+<path class="ink" d="M64 81l20-31"/>
+<circle class="fill-soft" cx="64" cy="81" r="9"/>
+<path class="ink" d="M33 97h62"/>
+<path class="orange-thin" d="M43 97v-13M64 97V72M85 97V59"/>
+
+</symbol>
+<symbol id="confidence-flag" viewBox="0 0 128 128">
+
+<path class="ink" d="M39 111V23"/>
+<path class="fill-cream" filter="url(#softShadow)" d="M39 24h58l-10 18 10 18H39V24Z"/>
+<path class="orange" d="M56 43l8 8 17-19"/>
+<circle class="fill-orange" cx="39" cy="23" r="6"/>
+<path class="ink-thin" d="M29 111h42"/>
+
+</symbol>
+<symbol id="exam-path" viewBox="0 0 128 128">
+
+<path class="muted" d="M22 92c8-27 29-30 40-45 11-14 22-18 44-12"/>
+<circle class="fill-cream" filter="url(#softShadow)" cx="24" cy="92" r="12"/>
+<circle class="fill-soft" cx="64" cy="50" r="12"/>
+<circle class="fill-orange" cx="106" cy="35" r="12"/>
+<path class="ink" d="M88 87h24M100 75v24"/>
+<path class="orange" d="M46 95l8 8 17-20"/>
+
+</symbol>
+<symbol id="troubleshoot-lightbulb" viewBox="0 0 128 128">
+
+<path class="fill-cream" filter="url(#softShadow)" d="M64 18c-20 0-36 16-36 36 0 13 7 24 18 31v12h36V85c11-7 18-18 18-31 0-20-16-36-36-36Z"/>
+<path class="ink" d="M51 110h26M48 97h32"/>
+<path class="orange" d="M53 52l9 9 17-20"/>
+<path class="ink-thin" d="M26 24l-9-9M102 24l9-9M14 58H3M125 58h-11"/>
+
+</symbol>
+<symbol id="privacy-lock" viewBox="0 0 128 128">
+
+<rect class="fill-cream" filter="url(#softShadow)" x="28" y="54" width="72" height="54" rx="13"/>
+<path class="ink" d="M45 54V40c0-12 8-22 19-22s19 10 19 22v14"/>
+<path class="orange" d="M64 73v18"/>
+<circle class="fill-orange" cx="64" cy="72" r="5"/>
+<path class="ink-thin" d="M46 92h36"/>
+
+</symbol>
+<symbol id="verified-quality" viewBox="0 0 128 128">
+
+<circle class="fill-cream" filter="url(#softShadow)" cx="64" cy="64" r="44"/>
+<path class="ink" d="M44 63l13 13 30-34"/>
+<path class="orange" d="M91 70a29 29 0 1 1-9-31"/>
+<path class="orange-thin" d="M88 31h18v18"/>
+
+</symbol>
+<symbol id="hand-checked" viewBox="0 0 128 128">
+
+<path class="fill-cream" filter="url(#softShadow)" d="M34 67V35a10 10 0 0 1 20 0v28V47a10 10 0 0 1 20 0v20-8a10 10 0 0 1 20 0v28c0 22-14 35-35 35-16 0-27-7-38-24l-9-14a10 10 0 0 1 17-11l5 8Z"/>
+<path class="ink" d="M34 67V35M54 64V47M74 67v-8M24 76l10 15"/>
+<path class="orange" d="M71 28l7 7 15-18"/>
+
+</symbol>
+<symbol id="fresh-question" viewBox="0 0 128 128">
+
+<rect class="fill-cream" filter="url(#softShadow)" x="22" y="25" width="84" height="82" rx="14"/>
+<path class="ink-thin" d="M38 46h28M38 63h52M38 80h34"/>
+<path class="orange" d="M88 30l3 9 9 3-9 3-3 9-3-9-9-3 9-3 3-9Z"/>
+<circle class="fill-orange" cx="42" cy="94" r="4"/>
+<path class="orange-thin" d="M52 94h22"/>
+
+</symbol>
+<symbol id="objective-map" viewBox="0 0 128 128">
+
+<path class="fill-cream" filter="url(#softShadow)" d="M19 27l28-10 34 13 28-10v81l-28 10-34-13-28 10V27Z"/>
+<path class="ink" d="M47 17v81M81 30v81"/>
+<path class="orange" d="M34 43h.1M63 63h.1M94 48h.1"/>
+<path class="muted" d="M34 43c12 8 17 14 29 20 12-10 20-13 31-15"/>
+
+</symbol>
+<symbol id="score-tracker" viewBox="0 0 128 128">
+
+<rect class="fill-cream" filter="url(#softShadow)" x="17" y="28" width="94" height="72" rx="16"/>
+<path class="ink-thin" d="M34 79V64M54 79V53M74 79V39"/>
+<path class="ink" d="M31 79h52"/>
+<path class="orange" d="M35 49c20-5 33-21 49-10"/>
+<circle class="fill-soft" cx="92" cy="74" r="18"/>
+<path class="orange" d="M84 74l6 6 13-15"/>
+
+</symbol>
+<symbol id="streak-flame" viewBox="0 0 128 128">
+
+<path class="fill-cream" filter="url(#softShadow)" d="M64 113c23 0 39-16 39-38 0-16-7-27-18-37 1 13-5 19-14 23 4-21-9-36-24-46 1 19-13 30-20 42-5 8-7 14-7 24 0 19 17 32 44 32Z"/>
+<path class="fill-orange" d="M66 98c12 0 21-8 21-20 0-9-5-17-12-23-1 8-5 12-11 15 2-12-5-20-14-26 1 12-8 19-12 27-3 5-3 9-3 14 0 8 8 13 31 13Z"/>
+<path class="ink" d="M64 113c23 0 39-16 39-38 0-16-7-27-18-37 1 13-5 19-14 23 4-21-9-36-24-46 1 19-13 30-20 42"/>
+
+</symbol>
+<symbol id="knowledge-base-book" viewBox="0 0 128 128">
+
+<path class="fill-cream" filter="url(#softShadow)" d="M24 25h35c10 0 18 8 18 18v67c-5-5-11-7-18-7H24V25Z"/>
+<path class="fill-soft" d="M77 43c0-10 8-18 18-18h9v78h-9c-7 0-13 2-18 7V43Z"/>
+<path class="ink" d="M77 43v67M38 46h25M38 64h20M91 46h12"/>
+<path class="orange" d="M42 82l7 7 14-17"/>
+
+</symbol>
+<symbol id="question-variation" viewBox="0 0 128 128">
+
+<circle class="fill-cream" filter="url(#softShadow)" cx="64" cy="64" r="44"/>
+<path class="ink" d="M45 50c2-9 20-10 25 0 5 11-12 14-12 28"/>
+<circle class="fill-orange" cx="58" cy="91" r="4"/>
+<path class="orange" d="M82 44h18v18"/>
+<path class="orange" d="M99 45c3 15-4 31-18 39"/>
+<path class="ink-thin" d="M30 84H18V72"/>
+<path class="ink-thin" d="M19 84c-3-16 6-31 20-38"/>
+
+</symbol>
+<symbol id="exam-ready-checklist" viewBox="0 0 128 128">
+
+<rect class="fill-cream" filter="url(#softShadow)" x="27" y="20" width="74" height="88" rx="14"/>
+<path class="ink" d="M47 48l7 7 14-17M47 74l7 7 14-17"/>
+<path class="ink-thin" d="M73 49h12M73 75h12"/>
+<circle class="fill-orange" cx="91" cy="96" r="17"/>
+<path d="M83 96l6 6 12-14" stroke="#FFF7EC" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+
+</symbol>
+<symbol id="personalised-plan" viewBox="0 0 128 128">
+
+<rect class="fill-cream" filter="url(#softShadow)" x="16" y="22" width="96" height="84" rx="16"/>
+<path class="ink-thin" d="M34 44h26M34 64h38M34 84h20"/>
+<circle class="fill-soft" cx="88" cy="43" r="13"/>
+<circle class="fill-soft" cx="88" cy="84" r="13"/>
+<path class="orange" d="M88 30v26M75 43h26M78 84h20"/>
+
+</symbol>
+<symbol id="clarity-compass" viewBox="0 0 128 128">
+
+<circle class="fill-cream" filter="url(#softShadow)" cx="64" cy="64" r="43"/>
+<path class="ink" d="M64 21v12M64 95v12M21 64h12M95 64h12"/>
+<path class="fill-orange" d="M77 37L66 73l-15 18 11-36 15-18Z"/>
+<path class="ink" d="M77 37L66 73l-15 18 11-36 15-18Z"/>
+
+</symbol>
+<symbol id="confidence-crown" viewBox="0 0 128 128">
+
+<path class="fill-cream" filter="url(#softShadow)" d="M25 87l7-46 22 22 10-33 10 33 22-22 7 46H25Z"/>
+<path class="ink" d="M25 87h78M35 101h58"/>
+<circle class="fill-orange" cx="32" cy="41" r="5"/>
+<circle class="fill-orange" cx="64" cy="30" r="5"/>
+<circle class="fill-orange" cx="96" cy="41" r="5"/>
+
+</symbol>
+<symbol id="contact-envelope" viewBox="0 0 128 128">
+
+<rect class="fill-cream" filter="url(#softShadow)" x="17" y="34" width="94" height="64" rx="14"/>
+<path class="ink" d="M24 47l40 29 40-29"/>
+<path class="ink-thin" d="M44 70L25 91M84 70l19 21"/>
+<path class="orange" d="M94 24l3 9 9 3-9 3-3 9-3-9-9-3 9-3 3-9Z"/>
+
+</symbol>
+<symbol id="browser-faq" viewBox="0 0 128 128">
+
+<rect class="fill-cream" filter="url(#softShadow)" x="14" y="28" width="100" height="76" rx="15"/>
+<path class="ink" d="M14 49h100"/>
+<circle class="fill-orange" cx="29" cy="39" r="4"/>
+<circle class="fill-soft" cx="44" cy="39" r="4"/>
+<path class="ink-thin" d="M38 69h38M38 85h25"/>
+<path class="orange" d="M84 65c1-6 12-6 15 0 3 8-8 9-8 18"/>
+<circle class="fill-orange" cx="91" cy="94" r="3"/>
+
+</symbol></svg>
