@@ -798,8 +798,6 @@ const STORAGE = {
   // pair is active based on CURRENT_CERT.
   SAB_MASTERY: 'nplus_sab_mastery',
   SAB_LESSONS: 'nplus_sab_lessons',
-  CTS_MASTERY: 'nplus_cts_mastery',  // v4.95.0: Security+ Control Type Sorter drill
-  CTS_LESSONS: 'nplus_cts_lessons',
   PT_MASTERY:  'nplus_pt_mastery',   // v4.96.0: Network+ Packet Trace drill (per-scenario)
   PT_LESSONS:  'nplus_pt_lessons',
   PT_RESUME:   'nplus_pt_resume',    // mid-scenario resume state
@@ -2227,13 +2225,6 @@ function _renderSecPlusDrillsLauncher() {
     +     '<div class="secplus-drill-tile-title">Acronym Blitz</div>'
     +     '<div class="secplus-drill-tile-sub">120 SY0-701 acronyms across 7 categories. Recognition speed = exam speed.</div>'
     +     '<div class="secplus-drill-tile-meta">All 5 domains · ~5 min/session</div>'
-    +   '</a>'
-    +   '<a class="secplus-drill-tile" href="#" onclick="showPage(\'cts\');startControlTypeSorter();return false;">'
-    +     '<span class="secplus-drill-tile-badge">LIVE</span>'
-    +     '<div class="secplus-drill-tile-icon" aria-hidden="true"></div>'
-    +     '<div class="secplus-drill-tile-title">Control Type Sorter</div>'
-    +     '<div class="secplus-drill-tile-sub">120 security controls across the CompTIA 6×4 matrix. Pick TYPE + CATEGORY for each control. Domain 1.1\'s hardest concept.</div>'
-    +     '<div class="secplus-drill-tile-meta">Domain 1.1 · ~5 min/session</div>'
     +   '</a>'
     + '</div>';
   // MVP-QUIZ-ONLY: IRW + PHT flagship tiles deleted (see Ship 1 commit).
@@ -16448,23 +16439,6 @@ const AB_LESSONS = _USE_SECPLUS_AB && Array.isArray(CERT_PACK.acronymLessons)
 const _AB_MASTERY_KEY = _USE_SECPLUS_AB ? STORAGE.SAB_MASTERY : STORAGE.AB_MASTERY;
 const _AB_LESSONS_KEY = _USE_SECPLUS_AB ? STORAGE.SAB_LESSONS : STORAGE.AB_LESSONS;
 
-// ── Control Type Sorter (v4.95.0, issue #302) ───────────────────────────
-// Cert-pack-only drill: Security+ users get 120 controls across the CompTIA
-// 6-types × 4-categories matrix. Dual-axis MCQ — pick TYPE (1-of-6) AND
-// CATEGORY (1-of-4); submit only enabled when both axes locked. Wrong on
-// either axis = wrong; right on both = right (advance box). Visual contract
-// locked to mockup State 2 (MCQ mode is v1; Sort mode deferred to v2).
-const _SECPLUS_HAS_CTS = typeof CERT_PACK === 'object' && CERT_PACK !== null
-  && Array.isArray(CERT_PACK.controls) && CERT_PACK.controls.length > 0;
-const _USE_SECPLUS_CTS = (typeof CURRENT_CERT !== 'undefined') && CURRENT_CERT === 'secplus' && _SECPLUS_HAS_CTS;
-const CTS_DATA = _USE_SECPLUS_CTS ? CERT_PACK.controls : [];
-const CTS_TYPES = _USE_SECPLUS_CTS ? CERT_PACK.controlTypes : {};
-const CTS_TYPE_IDS = Object.keys(CTS_TYPES);
-const CTS_CATEGORIES = _USE_SECPLUS_CTS ? CERT_PACK.controlCategories : {};
-const CTS_CAT_IDS = Object.keys(CTS_CATEGORIES);
-const CTS_LESSONS = _USE_SECPLUS_CTS && Array.isArray(CERT_PACK.controlMatrixLessons)
-  ? CERT_PACK.controlMatrixLessons : [];
-
 // ── Packet Trace Drill (v4.96.0, issue #305) ────────────────────────────
 // Network+-only drill: 5 curated scenarios (v1) walking a packet through a
 // network hop-by-hop, with an MCQ at each step. Distinct from the Topology
@@ -16945,418 +16919,6 @@ function startOsiSorter() {
   osRenderLevelBadge();
   // v4.81.10: Drill Mission Card (Codex r8)
   if (typeof renderOsiMission === 'function') renderOsiMission();
-}
-
-// ── Control Type Sorter (v4.95.0, issue #302) ──────────────────────────────
-// Dual-axis MCQ — pick TYPE (1-of-6) AND CATEGORY (1-of-4) for each control.
-// Submit only enabled when both axes locked. Wrong on either axis = wrong;
-// right on both = right (advance box). Visual contract locked to mockup
-// State 2 (MCQ mode is v1; Sort mode deferred to v2).
-let ctsQ = null, ctsIdx = 0, ctsCorrect = 0, ctsTotal = 0, ctsStreak = 0;
-let ctsSessionLength = 12, ctsSessionDone = false;
-let ctsPickedType = null, ctsPickedCat = null;
-
-function getCtsMastery() {
-  try {
-    const raw = JSON.parse(localStorage.getItem(STORAGE.CTS_MASTERY) || 'null');
-    if (raw && raw.perControl) return raw;
-  } catch (_) {}
-  return ctsInitMastery();
-}
-
-function ctsInitMastery() {
-  const m = { totalAnswered: 0, totalCorrect: 0, perControl: {}, perType: {}, perCategory: {} };
-  CTS_DATA.forEach(c => { m.perControl[c.id] = { seen: 0, correct: 0, box: 1, streak: 0, lastSeen: null }; });
-  CTS_TYPE_IDS.forEach(t => { m.perType[t] = { seen: 0, correct: 0, streak: 0 }; });
-  CTS_CAT_IDS.forEach(c => { m.perCategory[c] = { seen: 0, correct: 0, streak: 0 }; });
-  return m;
-}
-
-function saveCtsMastery(m) {
-  try { localStorage.setItem(STORAGE.CTS_MASTERY, JSON.stringify(m)); _cloudFlush(STORAGE.CTS_MASTERY); } catch (_) {}
-}
-
-function updateCtsMastery(controlId, wasCorrect) {
-  const m = getCtsMastery();
-  const ctrl = CTS_DATA.find(c => c.id === controlId);
-  if (!ctrl) return;
-  if (!m.perControl[controlId]) m.perControl[controlId] = { seen: 0, correct: 0, box: 1, streak: 0, lastSeen: null };
-  if (!m.perType[ctrl.type]) m.perType[ctrl.type] = { seen: 0, correct: 0, streak: 0 };
-  if (!m.perCategory[ctrl.cat]) m.perCategory[ctrl.cat] = { seen: 0, correct: 0, streak: 0 };
-  const pi = m.perControl[controlId];
-  const pt = m.perType[ctrl.type];
-  const pc = m.perCategory[ctrl.cat];
-  pi.seen++; pt.seen++; pc.seen++; m.totalAnswered++;
-  if (wasCorrect) {
-    pi.correct++; pt.correct++; pc.correct++; m.totalCorrect++;
-    pi.streak++; pt.streak++; pc.streak++;
-    pi.box = Math.min(5, pi.box + 1);
-  } else {
-    pi.streak = 0; pt.streak = 0; pc.streak = 0;
-    pi.box = Math.max(1, pi.box - 1);
-  }
-  pi.lastSeen = Date.now();
-  saveCtsMastery(m);
-}
-
-function ctsPickControl() {
-  const m = getCtsMastery();
-  // Weight toward weakest types — un-mastered controls (box < 3) preferred
-  const typeScores = {};
-  CTS_TYPE_IDS.forEach(t => {
-    const pt = m.perType[t] || { seen: 0, correct: 0 };
-    const acc = pt.seen > 0 ? pt.correct / pt.seen : 0;
-    typeScores[t] = 1.5 - acc;
-  });
-  const unmastered = CTS_DATA.filter(c => {
-    const pi = m.perControl[c.id] || { box: 1 };
-    return pi.box < 3;
-  });
-  const pool = unmastered.length >= 5 ? unmastered : CTS_DATA;
-  const weights = pool.map(c => typeScores[c.type] || 1);
-  const total = weights.reduce((s, w) => s + w, 0);
-  let r = Math.random() * total;
-  for (let i = 0; i < pool.length; i++) {
-    r -= weights[i];
-    if (r <= 0) return pool[i];
-  }
-  return pool[pool.length - 1];
-}
-
-function ctsNextQuestion() {
-  if (ctsIdx >= ctsSessionLength) { ctsEndSession(); return; }
-  ctsIdx++;
-  ctsQ = ctsPickControl();
-  ctsPickedType = null;
-  ctsPickedCat = null;
-  ctsRenderQuestion();
-}
-
-// v4.99.77 (Rebrand Batch 4m): the secplus-control-type-sorter mockup's
-// exact monoline SVG icon set for the 6 control types. Additive + render-
-// only (the Network Builder tbPaletteLineIcon precedent) — replaces the
-// emoji `t.icon` at every CTS type-icon site so the drill is icon-faithful
-// to the locked mockup. Inherits currentColor; sized by scoped Batch 4m.
-function _ctsLineIcon(typeId) {
-  const P = {
-    prev:  '<rect x="5" y="11" width="14" height="9" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M8 11V8a4 4 0 0 1 8 0v3" stroke="currentColor" stroke-width="1.6"/>',
-    det:   '<circle cx="11" cy="11" r="6" stroke="currentColor" stroke-width="1.6"/><path d="M16 16l4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>',
-    corr:  '<path d="M14.7 6.3a4 4 0 0 0-5.4 5.3L3 18l3 3 6.4-6.3a4 4 0 0 0 5.3-5.4l-2.6 2.6-2.4-.6-.6-2.4 2.6-2.6z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>',
-    deter: '<path d="M10.3 4l-7 12a2 2 0 0 0 1.7 3h14a2 2 0 0 0 1.7-3l-7-12a2 2 0 0 0-3.4 0z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M12 9v4M12 16h.01" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>',
-    comp:  '<path d="M4 12a8 8 0 0 1 13.7-5.7L20 8M20 4v4h-4M20 12a8 8 0 0 1-13.7 5.7L4 16M4 20v-4h4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>',
-    dir:   '<rect x="6" y="4" width="12" height="16" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M9 8h6M9 12h6M9 16h4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>'
-  };
-  return '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true">' + (P[typeId] || '') + '</svg>';
-}
-
-function ctsRenderQuestion() {
-  const card = document.getElementById('cts-q-card');
-  if (!card || !ctsQ) return;
-  const ctrl = ctsQ;
-  card.innerHTML = `
-    <div class="cts-q-eyebrow">Classify the control</div>
-    <div class="cts-q-stem-card">
-      <div class="cts-q-stem-name">${escHtml(ctrl.name)}</div>
-      <div class="cts-q-stem-sub">${escHtml(ctrl.desc)}</div>
-      <div class="cts-q-stem-meta">SY0-701 &middot; Domain ${escHtml(ctrl.obj || '?')} &middot; Security controls</div>
-    </div>
-    <div class="cts-q-arrow">&darr; pick the TYPE</div>
-    <div class="cts-q-grid">
-      ${CTS_TYPE_IDS.map(tid => {
-        const t = CTS_TYPES[tid];
-        return `<button class="cts-q-opt" data-cts-type="${tid}" onclick="ctsPickType('${tid}')">
-          <span class="cts-q-opt-icon">${_ctsLineIcon(tid)}</span>
-          ${escHtml(t.label)}
-        </button>`;
-      }).join('')}
-    </div>
-    <div class="cts-q-cat-row">
-      <span class="cts-q-cat-row-label">&darr; AND category</span>
-      ${CTS_CAT_IDS.map(cid => {
-        const c = CTS_CATEGORIES[cid];
-        return `<button class="cts-q-cat-pill" data-cts-cat="${cid}" onclick="ctsPickCat('${cid}')">${escHtml(c.label)}</button>`;
-      }).join('')}
-    </div>
-    <div id="cts-reveal" class="is-hidden"></div>
-    <div class="cts-q-foot">
-      <span id="cts-q-status">Pick TYPE + CATEGORY</span>
-      <span style="display:flex;gap:10px;align-items:center">
-        <span class="cts-q-progress">Q ${ctsIdx} / ${ctsSessionLength}</span>
-        <button class="cts-submit-btn" id="cts-submit-btn" onclick="ctsSubmitAnswer()" disabled>Submit &rarr;</button>
-      </span>
-    </div>
-  `;
-  // Update stats strip
-  const scoreEl = document.getElementById('cts-score');
-  const streakEl = document.getElementById('cts-streak');
-  const progEl = document.getElementById('cts-q-progress');
-  const badgeEl = document.getElementById('cts-streak-badge');
-  if (scoreEl) scoreEl.textContent = ctsCorrect + ' / ' + ctsTotal;
-  if (streakEl) streakEl.textContent = '' + ctsStreak;
-  if (progEl) progEl.textContent = 'Q ' + ctsIdx + ' / ' + ctsSessionLength;
-  if (badgeEl) badgeEl.textContent = '' + ctsStreak;
-}
-
-function ctsPickType(typeId) {
-  if (!ctsQ) return;
-  ctsPickedType = typeId;
-  // Highlight chosen type with type-specific color class
-  document.querySelectorAll('.cts-q-opt').forEach(b => {
-    b.classList.remove('cts-active-prev','cts-active-det','cts-active-corr','cts-active-deter','cts-active-comp','cts-active-dir');
-    if (b.getAttribute('data-cts-type') === typeId) {
-      b.classList.add('cts-active-' + typeId);
-    }
-  });
-  ctsUpdateSubmitButton();
-}
-
-function ctsPickCat(catId) {
-  if (!ctsQ) return;
-  ctsPickedCat = catId;
-  document.querySelectorAll('.cts-q-cat-pill').forEach(b => {
-    b.classList.toggle('cts-cat-active', b.getAttribute('data-cts-cat') === catId);
-  });
-  ctsUpdateSubmitButton();
-}
-
-function ctsUpdateSubmitButton() {
-  const btn = document.getElementById('cts-submit-btn');
-  const status = document.getElementById('cts-q-status');
-  if (!btn) return;
-  const ready = ctsPickedType && ctsPickedCat;
-  btn.disabled = !ready;
-  if (status) status.textContent = ready ? 'Both axes locked in · ready to submit' : 'Pick TYPE + CATEGORY';
-}
-
-function ctsSubmitAnswer() {
-  if (!ctsQ || !ctsPickedType || !ctsPickedCat) return;
-  const ctrl = ctsQ;
-  const typeCorrect = ctsPickedType === ctrl.type;
-  const catCorrect = ctsPickedCat === ctrl.cat;
-  const isCorrect = typeCorrect && catCorrect;
-  ctsTotal++;
-  if (isCorrect) { ctsCorrect++; ctsStreak++; } else { ctsStreak = 0; }
-  updateCtsMastery(ctrl.id, isCorrect);
-
-  // Disable buttons + show correct/wrong styling
-  document.querySelectorAll('.cts-q-opt').forEach(b => {
-    b.disabled = true;
-    const tid = b.getAttribute('data-cts-type');
-    if (tid === ctrl.type) b.classList.add('cts-show-correct');
-    if (tid === ctsPickedType && !typeCorrect) b.classList.add('cts-show-wrong');
-  });
-  document.querySelectorAll('.cts-q-cat-pill').forEach(b => {
-    b.disabled = true;
-    const cid = b.getAttribute('data-cts-cat');
-    if (cid === ctrl.cat) b.classList.add('cts-show-correct');
-    if (cid === ctsPickedCat && !catCorrect) b.classList.add('cts-show-wrong');
-  });
-
-  // Reveal panel
-  const reveal = document.getElementById('cts-reveal');
-  if (reveal) {
-    const correctType = CTS_TYPES[ctrl.type];
-    const correctCat = CTS_CATEGORIES[ctrl.cat];
-    const headLine = isCorrect
-      ? `${escHtml(correctType.label)} ✓ + ${escHtml(correctCat.label)} ✓`
-      : `${typeCorrect ? '✓' : '✗'} ${escHtml(correctType.label)} type · ${catCorrect ? '✓' : '✗'} ${escHtml(correctCat.label)} category`;
-    reveal.classList.remove('is-hidden');
-    reveal.innerHTML = `
-      <div class="cts-reveal">
-        <div class="cts-reveal-head">${headLine}</div>
-        <p class="cts-reveal-prose">${escHtml(ctrl.why)}</p>
-        <div class="cts-reveal-actions">
-          <button class="btn btn-primary cts-reveal-btn" onclick="ctsNextQuestion()">${ctsIdx >= ctsSessionLength ? 'See results &rarr;' : 'Next question &rarr;'}</button>
-        </div>
-      </div>
-    `;
-  }
-  // Hide submit button (replaced by Next in reveal panel)
-  const btn = document.getElementById('cts-submit-btn');
-  if (btn) btn.style.display = 'none';
-  const status = document.getElementById('cts-q-status');
-  if (status) status.innerHTML = isCorrect
-    ? '<span style="color:var(--green)">✓ Both axes correct &middot; ' + ctsStreak + '/' + ctsStreak + ' streak</span>'
-    : '<span style="color:var(--red)">✗ Wrong &middot; streak reset</span>';
-
-  // Update score
-  const scoreEl = document.getElementById('cts-score');
-  const streakEl = document.getElementById('cts-streak');
-  const badgeEl = document.getElementById('cts-streak-badge');
-  if (scoreEl) scoreEl.textContent = ctsCorrect + ' / ' + ctsTotal;
-  if (streakEl) streakEl.textContent = '' + ctsStreak;
-  if (badgeEl) badgeEl.textContent = '' + ctsStreak;
-  if (typeof evaluateMilestones === 'function') evaluateMilestones();
-}
-
-function ctsEndSession() {
-  ctsSessionDone = true;
-  const card = document.getElementById('cts-q-card');
-  const endCard = document.getElementById('cts-end-card');
-  if (card) card.classList.add('is-hidden');
-  if (!endCard) return;
-  endCard.classList.remove('is-hidden');
-  // Find weakest type
-  const m = getCtsMastery();
-  let weakest = null, weakestAcc = 1.1;
-  CTS_TYPE_IDS.forEach(t => {
-    const pt = m.perType[t] || { seen: 0, correct: 0 };
-    if (pt.seen >= 1) {
-      const acc = pt.correct / pt.seen;
-      if (acc < weakestAcc) { weakestAcc = acc; weakest = t; }
-    }
-  });
-  const weakestLabel = weakest ? CTS_TYPES[weakest].label : '—';
-  const acc = ctsTotal > 0 ? Math.round((ctsCorrect / ctsTotal) * 100) : 0;
-  endCard.innerHTML = `
-    <div class="cts-eos-card">
-      <div class="cts-eos-burst">🛡</div>
-      <h2 class="cts-eos-title">Drill complete.</h2>
-      <p class="cts-eos-sub">${ctsCorrect}/${ctsTotal} right &middot; ${ctsStreak >= 5 ? ctsStreak + '-question streak!' : 'Keep stacking those reps.'}</p>
-      <div class="cts-eos-score-row">
-        <div class="cts-eos-score-tile"><div class="cts-eos-score-num">${acc}%</div><div class="cts-eos-score-lbl">accuracy</div></div>
-        <div class="cts-eos-score-tile"><div class="cts-eos-score-num">${ctsCorrect}</div><div class="cts-eos-score-lbl">correct</div></div>
-        <div class="cts-eos-score-tile"><div class="cts-eos-score-num">${m.totalAnswered}</div><div class="cts-eos-score-lbl">total seen</div></div>
-      </div>
-      ${weakest ? `<div class="cts-eos-weak"><strong>Next focus:</strong> ${weakestLabel} (${Math.round(weakestAcc * 100)}% mastered) — drill weighted there next.</div>` : ''}
-      <div class="cts-eos-actions">
-        <button class="btn btn-primary" onclick="startControlTypeSorter()">Practice again →</button>
-        <button class="btn btn-ghost" onclick="setCtsTab('dashboard')">Back to dashboard</button>
-      </div>
-    </div>
-  `;
-}
-
-function ctsRenderLessons() {
-  const host = document.getElementById('cts-lessons-content');
-  if (!host) return;
-  if (!CTS_LESSONS.length) {
-    host.innerHTML = '<p style="text-align:center;color:var(--text-mid);padding:32px">No lessons available.</p>';
-    return;
-  }
-  // Render the full 6×4 matrix as a single reference card
-  host.innerHTML = `
-    <div class="cts-lesson-card">
-      <div class="cts-lesson-head">
-        <div class="cts-lesson-icon">🛡</div>
-        <div>
-          <div class="cts-lesson-title">The CompTIA 6×4 control matrix</div>
-          <div class="cts-lesson-sub">SY0-701 Domain 1.1 · 24 cells with example controls</div>
-        </div>
-      </div>
-      <div class="cts-lesson-matrix">
-        <div class="cts-lm-h"></div>
-        ${CTS_CAT_IDS.map(cid => `<div class="cts-lm-h">${escHtml(CTS_CATEGORIES[cid].label)}</div>`).join('')}
-        ${CTS_LESSONS.map(l => {
-          const tid = l.type;
-          const t = CTS_TYPES[tid] || { label: tid, icon: '', color: 'var(--accent)' };
-          return `
-            <div class="cts-lm-h cts-lm-row" style="color:${t.color}">${_ctsLineIcon(tid)} ${escHtml(t.label)}</div>
-            ${CTS_CAT_IDS.map(cid => {
-              const examples = (l.cells && l.cells[cid]) || [];
-              return `<div class="cts-lm-cell">${examples.map(e => escHtml(e)).join('<br><em>')}</em></div>`;
-            }).join('')}
-          `;
-        }).join('')}
-      </div>
-      <div class="cts-lesson-summaries">
-        ${CTS_LESSONS.map(l => `
-          <div class="cts-lesson-sum"><span class="cts-lesson-sum-label" style="color:${(CTS_TYPES[l.type] || {}).color}">${_ctsLineIcon(l.type)} ${escHtml(l.title)}:</span> ${escHtml(l.summary)}</div>
-        `).join('')}
-      </div>
-    </div>
-  `;
-}
-
-function ctsRenderDashboard() {
-  const host = document.getElementById('cts-dashboard-content');
-  if (!host) return;
-  const m = getCtsMastery();
-  const totalMastered = Object.values(m.perControl).filter(p => p.box >= 3).length;
-  const totalSeen = Object.values(m.perControl).filter(p => p.seen > 0).length;
-  const overallAcc = m.totalAnswered > 0 ? Math.round((m.totalCorrect / m.totalAnswered) * 100) : 0;
-
-  // Per-type rows
-  const typeRows = CTS_TYPE_IDS.map(tid => {
-    const t = CTS_TYPES[tid];
-    const pt = m.perType[tid] || { seen: 0, correct: 0 };
-    const total = CTS_DATA.filter(c => c.type === tid).length;
-    const mastered = CTS_DATA.filter(c => c.type === tid && (m.perControl[c.id] || {}).box >= 3).length;
-    const pct = total > 0 ? Math.round((mastered / total) * 100) : 0;
-    return { tid, t, mastered, total, pct, seen: pt.seen };
-  });
-  const weakestType = typeRows.filter(r => r.seen > 0).sort((a, b) => a.pct - b.pct)[0] || null;
-
-  host.innerHTML = `
-    <div class="cts-dash">
-      <div class="cts-dash-card">
-        <div class="cts-dash-card-head">Mastery by control type</div>
-        <div class="cts-dash-type-grid">
-          ${typeRows.map(r => `
-            <div class="cts-dash-type-row" style="background:${r.t.color}1a;border-left:3px solid ${r.t.color}">
-              <span class="cts-dash-type-icon">${_ctsLineIcon(r.tid)}</span>
-              <span class="cts-dash-type-name">${escHtml(r.t.label)}</span>
-              <span class="cts-dash-type-pct">${r.mastered}/${r.total}</span>
-            </div>
-          `).join('')}
-        </div>
-      </div>
-      <div class="cts-dash-side">
-        ${weakestType ? `
-          <div class="cts-dash-card cts-dash-weakest">
-            <div class="cts-dash-card-head">Weakest type</div>
-            <div class="cts-dash-weak-name">${_ctsLineIcon(weakestType.tid)} ${escHtml(weakestType.t.label)} (${weakestType.mastered}/${weakestType.total} mastered)</div>
-            <div class="cts-dash-weak-sub">Drill weighted there next session.</div>
-          </div>
-        ` : `
-          <div class="cts-dash-card">
-            <div class="cts-dash-card-head">Common confusion</div>
-            <div style="font-size:12px;color:var(--text-mid);line-height:1.5">Detective vs Preventive — IDS is Detective (alerts), IPS is Preventive (blocks). Same hardware, different control type.</div>
-          </div>
-        `}
-        <button class="cts-dash-cta" onclick="startControlTypeSorter()">Start ${ctsSessionLength}-question MCQ drill →</button>
-        <div class="cts-dash-overall">
-          <div><span class="cts-dash-overall-num">${totalMastered}</span><span class="cts-dash-overall-lbl">mastered</span></div>
-          <div><span class="cts-dash-overall-num">${totalSeen}</span><span class="cts-dash-overall-lbl">seen</span></div>
-          <div><span class="cts-dash-overall-num">${overallAcc}%</span><span class="cts-dash-overall-lbl">accuracy</span></div>
-        </div>
-      </div>
-    </div>
-  `;
-}
-
-function setCtsTab(tabId) {
-  document.querySelectorAll('.cts-tab-btn').forEach(b => {
-    const id = b.id.replace('cts-tab-btn-', '');
-    const active = id === tabId;
-    b.classList.toggle('cts-tab-active', active);
-    b.setAttribute('aria-selected', active ? 'true' : 'false');
-    b.tabIndex = active ? 0 : -1;
-  });
-  ['practice', 'lessons', 'dashboard'].forEach(p => {
-    const panel = document.getElementById('cts-tab-' + p);
-    if (!panel) return;
-    panel.classList.toggle('is-hidden', p !== tabId);
-  });
-  if (tabId === 'lessons') ctsRenderLessons();
-  else if (tabId === 'dashboard') ctsRenderDashboard();
-}
-
-function startControlTypeSorter() {
-  if (!_gateProOnly('Control Type Sorter')) return;
-  if (!_USE_SECPLUS_CTS) {
-    if (typeof showToast === 'function') showToast('Control Type Sorter is Security+ only.', 'info');
-    return;
-  }
-  ctsIdx = 0; ctsCorrect = 0; ctsTotal = 0; ctsStreak = 0;
-  ctsSessionDone = false;
-  ctsPickedType = null; ctsPickedCat = null;
-  setCtsTab('practice');
-  const card = document.getElementById('cts-q-card');
-  const endCard = document.getElementById('cts-end-card');
-  if (card) card.classList.remove('is-hidden');
-  if (endCard) endCard.classList.add('is-hidden');
-  ctsNextQuestion();
 }
 
 // ── Packet Trace Drill (v4.96.0, issue #305) ────────────────────────────
@@ -18668,9 +18230,8 @@ const APP_SIDEBAR_DRILLS = [
 // scaffold itself is cert-aware via _USE_SECPLUS_AB at module load.
 const APP_SIDEBAR_DRILLS_SECPLUS = [
   { page: 'acronyms', label: 'Acronym Blitz', handler: () => { showPage('acronyms'); if (typeof startAcronymBlitz === 'function') startAcronymBlitz(); } }
-  // MVP-QUIZ-ONLY (Ship 1): Attack-to-Mitigation (#amm) entry deleted.
-  // Control Type Sorter (#cts) entry deleted in next pass.
-  // Previously deleted: IRW + PHT flagships (Ship 1 part 1).
+  // MVP-QUIZ-ONLY (Ship 1): IRW + PHT + AMM + CTS entries all deleted.
+  // Only Acronym Blitz remains in the Sec+ drills sidebar for the MVP.
 ];
 
 // Map arbitrary page names to their sidebar highlight target. Quiz/exam/review
@@ -18715,8 +18276,7 @@ function _sbNavIcon(pageId) {
     'network-analysis': '<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.6"/><path d="M12 7v5l3 3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>',
     'ptr': '<svg viewBox="0 0 24 24" fill="none"><path d="M5 12h14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M12 5l7 7-7 7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>',
     'settings': '<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.6"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1.08-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1.08 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1.08 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1.08z" stroke="currentColor" stroke-width="1.4"/></svg>',
-    // MVP-QUIZ-ONLY (Ship 1): 'amm' sidebar nav icon removed.
-    'cts': '<svg viewBox="0 0 24 24" fill="none"><path d="M4 6h7M13 6h7M4 12h7M13 12h7M4 18h7M13 18h7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="7" cy="6" r="1.5" fill="currentColor"/><circle cx="17" cy="12" r="1.5" fill="currentColor"/><circle cx="7" cy="18" r="1.5" fill="currentColor"/></svg>',
+    // MVP-QUIZ-ONLY (Ship 1): 'amm' + 'cts' sidebar nav icons removed.
     'topology-builder-v2': '<svg viewBox="0 0 24 24" fill="none"><circle cx="7" cy="7" r="2.5" stroke="currentColor" stroke-width="1.6"/><circle cx="17" cy="7" r="2.5" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="17" r="2.5" stroke="currentColor" stroke-width="1.6"/><path d="M9 8l3 7M15 8l-3 7" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M7 10v2M17 10v2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" opacity="0.5"/></svg>'
   };
   return icons[pageId] || '<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="2" fill="currentColor"/></svg>';
@@ -18983,8 +18543,7 @@ const TOPBAR_CRUMBS = {
   'subnet': 'Subnet Mastery',
   'ports': 'Port Drill',
   'acronyms': 'Acronym Blitz',
-  // MVP-QUIZ-ONLY (Ship 1): 'amm'/'irw'/'pht' crumb labels removed. 'cts' next pass.
-  'cts': 'Control Type Sorter',  // v4.95.0
+  // MVP-QUIZ-ONLY (Ship 1): 'amm'/'cts'/'irw'/'pht' crumb labels removed.
   'ptr': 'Packet Trace',         // v4.96.0 (page id is 'ptr' to avoid pt- collision with Port Drill)
   'osi-sorter': 'OSI Sorter',
   'cables': 'Cable ID',
