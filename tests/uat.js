@@ -23350,6 +23350,84 @@ test('TB v3 Coach: narrateAction returns null for unrecognised device.type withi
   return r === null;
 })());
 
+// ─────────────────────────────────────────────────────────────────────
+// Phase 9 Coach · PBQ step progression (v6.5.19 Task 8)
+// step.check(state) is the source of truth — getCurrentStep + advance-
+// Step are thin pure helpers over the catalog + UI state.
+// ─────────────────────────────────────────────────────────────────────
+function _loadCoachWithCatalog(catalog) {
+  const path = require('path');
+  delete require.cache[require.resolve(path.join(ROOT, 'features/topology-builder-v3-coach.js'))];
+  global.localStorage = _mockLocalStorage();
+  global.window = { TB_V3_PBQS: catalog || [], localStorage: global.localStorage };
+  return require(path.join(ROOT, 'features/topology-builder-v3-coach.js'));
+}
+
+test('TB v3 Coach: getActivePbq returns matching PBQ from catalog', (function () {
+  const Coach = _loadCoachWithCatalog([{ id: 'pbq-x', steps: [{ id: 's1' }] }]);
+  const pbq = Coach.getActivePbq({ activePbqId: 'pbq-x' });
+  delete global.window;
+  delete global.localStorage;
+  return pbq && pbq.id === 'pbq-x';
+})());
+
+test('TB v3 Coach: getActivePbq returns null when no match', (function () {
+  const Coach = _loadCoachWithCatalog([{ id: 'pbq-x', steps: [{ id: 's1' }] }]);
+  const pbq = Coach.getActivePbq({ activePbqId: 'missing' });
+  const pbq2 = Coach.getActivePbq({});
+  delete global.window;
+  delete global.localStorage;
+  return pbq === null && pbq2 === null;
+})());
+
+test('TB v3 Coach: getCurrentStep returns step at currentStepIndex', (function () {
+  const Coach = _loadCoachWithCatalog([{
+    id: 'pbq-x',
+    steps: [{ id: 's1' }, { id: 's2' }, { id: 's3' }]
+  }]);
+  const step = Coach.getCurrentStep({ activePbqId: 'pbq-x', currentStepIndex: 1 });
+  delete global.window;
+  delete global.localStorage;
+  return step && step.id === 's2';
+})());
+
+test('TB v3 Coach: isStepComplete runs step.check() against state', (function () {
+  const Coach = _loadCoachWithCatalog([{
+    id: 'pbq-x',
+    steps: [{
+      id: 's1',
+      check: function (s) { return s && s.devices && s.devices.length > 0; }
+    }]
+  }]);
+  const empty = Coach.isStepComplete({ activePbqId: 'pbq-x', currentStepIndex: 0, devices: [] });
+  const full = Coach.isStepComplete({ activePbqId: 'pbq-x', currentStepIndex: 0, devices: [{}] });
+  delete global.window;
+  delete global.localStorage;
+  return empty === false && full === true;
+})());
+
+test('TB v3 Coach: isStepComplete swallows a thrown check() error and returns false', (function () {
+  const Coach = _loadCoachWithCatalog([{
+    id: 'pbq-x',
+    steps: [{ id: 's1', check: function () { throw new Error('broken'); } }]
+  }]);
+  const r = Coach.isStepComplete({ activePbqId: 'pbq-x', currentStepIndex: 0 });
+  delete global.window;
+  delete global.localStorage;
+  return r === false;
+})());
+
+test('TB v3 Coach: advanceStep increments currentStepIndex and resets hintsUsed', (function () {
+  const Coach = _loadCoachWithCatalog([]);
+  const next = Coach.advanceStep({ activePbqId: 'pbq-x', currentStepIndex: 2, hintsUsed: 3, otherField: 'kept' });
+  delete global.window;
+  delete global.localStorage;
+  return next.currentStepIndex === 3
+      && next.hintsUsed === 0
+      && next.activePbqId === 'pbq-x'
+      && next.otherField === 'kept';
+})());
+
 test('TB v3 walk: state declares activeWalkthroughId field', (function () {
   return /activeWalkthroughId\s*:\s*null/.test(tbV3JsForWalk);
 })());

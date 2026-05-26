@@ -229,6 +229,44 @@
     return (typeof msg === 'string' && msg.length > 0) ? msg : null;
   }
 
+  // ── PBQ step progression (Task 8) ──────────────────────────────────
+  // Pure helpers that operate on the combined UI + canvas state.
+  // step.check(state) is the source of truth for completion. The UI
+  // (Tasks 12 + 16) reads these to drive the lesson list + Next button
+  // state.
+  function getActivePbq(state) {
+    if (!state || !state.activePbqId) return null;
+    var catalog = (typeof window !== 'undefined' && window.TB_V3_PBQS) || [];
+    return catalog.find(function (p) { return p.id === state.activePbqId; }) || null;
+  }
+
+  function getCurrentStep(state) {
+    var pbq = getActivePbq(state);
+    if (!pbq) return null;
+    var idx = (typeof state.currentStepIndex === 'number') ? state.currentStepIndex : 0;
+    return pbq.steps[idx] || null;
+  }
+
+  function isStepComplete(state) {
+    var step = getCurrentStep(state);
+    if (!step || typeof step.check !== 'function') return false;
+    try {
+      return !!step.check(state);
+    } catch (e) {
+      // Defensive: a broken check() must not crash the panel.
+      return false;
+    }
+  }
+
+  function advanceStep(state) {
+    var idx = (state && typeof state.currentStepIndex === 'number') ? state.currentStepIndex : 0;
+    var next = {};
+    for (var k in state) { if (Object.prototype.hasOwnProperty.call(state, k)) next[k] = state[k]; }
+    next.currentStepIndex = idx + 1;
+    next.hintsUsed = 0;
+    return next;
+  }
+
   // ── Module export ──────────────────────────────────────────────────
   var TbV3Coach = {
     COACH_VERSION: COACH_VERSION,
@@ -242,6 +280,10 @@
     askAI: askAI,
     PERSONA: PERSONA,
     narrateAction: narrateAction,
+    getActivePbq: getActivePbq,
+    getCurrentStep: getCurrentStep,
+    isStepComplete: isStepComplete,
+    advanceStep: advanceStep,
   };
 
   if (typeof window !== 'undefined') {
