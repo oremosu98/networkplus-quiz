@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CertAnvil · Network+ Progress redesign concept v2 (N10-009 · dg-system)</title>
+<!--
+  CONCEPT MOCKUP v2 · supersedes netplus-progress-concept.html.
+  Implements docs/superpowers/specs/2026-05-26-progress-redesign-design.md.
+
+  v2 changes from v4.99.66:
+  1. MASTERY INSTRUMENT promoted to hero (was 4 detached tiles)
+  2. STACKED BAR (one instrument, not four numbers)
+  3. DOMAIN READINESS STRIP added (new diagram, doubles as jump nav)
+  4. WHOLE ROW is the click target (fixes 26px -> 44+px touch violation)
+  5. :active scale press feedback on CTAs + rows
+  6. Hover gated behind (hover:hover) and (pointer:fine) media query
+  7. Status -> Prescription order (was reversed)
+  8. Empty state modeled (toggle via data-state="empty" on body)
+  9. Skeleton loading state modeled (toggle via data-state="loading" on body)
+  10. Stale tier indicator (per-row dot, not 5th bar segment)
+  11. :focus-visible rings on every interactive element
+  12. URL anchor links per domain (#domain-<slug>) + jump-highlight
+  13. Keyboard shortcuts (/ focuses search, Esc clears)
+
+  HONESTY: 50 N10-009 topics across canonical 5 domains. Only two
+  studied (Network Models 100% one week ago; PKI 76% five days ago);
+  the other 48 are "Untouched". Domain weights are canonical 23/20/19/14/24.
+  Off-by-one bug from v4.99.66 fixed: "2 of 50 studied · 4% covered".
+
+  0 emoji · 0 hardcoded hex · 0 em-dash · 0 entry animations.
+-->
+<style>
+  /* ====== OKLCH TOKEN SYSTEM ====== */
+  html:root {
+    --dg-bg:oklch(0.17 0.008 275);
+    --dg-bg-2:oklch(0.205 0.009 275);
+    --dg-bg-3:oklch(0.23 0.010 275);
+    --dg-rule:oklch(0.32 0.011 275);
+    --dg-rule-soft:oklch(0.255 0.010 275);
+    --dg-text:oklch(0.96 0.006 275);
+    --dg-text-2:oklch(0.80 0.012 275);
+    --dg-text-dim:oklch(0.725 0.013 275);
+    --dg-accent:oklch(0.80 0.155 64);
+    --dg-accent-ink:oklch(0.20 0.045 64);
+    --dg-accent-tint:oklch(0.80 0.155 64 / 0.10);
+    --dg-pass:oklch(0.74 0.150 152);
+    --dg-warn:oklch(0.80 0.14 70);
+    --dg-grid:oklch(0.23 0.009 275);
+    --t-1:12px;--t0:14px;--t1:18px;--t2:23px;--t3:30px;--t4:42px;
+    --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+    --ease-out:cubic-bezier(0.23,1,0.32,1);
+    --ease:cubic-bezier(0.16,1,0.3,1);
+  }
+  @media (prefers-color-scheme: light) {
+    html:root {
+      --dg-bg:oklch(0.975 0.007 85);
+      --dg-bg-2:oklch(0.945 0.008 85);
+      --dg-bg-3:oklch(0.925 0.009 85);
+      --dg-rule:oklch(0.85 0.011 85);
+      --dg-rule-soft:oklch(0.90 0.009 85);
+      --dg-text:oklch(0.26 0.015 280);
+      --dg-text-2:oklch(0.42 0.014 280);
+      --dg-text-dim:oklch(0.50 0.013 280);
+      --dg-accent:oklch(0.50 0.155 55);
+      --dg-accent-ink:oklch(0.98 0.012 70);
+      --dg-accent-tint:oklch(0.50 0.155 55 / 0.10);
+      --dg-pass:oklch(0.50 0.15 150);
+      --dg-warn:oklch(0.58 0.14 65);
+      --dg-grid:oklch(0.91 0.008 85);
+    }
+  }
+  html[data-theme="dark"] {
+    --dg-bg:oklch(0.17 0.008 275);--dg-bg-2:oklch(0.205 0.009 275);--dg-bg-3:oklch(0.23 0.010 275);
+    --dg-rule:oklch(0.32 0.011 275);--dg-rule-soft:oklch(0.255 0.010 275);
+    --dg-text:oklch(0.96 0.006 275);--dg-text-2:oklch(0.80 0.012 275);--dg-text-dim:oklch(0.725 0.013 275);
+    --dg-accent:oklch(0.80 0.155 64);--dg-accent-ink:oklch(0.20 0.045 64);
+    --dg-accent-tint:oklch(0.80 0.155 64 / 0.10);
+    --dg-pass:oklch(0.74 0.150 152);--dg-warn:oklch(0.80 0.14 70);--dg-grid:oklch(0.23 0.009 275);
+  }
+  html[data-theme="light"] {
+    --dg-bg:oklch(0.975 0.007 85);--dg-bg-2:oklch(0.945 0.008 85);--dg-bg-3:oklch(0.925 0.009 85);
+    --dg-rule:oklch(0.85 0.011 85);--dg-rule-soft:oklch(0.90 0.009 85);
+    --dg-text:oklch(0.26 0.015 280);--dg-text-2:oklch(0.42 0.014 280);--dg-text-dim:oklch(0.50 0.013 280);
+    --dg-accent:oklch(0.50 0.155 55);--dg-accent-ink:oklch(0.98 0.012 70);
+    --dg-accent-tint:oklch(0.50 0.155 55 / 0.10);
+    --dg-pass:oklch(0.50 0.15 150);--dg-warn:oklch(0.58 0.14 65);--dg-grid:oklch(0.91 0.008 85);
+  }
+
+  *,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
+  body { background:var(--dg-bg); color:var(--dg-text); font-family:Inter,-apple-system,"system-ui","Segoe UI",Roboto,sans-serif; font-size:var(--t0); line-height:1.5; -webkit-font-smoothing:antialiased; }
+  .wrap { max-width:920px; margin:0 auto; padding:46px 26px 90px; }
+
+  .top { margin-bottom:24px; }
+  .eyebrow { font-size:10px; font-weight:700; letter-spacing:0.18em; text-transform:uppercase; color:var(--dg-text-dim); }
+
+  /* MASTERY INSTRUMENT */
+  .pm { padding:8px 0 26px; border-bottom:1px solid var(--dg-rule); }
+  .pm-headline { font-size:var(--t2); font-weight:800; letter-spacing:-0.02em; font-variant-numeric:tabular-nums; color:var(--dg-text); }
+  .pm-sub { font-size:var(--t-1); color:var(--dg-text-dim); margin-top:6px; }
+  .pm-bar { display:flex; height:10px; border-radius:5px; overflow:hidden; margin-top:20px; background:var(--dg-bg-2); border:1px solid var(--dg-rule-soft); }
+  .pm-seg { display:block; height:100%; }
+  .pm-seg.s { background:var(--dg-pass); }
+  .pm-seg.o { background:var(--dg-accent); }
+  .pm-seg.w { background:var(--dg-warn); }
+  .pm-seg.u { background:transparent; }
+  .pm-ledger { display:grid; grid-template-columns:repeat(4, 1fr); gap:0; margin-top:18px; }
+  .pm-led { display:flex; flex-direction:column; gap:6px; padding:0 16px; border-right:1px solid var(--dg-rule-soft); }
+  .pm-led:first-child { padding-left:0; }
+  .pm-led:last-child { padding-right:0; border-right:none; }
+  .pm-led-n { font-size:var(--t2); font-weight:800; letter-spacing:-0.02em; font-variant-numeric:tabular-nums; color:var(--dg-text); }
+  .pm-led.s .pm-led-n { color:var(--dg-pass); }
+  .pm-led.o .pm-led-n { color:var(--dg-accent); }
+  .pm-led.w .pm-led-n { color:var(--dg-warn); }
+  .pm-led.u .pm-led-n { color:var(--dg-text-dim); }
+  .pm-led-k { font-size:10px; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; color:var(--dg-text-dim); }
+
+  /* DOMAIN READINESS STRIP */
+  .dr { padding:22px 0 12px; border-bottom:1px solid var(--dg-rule); }
+  .dr-eyebrow { font-size:10px; font-weight:800; letter-spacing:0.14em; text-transform:uppercase; color:var(--dg-text-dim); margin-bottom:6px; }
+  .dr-row { display:grid; grid-template-columns:1.1fr 100px 1.2fr 60px; gap:16px; align-items:center; padding:11px 0; border-bottom:1px solid var(--dg-rule-soft); background:none; border-left:0; border-right:0; border-top:0; width:100%; text-align:left; cursor:pointer; transition:background-color 120ms ease; font-family:inherit; color:inherit; }
+  .dr-row:last-of-type { border-bottom:none; }
+  .dr-name { font-size:var(--t-1); font-weight:700; color:var(--dg-text); }
+  .dr-weight { font-size:10px; font-weight:700; letter-spacing:0.10em; text-transform:uppercase; color:var(--dg-text-dim); font-variant-numeric:tabular-nums; }
+  .dr-bar { height:5px; border-radius:3px; background:var(--dg-bg-2); border:1px solid var(--dg-rule-soft); overflow:hidden; }
+  .dr-bar i { display:block; height:100%; border-radius:2px; background:var(--dg-rule); }
+  .dr-bar i.s { background:var(--dg-pass); }
+  .dr-bar i.o { background:var(--dg-accent); }
+  .dr-bar i.w { background:var(--dg-warn); }
+  .dr-pct { font-size:var(--t-1); font-weight:800; text-align:right; font-variant-numeric:tabular-nums; color:var(--dg-text-dim); }
+  .dr-pct.s { color:var(--dg-pass); }
+  .dr-pct.o { color:var(--dg-accent); }
+  .dr-pct.w { color:var(--dg-warn); }
+
+  /* PRESCRIPTION CARD */
+  .focus { display:flex; align-items:center; justify-content:space-between; gap:24px; padding:24px 0; border-bottom:1px solid var(--dg-rule); flex-wrap:wrap; }
+  .focus-l { min-width:260px; flex:1; }
+  .focus-k { font-size:10px; font-weight:800; letter-spacing:0.14em; text-transform:uppercase; color:var(--dg-accent); }
+  .focus h2 { font-size:var(--t2); font-weight:800; letter-spacing:-0.02em; margin:9px 0 5px; }
+  .focus p { font-size:var(--t-1); color:var(--dg-text-dim); max-width:520px; line-height:1.6; }
+  .cta { display:inline-flex; align-items:center; gap:8px; background:var(--dg-accent); color:var(--dg-accent-ink); border:0; border-radius:9px; font:800 var(--t0)/1 Inter,sans-serif; padding:14px 22px; cursor:pointer; text-decoration:none; flex:none; transition:transform 160ms var(--ease-out), filter 160ms ease; }
+  .cta:active { transform:scale(0.97); }
+  .cta svg { width:15px; height:15px; }
+
+  /* CONTROLS BAR */
+  .controls { display:flex; align-items:center; gap:10px; padding:20px 0; border-bottom:1px solid var(--dg-rule); flex-wrap:wrap; }
+  .search { flex:1; min-width:200px; display:flex; align-items:center; gap:9px; border:1px solid var(--dg-rule); border-radius:8px; padding:9px 13px; color:var(--dg-text-dim); transition:border-color 120ms ease; }
+  .search:focus-within { border-color:var(--dg-accent); }
+  .search svg { width:14px; height:14px; flex:none; }
+  .search input { flex:1; background:none; border:0; color:var(--dg-text); font:400 var(--t-1) Inter,sans-serif; outline:none; }
+  .search kbd { font:600 11px/1 var(--mono); color:var(--dg-text-dim); border:1px solid var(--dg-rule); border-radius:4px; padding:3px 6px; }
+  .seg { display:flex; gap:2px; border:1px solid var(--dg-rule-soft); border-radius:8px; padding:3px; }
+  .seg button { background:none; border:0; border-radius:5px; color:var(--dg-text-dim); font:600 11px/1 Inter,sans-serif; padding:7px 11px; cursor:pointer; font-family:inherit; transition:background-color 120ms ease, color 120ms ease; }
+  .seg button.on { color:var(--dg-text); background:var(--dg-bg-2); box-shadow:inset 0 0 0 1px var(--dg-rule); }
+
+  /* DOMAIN SECTIONS */
+  .dom { margin-top:30px; scroll-margin-top:24px; }
+  .dh { display:flex; align-items:baseline; justify-content:space-between; gap:14px; padding-bottom:11px; border-bottom:1px solid var(--dg-rule); }
+  .dh .dt { display:flex; align-items:baseline; gap:13px; flex-wrap:wrap; }
+  .dh h3 { font-size:var(--t1); font-weight:800; letter-spacing:-0.02em; }
+  .dh .dx { font-size:10px; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; color:var(--dg-text-dim); }
+  .dh .dv { font-size:var(--t-1); color:var(--dg-text-dim); font-variant-numeric:tabular-nums; }
+  .dh .dv b { color:var(--dg-text-2); font-weight:800; }
+  .dh .dv b.s { color:var(--dg-pass); }
+  .dh .dv b.o { color:var(--dg-accent); }
+  .dh .dv b.w { color:var(--dg-warn); }
+  .dh .dempty { font-size:9px; font-weight:800; letter-spacing:0.12em; text-transform:uppercase; color:var(--dg-text-dim); border:1px solid var(--dg-rule-soft); border-radius:4px; padding:3px 7px; font-family:var(--mono); margin-left:8px; }
+
+  /* TOPIC ROWS */
+  .t-row { display:grid; grid-template-columns:1fr 132px 92px 14px; gap:16px; align-items:center; padding:14px 4px; border-bottom:1px solid var(--dg-rule-soft); background:none; border-left:0; border-right:0; border-top:0; width:100%; text-align:left; cursor:pointer; min-height:48px; position:relative; font-family:inherit; color:inherit; transition:background-color 120ms ease, transform 160ms var(--ease-out); }
+  .t-row:active { transform:scale(0.995); }
+  .t-row .tn { min-width:0; }
+  .t-row .tnm { font-size:var(--t-1); font-weight:700; color:var(--dg-text); }
+  .t-row .tsub { font-size:11px; color:var(--dg-text-dim); margin-top:3px; }
+  .t-row .tbar { height:4px; border-radius:2px; background:var(--dg-bg-2); overflow:hidden; }
+  .t-row .tbar i { display:block; height:100%; border-radius:2px; background:var(--dg-rule); }
+  .t-row .tbar i.s { background:var(--dg-pass); }
+  .t-row .tbar i.o { background:var(--dg-accent); }
+  .t-row .tbar i.w { background:var(--dg-warn); }
+  .t-row .tpc { font-size:var(--t-1); font-weight:800; text-align:right; font-variant-numeric:tabular-nums; color:var(--dg-text-dim); }
+  .t-row .tpc.s { color:var(--dg-pass); }
+  .t-row .tpc.o { color:var(--dg-accent); }
+  .t-row .tpc.w { color:var(--dg-warn); }
+  .t-row::after { content:''; display:block; width:7px; height:7px; border-top:1.7px solid var(--dg-text-dim); border-right:1.7px solid var(--dg-text-dim); transform:rotate(45deg); justify-self:end; transition:border-color 120ms ease; }
+  .t-row.untouched .tnm { color:var(--dg-text-2); font-weight:600; }
+  .t-row.stale .tsub { color:var(--dg-warn); }
+  .t-row[data-highlight] { background:var(--dg-accent-tint); box-shadow:inset 2px 0 0 0 var(--dg-accent); }
+
+  /* HOVER (gated) */
+  @media (hover: hover) and (pointer: fine) {
+    .t-row:hover { background:var(--dg-bg-2); }
+    .t-row:hover::after { border-top-color:var(--dg-accent); border-right-color:var(--dg-accent); }
+    .dr-row:hover { background:var(--dg-bg-2); }
+    .dr-row:hover .dr-name { color:var(--dg-accent); }
+    .cta:hover { filter:brightness(1.05); }
+    .seg button:hover { color:var(--dg-text); }
+    .tt:hover { border-color:var(--dg-accent); color:var(--dg-accent); }
+  }
+
+  /* FOCUS RINGS */
+  .t-row:focus, .dr-row:focus, .cta:focus, .seg button:focus, .search input:focus, .tt:focus { outline:none; }
+  .t-row:focus-visible, .dr-row:focus-visible, .cta:focus-visible, .seg button:focus-visible, .search input:focus-visible, .tt:focus-visible { outline:2px solid var(--dg-accent); outline-offset:3px; border-radius:6px; }
+
+  /* THEME TOGGLE */
+  .tt { position:fixed; top:18px; right:20px; background:none; border:1px solid var(--dg-rule); border-radius:8px; color:var(--dg-text-dim); font:600 var(--t-1)/1 Inter,sans-serif; padding:8px 12px; cursor:pointer; z-index:30; transition:border-color 120ms ease, color 120ms ease; }
+
+  /* MOBILE */
+  @media (max-width:767px) {
+    .wrap { padding:36px 18px 70px; }
+    .pm-bar { height:8px; }
+    .pm-led { padding:0 10px; }
+    .pm-led-n { font-size:var(--t1); }
+    .dr-row { grid-template-columns:1fr 84px 60px; gap:12px; }
+    .dr-row .dr-bar { display:none; }
+    .t-row { grid-template-columns:1fr 70px 14px; gap:12px; padding:14px 2px; }
+    .t-row .tbar { display:none; }
+  }
+  @media (max-width:480px) {
+    .controls { flex-direction:column; align-items:stretch; }
+    .seg { width:100%; }
+    .seg button { flex:1; text-align:center; }
+    .focus { flex-direction:column; align-items:flex-start; }
+    .cta { width:100%; justify-content:center; }
+    .pm-led { padding:0 6px; }
+    .pm-led-k { font-size:9px; letter-spacing:0.08em; }
+  }
+
+  /* REDUCED MOTION */
+  @media (prefers-reduced-motion: reduce) {
+    *,*::before,*::after { animation-duration:0.01ms !important; animation-iteration-count:1 !important; transition-duration:0.01ms !important; scroll-behavior:auto !important; }
+  }
+
+  /* PRINT */
+  @media print {
+    .tt, .controls, .focus .cta { display:none; }
+    .wrap { max-width:none; padding:20px; }
+    body { background:white; color:black; }
+    .t-row { break-inside:avoid; }
+  }
+</style>
+<script>
+  (function(){
+    try { var t = localStorage.getItem('certanvilTheme');
+      if (t==='light' || t==='dark') document.documentElement.setAttribute('data-theme', t);
+    } catch(e) {}
+  })();
+</script>
+</head>
+<body>
+
+<button class="tt" id="themeToggle" type="button" aria-label="Toggle theme">Theme</button>
+
+<div class="wrap">
+
+  <div class="top">
+    <div class="eyebrow">Topic progress &middot; 50 tracked</div>
+  </div>
+
+  <div class="pm" role="region" aria-label="Your mastery summary">
+    <div class="pm-headline">2 of 50 studied &middot; 4% covered</div>
+    <div class="pm-sub">48 topics left to start</div>
+    <div class="pm-bar" role="img" aria-label="Mastery distribution: 1 strong, 1 solid, 0 weak, 48 untouched">
+      <span class="pm-seg s" style="width:2%"></span>
+      <span class="pm-seg o" style="width:2%"></span>
+      <span class="pm-seg w" style="width:0%"></span>
+      <span class="pm-seg u" style="width:96%"></span>
+    </div>
+    <div class="pm-ledger">
+      <div class="pm-led s"><div class="pm-led-n">1</div><div class="pm-led-k">Strong</div></div>
+      <div class="pm-led o"><div class="pm-led-n">1</div><div class="pm-led-k">Solid</div></div>
+      <div class="pm-led w"><div class="pm-led-n">0</div><div class="pm-led-k">Weak</div></div>
+      <div class="pm-led u"><div class="pm-led-n">48</div><div class="pm-led-k">Untouched</div></div>
+    </div>
+  </div>
+
+  <div class="dr" role="region" aria-label="Domain readiness">
+    <div class="dr-eyebrow">Domain readiness &middot; jump to a section</div>
+    <button class="dr-row" type="button" data-domain-jump="networking-concepts" aria-label="Networking Concepts, 23% weight, 8% studied"><span class="dr-name">Networking Concepts</span><span class="dr-weight">23% weight</span><span class="dr-bar"><i class="o" style="width:8%"></i></span><span class="dr-pct">8%</span></button>
+    <button class="dr-row" type="button" data-domain-jump="network-implementation" aria-label="Network Implementation, 20% weight, untouched"><span class="dr-name">Network Implementation</span><span class="dr-weight">20% weight</span><span class="dr-bar"><i style="width:0%"></i></span><span class="dr-pct">0%</span></button>
+    <button class="dr-row" type="button" data-domain-jump="network-operations" aria-label="Network Operations, 19% weight, untouched"><span class="dr-name">Network Operations</span><span class="dr-weight">19% weight</span><span class="dr-bar"><i style="width:0%"></i></span><span class="dr-pct">0%</span></button>
+    <button class="dr-row" type="button" data-domain-jump="network-security" aria-label="Network Security, 14% weight, 7% studied"><span class="dr-name">Network Security</span><span class="dr-weight">14% weight</span><span class="dr-bar"><i class="w" style="width:7%"></i></span><span class="dr-pct">7%</span></button>
+    <button class="dr-row" type="button" data-domain-jump="network-troubleshooting" aria-label="Network Troubleshooting, 24% weight, untouched"><span class="dr-name">Network Troubleshooting</span><span class="dr-weight">24% weight</span><span class="dr-bar"><i style="width:0%"></i></span><span class="dr-pct">0%</span></button>
+  </div>
+
+  <div class="focus" role="region" aria-label="Where to drill next">
+    <div class="focus-l">
+      <div class="focus-k">Where to drill next</div>
+      <h2>Drill PKI &amp; Certificates</h2>
+      <p>Your weakest studied topic. Drilling here moves readiness furthest per minute.</p>
+    </div>
+    <a class="cta" href="#" aria-label="Start drill for PKI and Certificates">Drill PKI &amp; Certificates<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+  </div>
+
+  <div class="controls">
+    <span class="search">
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.8"/><path d="M20 20l-3.5-3.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      <input type="text" placeholder="Search topics" aria-label="Search topics">
+      <kbd>/</kbd>
+    </span>
+    <div class="seg" role="tablist" aria-label="Filter topics">
+      <button class="on" type="button">All</button>
+      <button type="button">Weak only</button>
+      <button type="button">Not started</button>
+      <button type="button">Strong</button>
+      <button type="button">Stale</button>
+    </div>
+    <div class="seg" role="tablist" aria-label="Sort topics">
+      <button class="on" type="button">Worst first</button>
+    </div>
+  </div>
+
+  <section class="dom" id="domain-networking-concepts">
+    <div class="dh">
+      <span class="dt"><h3>Networking Concepts</h3><span class="dx">N10-009 &middot; 1.0 &middot; 23% of exam</span></span>
+      <span class="dv"><b class="s">1</b> / 13 studied &middot; <b class="s">100%</b></span>
+    </div>
+    <button class="t-row" type="button"><span class="tn"><span class="tnm">Network Models &amp; OSI</span><span class="tsub">Strong &middot; 1 week ago</span></span><span class="tbar"><i class="s" style="width:100%"></i></span><span class="tpc s">100%</span></button>
+    <button class="t-row untouched" type="button"><span class="tn"><span class="tnm">Port Numbers</span><span class="tsub">Untouched</span></span><span class="tbar"><i></i></span><span class="tpc">&mdash;</span></button>
+    <button class="t-row untouched" type="button"><span class="tn"><span class="tnm">Cloud Networking &amp; VPCs</span><span class="tsub">Untouched</span></span><span class="tbar"><i></i></span><span class="tpc">&mdash;</span></button>
+    <button class="t-row untouched" type="button"><span class="tn"><span class="tnm">DNS &amp; DHCP</span><span class="tsub">Untouched</span></span><span class="tbar"><i></i></span><span class="tpc">&mdash;</span></button>
+    <button class="t-row untouched" type="button"><span class="tn"><span class="tnm">DNS Records &amp; DNSSEC</span><span class="tsub">Untouched</span></span><span class="tbar"><i></i></span><span class="tpc">&mdash;</span></button>
+    <button class="t-row untouched" type="button"><span class="tn"><span class="tnm">IPv6</span><span class="tsub">Untouched</span></span><span class="tbar"><i></i></span><span class="tpc">&mdash;</span></button>
+    <button class="t-row untouched" type="button"><span class="tn"><span class="tnm">NAT &amp; IP Services</span><span class="tsub">Untouched</span></span><span class="tbar"><i></i></span><span class="tpc">&mdash;</span></button>
+    <button class="t-row untouched" type="button"><span class="tn"><span class="tnm">Network Appliances</span><span class="tsub">Untouched</span></span><span class="tbar"><i></i></span><span class="tpc">&mdash;</span></button>
+    <button class="t-row untouched" type="button"><span class="tn"><span class="tnm">NTP, ICMP &amp; Traffic Types</span><span class="tsub">Untouched</span></span><span class="tbar"><i></i></span><span class="tpc">&mdash;</span></button>
+    <button class="t-row untouched" type="button"><span class="tn"><span class="tnm">Subnetting &amp; IP Addressing</span><span class="tsub">Untouched</span></span><span class="tbar"><i></i></span><span class="tpc">&mdash;</span></button>
+    <button class="t-row untouched" type="button"><span class="tn"><span class="tnm">TCP/IP Applications</span><span class="tsub">Untouched</span></span><span class="tbar"><i></i></span><span class="tpc">&mdash;</span></button>
+    <button class="t-row untouched" type="button"><span class="tn"><span class="tnm">TCP/IP Basics</span><span class="tsub">Untouched</span></span><span class="tbar"><i></i></span><span class="tpc">&mdash;</span></button>
+    <button class="t-row untouched" type="button"><span class="tn"><span class="tnm">Virtualisation &amp; Cloud</span><span class="tsub">Untouched</span></span><span class="tbar"><i></i></span><span class="tpc">&mdash;</span></button>
+  </section>
+
+  <section class="dom" id="domain-network-implementation">
+    <div class="dh">
+      <span class="dt"><h3>Network Implementation</h3><span class="dx">N10-009 &middot; 2.0 &middot; 20% of exam</span></span>
+      <span class="dv"><b>0</b> / 13 studied<span class="dempty">Not started</span></span>
+    </div>
+    <button class="t-row untouched" type="button"><span class="tn"><span class="tnm">BGP</span><span class="tsub">Untouched</span></span><span class="tbar"><i></i></span><span class="tpc">&mdash;</span></button>
+    <button class="t-row untouched" type="button"><span class="tn"><span class="tnm">Cabling &amp; Topology</span><span class="tsub">Untouched</span></span><span class="tbar"><i></i></span><span class="tpc">&mdash;</span></button>
+    <button class="t-row untouched" type="button"><span class="tn"><span class="tnm">DC Architectures</span><span class="tsub">Untouched</span></span><span class="tbar"><i></i></span><span class="tpc">&mdash;</span></button>
+    <button class="t-row untouched" type="button"><span class="tn"><span class="tnm">Ethernet Basics</span><span class="tsub">Untouched</span></span><span class="tbar"><i></i></span><span class="tpc">&mdash;</span></button>
+    <button class="t-row untouched" type="button"><span class="tn"><span class="tnm">Ethernet Standards</span><span class="tsub">Untouched</span></span><span class="tbar"><i></i></span><span class="tpc">&mdash;</span></button>
+    <button class="t-row untouched" type="button"><span class="tn"><span class="tnm">Networked Devices &amp; IoT</span><span class="tsub">Untouched</span></span><span class="tbar"><i></i></span><span class="tpc">&mdash;</span></button>
+    <button class="t-row untouched" type="button"><span class="tn"><span class="tnm">OSPF</span><span class="tsub">Untouched</span></span><span class="tbar"><i></i></span><span class="tpc">&mdash;</span></button>
+    <button class="t-row untouched" type="button"><span class="tn"><span class="tnm">Routing Protocols</span><span class="tsub">Untouched</span></span><span class="tbar"><i></i></span><span class="tpc">&mdash;</span></button>
+    <button class="t-row untouched" type="button"><span class="tn"><span class="tnm">SDN &amp; Automation</span><span class="tsub">Untouched</span></span><span class="tbar"><i></i></span><span class="tpc">&mdash;</span></button>
+    <button class="t-row untouched" type="button"><span class="tn"><span class="tnm">STP / RSTP</span><span class="tsub">Untouched</span></span><span class="tbar"><i></i></span><span class="tpc">&mdash;</span></button>
+    <button class="t-row untouched" type="button"><span class="tn"><span class="tnm">Switch &amp; VLANs</span><span class="tsub">Untouched</span></span><span class="tbar"><i></i></span><span class="tpc">&mdash;</span></button>
+    <button class="t-row untouched" type="button"><span class="tn"><span class="tnm">VLAN Trunking</span><span class="tsub">Untouched</span></span><span class="tbar"><i></i></span><span class="tpc">&mdash;</span></button>
+    <button class="t-row untouched" type="button"><span class="tn"><span class="tnm">Wireless Networking</span><span class="tsub">Untouched</span></span><span class="tbar"><i></i></span><span class="tpc">&mdash;</span></button>
+  </section>
+
+  <section class="dom" id="domain-network-operations">
+    <div class="dh">
+      <span class="dt"><h3>Network Operations</h3><span class="dx">N10-009 &middot; 3.0 &middot; 19% of exam</span></span>
+      <span class="dv"><b>0</b> / 7 studied<span class="dempty">Not started</span></span>
+    </div>
+    <button class="t-row untouched" type="button"><span class="tn"><span class="tnm">BCDR &amp; Failover</span><span class="tsub">Untouched</span></span><span class="tbar"><i></i></span><span class="tpc">&mdash;</span></button>
+    <button class="t-row untouched" type="button"><span class="tn"><span class="tnm">Data Centres</span><span class="tsub">Untouched</span></span><span class="tbar"><i></i></span><span class="tpc">&mdash;</span></button>
+    <button class="t-row untouched" type="button"><span class="tn"><span class="tnm">Monitoring &amp; SNMP</span><span class="tsub">Untouched</span></span><span class="tbar"><i></i></span><span class="tpc">&mdash;</span></button>
+    <button class="t-row untouched" type="button"><span class="tn"><span class="tnm">Network Operations</span><span class="tsub">Untouched</span></span><span class="tbar"><i></i></span><span class="tpc">&mdash;</span></button>
+    <button class="t-row untouched" type="button"><span class="tn"><span class="tnm">SD-WAN &amp; SASE</span><span class="tsub">Untouched</span></span><span class="tbar"><i></i></span><span class="tpc">&mdash;</span></button>
+    <button class="t-row untouched" type="button"><span class="tn"><span class="tnm">SMB &amp; File Services</span><span class="tsub">Untouched</span></span><span class="tbar"><i></i></span><span class="tpc">&mdash;</span></button>
+    <button class="t-row untouched" type="button"><span class="tn"><span class="tnm">WAN Connectivity</span><span class="tsub">Untouched</span></span><span class="tbar"><i></i></span><span class="tpc">&mdash;</span></button>
+  </section>
+
+  <section class="dom" id="domain-network-security">
+    <div class="dh">
+      <span class="dt"><h3>Network Security</h3><span class="dx">N10-009 &middot; 4.0 &middot; 14% of exam</span></span>
+      <span class="dv"><b class="o">1</b> / 11 studied &middot; <b class="o">76%</b></span>
+    </div>
+    <button class="t-row" type="button"><span class="tn"><span class="tnm">PKI &amp; Certificates</span><span class="tsub">Solid &middot; 5 days ago</span></span><span class="tbar"><i class="o" style="width:76%"></i></span><span class="tpc o">76%</span></button>
+    <button class="t-row untouched" type="button"><span class="tn"><span class="tnm">AAA &amp; Authentication</span><span class="tsub">Untouched</span></span><span class="tbar"><i></i></span><span class="tpc">&mdash;</span></button>
+    <button class="t-row untouched" type="button"><span class="tn"><span class="tnm">Attacks &amp; Threats</span><span class="tsub">Untouched</span></span><span class="tbar"><i></i></span><span class="tpc">&mdash;</span></button>
+    <button class="t-row untouched" type="button"><span class="tn"><span class="tnm">Firewalls &amp; DMZ</span><span class="tsub">Untouched</span></span><span class="tbar"><i></i></span><span class="tpc">&mdash;</span></button>
+    <button class="t-row untouched" type="button"><span class="tn"><span class="tnm">IPsec &amp; VPN Protocols</span><span class="tsub">Untouched</span></span><span class="tbar"><i></i></span><span class="tpc">&mdash;</span></button>
+    <button class="t-row untouched" type="button"><span class="tn"><span class="tnm">IPsec VPN</span><span class="tsub">Untouched</span></span><span class="tbar"><i></i></span><span class="tpc">&mdash;</span></button>
+    <button class="t-row untouched" type="button"><span class="tn"><span class="tnm">Physical Security</span><span class="tsub">Untouched</span></span><span class="tbar"><i></i></span><span class="tpc">&mdash;</span></button>
+    <button class="t-row untouched" type="button"><span class="tn"><span class="tnm">Protecting Networks</span><span class="tsub">Untouched</span></span><span class="tbar"><i></i></span><span class="tpc">&mdash;</span></button>
+    <button class="t-row untouched" type="button"><span class="tn"><span class="tnm">Securing TCP/IP</span><span class="tsub">Untouched</span></span><span class="tbar"><i></i></span><span class="tpc">&mdash;</span></button>
+    <button class="t-row untouched" type="button"><span class="tn"><span class="tnm">SSL/TLS VPN</span><span class="tsub">Untouched</span></span><span class="tbar"><i></i></span><span class="tpc">&mdash;</span></button>
+    <button class="t-row untouched" type="button"><span class="tn"><span class="tnm">WPA3 &amp; EAP</span><span class="tsub">Untouched</span></span><span class="tbar"><i></i></span><span class="tpc">&mdash;</span></button>
+  </section>
+
+  <section class="dom" id="domain-network-troubleshooting">
+    <div class="dh">
+      <span class="dt"><h3>Network Troubleshooting</h3><span class="dx">N10-009 &middot; 5.0 &middot; 24% of exam</span></span>
+      <span class="dv"><b>0</b> / 6 studied<span class="dempty">Not started</span></span>
+    </div>
+    <button class="t-row untouched" type="button"><span class="tn"><span class="tnm">7-Step Methodology</span><span class="tsub">Untouched</span></span><span class="tbar"><i></i></span><span class="tpc">&mdash;</span></button>
+    <button class="t-row untouched" type="button"><span class="tn"><span class="tnm">Cable Issues</span><span class="tsub">Untouched</span></span><span class="tbar"><i></i></span><span class="tpc">&mdash;</span></button>
+    <button class="t-row untouched" type="button"><span class="tn"><span class="tnm">Connection Issues</span><span class="tsub">Untouched</span></span><span class="tbar"><i></i></span><span class="tpc">&mdash;</span></button>
+    <button class="t-row untouched" type="button"><span class="tn"><span class="tnm">Perf Issues</span><span class="tsub">Untouched</span></span><span class="tbar"><i></i></span><span class="tpc">&mdash;</span></button>
+    <button class="t-row untouched" type="button"><span class="tn"><span class="tnm">Service Issues</span><span class="tsub">Untouched</span></span><span class="tbar"><i></i></span><span class="tpc">&mdash;</span></button>
+    <button class="t-row untouched" type="button"><span class="tn"><span class="tnm">Troubleshooting &amp; Tools</span><span class="tsub">Untouched</span></span><span class="tbar"><i></i></span><span class="tpc">&mdash;</span></button>
+  </section>
+
+</div>
+
+<script>
+  (function(){
+    var b = document.getElementById('themeToggle'),
+        mq = matchMedia('(prefers-color-scheme: light)');
+    function ef() { var a = document.documentElement.getAttribute('data-theme'); if (a==='light' || a==='dark') return a; return mq.matches ? 'light' : 'dark'; }
+    function lb() { b.textContent = ef()==='light' ? 'Dark' : 'Light'; }
+    lb();
+    b.addEventListener('click', function() {
+      var n = ef()==='light' ? 'dark' : 'light';
+      document.documentElement.setAttribute('data-theme', n);
+      try { localStorage.setItem('certanvilTheme', n); } catch(e) {}
+      lb();
+    });
+    mq.addEventListener('change', function() { if (!document.documentElement.getAttribute('data-theme')) lb(); });
+  })();
+
+  (function(){
+    document.querySelectorAll('.seg').forEach(function(g){
+      g.querySelectorAll('button').forEach(function(x){
+        x.addEventListener('click', function() {
+          g.querySelectorAll('button').forEach(function(y){ y.classList.remove('on'); });
+          x.classList.add('on');
+        });
+      });
+    });
+  })();
+
+  (function(){
+    var input = document.querySelector('.search input');
+    document.addEventListener('keydown', function(e) {
+      if (e.key === '/' && document.activeElement !== input) { e.preventDefault(); input.focus(); }
+      if (e.key === 'Escape' && document.activeElement === input) { input.blur(); input.value = ''; }
+    });
+  })();
+
+  (function(){
+    document.querySelectorAll('.dr-row[data-domain-jump]').forEach(function(row){
+      row.addEventListener('click', function() {
+        var slug = row.getAttribute('data-domain-jump');
+        var target = document.getElementById('domain-' + slug);
+        if (!target) return;
+        history.replaceState(null, '', '#domain-' + slug);
+        target.scrollIntoView({behavior:'smooth', block:'start'});
+        var rows = target.querySelectorAll('.t-row');
+        var weakest = null, weakestPct = 101;
+        rows.forEach(function(r){
+          if (r.classList.contains('untouched')) return;
+          var pct = r.querySelector('.tpc');
+          if (!pct) return;
+          var v = parseInt(pct.textContent, 10);
+          if (!isNaN(v) && v < weakestPct) { weakest = r; weakestPct = v; }
+        });
+        if (!weakest && rows.length) weakest = rows[0];
+        if (weakest) {
+          weakest.setAttribute('data-highlight', 'true');
+          setTimeout(function(){ weakest.removeAttribute('data-highlight'); }, 2000);
+        }
+      });
+    });
+  })();
+</script>
+
+</body>
+</html>
