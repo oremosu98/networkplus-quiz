@@ -16155,6 +16155,35 @@ test('v4.86.0 CertPack: CURRENT_CERT and CERT_PACK constants declared',
   /const\s+CURRENT_CERT\s*=\s*detectCert\(\)/.test(js) &&
   /const\s+CERT_PACK\s*=.*window\.CERT_PACKS\[CURRENT_CERT\]/.test(js));
 
+// v7.2.2: class-of-bug-grep follow-up to v7.2.1 — the SAME `secplus-` prefix
+// bug existed in the index.html inline cert-detection IIFE (which document.writes
+// the correct certs/<cert>.js script tag). Fixing app.js detectCert() alone
+// (v7.2.1) made things worse on secplus.certanvil.com: detectCert() correctly
+// returned 'secplus' but the inline script still document.wrote netplus.js, so
+// CERT_PACKS.secplus was never populated → CERT_PACK = null → cert-pack-driven
+// renders broke. v7.2.2 mirrors the Pattern A subdomain check into the inline
+// IIFE: hostname WINS over localStorage for known cert subdomains.
+test('v7.2.2 CertPack: index.html inline IIFE applies Pattern A subdomain detection (secplus. + networkplus.)',
+  /v7\.2\.2 Pattern A subdomain detection[\s\S]{0,2000}location\.hostname[\s\S]{0,600}secplus\.[\s\S]{0,300}networkplus\./.test(html));
+test('v7.2.2 CertPack: index.html inline IIFE hostname check runs BEFORE localStorage read',
+  // Tombstone the pre-v7.2.2 ordering where localStorage won over hostname.
+  // Assert: in the inline IIFE before </head>, location.hostname is read BEFORE
+  // localStorage.getItem('nplus_dev_cert') so a stale dev override can't
+  // out-vote a real Pattern A subdomain match.
+  (function () {
+    // Find the inline cert-detection IIFE — the one that document.writes the cert pack.
+    var m = /\(function\s*\(\)\s*\{[\s\S]*?document\.write\(['"]<scr['"][\s\S]*?certs\/['"][\s\S]*?\}\)\(\);/.exec(html);
+    if (!m) return false;
+    var body = m[0];
+    var hostIdx = body.indexOf('location.hostname');
+    var lsIdx = body.indexOf("getItem('nplus_dev_cert')");
+    return hostIdx > 0 && lsIdx > 0 && hostIdx < lsIdx;
+  })());
+test('v7.2.2 CertPack: index.html inline IIFE maps secplus.certanvil.com to secplus',
+  /\(function\s*\(\)\s*\{[\s\S]{0,3000}secplus\.certanvil\.com[\s\S]{0,200}cert\s*=\s*['"]secplus['"]/.test(html));
+test('v7.2.2 CertPack: index.html inline IIFE maps networkplus.certanvil.com to netplus',
+  /\(function\s*\(\)\s*\{[\s\S]{0,3000}networkplus\.certanvil\.com[\s\S]{0,200}cert\s*=\s*['"]netplus['"]/.test(html));
+
 // ── Both cert packs declare correctly ──
 test('v4.86.0 CertPack: certs/netplus.js declares window.CERT_PACKS.netplus',
   /window\.CERT_PACKS\.netplus\s*=\s*\{/.test(certNetplus));

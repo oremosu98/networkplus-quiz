@@ -57,20 +57,38 @@
 // (CURRENT_CERT + CERT_PACK assignment runs at module load, must see
 // window.CERT_PACKS.<cert> populated synchronously).
 (function() {
-  var cert = 'netplus';
+  var cert = null;
+  // v7.2.2 Pattern A subdomain detection — hostname WINS over any localStorage
+  // override for known cert subdomains. Mirrors detectCert() in app.js (v7.2.1).
+  // Pre-v7.2.2 the only host check was a `secplus-` prefix (Vercel preview only);
+  // production `secplus.certanvil.com` fell through to localStorage and
+  // document.wrote netplus.js when a stale `nplus_dev_cert='netplus'` was set
+  // (from a prior ?cert= entry-point handoff). The Sec+ cert pack therefore
+  // never loaded on its own subdomain — visible content rendered as Net+ + the
+  // domain-grid / Progress / Analytics surfaces broke once v7.2.1 fixed
+  // detectCert() (because CURRENT_CERT='secplus' but CERT_PACKS.secplus was
+  // never populated by the missing certs/secplus.js script).
   try {
-    if (typeof localStorage !== 'undefined') {
-      var dev = localStorage.getItem('nplus_dev_cert');
-      if (dev === 'secplus' || dev === 'netplus') cert = dev;
-    }
-  } catch (e) { /* localStorage may be blocked */ }
-  if (cert === 'netplus') {
-    try {
-      if (typeof location !== 'undefined' && location.host && location.host.indexOf('secplus-') === 0) {
+    if (typeof location !== 'undefined' && location.hostname) {
+      var host = location.hostname;
+      if (host.indexOf('secplus.') === 0 || host.indexOf('secplus-') === 0 || host === 'secplus.certanvil.com') {
         cert = 'secplus';
+      } else if (host.indexOf('networkplus.') === 0 || host.indexOf('networkplus-') === 0 || host === 'networkplus.certanvil.com') {
+        cert = 'netplus';
       }
-    } catch (e) { /* not in browser */ }
+    }
+  } catch (e) { /* not in browser */ }
+  // Only consult localStorage when Pattern A subdomain didn't match
+  // (root certanvil.com + localhost — preserves dev override).
+  if (!cert) {
+    try {
+      if (typeof localStorage !== 'undefined') {
+        var dev = localStorage.getItem('nplus_dev_cert');
+        if (dev === 'secplus' || dev === 'netplus') cert = dev;
+      }
+    } catch (e) { /* localStorage may be blocked */ }
   }
+  if (!cert) cert = 'netplus';
   document.documentElement.setAttribute('data-cert', cert);
   // v4.87.3: CertAnvil-prefixed cert-aware page title. Bookmarked tabs
   // show "CertAnvil — Network+" / "CertAnvil — Security+" so the parent
@@ -485,7 +503,7 @@
     <span class="hero-icon">&#9889;</span>
     <h1>Network+ AI Quiz</h1>
     <p>AI-generated MCQs every session. Never the same quiz twice.</p>
-    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v7.2.1</span>
+    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v7.2.2</span>
     <div id="streak-badge" class="streak-badge"></div>
     <div id="stats-card" class="hero-stats-strip is-hidden">
       <div class="stats-grid" id="stats-grid"></div>
