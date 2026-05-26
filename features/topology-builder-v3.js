@@ -143,6 +143,35 @@
     if (!body || typeof window.TbV3Coach !== 'object') return;
     // Mount once; idempotent calls just re-render against current state.
     window.TbV3Coach.mount(body);
+    _wireCoachToggle();
+  }
+
+  // v6.5.19 Phase 9 Task 16 — wire the rrail Coach pill to toggle the
+  // panel's visibility. Cross-rail mutex: opening Coach closes Picker
+  // (matches the existing _openPicker behaviour pattern).
+  function _wireCoachToggle() {
+    var btn = document.getElementById('tb3-rrail-coach');
+    var body = document.getElementById('tb3-body');
+    if (!btn || !body) return;
+    btn.onclick = function () {
+      var isOpen = body.classList.contains('coach-open');
+      if (isOpen) {
+        body.classList.remove('coach-open');
+        return;
+      }
+      // Mutex: close Picker if open.
+      if (body.classList.contains('picker-open') && typeof _closePicker === 'function') {
+        try { _closePicker(); } catch (e) { /* fall back to class remove */ }
+        body.classList.remove('picker-open');
+      }
+      body.classList.add('coach-open');
+      // Re-render now that we know the panel is visible (catches any
+      // canvas-state drift since the last _renderCanvas tick).
+      if (window.TbV3Coach && window.TbV3Coach.render) {
+        var host = document.querySelector('[data-coach-host]') || body;
+        try { window.TbV3Coach.render(host); } catch (e) { /* swallow */ }
+      }
+    };
   }
 
   // ───────────────────────────────────────────────────────────
@@ -2749,7 +2778,7 @@
           '<div class="tb3-rrail-btn" id="tb3-rrail-scenarios" title="Scenarios — pick a lab">' +
             '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 9h18M7 5v14"/></svg>' +
           '</div>' +
-          '<div class="tb3-rrail-btn locked" title="Coach (Phase 7)">' +
+          '<div class="tb3-rrail-btn" id="tb3-rrail-coach" title="Coach (Phase 9) — Network+ tutor">' +
             '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 2l3 7h7l-5.5 4 2 7-6.5-4.5L5.5 20l2-7L2 9h7z"/></svg>' +
           '</div>' +
         '</div>' +
@@ -2964,6 +2993,17 @@
     // Camera transform on .tb3-3d-popup-stage is NOT touched — user keeps
     // their rotated view across edits.
     if (_3dPopup.open) _render3DScene();
+
+    // v6.5.19 Phase 9 Task 16: live sync — if the Coach panel is mounted,
+    // re-render it so the panel reflects the new canvas state (PBQ step
+    // completion, FB narration substrate). Idempotent + cheap; the Coach
+    // module's render() replaces its own .tb3-coach descendant.
+    if (typeof window.TbV3Coach === 'object' && window.TbV3Coach.render) {
+      var coachHost = document.querySelector('[data-coach-host]');
+      if (coachHost) {
+        try { window.TbV3Coach.render(coachHost); } catch (e) { /* never break canvas */ }
+      }
+    }
   }
 
   function _updateZoomDisplay() {
@@ -6875,6 +6915,11 @@
     if (!btn) return;
     btn.addEventListener('click', _exportPng);
   }
+
+  // v6.5.19 Phase 9 Task 16 — expose the TB v3 state to Coach so the
+  // Coach module's getCanvasState() can read devices + cables without
+  // duplicating state. Read-only — the Coach never mutates this object.
+  window._getState = function () { return state; };
 
   // Register on the standard feature-modules contract
   window._certanvilFeatures = window._certanvilFeatures || {};

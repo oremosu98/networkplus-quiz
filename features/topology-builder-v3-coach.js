@@ -552,8 +552,103 @@
     return { devices: [], cables: [] };
   }
 
-  // bindActions is a stub at Task 15; Task 16 fills it in.
-  function bindActions(/* shell, host */) {}
+  // ── Action handlers (Task 16) ──────────────────────────────────────
+  // bindActions delegates click + Enter-on-input to the right handler
+  // based on the data-action attr on the clicked element (set in
+  // Task 14 footer rendering). Provider override is exposed for tests
+  // via _setProviderForTest.
+  var _testProvider = null;
+  function _setProviderForTest(fn) { _testProvider = fn; }
+
+  function handleStuck(host) {
+    if (!host) return;
+    var combined = {};
+    var canvas = getCanvasState();
+    for (var k in canvas) {
+      if (Object.prototype.hasOwnProperty.call(canvas, k)) combined[k] = canvas[k];
+    }
+    for (var k2 in _coachState) {
+      if (Object.prototype.hasOwnProperty.call(_coachState, k2)) combined[k2] = _coachState[k2];
+    }
+    var hint = useHint(combined);
+    if (!hint) return;
+    setState({ hintsUsed: hint.nextState.hintsUsed });
+    render(host);
+    if (hint.kind === 'ai-escape') {
+      var input = {
+        mode: 'pbq:' + _coachState.activePbqId,
+        stepId: hint.step.id,
+        hintsUsed: hint.nextState.hintsUsed,
+        aiPromptSeed: hint.step.aiPromptSeed,
+        state: getCanvasState(),
+      };
+      askAI(input, { provider: _testProvider || undefined }).then(function (aiText) {
+        // Surface the AI hint inline by updating the hint-note copy.
+        var note = host.querySelector('.tb3-coach__hint-note');
+        if (note) note.textContent = aiText;
+      });
+    }
+  }
+
+  function handleNext(host) {
+    if (!host) return;
+    var combined = {};
+    var canvas = getCanvasState();
+    for (var k in canvas) {
+      if (Object.prototype.hasOwnProperty.call(canvas, k)) combined[k] = canvas[k];
+    }
+    for (var k2 in _coachState) {
+      if (Object.prototype.hasOwnProperty.call(_coachState, k2)) combined[k2] = _coachState[k2];
+    }
+    if (!isStepComplete(combined)) return;
+    var next = advanceStep(_coachState);
+    setState({ currentStepIndex: next.currentStepIndex, hintsUsed: 0 });
+    render(host);
+  }
+
+  function handleSend(host) {
+    if (!host) return;
+    var input = host.querySelector('.tb3-coach__ask');
+    if (!input) return;
+    var q = (input.value || '').trim();
+    if (!q) return;
+    input.value = '';
+    var msgsBefore = (_coachState.fbMessages || []).slice();
+    msgsBefore.push({ kind: 'you', meta: 'You asked', text: q });
+    setState({ fbMessages: msgsBefore });
+    render(host);
+    askAI(
+      { mode: 'fb', question: q, state: getCanvasState() },
+      { provider: _testProvider || undefined }
+    ).then(function (reply) {
+      var msgsAfter = (_coachState.fbMessages || []).slice();
+      msgsAfter.push({ kind: 'ai', meta: 'Coach · AI', text: reply });
+      setState({ fbMessages: msgsAfter });
+      render(host);
+    });
+  }
+
+  function bindActions(shell, host) {
+    if (!shell || !host) return;
+    if (typeof shell.addEventListener !== 'function') return;
+    shell.addEventListener('click', function (ev) {
+      var t = ev.target || {};
+      var actionEl = (typeof t.closest === 'function')
+        ? t.closest('[data-action]')
+        : null;
+      var action = actionEl ? actionEl.getAttribute('data-action') : null;
+      if (action === 'stuck') handleStuck(host);
+      else if (action === 'next') handleNext(host);
+      else if (action === 'send') handleSend(host);
+    });
+    shell.addEventListener('keydown', function (ev) {
+      if (ev.key !== 'Enter') return;
+      var t = ev.target || {};
+      if (t.classList && t.classList.contains && t.classList.contains('tb3-coach__ask')) {
+        handleSend(host);
+      }
+    });
+  }
 
   // ── Mount + render orchestration (Task 15) ─────────────────────────
   // mount(host) marks the host with [data-coach-host], renders the
@@ -585,7 +680,7 @@
     var existing = host.querySelector('.tb3-coach');
     if (existing && typeof existing.replaceWith === 'function') {
       existing.replaceWith(shell);
-    } else if (existing && existing.parentNode) {
+    } else if (existing && existing.parentNode && typeof existing.parentNode.removeChild === 'function') {
       existing.parentNode.removeChild(existing);
       host.appendChild(shell);
     } else {
@@ -631,6 +726,10 @@
     getState: getState,
     setState: setState,
     getCanvasState: getCanvasState,
+    handleStuck: handleStuck,
+    handleNext: handleNext,
+    handleSend: handleSend,
+    _setProviderForTest: _setProviderForTest,
   };
 
   if (typeof window !== 'undefined') {
