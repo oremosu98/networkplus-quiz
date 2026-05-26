@@ -23304,6 +23304,39 @@ test('TB v3 Coach: askAI source increments counter on success but not on cache h
 })());
 
 // ─────────────────────────────────────────────────────────────────────
+// Phase 9 Coach · BYOK provider integration (v6.5.19 Task 17)
+// defaultProvider must call _claudeFetch with Tier C shape (Sonnet,
+// MAX_TOKENS_TEACHER_COACH, plain-text content) and parse the response.
+// The old "AI provider not wired" stub must NOT reappear.
+// ─────────────────────────────────────────────────────────────────────
+
+test('TB v3 Coach: defaultProvider wires _claudeFetch with Tier C shape', (function () {
+  const coachJs = read('features/topology-builder-v3-coach.js');
+  // The old Task 6 stub must be retired.
+  const noStub = !/AI provider not wired/.test(coachJs);
+  // The new defaultProvider must reference _claudeFetch, Sonnet teacher
+  // model, the coach token budget, and parse content[0].text.
+  const usesFetch = /_claudeFetch/.test(coachJs);
+  const usesModel = /CLAUDE_TEACHER_MODEL/.test(coachJs);
+  const usesTokens = /MAX_TOKENS_TEACHER_COACH/.test(coachJs);
+  const parsesContent = /content\[0\]\.text/.test(coachJs);
+  return noStub && usesFetch && usesModel && usesTokens && parsesContent;
+})());
+
+test('TB v3 Coach: defaultProvider sends _metered:true for quota tracking', (function () {
+  const coachJs = read('features/topology-builder-v3-coach.js');
+  return /_metered:\s*true/.test(coachJs);
+})());
+
+test('TB v3 Coach: defaultProvider surfaces 429 quota as err.status for askAI quota branch', (function () {
+  const coachJs = read('features/topology-builder-v3-coach.js');
+  // The provider must throw an Error with .status=429 on quota; askAI
+  // already has a /err\.status === 429/ branch that maps it to copy.
+  return /status\s*===\s*429/.test(coachJs)
+      && /status\s*=\s*429/.test(coachJs);
+})());
+
+// ─────────────────────────────────────────────────────────────────────
 // Phase 9 Coach · FB action narration (v6.5.19 Task 7)
 // Scripted strings keyed by canvas event type. AI is NOT invoked for
 // narration — silence is preferable to noise for unknown events.
@@ -23997,6 +24030,116 @@ test('TB v3 Coach: TB v3 module wires a Coach mount call', (function () {
   const tbV3Src = read('features/topology-builder-v3.js');
   return /window\.TbV3Coach[\s\S]*\.mount/.test(tbV3Src)
       || /TbV3Coach\.mount/.test(tbV3Src);
+})());
+
+// ─────────────────────────────────────────────────────────────────────
+// Phase 9 Coach · Action wiring + canvas subscription (v6.5.19 Task 16)
+// Click delegation handles stuck/next/send. Canvas state subscription
+// re-renders Coach inside _renderCanvas. Coach pill unlocked + toggle
+// wired. window._getState exposed so the Coach module can read TB v3
+// state without duplicating it.
+// ─────────────────────────────────────────────────────────────────────
+test('TB v3 Coach: handleStuck/handleNext/handleSend exposed on module', (function () {
+  const Coach = _loadCoachWithDom();
+  const ok = typeof Coach.handleStuck === 'function'
+      && typeof Coach.handleNext === 'function'
+      && typeof Coach.handleSend === 'function'
+      && typeof Coach._setProviderForTest === 'function';
+  _teardownDom();
+  return ok;
+})());
+
+test('TB v3 Coach: handleStuck advances hintsUsed and re-renders', (function () {
+  const Coach = _loadCoachWithDom([{
+    id: 'pbq-x',
+    task: 'Do it.',
+    steps: [{
+      id: 's1',
+      instruction: 'first',
+      hints: ['hint-a', 'hint-b', 'hint-c'],
+      aiPromptSeed: 'help',
+      check: function () { return false; },
+    }],
+  }]);
+  Coach.setState({ activePbqId: 'pbq-x', currentStepIndex: 0, hintsUsed: 0, fbMessages: [], panelCollapsed: false });
+  const host = global.document.createElement('div');
+  Coach.mount(host);
+  Coach.handleStuck(host);
+  const ok = Coach.getState().hintsUsed === 1;
+  // Reset state so subsequent tests don't inherit a half-stuck PBQ.
+  Coach.setState({ activePbqId: null, currentStepIndex: 0, hintsUsed: 0, fbMessages: [], panelCollapsed: false });
+  _teardownDom();
+  return ok;
+})());
+
+test('TB v3 Coach: handleNext advances step when step.check() returns true', (function () {
+  const Coach = _loadCoachWithDom([{
+    id: 'pbq-x',
+    task: 'Do it.',
+    steps: [
+      { id: 's1', instruction: 'first', hints: ['a','b','c'], aiPromptSeed: 'x',
+        check: function (s) { return s && s.devices && s.devices.length > 0; } },
+      { id: 's2', instruction: 'second', hints: ['a','b','c'], aiPromptSeed: 'x' },
+    ],
+  }]);
+  global.window._getState = function () { return { devices: [{ id: 'r1', type: 'router' }], cables: [] }; };
+  Coach.setState({ activePbqId: 'pbq-x', currentStepIndex: 0, hintsUsed: 2, fbMessages: [], panelCollapsed: false });
+  const host = global.document.createElement('div');
+  Coach.mount(host);
+  Coach.handleNext(host);
+  const ok = Coach.getState().currentStepIndex === 1
+      && Coach.getState().hintsUsed === 0;
+  Coach.setState({ activePbqId: null, currentStepIndex: 0, hintsUsed: 0, fbMessages: [], panelCollapsed: false });
+  delete global.window._getState;
+  _teardownDom();
+  return ok;
+})());
+
+test('TB v3 Coach: handleNext does NOT advance when step.check() returns false', (function () {
+  const Coach = _loadCoachWithDom([{
+    id: 'pbq-x',
+    task: 'Do it.',
+    steps: [{ id: 's1', instruction: 'first', hints: ['a','b','c'], aiPromptSeed: 'x', check: function () { return false; } }],
+  }]);
+  Coach.setState({ activePbqId: 'pbq-x', currentStepIndex: 0, hintsUsed: 0, fbMessages: [], panelCollapsed: false });
+  const host = global.document.createElement('div');
+  Coach.mount(host);
+  Coach.handleNext(host);
+  const ok = Coach.getState().currentStepIndex === 0;
+  Coach.setState({ activePbqId: null, currentStepIndex: 0, hintsUsed: 0, fbMessages: [], panelCollapsed: false });
+  _teardownDom();
+  return ok;
+})());
+
+test('TB v3 module: Coach rrail pill unlocked + id=tb3-rrail-coach', (function () {
+  const tbV3Src = read('features/topology-builder-v3.js');
+  // The pill is unlocked when (a) the locked-Phase-7 marker is gone,
+  // (b) the new id is present, (c) the title reflects Phase 9.
+  return !/locked.*title="Coach \(Phase 7\)"/.test(tbV3Src)
+      && /id="tb3-rrail-coach"/.test(tbV3Src)
+      && /Coach \(Phase 9\)/.test(tbV3Src);
+})());
+
+test('TB v3 module: _wireCoachToggle wires Coach pill click to coach-open class', (function () {
+  const tbV3Src = read('features/topology-builder-v3.js');
+  return /function _wireCoachToggle/.test(tbV3Src)
+      && /coach-open/.test(tbV3Src)
+      && /getElementById\(['"]tb3-rrail-coach['"]\)/.test(tbV3Src);
+})());
+
+test('TB v3 module: _renderCanvas re-renders Coach after every canvas mutation', (function () {
+  const tbV3Src = read('features/topology-builder-v3.js');
+  // The hook should live inside _renderCanvas (so it fires on every
+  // canvas re-render) and reference [data-coach-host] from the mount.
+  const fnMatch = tbV3Src.match(/function _renderCanvas\(\)[\s\S]*?\n  \}/);
+  if (!fnMatch) return false;
+  return /TbV3Coach\.render/.test(fnMatch[0])
+      && /data-coach-host/.test(fnMatch[0]);
+})());
+
+test('TB v3 module: exposes window._getState for Coach getCanvasState bridge', (function () {
+  const tbV3Src = read('features/topology-builder-v3.js');
+  return /window\._getState\s*=\s*function/.test(tbV3Src);
 })());
 
 test('TB v3 walk: state declares activeWalkthroughId field', (function () {

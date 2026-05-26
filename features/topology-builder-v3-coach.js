@@ -152,11 +152,71 @@
     return lines.filter(function (s) { return !!s; }).join('\n\n');
   }
 
-  function defaultProvider() {
-    // Stub at Task 6 — every askAI() call must pass { provider } until
-    // Task 17 wires the real BYOK proxy. The error message identifies
-    // the call site as a missing-integration, not a network failure.
-    throw new Error('AI provider not wired — supply { provider } or wait for Task 17 integration');
+  function defaultProvider(prompt) {
+    // Task 17 — real BYOK / server-proxy via the shell's _claudeFetch.
+    // Tier C precedent (tbCoachTopology / tbExplainDevice): Sonnet,
+    // MAX_TOKENS_TEACHER_COACH, plain-text response.
+    var fetchFn = (typeof _claudeFetch === 'function') ? _claudeFetch
+      : (typeof window !== 'undefined' && typeof window._claudeFetch === 'function') ? window._claudeFetch
+      : null;
+    if (!fetchFn) {
+      throw new Error('AI provider unavailable — shell _claudeFetch missing');
+    }
+    var model = (typeof CLAUDE_TEACHER_MODEL === 'string' && CLAUDE_TEACHER_MODEL)
+      || (typeof window !== 'undefined' && window.CLAUDE_TEACHER_MODEL)
+      || 'claude-sonnet-4-6';
+    var maxTokens = (typeof MAX_TOKENS_TEACHER_COACH === 'number' && MAX_TOKENS_TEACHER_COACH)
+      || (typeof window !== 'undefined' && window.MAX_TOKENS_TEACHER_COACH)
+      || 800;
+    var key = null;
+    try {
+      if (typeof STORAGE !== 'undefined' && STORAGE && STORAGE.KEY && typeof localStorage !== 'undefined') {
+        key = localStorage.getItem(STORAGE.KEY);
+      } else if (typeof localStorage !== 'undefined') {
+        key = localStorage.getItem('nplus_api_key');
+      }
+    } catch (_) {}
+    var headers = {
+      'Content-Type': 'application/json',
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true'
+    };
+    if (key) headers['x-api-key'] = key;
+    return fetchFn({
+      method: 'POST',
+      headers: headers,
+      body: JSON.stringify({
+        model: model,
+        max_tokens: maxTokens,
+        messages: [{ role: 'user', content: prompt }],
+        _metered: true
+      })
+    }).then(function (res) {
+      if (!res) {
+        var noResp = new Error('no response');
+        noResp.code = 'network';
+        throw noResp;
+      }
+      if (res.status === 429) {
+        var quota = new Error('quota');
+        quota.status = 429;
+        throw quota;
+      }
+      if (!res.ok) {
+        var apiErr = new Error('api ' + res.status);
+        apiErr.status = res.status;
+        throw apiErr;
+      }
+      return res.json();
+    }).then(function (data) {
+      var text = (data && data.content && data.content[0] && data.content[0].text) || '';
+      if (!text) {
+        var empty = new Error('empty');
+        empty.code = 'empty';
+        throw empty;
+      }
+      return text.trim();
+    });
   }
 
   function _withTimeout(promise, ms) {
