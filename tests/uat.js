@@ -23012,6 +23012,50 @@ test('TB v3 PBQs: pbqs script tag is loaded after walkthroughs', (function () {
   return walkIdx > 0 && pbqsIdx > 0 && pbqsIdx > walkIdx;
 })());
 
+// ─────────────────────────────────────────────────────────────────────
+// Phase 9 Coach · soho-network-converged PBQ (v6.5.19 Task 2)
+// Structural guards that the first authored PBQ has the locked shape
+// (id, certPack, objective, difficulty, task, 6 steps with required
+// fields). Behavioural eval of check() functions is covered by the
+// Coach module unit tests in later tasks.
+// ─────────────────────────────────────────────────────────────────────
+test('TB v3 PBQs: soho-network-converged definition present with correct meta', (function () {
+  const pbqsJs = read('features/topology-builder-v3-pbqs.js');
+  return /id:\s*['"]soho-network-converged['"]/.test(pbqsJs)
+      && /certPack:\s*['"]netplus['"]/.test(pbqsJs)
+      && /objective:\s*['"]1\.6 Common SOHO network['"]/.test(pbqsJs)
+      && /difficulty:\s*['"]beginner['"]/.test(pbqsJs);
+})());
+
+test('TB v3 PBQs: soho PBQ has 6 step ids s1..s6', (function () {
+  const pbqsJs = read('features/topology-builder-v3-pbqs.js');
+  return /id:\s*['"]s1['"]/.test(pbqsJs)
+      && /id:\s*['"]s2['"]/.test(pbqsJs)
+      && /id:\s*['"]s3['"]/.test(pbqsJs)
+      && /id:\s*['"]s4['"]/.test(pbqsJs)
+      && /id:\s*['"]s5['"]/.test(pbqsJs)
+      && /id:\s*['"]s6['"]/.test(pbqsJs);
+})());
+
+test('TB v3 PBQs: every soho step declares check function, hints, aiPromptSeed', (function () {
+  const pbqsJs = read('features/topology-builder-v3-pbqs.js');
+  // Each of the 6 steps must contribute one of each field. Count occurrences in the file.
+  const checkCount = (pbqsJs.match(/\bcheck:\s*function/g) || []).length;
+  const hintsCount = (pbqsJs.match(/\bhints:\s*\[/g) || []).length;
+  const seedCount  = (pbqsJs.match(/\baiPromptSeed:\s*['"]/g) || []).length;
+  return checkCount >= 6 && hintsCount >= 6 && seedCount >= 6;
+})());
+
+test('TB v3 PBQs: soho step instructions cover place/endpoints/wire/WAN/DHCP/NAT topics', (function () {
+  const pbqsJs = read('features/topology-builder-v3-pbqs.js');
+  return /Place the SOHO router/.test(pbqsJs)
+      && /Add four endpoints/.test(pbqsJs)
+      && /Wire each endpoint/.test(pbqsJs)
+      && /WAN link/.test(pbqsJs)
+      && /Enable DHCP/.test(pbqsJs)
+      && /Enable NAT/.test(pbqsJs);
+})());
+
 test('TB v3 walk: state declares activeWalkthroughId field', (function () {
   return /activeWalkthroughId\s*:\s*null/.test(tbV3JsForWalk);
 })());
