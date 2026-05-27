@@ -59,7 +59,7 @@ function mockMatchMedia(reducedMotion) {
   };
 }
 
-let html, js, css, sw, certNetplus, certSecplus, cloudStoreJs, authStateJs;
+let html, js, css, sw, certNetplus, certSecplus, certAz900, cloudStoreJs, authStateJs;
 try {
   html = read('index.html');
   js   = read('app.js');
@@ -71,6 +71,9 @@ try {
   // source for cert packs; runtime resolution doesn't happen at test time.
   certNetplus = read('certs/netplus.js');
   certSecplus = read('certs/secplus.js');
+  // v7.3.0: AZ-900 cert pack source for 8 new tombstones (Pattern A wiring +
+  // schema + exemplar bank sanity). Same shape as Net+/Sec+ loading.
+  certAz900 = read('certs/az900.js');
   // v4.89.0 Phase C′: cloud-store source so we can assert USER_DATA_KEYS coverage
   // for new namespaced storage keys (e.g. v4.91.0 SAB_*).
   cloudStoreJs = read('cloud-store.js');
@@ -5673,8 +5676,10 @@ test('v4.53.0 JS: domain grid aggregates via TOPIC_DOMAINS lookup',
 // v4.54.10: renderSetupDomainGrid body grew \u2014 widen the regex window.
 // v4.88.1: cert-aware bail at top of fn pushes drillDomain further down.
 // v4.99.80: window widened 7000→10000 (cert-aware canonical topic maps added)
+// v7.3.0: window widened 10000→12000 (AZ-900 _CANONICAL_AZ900 block + 3-way
+// CANONICAL_DOMAIN_TOPICS ternary added ~1.5K chars inside renderSetupDomainGrid)
 test('v4.53.0 JS: domain grid click wires drillDomain',
-  /renderSetupDomainGrid[\s\S]{0,10000}drillDomain\(/.test(js));
+  /renderSetupDomainGrid[\s\S]{0,12000}drillDomain\(/.test(js));
 // v4.81.23: renderSetupFocusBanner stopped being called from goSetup (retired
 // in v4.81.20 as a shim; element removed entirely in v4.81.23). goSetup
 // still calls renderSetupDomainGrid + renderTodayPlan.
@@ -6404,9 +6409,14 @@ test('v4.54.8 JS: updateCqSummaryBar defined + called from initChips click handl
 // Legacy dg-weak-chips class retired + hidden via CSS !important.
 // v4.99.80: CANONICAL_DOMAIN_TOPICS split into _CANONICAL_NETPLUS + _CANONICAL_SECPLUS
 // (cert-aware domain grid). Retargeted to assert the new structure.
-test('v4.54.8 (v4.54.10 update) JS: renderSetupDomainGrid emits .dg-topic-list with canonical topics',
-  /renderSetupDomainGrid[\s\S]{0,9000}dg-topic-list/.test(js) &&
-  /renderSetupDomainGrid[\s\S]{0,9000}_CANONICAL_NETPLUS/.test(js));
+// v7.3.0: window widened 9000→11000 (AZ-900 _CANONICAL_AZ900 added ~1.5K chars)
+// + asserts _CANONICAL_AZ900 exists alongside the netplus + secplus maps so the
+// 3-way CANONICAL_DOMAIN_TOPICS ternary stays cert-complete (regression strength
+// preserved per CLAUDE.md "guards MUST be migrated, never bypassed" rule).
+test('v4.54.8 (v4.54.10 update, v7.3.0 update) JS: renderSetupDomainGrid emits .dg-topic-list with canonical topics for all 3 certs',
+  /renderSetupDomainGrid[\s\S]{0,11000}dg-topic-list/.test(js) &&
+  /renderSetupDomainGrid[\s\S]{0,11000}_CANONICAL_NETPLUS/.test(js) &&
+  /renderSetupDomainGrid[\s\S]{0,11000}_CANONICAL_AZ900/.test(js));
 test('v4.54.8 CSS: Quick Start preset tiles color-cycle (4 nth-child ::after backgrounds)',
   /\.quiz-presets\s+\.preset-tile:nth-child\(1\)::after\s*\{[^}]*background:\s*var\(--accent\)/.test(css) &&
   /\.quiz-presets\s+\.preset-tile:nth-child\(2\)::after\s*\{[^}]*background:\s*var\(--green\)/.test(css) &&
@@ -16189,6 +16199,86 @@ test('v4.86.0 CertPack: certs/netplus.js declares window.CERT_PACKS.netplus',
   /window\.CERT_PACKS\.netplus\s*=\s*\{/.test(certNetplus));
 test('v4.86.0 CertPack: certs/secplus.js declares window.CERT_PACKS.secplus',
   /window\.CERT_PACKS\.secplus\s*=\s*\{/.test(certSecplus));
+
+// ══════════════════════════════════════════════════════════════════════
+// v7.3.0 AZ-900 cert add — 8 new tombstones per plan §4 Stage 7
+// Pattern A subdomain mirror (3 surfaces) + cert switcher + cert pack
+// schema (declaration, domain weights, exemplar bank, topic catalog,
+// exemplar-topic integrity). Locks the cert pack contract for the third
+// cert in CertAnvil (Microsoft Azure Fundamentals AZ-900).
+// ══════════════════════════════════════════════════════════════════════
+test('v7.3.0 CertPack: certs/az900.js declares window.CERT_PACKS.az900',
+  /window\.CERT_PACKS\.az900\s*=\s*\{/.test(certAz900));
+test('v7.3.0 CertPack: app.js detectCert handles azure. + azure- + azure.certanvil.com',
+  /host\.indexOf\(['"]azure\.['"]\)\s*===\s*0/.test(js)
+  && /host\.indexOf\(['"]azure-['"]\)\s*===\s*0/.test(js)
+  && /host\s*===\s*['"]azure\.certanvil\.com['"]/.test(js));
+test('v7.3.0 CertPack: index.html inline IIFE maps azure.certanvil.com to az900',
+  /\(function\s*\(\)\s*\{[\s\S]{0,3500}azure\.certanvil\.com[\s\S]{0,200}cert\s*=\s*['"]az900['"]/.test(html));
+test('v7.3.0 CertPack: auth-state.js getAvailableCerts returns 3 certs (netplus + secplus + az900)',
+  (() => {
+    var src = authStateJs || '';
+    return /id:\s*['"]netplus['"]/.test(src)
+        && /id:\s*['"]secplus['"]/.test(src)
+        && /id:\s*['"]az900['"]/.test(src);
+  })());
+test('v7.3.0 CertPack: AZ-900 domain weights sum within tolerance (>= 0.95 && <= 1.05)',
+  (() => {
+    // vm-extract domainWeights block from cert pack source + sum the values.
+    // The cert pack uses fractional weights (0.275/0.375/0.325 = 0.975
+    // midpoint approximation per plan §2 decision #4).
+    var m = certAz900.match(/domainWeights:\s*\{([\s\S]*?)\}/);
+    if (!m) return false;
+    var nums = (m[1].match(/[0-9]*\.[0-9]+/g) || []).map(Number);
+    var sum = nums.reduce(function (a, b) { return a + b; }, 0);
+    return sum >= 0.95 && sum <= 1.05;
+  })());
+test('v7.3.0 CertPack: AZ-900 exemplar bank >= 190 entries',
+  (() => {
+    // vm-extract the questionExemplars array and count entries by counting
+    // top-level objects via balanced-brace walk would be brittle on JSON;
+    // simpler: count occurrences of the source marker which appears once
+    // per exemplar. addedVersion: "7.3.0" appears once per exemplar in the
+    // current bank. (When future Phase 3 cycles add to the bank under
+    // higher versions, switch this to a different marker or run the bank
+    // through Node-eval — but for the v7.3.0 ship floor this is sufficient.)
+    var matches = certAz900.match(/"addedVersion":"7\.3\.0"/g);
+    return matches && matches.length >= 190;
+  })());
+test('v7.3.0 CertPack: AZ-900 topic catalog has >= 35 topics',
+  (() => {
+    // Count keys in the topicDomains object. Each key is a quoted string
+    // followed by a colon; the closing brace of topicDomains ends the
+    // count. Use the topicResources object as the boundary (it follows
+    // immediately after topicDomains in az900.js).
+    var topicSection = certAz900.match(/topicDomains:\s*\{([\s\S]*?)\},\s*\n\s*\/\//);
+    if (!topicSection) return false;
+    var keys = topicSection[1].match(/^\s*'[^']+':/gm) || [];
+    return keys.length >= 35;
+  })());
+test('v7.3.0 CertPack: every AZ-900 exemplar topic exists in topicDomains',
+  (() => {
+    // Extract every exemplar's topic field via regex + verify each appears
+    // as a key in the topicDomains block. Behavioral fixture — guards
+    // against typos in exemplar.topic that would orphan the entry from
+    // weak-spot routing.
+    var topicSection = certAz900.match(/topicDomains:\s*\{([\s\S]*?)\},\s*\n\s*\/\//);
+    if (!topicSection) return false;
+    var topicKeys = new Set();
+    var keyMatch;
+    var keyRe = /'([^']+)':\s*'(?:cloud-concepts|azure-architecture|azure-management)'/g;
+    while ((keyMatch = keyRe.exec(topicSection[1])) !== null) {
+      topicKeys.add(keyMatch[1]);
+    }
+    if (topicKeys.size < 35) return false; // sanity check that extraction worked
+    // Now scan every exemplar.topic field and verify membership
+    var exTopics = certAz900.match(/"topic":"([^"]+)"/g) || [];
+    for (var i = 0; i < exTopics.length; i++) {
+      var t = exTopics[i].slice(9, -1); // strip "topic":" prefix + closing quote
+      if (!topicKeys.has(t)) return false;
+    }
+    return exTopics.length > 0;
+  })());
 
 // v7.2.3: cert-filter the readiness model so the Drill These To Move Your
 // Score what-if chips (+ readiness card / pass probability / forecast) work

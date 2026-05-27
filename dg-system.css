@@ -2199,3 +2199,34 @@ html[data-theme] body #page-setup .continue-card .cc-action:active{transform:sca
   .br-send,.br-close,.br-cancel{ transition:none !important; }
 }
 
+/* ──────────────────────────────────────────────────────────────────────
+   v7.3.0 — AZ-900 cert support: hide unused domain idx 4/5 surfaces
+   ──────────────────────────────────────────────────────────────────────
+   The static HTML at #page-setup ships 5 hardcoded domain elements per
+   surface (Custom Quiz modal accordions + tdp-pill prefill buttons +
+   .dgh-db Drill By Domain buttons), each carrying data-domain-idx="1"
+   through "5". This matches the 5-domain shape of Net+ (N10-009) and
+   Sec+ (SY0-701).
+
+   AZ-900 has only 3 domains (cloud-concepts / azure-architecture /
+   azure-management). _renderTopicChipsForActiveCert (app.js) updates
+   the first N elements (N=domainKeys.length) and bails on the rest
+   (forEach over domainKeys runs 3 times → idx 4-5 untouched). Without
+   the CSS rule below, AZ-900 users would see stale Net+ content in the
+   4th + 5th accordion/pill/button.
+
+   The cert-aware #setup-domain-grid (renderSetupDomainGrid in app.js)
+   builds dynamically from CERT_PACK.domainWeights and is not affected.
+
+   Net+/Sec+ both have 5 domains so [data-domain-idx="4"]/[="5"] elements
+   are still visible there — the selector is scoped by data-cert="az900"
+   on <html> (set by the index.html inline IIFE before app.js loads). */
+html[data-cert="az900"] details.topic-domain-group[data-domain-idx="4"],
+html[data-cert="az900"] details.topic-domain-group[data-domain-idx="5"],
+html[data-cert="az900"] .tdp-pill[data-domain-idx="4"],
+html[data-cert="az900"] .tdp-pill[data-domain-idx="5"],
+html[data-cert="az900"] .dgh-db[data-domain-idx="4"],
+html[data-cert="az900"] .dgh-db[data-domain-idx="5"]{
+  display:none !important;
+}
+

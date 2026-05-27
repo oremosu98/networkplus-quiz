@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v7.2.3
+// Network+ AI Quiz — app.js  v7.3.0
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '7.2.3';
+const APP_VERSION = '7.3.0';
 // v4.99.45 (Phase 6b): expose APP_VERSION on window so the web-vitals
 // collector (lib/web-vitals-collector.js, loaded BEFORE app.js so its
 // PerformanceObservers attach earlier) can stamp this version onto every
@@ -47,7 +47,7 @@ function detectCert() {
       const certOverrideKey = 'nplus_' + 'dev_cert';
       const url = new URL(location.href);
       const param = (url.searchParams.get('cert') || '').toLowerCase().trim();
-      if (param === 'netplus' || param === 'secplus') {
+      if (param === 'netplus' || param === 'secplus' || param === 'az900') {
         try { localStorage.setItem(certOverrideKey, param); } catch (e) {}
         try {
           url.searchParams.delete('cert');
@@ -69,6 +69,9 @@ function detectCert() {
   //    subdomain check. Root certanvil.com + localhost have no hostname-cert
   //    mapping here, so they correctly fall through to the localStorage path
   //    below (preserving the session-stored preference + dev override).
+  //    v7.3.0 — extended with the third cert AZ-900 on azure.certanvil.com
+  //    (Pattern A; founder lock 2026-05-26 — future Azure certs share this
+  //    same subdomain via internal cert-switcher, NOT new subdomains).
   try {
     if (typeof location !== 'undefined' && location.hostname) {
       const host = location.hostname;
@@ -78,6 +81,9 @@ function detectCert() {
       if (host.indexOf('networkplus.') === 0
           || host.indexOf('networkplus-') === 0
           || host === 'networkplus.certanvil.com') return 'netplus';
+      if (host.indexOf('azure.') === 0
+          || host.indexOf('azure-') === 0
+          || host === 'azure.certanvil.com') return 'az900';
     }
   } catch (e) { /* not in browser context */ }
 
@@ -87,7 +93,7 @@ function detectCert() {
   try {
     if (typeof localStorage !== 'undefined') {
       const dev = localStorage.getItem('nplus_dev_cert');
-      if (dev === 'secplus' || dev === 'netplus') return dev;
+      if (dev === 'secplus' || dev === 'netplus' || dev === 'az900') return dev;
     }
   } catch (e) { /* localStorage may be blocked */ }
 
@@ -9931,8 +9937,19 @@ function _renderCertAwareCopy() {
   if (!CERT_PACK || !CERT_PACK.meta) return;
   if (CURRENT_CERT === 'netplus') return; // static HTML correct for Network+
   try {
-    const code = CERT_PACK.meta.code; // e.g., 'SY0-701'
-    const name = CERT_PACK.meta.name.replace('CompTIA ', ''); // e.g., 'Security+'
+    const code = CERT_PACK.meta.code; // e.g., 'SY0-701' or 'AZ-900'
+    // v7.3.0 — vendor extracted from name's first word so the static HTML's
+    // "CompTIA" prefix gets rewritten correctly per cert (Sec+ stays
+    // "CompTIA", AZ-900 becomes "Microsoft"). Pre-v7.3.0 the vendor was
+    // hardcoded "CompTIA" on the threshold line + implicitly preserved by
+    // the .replace(/N10-009/g, code) substitutions on the labels.
+    // Net+: 'CompTIA Network+'.split(' ')[0]  = 'CompTIA'
+    // Sec+: 'CompTIA Security+'.split(' ')[0] = 'CompTIA'
+    // AZ-900: 'Microsoft Azure Fundamentals'.split(' ')[0] = 'Microsoft'
+    const vendor = (CERT_PACK.meta.name.split(' ')[0]) || 'CompTIA';
+    // Cert short name for HTML lede: strip leading vendor word so "Network+"
+    // and "Security+" stay clean, and AZ-900 reads "Azure Fundamentals".
+    const name = CERT_PACK.meta.name.replace(/^(CompTIA|Microsoft)\s+/, '');
     const passMark = CERT_PACK.meta.examPassScore;
     const maxScore = CERT_PACK.meta.examMaxScore;
 
@@ -9948,17 +9965,21 @@ function _renderCertAwareCopy() {
       passPlanSub.textContent = passPlanSub.textContent.replace(/N10-009/g, code);
     }
 
-    // 3 + 4. Scaled Score · CompTIA N10-009 labels (results + exam-results)
+    // 3 + 4. Scaled Score · CompTIA N10-009 labels (results + exam-results).
+    // v7.3.0 — also rewrite the vendor prefix so AZ-900 reads "Microsoft AZ-900"
+    // instead of "CompTIA AZ-900". For Net+/Sec+ the CompTIA→CompTIA replace
+    // is a no-op so behaviour is unchanged.
     document.querySelectorAll('.results-v2-big-label, .exam-results-v2-big-label').forEach(function(el) {
       if (el.innerHTML.indexOf('N10-009') !== -1) {
-        el.innerHTML = el.innerHTML.replace(/N10-009/g, code);
+        el.innerHTML = el.innerHTML.replace(/N10-009/g, code).replace(/CompTIA/g, vendor);
       }
     });
 
-    // 5. Pass mark text — also swap the score (Network+ 720 → Security+ 750)
+    // 5. Pass mark text — also swap the score (Network+ 720 → Security+ 750
+    // → AZ-900 700) AND the vendor word for AZ-900.
     const threshold = document.querySelector('.exam-results-v2-threshold');
     if (threshold) {
-      threshold.innerHTML = 'Pass mark: ' + passMark + ' / ' + maxScore + ' &middot; CompTIA ' + code + ' scaled score';
+      threshold.innerHTML = 'Pass mark: ' + passMark + ' / ' + maxScore + ' &middot; ' + vendor + ' ' + code + ' scaled score';
     }
 
     // 6. Domain breakdown sub
@@ -10010,7 +10031,11 @@ function _renderTopicChipsForActiveCert() {
   if (CURRENT_CERT === 'netplus') return; // static HTML is correct
   try {
     const domainKeys = Object.keys(CERT_PACK.domainWeights || {});
-    if (domainKeys.length !== 5) return; // unexpected blueprint shape
+    // v7.3.0 — was `!== 5` (Net+/Sec+ both have 5 domains); AZ-900 has 3
+    // (cloud-concepts / azure-architecture / azure-management). Accept any
+    // 1-5 domain blueprint; unused domain-idx accordions/pills/buttons in
+    // the static HTML are hidden via dg-system.css scoped to data-cert.
+    if (domainKeys.length < 1 || domainKeys.length > 5) return; // unexpected blueprint shape
 
     // Build per-domain topic lists from CERT_PACK.topicDomains
     const topicsByDomain = {};
@@ -16781,8 +16806,40 @@ function renderSetupDomainGrid() {
       { label: 'Audits',            key: 'Audits & Assessments' },
     ],
   };
+  // v7.3.0 — AZ-900 canonical topic shortlist (5 representative topics per
+  // domain) for the home-page domain grid. Mirrors the _CANONICAL_NETPLUS +
+  // _CANONICAL_SECPLUS shape verbatim — { domainKey: [{ label, key }, …] }
+  // where `key` matches CERT_PACK.topicDomains[key] for weak-spot routing.
+  const _CANONICAL_AZ900 = {
+    'cloud-concepts': [
+      { label: 'Cloud Basics',          key: 'Cloud Computing Basics' },
+      { label: 'Shared Responsibility', key: 'Shared Responsibility Model' },
+      { label: 'Deployment Models',     key: 'Cloud Deployment Models' },
+      { label: 'Service Models',        key: 'Cloud Service Models' },
+      { label: 'Serverless',            key: 'Serverless Computing' },
+    ],
+    'azure-architecture': [
+      { label: 'Regions & Pairs',       key: 'Azure Regions & Region Pairs' },
+      { label: 'Resource Groups',       key: 'Resource Groups & Subscriptions' },
+      { label: 'Virtual Machines',      key: 'Azure Virtual Machines' },
+      { label: 'VNets & Subnets',       key: 'Virtual Networks & Subnets' },
+      { label: 'Entra ID',              key: 'Microsoft Entra ID & Authentication' },
+    ],
+    'azure-management': [
+      { label: 'Cost Management',       key: 'Azure Cost Management' },
+      { label: 'Tags',                  key: 'Tags & Resource Organization' },
+      { label: 'Azure Policy',          key: 'Azure Policy' },
+      { label: 'ARM & IaC',             key: 'ARM Templates & IaC' },
+      { label: 'Monitor & Logs',        key: 'Azure Monitor & Log Analytics' },
+    ],
+  };
+  // v7.3.0 — 3-way cert selector (was 2-way ternary). Falls through to Net+
+  // when CURRENT_CERT isn't recognised (defensive; preserves prior behavior).
   const CANONICAL_DOMAIN_TOPICS = (typeof CURRENT_CERT !== 'undefined' && CURRENT_CERT === 'secplus')
-    ? _CANONICAL_SECPLUS : _CANONICAL_NETPLUS;
+    ? _CANONICAL_SECPLUS
+    : ((typeof CURRENT_CERT !== 'undefined' && CURRENT_CERT === 'az900')
+        ? _CANONICAL_AZ900
+        : _CANONICAL_NETPLUS);
   // Build a set of weak topic keys for quick lookup
   const weakSet = new Set();
   try {

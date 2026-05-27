@@ -169,6 +169,38 @@
       callout: 'Subnetting + DNS knowledge directly applies to VNet design. Identity, governance, and Azure-specific tooling are all new.'
     },
 
+    // ── N+ → AZ-900 — light, ~15-20% (networking primitives transfer) ──
+    {
+      from: 'netplus',
+      to: 'az900',
+      pct: 18,
+      sharedCount: 4,
+      totalTargetCount: 12,
+      headline: 'Networking foundation helps with Azure infra',
+      sharedTopics: [
+        'TCP/IP fundamentals & subnetting (translates to VNet + subnet design)',
+        'Firewalls & ACL fundamentals (translates to NSG + Azure Firewall)',
+        'Load balancing concepts (translates to Azure LB + Application Gateway)',
+        'Dedicated WAN + site-to-site VPN (translates to ExpressRoute + VPN Gateway)'
+      ],
+      refresherTopics: [
+        'IP design vocabulary stays the same, but cloud uses CIDR-by-default with no classful assumptions'
+      ],
+      newTopics: [
+        'Cloud business model (CapEx vs OpEx, consumption-based pricing)',
+        'Shared responsibility split across IaaS/PaaS/SaaS',
+        'Identity (Microsoft Entra ID, RBAC, Conditional Access)',
+        'Cloud governance (Azure Policy, Resource Locks, Purview)',
+        'Azure-specific compute (VM, AKS, Functions, App Service)',
+        'Azure-specific storage (Blob, Files, redundancy variants)',
+        'Management tools (Portal, CLI, PowerShell, ARM templates, Azure Arc)',
+        'Cost management (Pricing Calculator, TCO, budgets, tags)'
+      ],
+      hoursSaved: 12,
+      daysSaved: 3,
+      callout: 'Networking primitives map cleanly — VNets are subnets with cloud-shaped APIs, NSGs are port-based ACLs. But cloud adds an entire identity + governance + cost layer that has no Net+ analog. Budget time for AZ-900 Domains 1 (cloud concepts) + 3 (governance).'
+    },
+
     // ── Sec+ → AWS SAA — security in cloud ──────────────────────────────
     {
       from: 'secplus',
@@ -220,6 +252,108 @@
       hoursSaved: 10,
       daysSaved: 2,
       callout: 'Identity and access concepts are nearly 1:1 transferable. The Microsoft-specific tooling (Entra, PIM, Conditional Access) is what needs the focused study time.'
+    },
+
+    // ── Sec+ → AZ-900 — medium-high, ~38-45% (security + governance carry) ──
+    {
+      from: 'secplus',
+      to: 'az900',
+      pct: 40,
+      sharedCount: 7,
+      totalTargetCount: 12,
+      headline: 'Security foundation transfers — Azure adds the platform',
+      sharedTopics: [
+        'Identity & access management (Sec+ Domain 4.6 ↔ Microsoft Entra ID + RBAC)',
+        'Zero Trust architecture (Sec+ Domain 3.2 ↔ Azure Zero Trust model)',
+        'MFA & Conditional Access (Sec+ Domain 4.6 ↔ Azure Conditional Access policies)',
+        'Defense in Depth (Sec+ Domain 3.1 ↔ Azure security layers)',
+        'Shared Responsibility Model (Sec+ Domain 3.1 ↔ Azure SRM)',
+        'Network security (NSG + Azure Firewall ↔ Sec+ Domain 3.2)',
+        'Compliance frameworks (Sec+ Domain 5.4 ↔ Microsoft Purview + Compliance Manager)'
+      ],
+      refresherTopics: [
+        'Zero Trust principles get Microsoft-flavoured — Entra ID + Conditional Access + Defender for Cloud as the canonical stack',
+        'IAM expands beyond DAC/MAC/RBAC/ABAC into Azure role assignments + scope inheritance (management group → subscription → resource group)'
+      ],
+      newTopics: [
+        'Azure infrastructure (regions, availability zones, subscriptions, resource groups, management groups)',
+        'Azure compute services (VM, AKS, Functions, App Service, Virtual Desktop)',
+        'Azure storage services (Blob, Files, redundancy: LRS/ZRS/GRS/GZRS)',
+        'Cloud business model (CapEx vs OpEx, consumption-based pricing)',
+        'Cost management (Pricing Calculator, TCO, budgets, tags)',
+        'Management & deployment tools (Portal, CLI, PowerShell, ARM, Bicep, Arc)',
+        'Monitoring stack (Azure Monitor, Log Analytics, Service Health, Advisor)'
+      ],
+      hoursSaved: 24,
+      daysSaved: 6,
+      callout: 'AZ-900\'s security + governance topics are largely Sec+ content in a Microsoft frame. The new material is Azure platform mechanics (compute / storage / networking / cost / management) — about 60% of the AZ-900 blueprint. Time-budget those domains; coast through the security + IAM overlap.'
+    },
+
+    // ── AZ-900 → N+ — light inverse, ~15% (cloud knowledge → Net+) ──────
+    {
+      from: 'az900',
+      to: 'netplus',
+      pct: 15,
+      sharedCount: 3,
+      totalTargetCount: 14,
+      headline: 'Cloud knowledge gives a sliver of Net+',
+      sharedTopics: [
+        'Basic IP networking vocab (CIDR, subnets) from VNet design',
+        'Allow/deny port filtering (NSG → ACL mental model)',
+        'Load balancer concepts (Azure LB → L4 LB primer)'
+      ],
+      refresherTopics: [
+        'CIDR-by-default in cloud maps to CompTIA\'s classless mode, but Net+ exam still asks about classful boundaries (Class A/B/C/D/E)'
+      ],
+      newTopics: [
+        'OSI model (7 layers — Net+ Domain 1)',
+        'Detailed L1 cabling, connectors, ethernet standards (Net+ Domain 1)',
+        'Switching internals (MAC tables, VLANs, STP, port aggregation — Net+ Domain 2)',
+        'Routing internals (RIP, OSPF, BGP, EIGRP — Net+ Domain 2)',
+        'Wireless internals (802.11 standards, encryption, deployment — Net+ Domain 2)',
+        'Network services (DHCP, DNS internals, NTP, SNMP, Syslog — Net+ Domain 3)',
+        'Network security (firewall types, IDS/IPS, threats — Net+ Domain 4)',
+        'Troubleshooting methodology + tools (Net+ Domain 5)',
+        'On-premises network architecture (3-tier, spine-leaf — Net+ Domain 1)'
+      ],
+      hoursSaved: 8,
+      daysSaved: 2,
+      callout: 'AZ-900 stays high-level on networking — Net+ goes deep into the physical, link, and transport layer mechanics that cloud abstracts away. Expect roughly 90% new material across Domains 1, 2, and 5.'
+    },
+
+    // ── AZ-900 → Sec+ — medium-high inverse, ~35% (security overlap) ────
+    {
+      from: 'az900',
+      to: 'secplus',
+      pct: 35,
+      sharedCount: 6,
+      totalTargetCount: 12,
+      headline: 'Azure security + governance carry into Sec+',
+      sharedTopics: [
+        'Identity & access management (Entra ID + RBAC → Sec+ Domain 4.6)',
+        'Zero Trust architecture (Azure ZT model → Sec+ Domain 3.2)',
+        'Shared Responsibility Model (Azure SRM → Sec+ Domain 3.1)',
+        'Cloud security architecture concepts (Azure security → Sec+ Domain 3.1)',
+        'MFA & Conditional Access fundamentals (Azure CA → Sec+ Domain 4.6)',
+        'Compliance frameworks (Purview + Compliance Manager → Sec+ Domain 5.4)'
+      ],
+      refresherTopics: [
+        'Sec+ adds vendor-neutral framing of the same concepts — Microsoft-specific names (Entra ID, NSG) become CompTIA-generic (IDP, ACL)'
+      ],
+      newTopics: [
+        'Cryptography fundamentals & PKI (Sec+ Domain 1.4)',
+        'Threat actors, attack vectors, vulnerabilities (Sec+ Domain 2)',
+        'Web & cryptographic attacks (Sec+ Domain 2.4)',
+        'Malware types & analysis (Sec+ Domain 2.4)',
+        'Incident Response (PICERL — Sec+ Domain 4.8)',
+        'Forensics & investigations (Sec+ Domain 4.9)',
+        'Risk management & governance (Sec+ Domain 5.1, 5.2)',
+        'Third-party risk + supply chain (Sec+ Domain 5.3)',
+        'Security awareness & training (Sec+ Domain 5.5)'
+      ],
+      hoursSaved: 22,
+      daysSaved: 5,
+      callout: 'AZ-900\'s identity + Zero Trust + governance content gives you a strong start on Sec+ Domain 3 (architecture) and Domain 4 (operations). Domains 1 (cryptography), 2 (threats), and 5 (governance frameworks) need fresh study.'
     },
 
     // ── AZ-900 → AZ-104 — same family, ~90% overlap ─────────────────────

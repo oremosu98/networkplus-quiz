@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Azure Fundamentals Baseline · 20-Q diagnostic · CertAnvil</title>
+<meta name="theme-color" content="#fafbff">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="CertAnvil">
+<meta name="description" content="20-question Azure Fundamentals AZ-900 diagnostic. ~30 minutes. Score + weak-domain map at the end.">
+<link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+<link rel="stylesheet" href="../../styles.css">
+<link rel="canonical" href="https://certanvil.com/diagnostic/azure-fundamentals/quiz">
+<meta name="robots" content="noindex, nofollow">
+<script>
+(function() {
+  var t;
+  try { t = localStorage.getItem('certanvilTheme') || localStorage.getItem('certanvilDiagnosticTheme') || localStorage.getItem('certanvil_theme'); } catch (e) {}
+  if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
+  /* else: no attribute -> @media prefers-color-scheme drives default */
+})();
+</script>
+
+<!-- v4.99.54 D.3: Cloudflare Turnstile invisible bot-protection challenge.
+     Site key is PUBLIC (safe to embed). Dev/test key below always passes;
+     production needs a real site key from dash.cloudflare.com/?to=/:account/turnstile -->
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+<link rel="stylesheet" href="../diagnostic-system.css?v=4.99.63">
+</head>
+<body class="no-js">
+
+<!-- TOPBAR (slim for quiz focus) -->
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="logo" href="/" aria-label="CertAnvil home">
+      <span class="logo-mark" aria-hidden="true">
+        <svg viewBox="0 0 100 100" fill="none" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+          <path d="M58 12 C42 6, 16 16, 14 34 C12 52, 22 62, 42 64" stroke="#b8860b" stroke-width="7" stroke-linecap="round"/>
+          <line x1="30" y1="84" x2="70" y2="16" stroke="#6a6a76" stroke-width="5" stroke-linecap="round"/>
+          <path d="M46 88 L64 50 L82 88 M53 74 L75 74" stroke="#b8860b" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </span>
+      <span class="logo-name">CertAnvil</span>
+    </a>
+  </div>
+</header>
+
+<main>
+
+<!-- No-JS fallback -->
+<div class="dq-no-js">
+  <h2 style="font-size:22px;font-weight:800;margin:0 0 10px">JavaScript required</h2>
+  <p style="font-size:14px;color:var(--text-mid, #4a4b5e);max-width:420px;margin:0 auto">The Azure Fundamentals diagnostic needs JavaScript to track your answers and time. Enable it in your browser, then refresh this page.</p>
+</div>
+
+<!-- Loading state (replaced once JS hydrates) -->
+<div class="dq-shell" id="dq-shell">
+  <!-- v4.99.54 D.3: invisible Turnstile widget. Site key 3x...FF is Cloudflare's
+       public dev/test INVISIBLE key (always passes the challenge). Prod swap to
+       a real invisible-mode key from dash.cloudflare.com → Turnstile.
+       Note: data-size is NOT set · invisible mode is determined by the key
+       itself; setting data-size="invisible" throws a TurnstileError. -->
+  <div id="dq-turnstile"
+       class="cf-turnstile"
+       data-sitekey="3x00000000000000000000FF"
+       data-callback="dqTurnstileCallback"
+       data-error-callback="dqTurnstileErrorCallback"
+       data-timeout-callback="dqTurnstileErrorCallback"></div>
+
+  <div class="dq-loading" id="dq-loading">
+    <div class="dq-loading-spinner" aria-hidden="true"></div>
+    <p id="dq-loading-text">Loading questions…</p>
+    <p style="font-size:12px;color:var(--text-dim, #8a8b9c);margin-top:6px" id="dq-loading-sub">20 questions across the 3 Azure Fundamentals domains.</p>
+  </div>
+
+  <!-- Source banner · surfaces when we fall back to the inline pool -->
+  <div id="dq-source-banner" role="status" aria-live="polite" style="display:none;background:linear-gradient(135deg,rgba(56,189,248,.06),transparent);border:1px solid rgba(56,189,248,.3);border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:var(--blue, #38bdf8);text-align:center"></div>
+
+  <!-- Live UI (built by JS) -->
+  <div id="dq-live" style="display:none">
+    <div class="dq-header">
+      <div class="dq-header-left">
+        <span id="dq-progress-label">Question 1 of 20</span>
+      </div>
+      <div class="dq-header-right">
+        <span class="dq-timer" id="dq-timer">30:00</span>
+        <button type="button" class="dq-quit-link" id="dq-quit-btn">Quit</button>
+      </div>
+    </div>
+
+    <div class="dq-progress" aria-hidden="true">
+      <div class="dq-progress-fill" id="dq-progress-fill" style="width:5%"></div>
+    </div>
+
+    <div class="dq-pause-banner" role="status" aria-live="polite">
+      ⏸ Paused · your timer froze when you switched tabs. Click here or come back to resume.
+    </div>
+
+    <div class="dq-card">
+      <div class="dq-card-pills" id="dq-card-pills"></div>
+      <p class="dq-stem" id="dq-stem"></p>
+      <div class="dq-options" id="dq-options" role="radiogroup" aria-label="Answer choices"></div>
+
+      <div class="dq-confidence" role="group" aria-labelledby="dq-confidence-label">
+        <p class="dq-confidence-label" id="dq-confidence-label">How confident are you?</p>
+        <div class="dq-confidence-row">
+          <button type="button" class="dq-confidence-btn" data-confidence="guessing" aria-pressed="false">
+            <span class="dq-confidence-btn-emoji">😬</span>Guessing
+          </button>
+          <button type="button" class="dq-confidence-btn" data-confidence="pretty-sure" aria-pressed="false">
+            <span class="dq-confidence-btn-emoji">🤔</span>Pretty sure
+          </button>
+          <button type="button" class="dq-confidence-btn" data-confidence="locked-in" aria-pressed="false">
+            <span class="dq-confidence-btn-emoji">💪</span>Locked in
+          </button>
+        </div>
+      </div>
+
+      <div class="dq-actions">
+        <span class="dq-hint" id="dq-hint">Pick an answer + confidence, then continue.</span>
+        <button type="button" class="dq-btn dq-btn-primary" id="dq-next-btn" disabled>Next →</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+</main>
+
+<script>
+// ══════════════════════════════════════════════════════════════════════════
+// D.2 · Landing Baseline Diagnostic · Azure Fundamentals quiz UI · v7.3.0
+// ══════════════════════════════════════════════════════════════════════════
+// Self-contained 20-Q flow. Inline question pool covers all 3 AZ-900 domains
+// weighted to Microsoft Skills Measured blueprint (Cloud Concepts 25-30% → 6Q ·
+// Azure Architecture & Services 35-40% → 8Q · Azure Management & Governance
+// 30-35% → 6Q). Live AI generation runs via /api/diagnostic/generate;
+// inline pool is the fallback when AI is unavailable.
+//
+// State envelope (sessionStorage.certanvilDiagnosticSession):
+//   { cert, startedAt, durationMs, currentIdx, questionOrder, answers }
+// On completion, writes a richer envelope to certanvilDiagnosticResults for
+// the /results page (D.4) to render, then navigates to
+// /diagnostic/azure-fundamentals/results.
+//
+// Wake Lock + Visibility-API pause-on-blur mirrors the Phase 10 v4.99.49
+// exam-mode pattern: phone screen stays awake for 30 min; timer pauses
+// when user backgrounds the tab and resumes (with deadline extension) on
+// return.
+//
+// Legal boundary: all questions originate from PUBLIC Microsoft Skills
+// Measured + Microsoft Learn modules. ZERO paid-bank ingestion.
+// ══════════════════════════════════════════════════════════════════════════
+
+(function() {
+  'use strict';
+  document.body.classList.remove('no-js');
+
+  // ── 1. Question pool · 20 AZ-900 Q across 3 domains ──
+  // Each Q: { id, domain, topic, objective, difficulty, question, options:{A,B,C,D}, answer, explanation }
+  // Authored from public Microsoft AZ-900 Skills Measured + Microsoft Learn modules.
+  var QUESTION_POOL = [
+    // ── Domain 1.0 Cloud Concepts (6 · ~28%) ──
+    {
+      id: 1, domain: 'Cloud Concepts', topic: 'Cloud Models', objective: '1.1', difficulty: 'Easy',
+      question: 'Which cloud deployment model combines on-premises infrastructure with public cloud resources?',
+      options: { A: 'Public cloud', B: 'Private cloud', C: 'Hybrid cloud', D: 'Community cloud' },
+      answer: 'C',
+      explanation: 'A hybrid cloud combines on-premises (private) infrastructure with public cloud services, allowing data and apps to move between them. Public cloud is fully external; private cloud is fully on-premises or dedicated.'
+    },
+    {
+      id: 2, domain: 'Cloud Concepts', topic: 'Cloud Benefits', objective: '1.1', difficulty: 'Easy',
+      question: 'Which cloud benefit refers to the ability to quickly scale resources up or down based on demand without long-term commitment?',
+      options: { A: 'High availability', B: 'Elasticity', C: 'Fault tolerance', D: 'Disaster recovery' },
+      answer: 'B',
+      explanation: 'Elasticity is the ability to dynamically allocate and deallocate resources as demand changes. High availability minimizes downtime; fault tolerance is the ability to continue operating during a failure.'
+    },
+    {
+      id: 3, domain: 'Cloud Concepts', topic: 'Service Models', objective: '1.2', difficulty: 'Medium',
+      question: 'A company wants to run virtual machines in the cloud but manage the OS, middleware, and applications themselves. Which service model is best?',
+      options: { A: 'SaaS (Software as a Service)', B: 'PaaS (Platform as a Service)', C: 'IaaS (Infrastructure as a Service)', D: 'FaaS (Function as a Service)' },
+      answer: 'C',
+      explanation: 'IaaS provides virtualized compute, storage, and networking — the customer manages everything above the hypervisor (OS, middleware, apps). PaaS abstracts the OS layer; SaaS delivers the entire app.'
+    },
+    {
+      id: 4, domain: 'Cloud Concepts', topic: 'CapEx vs OpEx', objective: '1.1', difficulty: 'Medium',
+      question: 'Moving from on-premises infrastructure to Azure typically shifts IT spending from which model to which?',
+      options: { A: 'OpEx to CapEx', B: 'CapEx to OpEx', C: 'CapEx to fixed cost', D: 'OpEx to subscription tax' },
+      answer: 'B',
+      explanation: 'On-premises requires upfront Capital Expenditure (servers, networking, datacenter). Cloud shifts spend to Operational Expenditure (pay-as-you-go billing) — no large upfront purchase, predictable monthly costs.'
+    },
+    {
+      id: 5, domain: 'Cloud Concepts', topic: 'Shared Responsibility', objective: '1.1', difficulty: 'Medium',
+      question: 'Under the Azure shared responsibility model, who is responsible for securing data on a SaaS service like Microsoft 365?',
+      options: { A: 'Microsoft (the cloud provider) only', B: 'The customer only', C: 'Always shared 50/50', D: 'The customer for data + access; Microsoft for the platform' },
+      answer: 'D',
+      explanation: 'In SaaS the customer remains responsible for their data, identities, and access management. Microsoft handles the platform, hardware, networking, and OS. This is the consistent shape of the shared-responsibility model across SaaS/PaaS/IaaS.'
+    },
+    {
+      id: 6, domain: 'Cloud Concepts', topic: 'High Availability', objective: '1.1', difficulty: 'Hard',
+      question: 'What is the primary distinction between high availability and disaster recovery in Azure architecture?',
+      options: { A: 'HA prevents downtime within a region; DR restores service after a regional failure', B: 'They are synonyms', C: 'HA is for VMs; DR is for storage only', D: 'HA is automatic; DR is manual only' },
+      answer: 'A',
+      explanation: 'High availability uses redundancy (availability sets/zones) to keep services running through localized failures. Disaster recovery (Azure Site Recovery, geo-redundant storage) restores service after a regional event — different problem, different toolkit.'
+    },
+
+    // ── Domain 2.0 Azure Architecture & Services (8 · ~38%) ──
+    {
+      id: 7, domain: 'Azure Architecture & Services', topic: 'Regions & AZs', objective: '2.1', difficulty: 'Easy',
+      question: 'Azure organizes datacenters into which two main geographic constructs?',
+      options: { A: 'Regions and Availability Zones', B: 'Subnets and VNets', C: 'Resource Groups and Subscriptions', D: 'Tenants and Management Groups' },
+      answer: 'A',
+      explanation: 'A Region is a set of datacenters within a geographic area. Availability Zones are physically separate datacenters within a region with independent power/cooling/network. Together they enable HA architecture.'
+    },
+    {
+      id: 8, domain: 'Azure Architecture & Services', topic: 'Compute', objective: '2.2', difficulty: 'Medium',
+      question: 'Which Azure compute service runs containerized applications without managing the underlying VM infrastructure?',
+      options: { A: 'Azure Virtual Machines', B: 'Azure Functions', C: 'Azure Container Instances', D: 'Azure Virtual Desktop' },
+      answer: 'C',
+      explanation: 'Azure Container Instances (ACI) is the simplest way to run containers in Azure without VM management. AKS adds orchestration; VMs require full OS management; Functions is for event-driven serverless code.'
+    },
+    {
+      id: 9, domain: 'Azure Architecture & Services', topic: 'Storage', objective: '2.2', difficulty: 'Medium',
+      question: 'A company needs to store millions of unstructured files (images, videos, backups) with the lowest cost tier for rarely-accessed data. Which Azure Storage tier is best?',
+      options: { A: 'Hot tier', B: 'Cool tier', C: 'Archive tier', D: 'Premium tier' },
+      answer: 'C',
+      explanation: 'Archive tier offers the lowest storage cost for data accessed less than once per year, with higher retrieval cost and latency. Hot is for frequent access; Cool for infrequent (~30 days+); Premium is high-performance SSD.'
+    },
+    {
+      id: 10, domain: 'Azure Architecture & Services', topic: 'Networking', objective: '2.2', difficulty: 'Medium',
+      question: 'Which Azure networking service provides a private, dedicated connection between an on-premises network and Azure, bypassing the public internet?',
+      options: { A: 'VPN Gateway', B: 'ExpressRoute', C: 'Azure Bastion', D: 'Application Gateway' },
+      answer: 'B',
+      explanation: 'ExpressRoute provides a private, dedicated, high-bandwidth connection through a connectivity provider — no public internet traversal. VPN Gateway is encrypted over the internet; Bastion is for secure RDP/SSH; App Gateway is L7 load balancing.'
+    },
+    {
+      id: 11, domain: 'Azure Architecture & Services', topic: 'Databases', objective: '2.2', difficulty: 'Medium',
+      question: 'Which Azure database service is a fully-managed multi-model NoSQL database with global distribution and single-digit-millisecond latency?',
+      options: { A: 'Azure SQL Database', B: 'Azure Cosmos DB', C: 'Azure Database for MySQL', D: 'Azure Synapse Analytics' },
+      answer: 'B',
+      explanation: 'Cosmos DB is Microsoft\'s globally-distributed multi-model NoSQL service (supports SQL, MongoDB, Cassandra, Gremlin, Table APIs). Azure SQL Database is the managed relational option; Synapse is the analytics/data-warehouse service.'
+    },
+    {
+      id: 12, domain: 'Azure Architecture & Services', topic: 'Identity', objective: '2.3', difficulty: 'Hard',
+      question: 'Which Microsoft Entra ID (formerly Azure AD) feature enforces additional verification beyond username and password to grant access?',
+      options: { A: 'Conditional Access', B: 'Multi-Factor Authentication (MFA)', C: 'Privileged Identity Management (PIM)', D: 'Identity Protection' },
+      answer: 'B',
+      explanation: 'MFA requires a second factor (phone, app, hardware token) beyond the password. Conditional Access is the policy engine that decides WHEN to require MFA; PIM provides just-in-time elevated access; Identity Protection detects risky sign-ins.'
+    },
+    {
+      id: 13, domain: 'Azure Architecture & Services', topic: 'Serverless', objective: '2.2', difficulty: 'Hard',
+      question: 'A developer wants to run code in response to an HTTP request without provisioning servers and pay only for execution time. Which service fits?',
+      options: { A: 'Azure Virtual Machines', B: 'Azure App Service', C: 'Azure Functions', D: 'Azure Kubernetes Service' },
+      answer: 'C',
+      explanation: 'Azure Functions is the serverless compute service — code runs in response to triggers (HTTP, queue, timer, blob), and you pay per execution. App Service is for web apps but provisions an App Service Plan; AKS is for container orchestration.'
+    },
+    {
+      id: 14, domain: 'Azure Architecture & Services', topic: 'Management Hierarchy', objective: '2.4', difficulty: 'Hard',
+      question: 'What is the correct order of Azure resource organization, from broadest to narrowest scope?',
+      options: { A: 'Subscription → Management Group → Resource Group → Resource', B: 'Management Group → Subscription → Resource Group → Resource', C: 'Resource Group → Subscription → Management Group → Resource', D: 'Tenant → Resource → Subscription → Management Group' },
+      answer: 'B',
+      explanation: 'Management Groups contain Subscriptions, Subscriptions contain Resource Groups, Resource Groups contain Resources. Policies + RBAC inherit down this hierarchy.'
+    },
+
+    // ── Domain 3.0 Azure Management & Governance (6 · ~32%) ──
+    {
+      id: 15, domain: 'Azure Management & Governance', topic: 'Cost Management', objective: '3.1', difficulty: 'Easy',
+      question: 'Which Azure tool provides cost estimation BEFORE deploying resources, helping plan a cloud migration budget?',
+      options: { A: 'Azure Cost Management', B: 'Azure Pricing Calculator', C: 'Azure Advisor', D: 'Azure Monitor' },
+      answer: 'B',
+      explanation: 'The Azure Pricing Calculator gives upfront estimates BEFORE provisioning resources. Azure Cost Management analyzes ACTUAL spend after deployment; Advisor recommends optimizations; Monitor handles operational telemetry.'
+    },
+    {
+      id: 16, domain: 'Azure Management & Governance', topic: 'Governance Tools', objective: '3.2', difficulty: 'Medium',
+      question: 'Which Azure governance service enforces organizational standards by allowing or denying resource configurations at scale?',
+      options: { A: 'Azure Blueprints', B: 'Azure Policy', C: 'Azure Resource Manager', D: 'Microsoft Defender for Cloud' },
+      answer: 'B',
+      explanation: 'Azure Policy evaluates resources against business rules and can audit, deny, or remediate non-compliant resources. Blueprints package policies + templates + RBAC; ARM is the deployment engine; Defender is the security posture service.'
+    },
+    {
+      id: 17, domain: 'Azure Management & Governance', topic: 'RBAC', objective: '3.2', difficulty: 'Medium',
+      question: 'What is the principle of least privilege as applied to Azure Role-Based Access Control (RBAC)?',
+      options: { A: 'Grant users the maximum permissions to reduce support tickets', B: 'Grant only the minimum permissions needed to do the job', C: 'Apply RBAC only at the subscription level', D: 'Use one global admin account for all changes' },
+      answer: 'B',
+      explanation: 'Least privilege grants only the minimum permissions required for the task. Azure RBAC supports this via fine-grained built-in and custom roles assigned at the resource, resource group, or subscription scope.'
+    },
+    {
+      id: 18, domain: 'Azure Management & Governance', topic: 'SLA & Service Health', objective: '3.3', difficulty: 'Medium',
+      question: 'Where can an Azure administrator view current Azure service incidents affecting their resources?',
+      options: { A: 'Azure Pricing Calculator', B: 'Azure Service Health', C: 'Azure Marketplace', D: 'Azure Active Directory portal' },
+      answer: 'B',
+      explanation: 'Azure Service Health surfaces service issues, planned maintenance, and health advisories scoped to YOUR subscriptions and regions. The general Azure Status page shows global outages; Service Health is personalized.'
+    },
+    {
+      id: 19, domain: 'Azure Management & Governance', topic: 'Compliance', objective: '3.4', difficulty: 'Hard',
+      question: 'Which Microsoft resource provides documentation about Azure\'s compliance certifications (ISO, SOC, HIPAA, GDPR, etc.) for audit and regulatory needs?',
+      options: { A: 'Azure Pricing Calculator', B: 'Microsoft Trust Center / Service Trust Portal', C: 'Azure Monitor', D: 'Microsoft Learn' },
+      answer: 'B',
+      explanation: 'The Microsoft Trust Center and Service Trust Portal publish audit reports, compliance certifications, and security/privacy documentation. Auditors and compliance teams use these resources to verify Azure meets regulatory requirements.'
+    },
+    {
+      id: 20, domain: 'Azure Management & Governance', topic: 'Monitoring', objective: '3.3', difficulty: 'Hard',
+      question: 'Which Azure service provides a unified view of metrics, logs, and alerts across resources for observability?',
+      options: { A: 'Azure Advisor', B: 'Azure Monitor', C: 'Azure Service Health', D: 'Azure Policy' },
+      answer: 'B',
+      explanation: 'Azure Monitor is the unified observability platform — collects metrics (numeric time-series), logs (Kusto-queryable via Log Analytics), and drives alerting. Advisor gives optimization recommendations; Service Health shows incidents; Policy enforces compliance.'
+    }
+  ];
+
+  // ── 2. State + sessionStorage ──
+  var SESSION_KEY = 'certanvilDiagnosticSession';
+  var RESULTS_KEY = 'certanvilDiagnosticResults';
+  var INTAKE_KEY = 'certanvilDiagnosticIntake';
+
+  var DIAGNOSTIC_DURATION_MS = 30 * 60 * 1000;  // 30 min · informational only
+  var CERT = 'azure-fundamentals';
+  var TARGET_QUESTION_COUNT = 20;
+  var GENERATE_ENDPOINT = '/api/diagnostic/generate';
+  var TURNSTILE_TIMEOUT_MS = 10000;  // bail to fallback if no token in 10s
+  var FETCH_TIMEOUT_MS = 25000;       // bail if /api/diagnostic/generate stalls
+
+  // v4.99.54 D.3: session envelope now carries the full questions array
+  // (instead of just IDs into the inline pool) because AI-generated questions
+  // have new IDs that won't match the static QUESTION_POOL. Both AI and
+  // inline-pool paths produce the same envelope shape · downstream rendering
+  // is source-agnostic.
+  //
+  // session = {
+  //   cert, startedAt, questions: [<20 normalised Q objects>],
+  //   source: 'ai' | 'fallback' | 'inline',
+  //   currentIdx, answers, pickedLetter, pickedConfidence
+  // }
+  var session = null;
+  try {
+    var rawSession = sessionStorage.getItem(SESSION_KEY);
+    if (rawSession) {
+      var parsed = JSON.parse(rawSession);
+      if (parsed && parsed.cert === CERT
+          && Array.isArray(parsed.questions) && parsed.questions.length === TARGET_QUESTION_COUNT
+          && Array.isArray(parsed.answers) && parsed.answers.length === TARGET_QUESTION_COUNT) {
+        session = parsed;
+      }
+    }
+  } catch (_) {}
+
+  function persistSession() {
+    try { sessionStorage.setItem(SESSION_KEY, JSON.stringify(session)); } catch (_) {}
+  }
+
+  function shuffleInlinePool() {
+    // Fisher-Yates over the inline pool · used as the fallback question source
+    var copy = QUESTION_POOL.slice();
+    for (var i = copy.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var tmp = copy[i]; copy[i] = copy[j]; copy[j] = tmp;
+    }
+    return copy;
+  }
+
+  function createFreshSession(questions, source) {
+    return {
+      cert: CERT,
+      startedAt: Date.now(),
+      source: source,                          // 'ai' · 'fallback' · 'inline'
+      questions: questions,                    // full Q objects, ordered
+      currentIdx: 0,
+      answers: new Array(TARGET_QUESTION_COUNT).fill(null),
+      pickedLetter: null,
+      pickedConfidence: null
+    };
+  }
+
+  // ── 3. DOM refs ──
+  var loadingEl = document.getElementById('dq-loading');
+  var liveEl = document.getElementById('dq-live');
+  var pillsEl = document.getElementById('dq-card-pills');
+  var stemEl = document.getElementById('dq-stem');
+  var optionsEl = document.getElementById('dq-options');
+  var confidenceBtns = document.querySelectorAll('.dq-confidence-btn[data-confidence]');
+  var nextBtn = document.getElementById('dq-next-btn');
+  var hintEl = document.getElementById('dq-hint');
+  var progressLabel = document.getElementById('dq-progress-label');
+  var progressFill = document.getElementById('dq-progress-fill');
+  var timerEl = document.getElementById('dq-timer');
+  var quitBtn = document.getElementById('dq-quit-btn');
+
+  // ── 4. Render current question ──
+  function getCurrentQ() {
+    if (!session || !session.questions) return null;
+    return session.questions[session.currentIdx];
+  }
+
+  function render() {
+    var q = getCurrentQ();
+    if (!q) return;
+
+    // Header
+    var n = session.questions.length;
+    progressLabel.textContent = 'Question ' + (session.currentIdx + 1) + ' of ' + n;
+    var pct = Math.round(((session.currentIdx + 1) / n) * 100);
+    progressFill.style.width = pct + '%';
+
+    // Pills
+    var diffClass = q.difficulty === 'Easy' ? 'is-easy' : (q.difficulty === 'Hard' ? 'is-hard' : '');
+    pillsEl.innerHTML =
+      '<span class="dq-pill dq-pill-domain">' + escHtml(q.domain) + '</span>' +
+      '<span class="dq-pill dq-pill-difficulty ' + diffClass + '">' + escHtml(q.difficulty) + '</span>' +
+      '<span class="dq-pill dq-pill-meta">Q' + (session.currentIdx + 1) + ' · obj. ' + escHtml(q.objective) + '</span>';
+
+    // Stem
+    stemEl.textContent = q.question;
+
+    // Options
+    optionsEl.innerHTML = '';
+    ['A', 'B', 'C', 'D'].forEach(function(letter) {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'dq-option';
+      btn.setAttribute('data-letter', letter);
+      btn.setAttribute('role', 'radio');
+      btn.setAttribute('aria-checked', 'false');
+      btn.innerHTML = '<span class="dq-option-letter">' + letter + '</span><span class="dq-option-text">' + escHtml(q.options[letter]) + '</span>';
+      btn.addEventListener('click', function() { pickOption(letter); });
+      optionsEl.appendChild(btn);
+    });
+
+    // Confidence reset
+    session.pickedLetter = null;
+    session.pickedConfidence = null;
+    confidenceBtns.forEach(function(b) {
+      b.classList.remove('is-selected');
+      b.setAttribute('aria-pressed', 'false');
+    });
+
+    // Hint + next btn
+    hintEl.textContent = 'Pick an answer + confidence, then continue.';
+    nextBtn.disabled = true;
+    nextBtn.textContent = (session.currentIdx === n - 1) ? 'Finish diagnostic →' : 'Next →';
+  }
+
+  function pickOption(letter) {
+    session.pickedLetter = letter;
+    optionsEl.querySelectorAll('.dq-option').forEach(function(btn) {
+      var match = btn.getAttribute('data-letter') === letter;
+      btn.classList.toggle('is-selected', match);
+      btn.setAttribute('aria-checked', match ? 'true' : 'false');
+    });
+    refreshNextBtn();
+  }
+
+  confidenceBtns.forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      session.pickedConfidence = btn.getAttribute('data-confidence');
+      confidenceBtns.forEach(function(b) {
+        var match = (b === btn);
+        b.classList.toggle('is-selected', match);
+        b.setAttribute('aria-pressed', match ? 'true' : 'false');
+      });
+      refreshNextBtn();
+    });
+  });
+
+  function refreshNextBtn() {
+    var ready = session.pickedLetter && session.pickedConfidence;
+    nextBtn.disabled = !ready;
+    if (ready) {
+      hintEl.textContent = (session.currentIdx === session.questions.length - 1)
+        ? 'Last one. Click Finish to see your score.'
+        : 'Ready. Click Next to continue.';
+    } else if (session.pickedLetter && !session.pickedConfidence) {
+      hintEl.textContent = 'Now pick your confidence level.';
+    } else if (!session.pickedLetter && session.pickedConfidence) {
+      hintEl.textContent = 'Now pick an answer.';
+    }
+  }
+
+  // ── 5. Submit current Q + advance ──
+  var questionStartTime = Date.now();
+
+  nextBtn.addEventListener('click', function() {
+    if (nextBtn.disabled) return;
+    var q = getCurrentQ();
+    var elapsed = Date.now() - questionStartTime;
+    session.answers[session.currentIdx] = {
+      qId: q.id,
+      picked: session.pickedLetter,
+      correct: q.answer,
+      isCorrect: session.pickedLetter === q.answer,
+      confidence: session.pickedConfidence,
+      timeMs: elapsed,
+      domain: q.domain,
+      difficulty: q.difficulty
+    };
+    persistSession();
+
+    if (session.currentIdx + 1 >= session.questions.length) {
+      finishDiagnostic();
+      return;
+    }
+
+    session.currentIdx++;
+    persistSession();
+    questionStartTime = Date.now();
+    render();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+
+  // ── 6. Finish · compute score + navigate to /results ──
+  function finishDiagnostic() {
+    var n = session.questions.length;
+    var correctCount = 0;
+    var domainStats = {};
+    var confidenceStats = { 'guessing': { picked: 0, correct: 0 }, 'pretty-sure': { picked: 0, correct: 0 }, 'locked-in': { picked: 0, correct: 0 } };
+
+    session.answers.forEach(function(a) {
+      if (!a) return;
+      if (a.isCorrect) correctCount++;
+      if (!domainStats[a.domain]) domainStats[a.domain] = { correct: 0, total: 0 };
+      domainStats[a.domain].total++;
+      if (a.isCorrect) domainStats[a.domain].correct++;
+      if (confidenceStats[a.confidence]) {
+        confidenceStats[a.confidence].picked++;
+        if (a.isCorrect) confidenceStats[a.confidence].correct++;
+      }
+    });
+
+    // Scaled score: linear 0-1000 (Microsoft AZ-900 scale, pass = 700).
+    // 0 correct → 0 · 20 correct → 1000. A more sophisticated IRT-style
+    // scoring lands in D.4 when we have user data to calibrate against.
+    var scaledScore = Math.round((correctCount / n) * 1000);
+
+    // Domain breakdown sorted weakest-first
+    var domainBreakdown = Object.keys(domainStats).map(function(d) {
+      return {
+        domain: d,
+        correct: domainStats[d].correct,
+        total: domainStats[d].total,
+        accuracy: domainStats[d].total ? (domainStats[d].correct / domainStats[d].total) : 0
+      };
+    }).sort(function(a, b) { return a.accuracy - b.accuracy; });
+
+    // Load intake for downstream personalisation (Pass Plan in D.4)
+    var intake = null;
+    try { intake = JSON.parse(sessionStorage.getItem(INTAKE_KEY) || 'null'); } catch (_) {}
+
+    var results = {
+      cert: CERT,
+      diagnosticId: 'diag_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8),
+      startedAt: session.startedAt,
+      completedAt: Date.now(),
+      durationMs: Date.now() - session.startedAt,
+      totalQuestions: n,
+      correctCount: correctCount,
+      accuracy: correctCount / n,
+      scaledScore: scaledScore,
+      passThreshold: 700,
+      isPassing: scaledScore >= 700,
+      domainBreakdown: domainBreakdown,
+      confidenceStats: confidenceStats,
+      questions: session.answers,
+      intake: intake
+    };
+
+    try { sessionStorage.setItem(RESULTS_KEY, JSON.stringify(results)); } catch (_) {}
+
+    // Score-only snapshot for landing-page resume CTA (persists across tab close)
+    try {
+      localStorage.setItem('certanvilLastDiagnostic', JSON.stringify({
+        cert: CERT,
+        scaledScore: scaledScore,
+        correctCount: correctCount,
+        totalQuestions: n,
+        completedAt: Date.now(),
+        weakestDomain: domainBreakdown[0] ? domainBreakdown[0].domain : null
+      }));
+    } catch (_) {}
+
+    // Clear in-progress session
+    try { sessionStorage.removeItem(SESSION_KEY); } catch (_) {}
+
+    releaseWakeLock();
+    window.location.href = '/diagnostic/' + CERT + '/results';
+  }
+
+  // ── 7. Timer (30:00 countdown · informational, no hard cutoff) ──
+  // v4.99.54 D.3: timer no longer auto-starts at module load · session is
+  // null until either the resume path restores it or the fresh-start path
+  // (AI fetch or inline-pool fallback) creates it. Timer is now started
+  // inside startTimer() which is called from showLive().
+  var timerInterval = null;
+  var hiddenAt = null;
+  var totalHiddenMs = 0;
+
+  function tickTimer() {
+    if (!session || !session.startedAt) return;  // not yet started
+    var elapsed = Date.now() - session.startedAt - totalHiddenMs;
+    var remaining = DIAGNOSTIC_DURATION_MS - elapsed;
+    if (remaining < 0) {
+      timerEl.classList.add('is-overtime');
+      var over = Math.abs(remaining);
+      var oM = Math.floor(over / 60000);
+      var oS = Math.floor((over % 60000) / 1000);
+      timerEl.textContent = '+' + (oM < 10 ? '0' + oM : oM) + ':' + (oS < 10 ? '0' + oS : oS);
+    } else {
+      var m = Math.floor(remaining / 60000);
+      var s = Math.floor((remaining % 60000) / 1000);
+      timerEl.textContent = (m < 10 ? '0' + m : m) + ':' + (s < 10 ? '0' + s : s);
+    }
+  }
+
+  function startTimer() {
+    if (timerInterval) return;  // already running
+    tickTimer();
+    timerInterval = setInterval(tickTimer, 1000);
+  }
+
+  // ── 8. Visibility API · pause timer when tab backgrounded ──
+  document.addEventListener('visibilitychange', function() {
+    if (document.visibilityState === 'hidden') {
+      hiddenAt = Date.now();
+      document.body.classList.add('dq-paused');
+      timerEl.classList.add('is-paused');
+      releaseWakeLock();
+    } else if (document.visibilityState === 'visible' && hiddenAt) {
+      var pauseDuration = Date.now() - hiddenAt;
+      hiddenAt = null;
+      if (pauseDuration > 250) totalHiddenMs += pauseDuration;
+      document.body.classList.remove('dq-paused');
+      timerEl.classList.remove('is-paused');
+      acquireWakeLock();
+      tickTimer();
+    }
+  });
+
+  // ── 9. Wake Lock · keep phone screen on for the 30-min flow ──
+  // Mirrors the Phase 10 v4.99.49 exam-mode pattern.
+  var wakeLock = null;
+  async function acquireWakeLock() {
+    try {
+      if (typeof navigator !== 'undefined' && 'wakeLock' in navigator) {
+        wakeLock = await navigator.wakeLock.request('screen');
+        wakeLock.addEventListener('release', function() { wakeLock = null; });
+      }
+    } catch (_) { wakeLock = null; }
+  }
+  async function releaseWakeLock() {
+    try {
+      if (wakeLock) { await wakeLock.release(); wakeLock = null; }
+    } catch (_) { wakeLock = null; }
+  }
+  acquireWakeLock();
+
+  // ── 10. Quit button · confirm + clear session ──
+  quitBtn.addEventListener('click', function() {
+    if (confirm('Quit the diagnostic? Your progress will be lost.')) {
+      try { sessionStorage.removeItem(SESSION_KEY); } catch (_) {}
+      if (timerInterval) clearInterval(timerInterval);
+      releaseWakeLock();
+      window.location.href = '/diagnostic';
+    }
+  });
+
+  // ── 11. Helpers ──
+  function escHtml(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function(c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  // ══════════════════════════════════════════════════════════════════════
+  // ── 12. Boot · AI-first with inline-pool fallback ──
+  // ══════════════════════════════════════════════════════════════════════
+  // Flow:
+  //   A. Session restored from sessionStorage (resume case)
+  //      → start the live quiz immediately at saved currentIdx
+  //
+  //   B. No session in storage (fresh start)
+  //      → wait for Turnstile token (10s timeout, then fallback)
+  //      → POST /api/diagnostic/generate
+  //      → on 2xx success: session.source='ai', use those questions
+  //      → on any failure (429, 5xx, timeout, parse error): session.source='fallback',
+  //        use the inline pool (shuffled). Show a small banner explaining
+  //        we're using the local pool.
+  //
+  // The 25-question hard cap is enforced server-side; we just request 20.
+  // ══════════════════════════════════════════════════════════════════════
+
+  var sourceBanner = document.getElementById('dq-source-banner');
+  var loadingText = document.getElementById('dq-loading-text');
+  var loadingSub = document.getElementById('dq-loading-sub');
+
+  function showSourceBanner(source) {
+    if (!sourceBanner) return;
+    if (source === 'fallback') {
+      sourceBanner.innerHTML = '📦 <strong style="font-weight:700">Local question set</strong> · high traffic right now, so we\'re using our curated 20-Q pool instead of live AI generation. Scoring is identical.';
+      sourceBanner.style.display = 'block';
+    } else if (source === 'inline') {
+      // Dev/preview mode · endpoint unconfigured. Silent (don't worry the user).
+      sourceBanner.style.display = 'none';
+    } else {
+      sourceBanner.style.display = 'none';
+    }
+  }
+
+  function showLive() {
+    loadingEl.style.display = 'none';
+    liveEl.style.display = 'block';
+    render();
+    startTimer();           // begin 30:00 countdown (session is now guaranteed populated)
+    acquireWakeLock();
+    questionStartTime = Date.now();  // reset per-Q timer for the first question
+  }
+
+  // ── Path A · Resume in-progress session ──
+  if (session) {
+    showSourceBanner(session.source);
+    showLive();
+    return;  // exit the IIFE early · no AI fetch needed
+  }
+
+  // ── Path B · Fresh start · AI-first with fallback ──
+  loadingText.textContent = 'Loading questions…';
+  loadingSub.textContent = '20 questions across the 3 Azure Fundamentals domains.';
+
+  // Turnstile callback · set on window so the cf-turnstile widget can call it
+  var turnstileSettled = false;
+  var turnstileTimeoutHandle = null;
+
+  window.dqTurnstileCallback = function(token) {
+    if (turnstileSettled) return;
+    turnstileSettled = true;
+    if (turnstileTimeoutHandle) clearTimeout(turnstileTimeoutHandle);
+    fetchAIQuestions(token);
+  };
+
+  window.dqTurnstileErrorCallback = function() {
+    if (turnstileSettled) return;
+    turnstileSettled = true;
+    if (turnstileTimeoutHandle) clearTimeout(turnstileTimeoutHandle);
+    console.warn('[dq] Turnstile errored · using inline pool fallback');
+    bootWithFallback('fallback');
+  };
+
+  // Timeout: if Turnstile doesn't fire its callback within 10s, fall back.
+  // This handles cases where the script is blocked by an extension / CSP /
+  // ad-blocker · common enough that we can't assume Turnstile will load.
+  turnstileTimeoutHandle = setTimeout(function() {
+    if (turnstileSettled) return;
+    turnstileSettled = true;
+    console.warn('[dq] Turnstile timed out · using inline pool fallback');
+    bootWithFallback('fallback');
+  }, TURNSTILE_TIMEOUT_MS);
+
+  // Some browsers / ad-blockers strip the Turnstile script entirely. In that
+  // case `window.turnstile` is undefined after a tick. We don't wait · the
+  // timeout above catches it. But we DO check for the existence after a
+  // short delay so we can fail fast with a clearer log.
+  setTimeout(function() {
+    if (typeof window.turnstile === 'undefined' && !turnstileSettled) {
+      console.warn('[dq] Turnstile script not loaded · waiting for timeout');
+    }
+  }, 2000);
+
+  function bootWithFallback(reason) {
+    var freshQuestions = shuffleInlinePool();
+    session = createFreshSession(freshQuestions, reason);
+    persistSession();
+    showSourceBanner(reason);
+    showLive();
+  }
+
+  async function fetchAIQuestions(turnstileToken) {
+    loadingText.textContent = 'Building your question set…';
+    loadingSub.textContent = '~10 seconds · powered by Claude Haiku.';
+
+    var controller = new AbortController();
+    var fetchTimer = setTimeout(function() { controller.abort(); }, FETCH_TIMEOUT_MS);
+
+    try {
+      var resp = await fetch(GENERATE_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          cert: CERT,
+          count: TARGET_QUESTION_COUNT,
+          turnstileToken: turnstileToken,
+          intake: getIntake()
+        }),
+        signal: controller.signal
+      });
+      clearTimeout(fetchTimer);
+
+      if (!resp.ok) {
+        var errBody;
+        try { errBody = await resp.json(); } catch (_) { errBody = {}; }
+        if (resp.status === 429) {
+          console.warn('[dq] Rate limit exceeded · using inline pool fallback', errBody);
+          // Show a quota-specific banner via the fallback path
+          bootWithFallback('fallback');
+          if (sourceBanner) {
+            sourceBanner.innerHTML = '⏱ <strong style="font-weight:700">Daily limit reached</strong> · IPs are limited to 25 AI calls per 24h. Using the local pool for this attempt. Sign up for unlimited retakes after.';
+          }
+          return;
+        }
+        if (resp.status === 503) {
+          console.warn('[dq] Endpoint unavailable · using inline pool fallback', errBody);
+          bootWithFallback(errBody && errBody.error === 'service-unavailable' ? 'inline' : 'fallback');
+          return;
+        }
+        console.warn('[dq] AI generate failed · using inline pool fallback', resp.status, errBody);
+        bootWithFallback('fallback');
+        return;
+      }
+
+      var data = await resp.json();
+      if (!data || !Array.isArray(data.questions) || data.questions.length < TARGET_QUESTION_COUNT) {
+        console.warn('[dq] AI response malformed · using inline pool fallback');
+        bootWithFallback('fallback');
+        return;
+      }
+
+      // Success · use AI questions
+      session = createFreshSession(data.questions.slice(0, TARGET_QUESTION_COUNT), 'ai');
+      persistSession();
+      showSourceBanner('ai');
+      showLive();
+    } catch (e) {
+      clearTimeout(fetchTimer);
+      console.warn('[dq] AI fetch threw · using inline pool fallback:', e && e.message);
+      bootWithFallback('fallback');
+    }
+  }
+
+  function getIntake() {
+    try {
+      var raw = sessionStorage.getItem(INTAKE_KEY);
+      if (!raw) return null;
+      return JSON.parse(raw);
+    } catch (_) { return null; }
+  }
+})();
+</script>
+
+</body>
+</html>

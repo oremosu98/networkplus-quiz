@@ -401,6 +401,13 @@
     var secTile = document.getElementById('cert-tile-secplus');
     if (secTile) secTile.removeAttribute('hidden');
     applyTileState('secplus', 'active', 'Resume studying →');
+
+    // v7.3.0 AZ-900 public launch: Azure Fundamentals tile visible to ALL
+    // signed-in users. Pro gating happens in-app on the azure.certanvil.com
+    // subdomain, mirrors the Sec+ Pattern A founder lock.
+    var azTile = document.getElementById('cert-tile-az900');
+    if (azTile) azTile.removeAttribute('hidden');
+    applyTileState('az900', 'active', 'Resume studying →');
   }
 
   // ── My certs modal (v4.93.0 — data-driven) ─────────────────────────────
@@ -467,6 +474,18 @@
       activeMeta: 'available now',
       href: 'https://secplus.certanvil.com/'
     }));
+    // v7.3.0 AZ-900 public launch — Azure Fundamentals row visible to ALL
+    // signed-in users. Pro gating happens in-app on the azure.certanvil.com
+    // subdomain (mirrors the v7.1.0 Sec+ Pattern A pattern).
+    rows.push(rowForCert({
+      id: 'az900',
+      glyph: 'AZ',
+      glyphClass: 'cert-glyph-az900',
+      name: 'Microsoft Azure Fundamentals',
+      code: 'AZ-900',
+      activeMeta: 'available now',
+      href: 'https://azure.certanvil.com/'
+    }));
     listEl.innerHTML = rows.join('');
 
     // Show Security+ analytics quick link in the cross-cert modal too
@@ -520,6 +539,15 @@
     if (nCta) nCta.textContent = 'Start studying →';
     var secTile = document.getElementById('cert-tile-secplus');
     if (secTile) secTile.setAttribute('hidden', '');
+    // v7.3.0 AZ-900: tile is public (mirrors Sec+ v7.1.0 Pattern A) — visible
+    // even when anonymous, restore static "Live · Pro" + "Continue prep →".
+    var azStatus = document.getElementById('cert-tile-az900-status');
+    var azCta = document.getElementById('cert-tile-az900-cta');
+    if (azStatus) {
+      azStatus.className = 'cert-status status-live';
+      azStatus.innerHTML = 'Live · Pro';
+    }
+    if (azCta) azCta.textContent = 'Continue prep →';
   }
 
   // Lightweight profile fetch — only need role for personalization. Fails

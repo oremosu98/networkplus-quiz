@@ -57,8 +57,8 @@ export default async function handler(req) {
   const intake = (body && typeof body.intake === 'object') ? body.intake : null;
 
   // ── 2. Validate input ──
-  if (cert !== 'network-plus' && cert !== 'security-plus') {
-    return json({ error: 'bad-request', message: 'Invalid cert · must be "network-plus" or "security-plus"' }, 400);
+  if (cert !== 'network-plus' && cert !== 'security-plus' && cert !== 'azure-fundamentals') {
+    return json({ error: 'bad-request', message: 'Invalid cert · must be "network-plus", "security-plus", or "azure-fundamentals"' }, 400);
   }
   if (!Number.isFinite(requestedCount) || requestedCount < 1 || requestedCount > HARD_QUESTION_CAP) {
     return json({ error: 'bad-request', message: 'Invalid count · 1-' + HARD_QUESTION_CAP }, 400);
@@ -336,40 +336,79 @@ function normalizeQuestion(q) {
 }
 
 function buildDiagnosticPrompt(cert, count, intake) {
-  const certMeta = cert === 'security-plus'
-    ? {
-        name: 'CompTIA Security+',
-        code: 'SY0-701',
-        domains: [
-          { id: 1, label: 'General Security Concepts', weight: 12 },
-          { id: 2, label: 'Threats, Vulnerabilities, and Mitigations', weight: 22 },
-          { id: 3, label: 'Security Architecture', weight: 18 },
-          { id: 4, label: 'Security Operations', weight: 28 },
-          { id: 5, label: 'Security Program Management', weight: 20 },
-        ]
-      }
-    : {
-        name: 'CompTIA Network+',
-        code: 'N10-009',
-        domains: [
-          { id: 1, label: 'Networking Concepts', weight: 23 },
-          { id: 2, label: 'Network Implementation', weight: 20 },
-          { id: 3, label: 'Network Operations', weight: 19 },
-          { id: 4, label: 'Network Security', weight: 14 },
-          { id: 5, label: 'Network Troubleshooting', weight: 24 },
-        ]
-      };
+  let certMeta;
+  if (cert === 'security-plus') {
+    certMeta = {
+      name: 'CompTIA Security+',
+      code: 'SY0-701',
+      vendor: 'CompTIA',
+      domains: [
+        { id: 1, label: 'General Security Concepts', weight: 12 },
+        { id: 2, label: 'Threats, Vulnerabilities, and Mitigations', weight: 22 },
+        { id: 3, label: 'Security Architecture', weight: 18 },
+        { id: 4, label: 'Security Operations', weight: 28 },
+        { id: 5, label: 'Security Program Management', weight: 20 },
+      ],
+      passMark: 750,
+      maxScore: 900,
+    };
+  } else if (cert === 'azure-fundamentals') {
+    certMeta = {
+      name: 'Microsoft Azure Fundamentals',
+      code: 'AZ-900',
+      vendor: 'Microsoft',
+      domains: [
+        { id: 1, label: 'Cloud Concepts', weight: 28 },
+        { id: 2, label: 'Azure Architecture & Services', weight: 38 },
+        { id: 3, label: 'Azure Management & Governance', weight: 34 },
+      ],
+      passMark: 700,
+      maxScore: 1000,
+      // Public Microsoft Skills Measured objective ranges per domain
+      objectiveRanges: ['1.1', '1.2', '1.3', '2.1', '2.2', '2.3', '2.4', '3.1', '3.2', '3.3', '3.4'],
+    };
+  } else {
+    certMeta = {
+      name: 'CompTIA Network+',
+      code: 'N10-009',
+      vendor: 'CompTIA',
+      domains: [
+        { id: 1, label: 'Networking Concepts', weight: 23 },
+        { id: 2, label: 'Network Implementation', weight: 20 },
+        { id: 3, label: 'Network Operations', weight: 19 },
+        { id: 4, label: 'Network Security', weight: 14 },
+        { id: 5, label: 'Network Troubleshooting', weight: 24 },
+      ],
+      passMark: 720,
+      maxScore: 900,
+    };
+  }
 
   const targetCounts = certMeta.domains
     .map(d => '  • Domain ' + d.id + '.0 ' + d.label + ' (' + d.weight + '% of exam) → ' + Math.max(1, Math.round(count * (d.weight / 100))) + ' Q')
     .join('\n');
 
+  const vendor = certMeta.vendor || 'CompTIA';
+  const domainCount = certMeta.domains.length;
+  const blueprintLabel = vendor === 'Microsoft' ? 'Microsoft Skills Measured' : (vendor + ' blueprint');
+  // Vendor-specific list of paid prep banks to exclude from training context
+  const bannedSources = vendor === 'Microsoft'
+    ? 'MeasureUp, Whizlabs, ExamTopics, Tutorials Dojo, ITExams, or any commercial prep bank'
+    : 'CompTIA, Jason Dion, Professor Messer, CertMaster, or any commercial prep bank';
+  // Optional objective-range hint (AZ-900 ships one; CompTIA branches don't)
+  const objectiveHint = certMeta.objectiveRanges && certMeta.objectiveRanges.length
+    ? '\nObjective numbers must come from this set: ' + certMeta.objectiveRanges.join(', ') + '.'
+    : '';
+  // First-domain example for the JSON shape — keeps the prompt cert-agnostic
+  const exampleDomain = certMeta.domains[0].label;
+
   return [
-    'You are a senior CompTIA exam-content author for ' + certMeta.name + ' (' + certMeta.code + ').',
+    'You are a senior exam-content author for ' + certMeta.name + ' (' + certMeta.code + '), authored against the official ' + vendor + ' ' + blueprintLabel + '.',
     '',
-    'Generate exactly ' + count + ' baseline-diagnostic MCQs spread across the 5 domains as per the official CompTIA blueprint weights:',
+    'Generate exactly ' + count + ' baseline-diagnostic MCQs spread across the ' + domainCount + ' domains as per the official ' + blueprintLabel + ' weights:',
     '',
     targetCounts,
+    objectiveHint,
     '',
     'Each question MUST:',
     '  • Test real ' + certMeta.code + ' objectives only (no off-blueprint content)',
@@ -377,7 +416,7 @@ function buildDiagnosticPrompt(cert, count, intake) {
     '  • Be plausible: distractors should be the kind of mistake a student would make',
     '  • Include an explanation that names the correct answer and explains WHY the others are wrong',
     '  • Be authored from public ' + certMeta.code + ' objectives — no copying from prep-book content',
-    '  • Be ORIGINAL — do not reproduce questions from CompTIA, Jason Dion, Professor Messer, CertMaster, or any commercial prep bank',
+    '  • Be ORIGINAL — do not reproduce questions from ' + bannedSources,
     '',
     'Difficulty distribution: approximately 25% Easy, 50% Medium, 25% Hard.',
     '',
@@ -385,14 +424,14 @@ function buildDiagnosticPrompt(cert, count, intake) {
     '',
     '{',
     '  "id": 1,                                  // integer 1..' + count,
-    '  "domain": "Networking Concepts",          // exact domain label (no number prefix)',
-    '  "topic": "OSI Model",                     // narrow topic within the domain',
-    '  "objective": "1.1",                       // CompTIA objective number',
+    '  "domain": "' + exampleDomain + '",          // exact domain label (no number prefix)',
+    '  "topic": "<narrow topic within the domain>",',
+    '  "objective": "1.1",                       // ' + vendor + ' objective number',
     '  "difficulty": "Easy" | "Medium" | "Hard",',
-    '  "question": "At which OSI layer ...",     // stem · 30-300 chars · ends in "?"',
+    '  "question": "<stem · 30-300 chars · ends in \\"?\\">",',
     '  "options": { "A": "...", "B": "...", "C": "...", "D": "..." },',
     '  "answer": "B",                            // letter of correct option',
-    '  "explanation": "Layer 3 ..."              // 1-3 sentences explaining the right answer + key distractor traps',
+    '  "explanation": "<1-3 sentences explaining the right answer + key distractor traps>"',
     '}',
     '',
     'No PBQs, no multi-select, no drag-and-drop — pure 4-option MCQ only.',
