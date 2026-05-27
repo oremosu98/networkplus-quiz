@@ -16293,6 +16293,127 @@ test('v7.2.3 Readiness: getReadinessScore cert-filters loadHistory via _isCurren
 test('v7.2.3 Readiness: getReadinessForecast cert-filters loadHistory via _isCurrentCertTopic',
   /function\s+getReadinessForecast[\s\S]{0,2000}loadHistory\(\)[\s\S]{0,300}_isCurrentCertTopic\s*\(\s*e\.topic\s*\)/.test(js));
 
+// ── v7.4.0 Sec+ exemplar bank expansion (131 -> 237; VoC + blueprint-balanced) ──
+// Founder-supplied VoC research (~/Desktop/SECPLUS-RESEARCH-2026-05-27.md, 608
+// Reddit posts cross-checked against the official SY0-701 exam objectives PDF)
+// drove a blueprint-balanced expansion: catastrophic Governance gap closed
+// (3 exemplars -> 48), Threats domain rebalanced (14 -> 55), 8 new retention
+// concepts seeded (PICERL, RTO/RPO/MTTR/MTBF, DMARC+DKIM+SPF, Tactical/
+// Operational/Strategic, Cert Format Families, AAA Framework, ALE=SLE*ARO,
+// OWASP Top 3). These tombstones lock the shape so a future refactor that
+// drops exemplars or breaks the topic/domain contract trips UAT instead of
+// shipping silently.
+test('v7.4.0 Sec+ exemplar bank >= 230 (functional ship threshold)',
+  (function() {
+    var matches = certSecplus.match(/"type":/g) || [];
+    return matches.length >= 230;
+  })());
+
+test('v7.4.0 Sec+ retentionGapConcepts >= 23',
+  (function() {
+    var m = certSecplus.match(/retentionGapConcepts:\s*\[([\s\S]*?)\n\s*\],/);
+    if (!m) return false;
+    var labelMatches = m[1].match(/parentTopic:/g) || [];
+    return labelMatches.length >= 23;
+  })());
+
+test('v7.4.0 Sec+ every exemplar.topic exists in topicDomains',
+  (function() {
+    var domainsMatch = certSecplus.match(/topicDomains:\s*\{([\s\S]*?)\n\s*\},/);
+    if (!domainsMatch) return false;
+    var topicKeys = new Set();
+    var keyRe = /'([^']+)':/g;
+    var keyMatch;
+    while ((keyMatch = keyRe.exec(domainsMatch[1])) !== null) {
+      topicKeys.add(keyMatch[1]);
+    }
+    if (topicKeys.size < 35) return false;
+    var exTopicMatches = certSecplus.match(/"topic":"([^"]+)"/g) || [];
+    for (var i = 0; i < exTopicMatches.length; i++) {
+      var t = exTopicMatches[i].slice(9, -1);
+      if (!topicKeys.has(t)) return false;
+    }
+    return exTopicMatches.length > 0;
+  })());
+
+test('v7.4.0 Sec+ every exemplar.objective matches X.Y format',
+  (function() {
+    var objMatches = certSecplus.match(/"objective":"([^"]+)"/g) || [];
+    if (objMatches.length === 0) return false;
+    var objRe = /^\d+\.\d+$/;
+    for (var i = 0; i < objMatches.length; i++) {
+      var o = objMatches[i].slice(13, -1);
+      if (!objRe.test(o)) return false;
+    }
+    return true;
+  })());
+
+test('v7.4.0 Sec+ exemplar topics cover >=32 of topicDomains keys (3-topic gap floor)',
+  (function() {
+    var domainsMatch = certSecplus.match(/topicDomains:\s*\{([\s\S]*?)\n\s*\},/);
+    if (!domainsMatch) return false;
+    var topicKeys = new Set();
+    var keyRe = /'([^']+)':/g;
+    var keyMatch;
+    while ((keyMatch = keyRe.exec(domainsMatch[1])) !== null) {
+      topicKeys.add(keyMatch[1]);
+    }
+    if (topicKeys.size < 35) return false;
+    var exTopicMatches = certSecplus.match(/"topic":"([^"]+)"/g) || [];
+    var exemplarTopics = new Set();
+    for (var i = 0; i < exTopicMatches.length; i++) {
+      var t = exTopicMatches[i].slice(9, -1);
+      exemplarTopics.add(t);
+    }
+    var covered = 0;
+    topicKeys.forEach(function(k) {
+      if (exemplarTopics.has(k)) covered++;
+    });
+    return covered >= 32;
+  })());
+
+test('v7.4.0 Sec+ difficulty distribution sensible (Foundational + Exam Level + Hard all present)',
+  (function() {
+    var diffMatches = certSecplus.match(/"difficulty":"([^"]+)"/g) || [];
+    var diffs = new Set();
+    for (var i = 0; i < diffMatches.length; i++) {
+      var d = diffMatches[i].slice(14, -1);
+      diffs.add(d);
+    }
+    return diffs.has('Foundational') && diffs.has('Exam Level') && diffs.has('Hard');
+  })());
+
+test('v7.4.0 Sec+ type distribution sensible (mcq + multi-select both present)',
+  (function() {
+    var typeMatches = certSecplus.match(/"type":"([^"]+)"/g) || [];
+    var types = new Set();
+    for (var i = 0; i < typeMatches.length; i++) {
+      var t = typeMatches[i].slice(8, -1);
+      types.add(t);
+    }
+    return types.has('mcq') && types.has('multi-select');
+  })());
+
+test('v7.4.0 Sec+ domain distribution within blueprint +/- 10pp (12/22/18/28/20)',
+  (function() {
+    var objMatches = certSecplus.match(/"objective":"(\d+)\.\d+"/g) || [];
+    if (objMatches.length === 0) return false;
+    var domainCount = { '1': 0, '2': 0, '3': 0, '4': 0, '5': 0 };
+    for (var i = 0; i < objMatches.length; i++) {
+      var m = objMatches[i].match(/"objective":"(\d+)\./);
+      if (!m) continue;
+      var d = m[1];
+      if (domainCount.hasOwnProperty(d)) domainCount[d]++;
+    }
+    var total = objMatches.length;
+    var target = { '1': 12, '2': 22, '3': 18, '4': 28, '5': 20 };
+    for (var k in target) {
+      var actualPct = (domainCount[k] / total) * 100;
+      if (Math.abs(actualPct - target[k]) > 10) return false;
+    }
+    return true;
+  })());
+
 // ── Network+ cert metadata (preserves existing exam constants) ──
 test('v4.86.0 netplus meta: id is netplus',
   /id:\s*['"]netplus['"]/.test(certNetplus));
