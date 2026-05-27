@@ -57,8 +57,8 @@ export default async function handler(req) {
   const intake = (body && typeof body.intake === 'object') ? body.intake : null;
 
   // ── 2. Validate input ──
-  if (cert !== 'network-plus' && cert !== 'security-plus' && cert !== 'azure-fundamentals') {
-    return json({ error: 'bad-request', message: 'Invalid cert · must be "network-plus", "security-plus", or "azure-fundamentals"' }, 400);
+  if (cert !== 'network-plus' && cert !== 'security-plus' && cert !== 'azure-fundamentals' && cert !== 'azure-ai-fundamentals') {
+    return json({ error: 'bad-request', message: 'Invalid cert · must be "network-plus", "security-plus", "azure-fundamentals", or "azure-ai-fundamentals"' }, 400);
   }
   if (!Number.isFinite(requestedCount) || requestedCount < 1 || requestedCount > HARD_QUESTION_CAP) {
     return json({ error: 'bad-request', message: 'Invalid count · 1-' + HARD_QUESTION_CAP }, 400);
@@ -367,6 +367,26 @@ function buildDiagnosticPrompt(cert, count, intake) {
       // Public Microsoft Skills Measured objective ranges per domain
       objectiveRanges: ['1.1', '1.2', '1.3', '2.1', '2.2', '2.3', '2.4', '3.1', '3.2', '3.3', '3.4'],
     };
+  } else if (cert === 'azure-ai-fundamentals') {
+    // v7.5.0 — AI-900 cert branch. May 2025 Skills Measured refresh added
+    // Domain 5 (Generative AI workloads) + renamed Azure AI Studio → Azure AI
+    // Foundry. Bias prompt toward service-identification scenarios per VoC §3.
+    certMeta = {
+      name: 'Microsoft Azure AI Fundamentals',
+      code: 'AI-900',
+      vendor: 'Microsoft',
+      domains: [
+        { id: 1, label: 'AI Workloads & Considerations', weight: 18 },
+        { id: 2, label: 'Machine Learning Fundamentals', weight: 22 },
+        { id: 3, label: 'Computer Vision Workloads', weight: 18 },
+        { id: 4, label: 'NLP Workloads', weight: 17 },
+        { id: 5, label: 'Generative AI Workloads', weight: 25 },
+      ],
+      passMark: 700,
+      maxScore: 1000,
+      // Public Microsoft Skills Measured (effective 2025-05-02) objective ranges
+      objectiveRanges: ['1.1', '1.2', '1.3', '2.1', '2.2', '2.3', '2.4', '2.5', '3.1', '3.2', '4.1', '4.2', '4.3', '5.1', '5.2', '5.3', '5.4'],
+    };
   } else {
     certMeta = {
       name: 'CompTIA Network+',
@@ -393,7 +413,7 @@ function buildDiagnosticPrompt(cert, count, intake) {
   const blueprintLabel = vendor === 'Microsoft' ? 'Microsoft Skills Measured' : (vendor + ' blueprint');
   // Vendor-specific list of paid prep banks to exclude from training context
   const bannedSources = vendor === 'Microsoft'
-    ? 'MeasureUp, Whizlabs, ExamTopics, Tutorials Dojo, ITExams, or any commercial prep bank'
+    ? 'MeasureUp, Whizlabs, Skillcertpro, ExamTopics, Tutorials Dojo, ITExams, or any commercial prep bank'
     : 'CompTIA, Jason Dion, Professor Messer, CertMaster, or any commercial prep bank';
   // Optional objective-range hint (AZ-900 ships one; CompTIA branches don't)
   const objectiveHint = certMeta.objectiveRanges && certMeta.objectiveRanges.length

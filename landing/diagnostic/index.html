@@ -104,6 +104,16 @@
     <span class="dx-cert-tile-badge">Available</span>
   </button>
 
+  <!-- Azure AI Fundamentals tile (v7.5.0) -->
+  <button type="button" class="dx-cert-tile" data-cert="azure-ai-fundamentals" id="dx-cert-azure-ai-fundamentals" aria-pressed="false">
+    <span class="dx-cert-tile-icon">AI</span>
+    <span class="dx-cert-tile-content">
+      <span class="dx-cert-tile-title">Microsoft Azure AI Fundamentals <span class="dx-cert-code">· AI-900</span></span>
+      <span class="dx-cert-tile-sub">20-Q diagnostic · 5 domains · pass = 700/1000 · AI Workloads → ML → CV → NLP → Generative AI</span>
+    </span>
+    <span class="dx-cert-tile-badge">Available</span>
+  </button>
+
   <!-- "More coming" tile -->
   <div class="dx-cert-tile is-disabled" aria-disabled="true">
     <span class="dx-cert-tile-icon">+</span>
@@ -169,7 +179,7 @@
   // ── 1. Restore last-picked cert if revisiting ──
   try {
     var stored = sessionStorage.getItem(SELECTED_CERT_KEY);
-    if (stored === 'network-plus' || stored === 'security-plus' || stored === 'azure-fundamentals') {
+    if (stored === 'network-plus' || stored === 'security-plus' || stored === 'azure-fundamentals' || stored === 'azure-ai-fundamentals') {
       selectedCert = stored;
     }
   } catch (_) {}
@@ -187,6 +197,7 @@
     var certName;
     if (cert === 'security-plus') certName = 'Security+';
     else if (cert === 'azure-fundamentals') certName = 'Azure Fundamentals';
+    else if (cert === 'azure-ai-fundamentals') certName = 'Azure AI Fundamentals';
     else certName = 'Network+';
     continueBtn.textContent = 'Continue with ' + certName + ' →';
     continueBtn.disabled = false;

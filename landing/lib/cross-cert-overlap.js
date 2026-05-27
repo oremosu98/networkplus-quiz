@@ -466,6 +466,175 @@
       hoursSaved: 10,
       daysSaved: 2,
       callout: 'Your networking depth is gold for VPC design questions. The other 75% of SAA (services, IAM, architecture) is new territory.'
+    },
+
+    // ── v7.5.0 AI-900 quartet overlap (Net+/Sec+/AZ-900 ↔ AI-900) ───────────
+
+    // ── Net+ → AI-900 — very light, generic cloud concepts only ───────────
+    {
+      from: 'netplus',
+      to: 'ai900',
+      pct: 8,
+      sharedCount: 2,
+      totalTargetCount: 22,
+      headline: 'Minimal overlap — different role family',
+      sharedTopics: [
+        'Generic cloud service awareness (IaaS/PaaS/SaaS)',
+        'Public/private/hybrid cloud at concept level'
+      ],
+      newTopics: [
+        'AI workload types (predictive, generative, agentic)',
+        'Responsible AI principles (fairness, reliability, privacy, inclusiveness, transparency, accountability)',
+        'Machine learning fundamentals (classification, regression, clustering)',
+        'Computer vision workloads (image classification, OCR, object detection)',
+        'NLP workloads (sentiment, entity recognition, translation, speech)',
+        'Generative AI (foundation models, Azure OpenAI, Azure AI Foundry)'
+      ],
+      hoursSaved: 2,
+      daysSaved: 1,
+      callout: 'Net+ and AI-900 are different role families. The only meaningful carry-over is generic cloud-service literacy — start fresh on AI/ML content.'
+    },
+
+    // ── AI-900 → Net+ — reverse direction, same low overlap ───────────────
+    {
+      from: 'ai900',
+      to: 'netplus',
+      pct: 5,
+      sharedCount: 1,
+      totalTargetCount: 22,
+      headline: 'Different role family — start fresh',
+      sharedTopics: [
+        'Generic cloud service literacy (IaaS/PaaS/SaaS terminology)'
+      ],
+      newTopics: [
+        'OSI model, TCP/IP, ports + protocols',
+        'Subnetting + CIDR calculation',
+        'Switching, routing, VLANs',
+        'Network security (firewalls, ACLs, VPNs)',
+        'Network operations + troubleshooting methodology'
+      ],
+      hoursSaved: 1,
+      daysSaved: 0,
+      callout: 'AI-900 doesn\'t prepare you for Net+. Networking foundations are net-new — plan a full Net+ study cycle.'
+    },
+
+    // ── Sec+ → AI-900 — medium, Responsible AI + governance + data protection ──
+    {
+      from: 'secplus',
+      to: 'ai900',
+      pct: 28,
+      sharedCount: 5,
+      totalTargetCount: 18,
+      headline: 'AI governance + data protection carry over',
+      sharedTopics: [
+        'Data classification + privacy (Sec+ Domain 5 ↔ AI-900 Responsible AI privacy)',
+        'Risk management framing (carries to AI risk + bias mitigation)',
+        'Compliance posture (GDPR/HIPAA/SOX governance vocabulary)',
+        'Audit + accountability (carries to Responsible AI accountability principle)',
+        'Content moderation + DLP awareness (carries to Azure AI Content Safety)'
+      ],
+      refresherTopics: [
+        'Sec+ teaches data protection at policy level; AI-900 reframes for AI/ML pipelines'
+      ],
+      newTopics: [
+        'AI workload types (predictive vs generative vs agentic)',
+        'Machine learning fundamentals (regression / classification / clustering)',
+        'Confusion matrix + model evaluation (precision/recall/accuracy)',
+        'Computer vision sub-types (image classification / object detection / OCR / face)',
+        'NLP workloads (sentiment, entity, translation, speech)',
+        'Generative AI (foundation models, Azure OpenAI, Azure AI Foundry, Copilot)',
+        'Azure AI Services umbrella (Speech / Language / Vision / Document Intelligence / Content Safety)'
+      ],
+      hoursSaved: 6,
+      daysSaved: 1,
+      callout: 'Your Sec+ governance + data-protection mental models translate directly to Responsible AI principles + Azure AI Content Safety. Most of AI-900 is still new content — ML + CV + NLP + GenAI.'
+    },
+
+    // ── AI-900 → Sec+ — reverse direction ─────────────────────────────────
+    {
+      from: 'ai900',
+      to: 'secplus',
+      pct: 18,
+      sharedCount: 3,
+      totalTargetCount: 17,
+      headline: 'Responsible AI + governance literacy transfers',
+      sharedTopics: [
+        'Responsible AI principles (privacy, accountability, transparency carry to Sec+ governance)',
+        'Data classification awareness (carries to Sec+ Domain 5)',
+        'Azure AI Content Safety (carries to Sec+ data protection + DLP)'
+      ],
+      newTopics: [
+        'Threat actors + attack vectors (Sec+ Domain 2 — net-new)',
+        'Cryptography fundamentals + PKI (Sec+ Domain 1 — net-new)',
+        'Network security architecture (segmentation, zero trust, IDS/IPS)',
+        'Identity + access management depth (RBAC, MFA, federation)',
+        'Incident response + forensics + SIEM',
+        'Compliance frameworks (PCI-DSS, HIPAA, GDPR depth)'
+      ],
+      hoursSaved: 4,
+      daysSaved: 1,
+      callout: 'AI-900\'s Responsible AI literacy gives you a slight edge on Sec+ governance. The other 82% — threats, crypto, IR, network security — is new study.'
+    },
+
+    // ── AZ-900 → AI-900 — medium-high, shared Azure foundations ───────────
+    {
+      from: 'az900',
+      to: 'ai900',
+      pct: 38,
+      sharedCount: 6,
+      totalTargetCount: 16,
+      headline: 'Shared Azure platform foundation — strong transfer',
+      sharedTopics: [
+        'Azure platform fundamentals (regions, availability zones, subscriptions)',
+        'Resource Groups + cost management',
+        'Microsoft Entra ID + RBAC (identity layer reused by AI services)',
+        'Azure Machine Learning compute infrastructure (sits on Azure VMs + storage)',
+        'Pricing models (consumption-based for AI services too)',
+        'Shared Responsibility Model (carries to AI service deployment)'
+      ],
+      refresherTopics: [
+        'AZ-900 covers Azure platform; AI-900 reuses the platform layer beneath the AI services'
+      ],
+      newTopics: [
+        'AI workload types + Responsible AI principles (Domain 1)',
+        'Machine learning fundamentals — classification / regression / clustering / confusion matrix (Domain 2)',
+        'Computer vision workloads — Azure AI Vision + Custom Vision (Domain 3)',
+        'NLP workloads — Azure AI Language + Speech + Translator (Domain 4)',
+        'Generative AI — Azure OpenAI, Azure AI Foundry, Microsoft Copilot, Content Safety (Domain 5 — largest, 25%)',
+        'Azure AI Foundry model catalog (post-Nov-2024 rebrand from Azure AI Studio)'
+      ],
+      hoursSaved: 12,
+      daysSaved: 3,
+      callout: 'AZ-900 → AI-900 is the strongest 4-cert pair. Azure platform foundations (regions, RG hierarchy, Entra, pricing) carry over directly. Focus your AI-900 prep on the 5 AI-specific domains — especially Domain 5 Generative AI (Foundry + OpenAI + Copilot, the May 2025 refresh content).'
+    },
+
+    // ── AI-900 → AZ-900 — reverse direction ───────────────────────────────
+    {
+      from: 'ai900',
+      to: 'az900',
+      pct: 32,
+      sharedCount: 5,
+      totalTargetCount: 13,
+      headline: 'Azure platform layer transfers in reverse',
+      sharedTopics: [
+        'Azure platform fundamentals (regions, AZs, subscriptions)',
+        'Microsoft Entra ID + RBAC',
+        'Pricing models (consumption-based)',
+        'Shared Responsibility Model',
+        'Cloud service models (IaaS/PaaS/SaaS) at concept level'
+      ],
+      newTopics: [
+        'Azure compute services depth (VMs, Containers/AKS, Functions, App Service)',
+        'Azure networking (VNets, peering, ExpressRoute, VPN Gateway)',
+        'Azure storage tiers + redundancy (LRS/ZRS/GRS/GZRS)',
+        'Azure governance (Policy, Blueprints, Initiatives, Tags, Resource Locks)',
+        'Azure cost management + TCO calculator',
+        'Azure monitoring (Monitor, Log Analytics, Service Health, Advisor)',
+        'Azure CLI + PowerShell + ARM templates'
+      ],
+      hoursSaved: 8,
+      daysSaved: 2,
+      callout: 'AI-900 teaches the Azure platform layer just enough to host AI services. AZ-900 expects depth on compute, networking, storage, governance — most of that is net-new study.'
     }
   ];
 })();
