@@ -47,7 +47,7 @@ function detectCert() {
       const certOverrideKey = 'nplus_' + 'dev_cert';
       const url = new URL(location.href);
       const param = (url.searchParams.get('cert') || '').toLowerCase().trim();
-      if (param === 'netplus' || param === 'secplus') {
+      if (param === 'netplus' || param === 'secplus' || param === 'az900') {
         try { localStorage.setItem(certOverrideKey, param); } catch (e) {}
         try {
           url.searchParams.delete('cert');
@@ -69,6 +69,9 @@ function detectCert() {
   //    subdomain check. Root certanvil.com + localhost have no hostname-cert
   //    mapping here, so they correctly fall through to the localStorage path
   //    below (preserving the session-stored preference + dev override).
+  //    v7.3.0 — extended with the third cert AZ-900 on azure.certanvil.com
+  //    (Pattern A; founder lock 2026-05-26 — future Azure certs share this
+  //    same subdomain via internal cert-switcher, NOT new subdomains).
   try {
     if (typeof location !== 'undefined' && location.hostname) {
       const host = location.hostname;
@@ -78,6 +81,9 @@ function detectCert() {
       if (host.indexOf('networkplus.') === 0
           || host.indexOf('networkplus-') === 0
           || host === 'networkplus.certanvil.com') return 'netplus';
+      if (host.indexOf('azure.') === 0
+          || host.indexOf('azure-') === 0
+          || host === 'azure.certanvil.com') return 'az900';
     }
   } catch (e) { /* not in browser context */ }
 
@@ -87,7 +93,7 @@ function detectCert() {
   try {
     if (typeof localStorage !== 'undefined') {
       const dev = localStorage.getItem('nplus_dev_cert');
-      if (dev === 'secplus' || dev === 'netplus') return dev;
+      if (dev === 'secplus' || dev === 'netplus' || dev === 'az900') return dev;
     }
   } catch (e) { /* localStorage may be blocked */ }
 

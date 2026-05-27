@@ -88,16 +88,22 @@
   function getActiveCertId() {
     try {
       var dev = localStorage.getItem(CERT_OVERRIDE_KEY);
-      if (dev === 'secplus' || dev === 'netplus') return dev;
+      if (dev === 'secplus' || dev === 'netplus' || dev === 'az900') return dev;
     } catch (e) {}
     try {
       var host = window.location.hostname || '';
       // v7.1.0 Pattern A subdomain detection — any host starting with
       // 'secplus' or 'secplus.' (e.g. secplus.certanvil.com, secplus-*.vercel.app)
       // routes to the Security+ cert pack.
+      // v7.3.0 — extended with the third cert AZ-900 on azure.certanvil.com
+      // (Pattern A; founder lock 2026-05-26 — future Azure certs share this
+      // same subdomain via internal cert-switcher, NOT new subdomains).
       if (host.indexOf('secplus.') === 0
           || host.indexOf('secplus-') === 0
           || host === 'secplus.certanvil.com') return 'secplus';
+      if (host.indexOf('azure.') === 0
+          || host.indexOf('azure-') === 0
+          || host === 'azure.certanvil.com') return 'az900';
     } catch (e) {}
     return 'netplus';
   }
