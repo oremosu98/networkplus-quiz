@@ -2230,3 +2230,16 @@ html[data-cert="az900"] .dgh-db[data-domain-idx="5"]{
   display:none !important;
 }
 
+/* v7.6.0 — CompTIA A+ Core 2 (220-1202) has only 4 domains (Operating Systems
+   / Security / Software Troubleshooting / Operational Procedures), so the 5th
+   hardcoded domain element on each static surface would show stale Net+
+   content (_renderTopicChipsForActiveCert updates only the first 4 then bails).
+   Hide data-domain-idx="5" for aplus-core2 only. A+ Core 1 (aplus-core1) has 5
+   domains matching Net+/Sec+, so it needs NO rule. Scoped by data-cert on
+   <html> (set by the index.html inline IIFE before app.js loads). */
+html[data-cert="aplus-core2"] details.topic-domain-group[data-domain-idx="5"],
+html[data-cert="aplus-core2"] .tdp-pill[data-domain-idx="5"],
+html[data-cert="aplus-core2"] .dgh-db[data-domain-idx="5"]{
+  display:none !important;
+}
+

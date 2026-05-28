@@ -16145,7 +16145,10 @@ test('v4.86.0 CertPack: detectCert handles localStorage dev override',
 // and `networkplus.` patterns; window widened to span the new Pattern A
 // branch + the demoted localStorage step.
 test('v7.2.1 CertPack: detectCert handles Pattern A subdomain detection (secplus. + networkplus.)',
-  /function\s+detectCert[\s\S]{0,3000}location\.hostname[\s\S]{0,600}secplus\.[\s\S]{0,200}networkplus\./.test(js));
+  // v7.6.0: window widened 3000 -> 5000 to absorb the A+ ?exam= param block +
+  // aplus. hostname branch added to detectCert (regex-window class-of-bug per
+  // the v5.5.7/v7.2.2 lesson — size for worst case). Regression strength kept.
+  /function\s+detectCert[\s\S]{0,5000}location\.hostname[\s\S]{0,600}secplus\.[\s\S]{0,200}networkplus\./.test(js));
 test('v7.2.1 CertPack: detectCert Pattern A hostname check runs BEFORE localStorage override',
   // Tombstone the pre-v7.2.1 ordering where localStorage won over hostname.
   // Assert: the hostname/Pattern A block (location.hostname read) appears
@@ -16159,11 +16162,11 @@ test('v7.2.1 CertPack: detectCert Pattern A hostname check runs BEFORE localStor
     return hostIdx > 0 && lsIdx > 0 && hostIdx < lsIdx;
   })());
 test('v7.2.1 CertPack: detectCert maps secplus.certanvil.com to secplus',
-  /function\s+detectCert[\s\S]{0,3000}secplus\.certanvil\.com[\s\S]{0,200}return\s+['"]secplus['"]/.test(js));
+  /function\s+detectCert[\s\S]{0,5000}secplus\.certanvil\.com[\s\S]{0,200}return\s+['"]secplus['"]/.test(js));
 test('v7.2.1 CertPack: detectCert maps networkplus.certanvil.com to netplus',
-  /function\s+detectCert[\s\S]{0,3000}networkplus\.certanvil\.com[\s\S]{0,200}return\s+['"]netplus['"]/.test(js));
+  /function\s+detectCert[\s\S]{0,5000}networkplus\.certanvil\.com[\s\S]{0,200}return\s+['"]netplus['"]/.test(js));
 test('v4.86.0 CertPack: detectCert defaults to netplus',
-  /function\s+detectCert[\s\S]{0,3000}return\s+['"]netplus['"]/.test(js));
+  /function\s+detectCert[\s\S]{0,5000}return\s+['"]netplus['"]/.test(js));
 test('v4.86.0 CertPack: CURRENT_CERT and CERT_PACK constants declared',
   /const\s+CURRENT_CERT\s*=\s*detectCert\(\)/.test(js) &&
   /const\s+CERT_PACK\s*=.*window\.CERT_PACKS\[CURRENT_CERT\]/.test(js));
