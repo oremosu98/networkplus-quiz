@@ -59,7 +59,7 @@ function mockMatchMedia(reducedMotion) {
   };
 }
 
-let html, js, css, sw, certNetplus, certSecplus, certAz900, certAi900, cloudStoreJs, authStateJs;
+let html, js, css, sw, certNetplus, certSecplus, certAz900, certAi900, certAplusCore1, certAplusCore2, cloudStoreJs, authStateJs;
 try {
   html = read('index.html');
   js   = read('app.js');
@@ -77,6 +77,11 @@ try {
   // v7.5.0: AI-900 cert pack source for 8 new tombstones (fourth cert, AI/data
   // role family on ai.certanvil.com). Mirrors AZ-900 loader pattern.
   certAi900 = read('certs/ai900.js');
+  // v7.6.0: A+ Core 1 + Core 2 cert pack sources for the dual-exam fifth cert
+  // family (Pattern A on aplus.certanvil.com; within-subdomain Core1<->Core2
+  // switching). Mirrors the AI-900 loader pattern.
+  certAplusCore1 = read('certs/aplus-core1.js');
+  certAplusCore2 = read('certs/aplus-core2.js');
   // v4.89.0 Phase C′: cloud-store source so we can assert USER_DATA_KEYS coverage
   // for new namespaced storage keys (e.g. v4.91.0 SAB_*).
   cloudStoreJs = read('cloud-store.js');
@@ -16374,6 +16379,124 @@ test('v7.5.0 CertPack: Domain 5 has >= 10 Azure AI Foundry exemplars (VoC §13.6
     // reduced (e.g. someone trims D5 exemplars without auditing for Foundry).
     var foundryRefs = certAi900.match(/Azure AI Foundry/g) || [];
     return foundryRefs.length >= 10;
+  })());
+
+// ══════════════════════════════════════════════════════════════════════
+// v7.6.0 CertPack — CompTIA A+ Core 1 (220-1201) + Core 2 (220-1202) cert add
+// ══════════════════════════════════════════════════════════════════════
+// 14 regression tombstones for the FIFTH cert family — the first DUAL-EXAM
+// family (Core 1 + Core 2 share aplus.certanvil.com via the within-subdomain
+// cert switcher). Locks: both cert pack declarations, the 3-file detection
+// mirror (detectCert + inline IIFE), the 6-cert switcher, the within-subdomain
+// switching pattern, per-exam domain-weight sums, exemplar banks, topic
+// catalogs, and exemplar-topic integrity for both exams.
+// ══════════════════════════════════════════════════════════════════════
+test('v7.6.0 CertPack: certs/aplus-core1.js declares window.CERT_PACKS[aplus-core1]',
+  /window\.CERT_PACKS\[['"]aplus-core1['"]\]\s*=\s*\{/.test(certAplusCore1));
+test('v7.6.0 CertPack: certs/aplus-core2.js declares window.CERT_PACKS[aplus-core2]',
+  /window\.CERT_PACKS\[['"]aplus-core2['"]\]\s*=\s*\{/.test(certAplusCore2));
+test('v7.6.0 CertPack: app.js detectCert handles aplus. + aplus- + aplus.certanvil.com',
+  /host\.indexOf\(['"]aplus\.['"]\)\s*===\s*0/.test(js)
+  && /host\.indexOf\(['"]aplus-['"]\)\s*===\s*0/.test(js)
+  && /host\s*===\s*['"]aplus\.certanvil\.com['"]/.test(js)
+  // and detectCert defaults the aplus family to Core 1 on cold entry
+  && /return\s+['"]aplus-core1['"]/.test(js));
+test('v7.6.0 CertPack: index.html inline IIFE maps aplus.certanvil.com to aplus-core1 (default)',
+  /\(function\s*\(\)\s*\{[\s\S]{0,6000}aplus\.certanvil\.com[\s\S]{0,500}cert\s*=\s*['"]aplus-core1['"]/.test(html));
+test('v7.6.0 CertPack: auth-state.js getAvailableCerts returns 6 certs (4 prior + 2 A+)',
+  (() => {
+    var src = authStateJs || '';
+    return /id:\s*['"]netplus['"]/.test(src)
+        && /id:\s*['"]secplus['"]/.test(src)
+        && /id:\s*['"]az900['"]/.test(src)
+        && /id:\s*['"]ai900['"]/.test(src)
+        && /id:\s*['"]aplus-core1['"]/.test(src)
+        && /id:\s*['"]aplus-core2['"]/.test(src);
+  })());
+test('v7.6.0 CertPack: tadSwitchCert does within-subdomain Core 1 <-> Core 2 switching (no host change)',
+  (() => {
+    // The NEW v7.6.0 pattern: switching between the two A+ exams stays on
+    // aplus.certanvil.com (write localStorage + reload), and a cross-subdomain
+    // arrival deep-links via ?exam=. Assert both halves exist in tadSwitchCert.
+    var src = authStateJs || '';
+    return /certId\s*===\s*['"]aplus-core1['"]\s*\|\|\s*certId\s*===\s*['"]aplus-core2['"]/.test(src)
+        && /aplus\.certanvil\.com\/\?exam=/.test(src);
+  })());
+test('v7.6.0 CertPack: Core 1 domain weights sum within tolerance (>= 0.95 && <= 1.05)',
+  (() => {
+    // Official 220-1201 v4.0 blueprint: 0.13/0.23/0.25/0.11/0.28 = 1.00.
+    var m = certAplusCore1.match(/domainWeights:\s*\{([\s\S]*?)\}/);
+    if (!m) return false;
+    var nums = (m[1].match(/[0-9]*\.[0-9]+/g) || []).map(Number);
+    var sum = nums.reduce(function (a, b) { return a + b; }, 0);
+    return sum >= 0.95 && sum <= 1.05;
+  })());
+test('v7.6.0 CertPack: Core 2 domain weights sum within tolerance (>= 0.95 && <= 1.05)',
+  (() => {
+    // Official 220-1202 v4.0 blueprint: 0.28/0.28/0.23/0.21 = 1.00.
+    var m = certAplusCore2.match(/domainWeights:\s*\{([\s\S]*?)\}/);
+    if (!m) return false;
+    var nums = (m[1].match(/[0-9]*\.[0-9]+/g) || []).map(Number);
+    var sum = nums.reduce(function (a, b) { return a + b; }, 0);
+    return sum >= 0.95 && sum <= 1.05;
+  })());
+test('v7.6.0 CertPack: Core 1 exemplar bank >= 195 entries',
+  (() => {
+    var matches = certAplusCore1.match(/addedVersion:\s*"7\.6\.0"/g);
+    return matches && matches.length >= 195;
+  })());
+test('v7.6.0 CertPack: Core 2 exemplar bank >= 195 entries',
+  (() => {
+    var matches = certAplusCore2.match(/addedVersion:\s*"7\.6\.0"/g);
+    return matches && matches.length >= 195;
+  })());
+test('v7.6.0 CertPack: Core 1 topic catalog has >= 40 topics',
+  (() => {
+    var sec = certAplusCore1.match(/topicDomains:\s*\{([\s\S]*?)TOPIC RESOURCES/);
+    if (!sec) return false;
+    var keys = sec[1].match(/^\s*'[^']+':/gm) || [];
+    return keys.length >= 40;
+  })());
+test('v7.6.0 CertPack: Core 2 topic catalog has >= 40 topics',
+  (() => {
+    var sec = certAplusCore2.match(/topicDomains:\s*\{([\s\S]*?)TOPIC RESOURCES/);
+    if (!sec) return false;
+    var keys = sec[1].match(/^\s*'[^']+':/gm) || [];
+    return keys.length >= 40;
+  })());
+test('v7.6.0 CertPack: every Core 1 exemplar topic exists in topicDomains',
+  (() => {
+    var sec = certAplusCore1.match(/topicDomains:\s*\{([\s\S]*?)TOPIC RESOURCES/);
+    if (!sec) return false;
+    var topicKeys = new Set();
+    var keyRe = /'([^']+)':\s*'(?:mobile-devices|networking|hardware|virt-cloud|troubleshooting-hw-net)'/g;
+    var km;
+    while ((km = keyRe.exec(sec[1])) !== null) topicKeys.add(km[1]);
+    if (topicKeys.size < 40) return false; // extraction sanity
+    var exTopics = certAplusCore1.match(/topic:\s*"([^"]+)"/g) || [];
+    if (exTopics.length === 0) return false;
+    for (var i = 0; i < exTopics.length; i++) {
+      var t = exTopics[i].replace(/^topic:\s*"/, '').replace(/"$/, '');
+      if (!topicKeys.has(t)) return false;
+    }
+    return true;
+  })());
+test('v7.6.0 CertPack: every Core 2 exemplar topic exists in topicDomains',
+  (() => {
+    var sec = certAplusCore2.match(/topicDomains:\s*\{([\s\S]*?)TOPIC RESOURCES/);
+    if (!sec) return false;
+    var topicKeys = new Set();
+    var keyRe = /'([^']+)':\s*'(?:operating-systems|security|software-troubleshooting|operational-procedures)'/g;
+    var km;
+    while ((km = keyRe.exec(sec[1])) !== null) topicKeys.add(km[1]);
+    if (topicKeys.size < 40) return false; // extraction sanity
+    var exTopics = certAplusCore2.match(/topic:\s*"([^"]+)"/g) || [];
+    if (exTopics.length === 0) return false;
+    for (var i = 0; i < exTopics.length; i++) {
+      var t = exTopics[i].replace(/^topic:\s*"/, '').replace(/"$/, '');
+      if (!topicKeys.has(t)) return false;
+    }
+    return true;
   })());
 
 // v7.2.3: cert-filter the readiness model so the Drill These To Move Your
