@@ -82,6 +82,28 @@
         cert = 'az900';
       } else if (host.indexOf('ai.') === 0 || host.indexOf('ai-') === 0 || host === 'ai.certanvil.com') {
         cert = 'ai900'; // v7.5.0 — fourth cert AI-900 (Pattern A, founder lock 2026-05-27)
+      } else if (host.indexOf('aplus.') === 0 || host.indexOf('aplus-') === 0 || host === 'aplus.certanvil.com') {
+        // v7.6.0 — fifth cert family CompTIA A+ (Core 1 220-1201 + Core 2
+        // 220-1202) SHARE aplus.certanvil.com. Resolve the active EXAM here so
+        // the CORRECT cert pack is document.written synchronously — the v7.2.2
+        // lesson: the inline IIFE + detectCert() MUST agree on the cert, else
+        // CERT_PACK is null. Priority: ?exam=/?cert= deep-link param →
+        // localStorage override (the in-app Core 1/Core 2 switcher) → Core 1.
+        cert = 'aplus-core1';
+        try {
+          var aq = new URL(location.href);
+          var ex = (aq.searchParams.get('exam') || '').toLowerCase().trim();
+          var cq = (aq.searchParams.get('cert') || '').toLowerCase().trim();
+          if (ex === 'core2' || cq === 'aplus-core2') {
+            cert = 'aplus-core2';
+          } else if (ex === 'core1' || cq === 'aplus-core1') {
+            cert = 'aplus-core1';
+          } else if (typeof localStorage !== 'undefined') {
+            var aDev = localStorage.getItem('nplus_dev_cert');
+            if (aDev === 'aplus-core2') cert = 'aplus-core2';
+            else if (aDev === 'aplus-core1') cert = 'aplus-core1';
+          }
+        } catch (e) {}
       }
     }
   } catch (e) { /* not in browser */ }
@@ -91,7 +113,8 @@
     try {
       if (typeof localStorage !== 'undefined') {
         var dev = localStorage.getItem('nplus_dev_cert');
-        if (dev === 'secplus' || dev === 'netplus' || dev === 'az900' || dev === 'ai900') cert = dev;
+        if (dev === 'secplus' || dev === 'netplus' || dev === 'az900' || dev === 'ai900'
+            || dev === 'aplus-core1' || dev === 'aplus-core2') cert = dev;
       }
     } catch (e) { /* localStorage may be blocked */ }
   }
@@ -108,7 +131,11 @@
         ? 'CertAnvil — Azure Fundamentals'
         : (cert === 'ai900')
           ? 'CertAnvil — Azure AI Fundamentals'
-          : 'CertAnvil — Network+';
+          : (cert === 'aplus-core1')
+            ? 'CertAnvil — A+ Core 1'
+            : (cert === 'aplus-core2')
+              ? 'CertAnvil — A+ Core 2'
+              : 'CertAnvil — Network+';
   } catch (e) {}
   // v4.99.30: synchronous active-cert-pack load. document.write before
   // </head> with the body still parsing — the browser blocks parsing on
@@ -515,7 +542,7 @@
     <span class="hero-icon">&#9889;</span>
     <h1>Network+ AI Quiz</h1>
     <p>AI-generated MCQs every session. Never the same quiz twice.</p>
-    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v7.5.0</span>
+    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:rgba(124,111,247,.12);border:1px solid rgba(124,111,247,.3);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v7.6.0</span>
     <div id="streak-badge" class="streak-badge"></div>
     <div id="stats-card" class="hero-stats-strip is-hidden">
       <div class="stats-grid" id="stats-grid"></div>

@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v7.5.0
+// Network+ AI Quiz — app.js  v7.6.0
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '7.5.0';
+const APP_VERSION = '7.6.0';
 // v4.99.45 (Phase 6b): expose APP_VERSION on window so the web-vitals
 // collector (lib/web-vitals-collector.js, loaded BEFORE app.js so its
 // PerformanceObservers attach earlier) can stamp this version onto every
@@ -47,13 +47,28 @@ function detectCert() {
       const certOverrideKey = 'nplus_' + 'dev_cert';
       const url = new URL(location.href);
       const param = (url.searchParams.get('cert') || '').toLowerCase().trim();
-      if (param === 'netplus' || param === 'secplus' || param === 'az900' || param === 'ai900') {
+      if (param === 'netplus' || param === 'secplus' || param === 'az900' || param === 'ai900'
+          || param === 'aplus-core1' || param === 'aplus-core2') {
         try { localStorage.setItem(certOverrideKey, param); } catch (e) {}
         try {
           url.searchParams.delete('cert');
           history.replaceState({}, '', url.toString());
         } catch (e) {}
         return param;
+      }
+      // v7.6.0 — the A+ landing tiles deep-link via ?exam=core1|core2 (the
+      // cert family shares aplus.certanvil.com). Map the friendly param to the
+      // cert ID + persist so the in-app Core 1 / Core 2 switcher state survives
+      // a refresh. Same certOverrideKey-via-prefix-concat data-safety dodge.
+      const examParam = (url.searchParams.get('exam') || '').toLowerCase().trim();
+      if (examParam === 'core1' || examParam === 'core2') {
+        const aplusCert = 'aplus-' + examParam;
+        try { localStorage.setItem(certOverrideKey, aplusCert); } catch (e) {}
+        try {
+          url.searchParams.delete('exam');
+          history.replaceState({}, '', url.toString());
+        } catch (e) {}
+        return aplusCert;
       }
     }
   } catch (e) {}
@@ -91,6 +106,23 @@ function detectCert() {
       if (host.indexOf('ai.') === 0
           || host.indexOf('ai-') === 0
           || host === 'ai.certanvil.com') return 'ai900';
+      // v7.6.0 — fifth cert family CompTIA A+ on aplus.certanvil.com (Pattern
+      // A; founder lock 2026-05-27). A+ is ONE certification with TWO exams
+      // (Core 1 220-1201 + Core 2 220-1202) that SHARE one subdomain — the
+      // first cert family to do so. The hostname resolves the cert FAMILY; the
+      // localStorage override differentiates the active exam for the in-app
+      // Core 1 <-> Core 2 switcher (tadSwitchCert writes nplus_dev_cert +
+      // reloads — the first cert switch that does NOT change subdomain).
+      // Default to Core 1 on a cold subdomain entry (no override set yet).
+      if (host.indexOf('aplus.') === 0
+          || host.indexOf('aplus-') === 0
+          || host === 'aplus.certanvil.com') {
+        try {
+          const aplusDev = localStorage.getItem('nplus_dev_cert');
+          if (aplusDev === 'aplus-core1' || aplusDev === 'aplus-core2') return aplusDev;
+        } catch (e) {}
+        return 'aplus-core1';
+      }
     }
   } catch (e) { /* not in browser context */ }
 
@@ -100,7 +132,8 @@ function detectCert() {
   try {
     if (typeof localStorage !== 'undefined') {
       const dev = localStorage.getItem('nplus_dev_cert');
-      if (dev === 'secplus' || dev === 'netplus' || dev === 'az900' || dev === 'ai900') return dev;
+      if (dev === 'secplus' || dev === 'netplus' || dev === 'az900' || dev === 'ai900'
+          || dev === 'aplus-core1' || dev === 'aplus-core2') return dev;
     }
   } catch (e) { /* localStorage may be blocked */ }
 
@@ -16882,7 +16915,79 @@ function renderSetupDomainGrid() {
       { label: 'AI Foundry',            key: 'Azure AI Foundry & Model Catalog' },
     ],
   };
-  // v7.5.0 — 4-way cert selector (was 3-way ternary). Falls through to Net+
+  // v7.6.0 — fifth cert family CompTIA A+ (dual-exam). 5 canonical topics per
+  // domain for the home-page domain grid. Mirrors the _CANONICAL_* shape
+  // verbatim — { domainKey: [{ label, key }, …] } where key matches a
+  // topicDomains key in certs/aplus-core1.js exactly. 5 domains (matches Net+).
+  const _CANONICAL_APLUS_CORE1 = {
+    'mobile-devices': [
+      { label: 'Mobile Hardware',       key: 'Mobile Device Hardware & Replacement' },
+      { label: 'Connectivity',          key: 'Mobile Accessories & Connectivity' },
+      { label: 'Network Connectivity',  key: 'Mobile Network Connectivity' },
+      { label: 'MDM',                   key: 'Mobile Device Management (MDM)' },
+      { label: 'Synchronization',       key: 'Mobile Synchronization' },
+    ],
+    'networking': [
+      { label: 'Ports & Protocols',     key: 'Ports & Protocols' },
+      { label: 'Wireless Standards',    key: 'Wireless Networking Standards' },
+      { label: 'DNS Records',           key: 'DNS Records & Configuration' },
+      { label: 'Network Hardware',      key: 'Networking Hardware Devices' },
+      { label: 'SOHO Config',           key: 'SOHO Network Configuration' },
+    ],
+    'hardware': [
+      { label: 'RAID',                  key: 'RAID Configurations' },
+      { label: 'Storage Devices',       key: 'Storage Devices' },
+      { label: 'Motherboards',          key: 'Motherboards & Form Factors' },
+      { label: 'Printer Config',        key: 'Printers — Deploy & Configure' },
+      { label: 'Printer Maintenance',   key: 'Printer Maintenance' },
+    ],
+    'virt-cloud': [
+      { label: 'Virtualization',        key: 'Virtualization Concepts' },
+      { label: 'Service Models',        key: 'Cloud Service Models' },
+      { label: 'Deployment Models',     key: 'Cloud Deployment Models' },
+      { label: 'Cloud Characteristics', key: 'Cloud Characteristics' },
+      { label: 'Containers & VDI',      key: 'Containers & VDI' },
+    ],
+    'troubleshooting-hw-net': [
+      { label: 'Methodology',           key: 'Troubleshooting Methodology' },
+      { label: 'Drives & RAID',         key: 'Troubleshoot Drives & RAID' },
+      { label: 'Mobile Issues',         key: 'Troubleshoot Mobile Device Issues' },
+      { label: 'Network Issues',        key: 'Troubleshoot Network Issues' },
+      { label: 'Printer Issues',        key: 'Troubleshoot Printer Issues' },
+    ],
+  };
+  // v7.6.0 — A+ Core 2. 4 domains (fewer than the 5-domain certs).
+  const _CANONICAL_APLUS_CORE2 = {
+    'operating-systems': [
+      { label: 'Windows Editions',      key: 'Windows Editions Features' },
+      { label: 'Command-Line',          key: 'Windows Command-Line Tools' },
+      { label: 'Windows Tools',         key: 'Windows Tools & MMC Snap-ins' },
+      { label: 'Linux Commands',        key: 'Linux Features & Commands' },
+      { label: 'macOS',                 key: 'macOS Features & Tools' },
+    ],
+    'security': [
+      { label: 'Social Engineering',    key: 'Social Engineering Attacks' },
+      { label: 'Malware Types',         key: 'Malware Types & Tools' },
+      { label: 'Logical Security & MFA', key: 'Logical Security & MFA' },
+      { label: 'Windows Security',      key: 'Windows OS Security Settings' },
+      { label: 'Malware Removal',       key: 'SOHO Malware Removal Procedure' },
+    ],
+    'software-troubleshooting': [
+      { label: 'Windows OS Issues',     key: 'Troubleshoot Windows OS Issues' },
+      { label: 'Malware Symptoms',      key: 'Malware Symptom Diagnosis' },
+      { label: 'Mobile OS Issues',      key: 'Troubleshoot Mobile OS & App Issues' },
+      { label: 'PC Security Issues',    key: 'Troubleshoot PC Security Issues' },
+      { label: 'Browser Symptoms',      key: 'Browser Symptom Troubleshooting' },
+    ],
+    'operational-procedures': [
+      { label: 'Change Management',     key: 'Change Management Procedures' },
+      { label: 'Backup & Recovery',     key: 'Backup & Recovery Methods' },
+      { label: 'Documentation',         key: 'Documentation & Ticketing' },
+      { label: 'Scripting',             key: 'Scripting Basics' },
+      { label: 'Remote Access',         key: 'Remote Access Technologies' },
+    ],
+  };
+  // v7.6.0 — 6-way cert selector (was 4-way ternary). Falls through to Net+
   // when CURRENT_CERT isn't recognised (defensive; preserves prior behavior).
   const CANONICAL_DOMAIN_TOPICS = (typeof CURRENT_CERT !== 'undefined' && CURRENT_CERT === 'secplus')
     ? _CANONICAL_SECPLUS
@@ -16890,7 +16995,11 @@ function renderSetupDomainGrid() {
         ? _CANONICAL_AZ900
         : ((typeof CURRENT_CERT !== 'undefined' && CURRENT_CERT === 'ai900')
             ? _CANONICAL_AI900
-            : _CANONICAL_NETPLUS));
+            : ((typeof CURRENT_CERT !== 'undefined' && CURRENT_CERT === 'aplus-core1')
+                ? _CANONICAL_APLUS_CORE1
+                : ((typeof CURRENT_CERT !== 'undefined' && CURRENT_CERT === 'aplus-core2')
+                    ? _CANONICAL_APLUS_CORE2
+                    : _CANONICAL_NETPLUS))));
   // Build a set of weak topic keys for quick lookup
   const weakSet = new Set();
   try {

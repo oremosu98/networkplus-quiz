@@ -57,8 +57,8 @@ export default async function handler(req) {
   const intake = (body && typeof body.intake === 'object') ? body.intake : null;
 
   // ── 2. Validate input ──
-  if (cert !== 'network-plus' && cert !== 'security-plus' && cert !== 'azure-fundamentals' && cert !== 'azure-ai-fundamentals') {
-    return json({ error: 'bad-request', message: 'Invalid cert · must be "network-plus", "security-plus", "azure-fundamentals", or "azure-ai-fundamentals"' }, 400);
+  if (cert !== 'network-plus' && cert !== 'security-plus' && cert !== 'azure-fundamentals' && cert !== 'azure-ai-fundamentals' && cert !== 'aplus-core1' && cert !== 'aplus-core2') {
+    return json({ error: 'bad-request', message: 'Invalid cert · must be "network-plus", "security-plus", "azure-fundamentals", "azure-ai-fundamentals", "aplus-core1", or "aplus-core2"' }, 400);
   }
   if (!Number.isFinite(requestedCount) || requestedCount < 1 || requestedCount > HARD_QUESTION_CAP) {
     return json({ error: 'bad-request', message: 'Invalid count · 1-' + HARD_QUESTION_CAP }, 400);
@@ -387,6 +387,43 @@ function buildDiagnosticPrompt(cert, count, intake) {
       // Public Microsoft Skills Measured (effective 2025-05-02) objective ranges
       objectiveRanges: ['1.1', '1.2', '1.3', '2.1', '2.2', '2.3', '2.4', '2.5', '3.1', '3.2', '4.1', '4.2', '4.3', '5.1', '5.2', '5.3', '5.4'],
     };
+  } else if (cert === 'aplus-core1') {
+    // Stage 4 — CompTIA A+ Core 1 (220-1201) v4.0 blueprint. Bias prompt toward
+    // hardware/troubleshooting scenarios (Domain 3 + 5 dominate at 25%/28%).
+    certMeta = {
+      name: 'CompTIA A+ Core 1',
+      code: '220-1201',
+      vendor: 'CompTIA',
+      domains: [
+        { id: 1, label: 'Mobile Devices', weight: 13 },
+        { id: 2, label: 'Networking', weight: 23 },
+        { id: 3, label: 'Hardware', weight: 25 },
+        { id: 4, label: 'Virtualization & Cloud', weight: 11 },
+        { id: 5, label: 'Hardware & Network Troubleshooting', weight: 28 },
+      ],
+      passMark: 675,
+      maxScore: 900,
+      // Public CompTIA A+ 220-1201 v4.0 Exam Objectives ranges
+      objectiveRanges: ['1.1', '1.2', '1.3', '2.1', '2.2', '2.3', '2.4', '2.5', '2.6', '2.7', '2.8', '3.1', '3.2', '3.3', '3.4', '3.5', '3.6', '3.7', '3.8', '4.1', '4.2', '5.1', '5.2', '5.3', '5.4', '5.5', '5.6'],
+    };
+  } else if (cert === 'aplus-core2') {
+    // Stage 4 — CompTIA A+ Core 2 (220-1202) v4.0 blueprint. Bias prompt toward
+    // OS + Security scenarios (Domain 1 + 2 dominate at 28%/28%).
+    certMeta = {
+      name: 'CompTIA A+ Core 2',
+      code: '220-1202',
+      vendor: 'CompTIA',
+      domains: [
+        { id: 1, label: 'Operating Systems', weight: 28 },
+        { id: 2, label: 'Security', weight: 28 },
+        { id: 3, label: 'Software Troubleshooting', weight: 23 },
+        { id: 4, label: 'Operational Procedures', weight: 21 },
+      ],
+      passMark: 700,
+      maxScore: 900,
+      // Public CompTIA A+ 220-1202 v4.0 Exam Objectives ranges
+      objectiveRanges: ['1.1', '1.2', '1.3', '1.4', '1.5', '1.6', '1.7', '1.8', '1.9', '1.10', '1.11', '2.1', '2.2', '2.3', '2.4', '2.5', '2.6', '2.7', '2.8', '2.9', '2.10', '2.11', '3.1', '3.2', '3.3', '3.4', '4.1', '4.2', '4.3', '4.4', '4.5', '4.6', '4.7', '4.8', '4.9', '4.10'],
+    };
   } else {
     certMeta = {
       name: 'CompTIA Network+',
@@ -411,10 +448,14 @@ function buildDiagnosticPrompt(cert, count, intake) {
   const vendor = certMeta.vendor || 'CompTIA';
   const domainCount = certMeta.domains.length;
   const blueprintLabel = vendor === 'Microsoft' ? 'Microsoft Skills Measured' : (vendor + ' blueprint');
-  // Vendor-specific list of paid prep banks to exclude from training context
+  // Vendor-specific list of paid prep banks to exclude from training context.
+  // CompTIA A+ (220-1201/220-1202) carries an expanded list per Stage 4 legal boundary.
+  const isAplus = cert === 'aplus-core1' || cert === 'aplus-core2';
   const bannedSources = vendor === 'Microsoft'
     ? 'MeasureUp, Whizlabs, Skillcertpro, ExamTopics, Tutorials Dojo, ITExams, or any commercial prep bank'
-    : 'CompTIA, Jason Dion, Professor Messer, CertMaster, or any commercial prep bank';
+    : (isAplus
+      ? 'Jason Dion, Mike Meyers, Pearson Exam Cram, CompTIA CertMaster, Skillcertpro, BurningIceTech, Crucial Exams, CertEmpire, or any commercial prep bank'
+      : 'CompTIA, Jason Dion, Professor Messer, CertMaster, or any commercial prep bank');
   // Optional objective-range hint (AZ-900 ships one; CompTIA branches don't)
   const objectiveHint = certMeta.objectiveRanges && certMeta.objectiveRanges.length
     ? '\nObjective numbers must come from this set: ' + certMeta.objectiveRanges.join(', ') + '.'

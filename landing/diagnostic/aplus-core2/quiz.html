@@ -1,0 +1,887 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>CompTIA A+ Core 2 Baseline · 20-Q diagnostic · CertAnvil</title>
+<meta name="theme-color" content="#fafbff">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="CertAnvil">
+<meta name="description" content="20-question CompTIA A+ Core 2 220-1202 diagnostic. ~30 minutes. Score + weak-domain map at the end.">
+<link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+<link rel="stylesheet" href="../../styles.css">
+<link rel="canonical" href="https://certanvil.com/diagnostic/aplus-core2/quiz">
+<meta name="robots" content="noindex, nofollow">
+<script>
+(function() {
+  var t;
+  try { t = localStorage.getItem('certanvilTheme') || localStorage.getItem('certanvilDiagnosticTheme') || localStorage.getItem('certanvil_theme'); } catch (e) {}
+  if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
+  /* else: no attribute -> @media prefers-color-scheme drives default */
+})();
+</script>
+
+<!-- v4.99.54 D.3: Cloudflare Turnstile invisible bot-protection challenge.
+     Site key is PUBLIC (safe to embed). Dev/test key below always passes;
+     production needs a real site key from dash.cloudflare.com/?to=/:account/turnstile -->
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+<link rel="stylesheet" href="../diagnostic-system.css?v=4.99.63">
+</head>
+<body class="no-js">
+
+<!-- TOPBAR (slim for quiz focus) -->
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="logo" href="/" aria-label="CertAnvil home">
+      <span class="logo-mark" aria-hidden="true">
+        <svg viewBox="0 0 100 100" fill="none" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+          <path d="M58 12 C42 6, 16 16, 14 34 C12 52, 22 62, 42 64" stroke="#b8860b" stroke-width="7" stroke-linecap="round"/>
+          <line x1="30" y1="84" x2="70" y2="16" stroke="#6a6a76" stroke-width="5" stroke-linecap="round"/>
+          <path d="M46 88 L64 50 L82 88 M53 74 L75 74" stroke="#b8860b" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </span>
+      <span class="logo-name">CertAnvil</span>
+    </a>
+  </div>
+</header>
+
+<main>
+
+<!-- No-JS fallback -->
+<div class="dq-no-js">
+  <h2 style="font-size:22px;font-weight:800;margin:0 0 10px">JavaScript required</h2>
+  <p style="font-size:14px;color:var(--text-mid, #4a4b5e);max-width:420px;margin:0 auto">The CompTIA A+ Core 2 diagnostic needs JavaScript to track your answers and time. Enable it in your browser, then refresh this page.</p>
+</div>
+
+<!-- Loading state (replaced once JS hydrates) -->
+<div class="dq-shell" id="dq-shell">
+  <!-- v4.99.54 D.3: invisible Turnstile widget. Site key 3x...FF is Cloudflare's
+       public dev/test INVISIBLE key (always passes the challenge). Prod swap to
+       a real invisible-mode key from dash.cloudflare.com → Turnstile.
+       Note: data-size is NOT set · invisible mode is determined by the key
+       itself; setting data-size="invisible" throws a TurnstileError. -->
+  <div id="dq-turnstile"
+       class="cf-turnstile"
+       data-sitekey="3x00000000000000000000FF"
+       data-callback="dqTurnstileCallback"
+       data-error-callback="dqTurnstileErrorCallback"
+       data-timeout-callback="dqTurnstileErrorCallback"></div>
+
+  <div class="dq-loading" id="dq-loading">
+    <div class="dq-loading-spinner" aria-hidden="true"></div>
+    <p id="dq-loading-text">Loading questions…</p>
+    <p style="font-size:12px;color:var(--text-dim, #8a8b9c);margin-top:6px" id="dq-loading-sub">20 questions across the 4 CompTIA A+ Core 2 domains.</p>
+  </div>
+
+  <!-- Source banner · surfaces when we fall back to the inline pool -->
+  <div id="dq-source-banner" role="status" aria-live="polite" style="display:none;background:linear-gradient(135deg,rgba(56,189,248,.06),transparent);border:1px solid rgba(56,189,248,.3);border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:var(--blue, #38bdf8);text-align:center"></div>
+
+  <!-- Live UI (built by JS) -->
+  <div id="dq-live" style="display:none">
+    <div class="dq-header">
+      <div class="dq-header-left">
+        <span id="dq-progress-label">Question 1 of 20</span>
+      </div>
+      <div class="dq-header-right">
+        <span class="dq-timer" id="dq-timer">30:00</span>
+        <button type="button" class="dq-quit-link" id="dq-quit-btn">Quit</button>
+      </div>
+    </div>
+
+    <div class="dq-progress" aria-hidden="true">
+      <div class="dq-progress-fill" id="dq-progress-fill" style="width:5%"></div>
+    </div>
+
+    <div class="dq-pause-banner" role="status" aria-live="polite">
+      ⏸ Paused · your timer froze when you switched tabs. Click here or come back to resume.
+    </div>
+
+    <div class="dq-card">
+      <div class="dq-card-pills" id="dq-card-pills"></div>
+      <p class="dq-stem" id="dq-stem"></p>
+      <div class="dq-options" id="dq-options" role="radiogroup" aria-label="Answer choices"></div>
+
+      <div class="dq-confidence" role="group" aria-labelledby="dq-confidence-label">
+        <p class="dq-confidence-label" id="dq-confidence-label">How confident are you?</p>
+        <div class="dq-confidence-row">
+          <button type="button" class="dq-confidence-btn" data-confidence="guessing" aria-pressed="false">
+            <span class="dq-confidence-btn-emoji">😬</span>Guessing
+          </button>
+          <button type="button" class="dq-confidence-btn" data-confidence="pretty-sure" aria-pressed="false">
+            <span class="dq-confidence-btn-emoji">🤔</span>Pretty sure
+          </button>
+          <button type="button" class="dq-confidence-btn" data-confidence="locked-in" aria-pressed="false">
+            <span class="dq-confidence-btn-emoji">💪</span>Locked in
+          </button>
+        </div>
+      </div>
+
+      <div class="dq-actions">
+        <span class="dq-hint" id="dq-hint">Pick an answer + confidence, then continue.</span>
+        <button type="button" class="dq-btn dq-btn-primary" id="dq-next-btn" disabled>Next →</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+</main>
+
+<script>
+// ══════════════════════════════════════════════════════════════════════════
+// D.2 · Landing Baseline Diagnostic · CompTIA A+ Core 2 quiz UI · Stage 4
+// ══════════════════════════════════════════════════════════════════════════
+// Self-contained 20-Q flow. Inline question pool covers all 4 Core 2 domains
+// weighted to the public CompTIA A+ 220-1202 v4.0 blueprint (Operating Systems
+// 28% · Security 28% · Software Troubleshooting 23% · Operational Procedures
+// 21%). Live AI generation runs via /api/diagnostic/generate; inline pool is
+// the fallback when AI is unavailable.
+//
+// State envelope (sessionStorage.certanvilDiagnosticSession):
+//   { cert, startedAt, durationMs, currentIdx, questionOrder, answers }
+// On completion, writes a richer envelope to certanvilDiagnosticResults for
+// the /results page (D.4) to render, then navigates to
+// /diagnostic/aplus-core2/results.
+//
+// Wake Lock + Visibility-API pause-on-blur mirrors the Phase 10 v4.99.49
+// exam-mode pattern: phone screen stays awake for 30 min; timer pauses
+// when user backgrounds the tab and resumes (with deadline extension) on
+// return.
+//
+// Legal boundary: ALL questions are ORIGINAL content authored from the PUBLIC
+// CompTIA A+ 220-1202 v4.0 Exam Objectives ONLY. ZERO paid-bank ingestion
+// (Dion / Meyers / CertMaster / Skillcertpro / BurningIceTech / Crucial /
+// CertEmpire / Whizlabs / TutorialDojo / ExamTopics).
+// ══════════════════════════════════════════════════════════════════════════
+
+(function() {
+  'use strict';
+  document.body.classList.remove('no-js');
+
+  // ── 1. Question pool · 25 A+ Core 2 Q across 4 domains ──
+  // Each Q: { id, domain, topic, objective, difficulty, question, options:{A,B,C,D}, answer, explanation }
+  // Authored from the public CompTIA A+ 220-1202 v4.0 Exam Objectives.
+  // Domain bias mirrors the blueprint weights; Core 2 emphasis on social
+  // engineering, Windows command-line, malware removal, Windows editions,
+  // and MFA per Stage 4 spec.
+  var QUESTION_POOL = [
+    // ── Domain 1.0 Operating Systems (7 · ~28%) — biased to Windows CLI + editions ──
+    {
+      id: 1, domain: 'Operating Systems', topic: 'Windows Command Line', objective: '1.2', difficulty: 'Easy',
+      question: 'Which Windows command displays the full IP configuration, including DNS servers and the default gateway, for all adapters?',
+      options: { A: 'ping /all', B: 'ipconfig /all', C: 'netstat -a', D: 'tracert -d' },
+      answer: 'B',
+      explanation: 'ipconfig /all shows the complete adapter configuration including DNS, gateway, and MAC. ping tests reachability; netstat lists connections; tracert traces a route.'
+    },
+    {
+      id: 2, domain: 'Operating Systems', topic: 'Windows Command Line', objective: '1.2', difficulty: 'Medium',
+      question: 'A technician needs to scan and repair protected Windows system files from an elevated command prompt. Which command should they run?',
+      options: { A: 'chkdsk /f', B: 'sfc /scannow', C: 'diskpart', D: 'gpupdate /force' },
+      answer: 'B',
+      explanation: 'sfc /scannow (System File Checker) scans and repairs corrupted protected system files. chkdsk checks disk integrity; diskpart manages partitions; gpupdate refreshes Group Policy.'
+    },
+    {
+      id: 3, domain: 'Operating Systems', topic: 'Windows Command Line', objective: '1.2', difficulty: 'Medium',
+      question: 'Which command-line tool repairs the Windows component store image when sfc cannot fix corruption?',
+      options: { A: 'DISM', B: 'format', C: 'robocopy', D: 'tasklist' },
+      answer: 'A',
+      explanation: 'DISM (Deployment Image Servicing and Management) with /RestoreHealth repairs the underlying Windows image that sfc relies on. robocopy copies files; tasklist lists processes; format erases a volume.'
+    },
+    {
+      id: 4, domain: 'Operating Systems', topic: 'Windows Editions', objective: '1.1', difficulty: 'Medium',
+      question: 'A small business needs Windows workstations that can join an Active Directory domain and support BitLocker. Which Windows edition is the MINIMUM that meets both needs?',
+      options: { A: 'Windows Home', B: 'Windows Pro', C: 'Windows Enterprise (volume only)', D: 'Windows IoT' },
+      answer: 'B',
+      explanation: 'Windows Pro supports domain join and BitLocker. Windows Home lacks both; Enterprise adds more but requires volume licensing, so Pro is the minimum edition that qualifies.'
+    },
+    {
+      id: 5, domain: 'Operating Systems', topic: 'Windows Editions', objective: '1.1', difficulty: 'Hard',
+      question: 'Which Windows feature, available in Pro and higher but NOT Home, lets a user encrypt an entire drive using TPM?',
+      options: { A: 'EFS', B: 'BitLocker', C: 'Windows Defender', D: 'Storage Spaces' },
+      answer: 'B',
+      explanation: 'BitLocker provides full-drive encryption (typically with TPM) and is excluded from Windows Home. EFS encrypts individual files; Defender is anti-malware; Storage Spaces pools disks.'
+    },
+    {
+      id: 6, domain: 'Operating Systems', topic: 'File Systems', objective: '1.3', difficulty: 'Medium',
+      question: 'A technician is formatting a USB drive that must be readable by both modern Windows and macOS systems and hold files larger than 4 GB. Which file system is BEST?',
+      options: { A: 'FAT32', B: 'NTFS', C: 'exFAT', D: 'ext4' },
+      answer: 'C',
+      explanation: 'exFAT is cross-platform (Windows + macOS) and has no 4 GB per-file limit. FAT32 caps files at 4 GB; NTFS is write-limited on macOS; ext4 is a Linux file system.'
+    },
+    {
+      id: 7, domain: 'Operating Systems', topic: 'macOS / Linux', objective: '1.10', difficulty: 'Medium',
+      question: 'Which Linux command lists the contents of a directory?',
+      options: { A: 'pwd', B: 'ls', C: 'cd', D: 'chmod' },
+      answer: 'B',
+      explanation: 'ls lists directory contents. pwd prints the working directory; cd changes directory; chmod modifies permissions.'
+    },
+
+    // ── Domain 2.0 Security (7 · ~28%) — biased to social engineering + MFA ──
+    {
+      id: 8, domain: 'Security', topic: 'Social Engineering', objective: '2.4', difficulty: 'Easy',
+      question: 'A user receives an email appearing to be from their bank, urging them to click a link and confirm their password. What type of attack is this?',
+      options: { A: 'Phishing', B: 'Denial of service', C: 'Brute force', D: 'On-path attack' },
+      answer: 'A',
+      explanation: 'Phishing uses fraudulent messages impersonating a trusted source to trick users into revealing credentials. DoS floods a service; brute force guesses passwords; an on-path attack intercepts traffic.'
+    },
+    {
+      id: 9, domain: 'Security', topic: 'Social Engineering', objective: '2.4', difficulty: 'Medium',
+      question: 'An attacker targets a company\'s CFO specifically with a tailored fraudulent email referencing real internal projects. What is this attack called?',
+      options: { A: 'Shoulder surfing', B: 'Spear phishing / whaling', C: 'Tailgating', D: 'Vishing' },
+      answer: 'B',
+      explanation: 'Targeting a specific high-value individual with a tailored message is spear phishing; aimed at executives it is often called whaling. Vishing is voice phishing; tailgating is physical entry; shoulder surfing is observing a screen.'
+    },
+    {
+      id: 10, domain: 'Security', topic: 'Social Engineering', objective: '2.4', difficulty: 'Medium',
+      question: 'An unauthorized person follows an employee through a badge-secured door without scanning their own badge. What is this called?',
+      options: { A: 'Tailgating', B: 'Phishing', C: 'Dumpster diving', D: 'Pretexting' },
+      answer: 'A',
+      explanation: 'Tailgating is following an authorized person through a secure entrance without authenticating. A mantrap/access control vestibule is the common mitigation. Dumpster diving searches discarded materials.'
+    },
+    {
+      id: 11, domain: 'Security', topic: 'Multifactor Authentication', objective: '2.2', difficulty: 'Medium',
+      question: 'A login requires a password plus a code from an authenticator app. Which two authentication factors are being combined?',
+      options: { A: 'Something you know + something you have', B: 'Something you are + something you know', C: 'Something you have + somewhere you are', D: 'Something you are + something you have' },
+      answer: 'A',
+      explanation: 'A password is "something you know"; an authenticator app code is "something you have." Biometrics are "something you are." Combining two distinct factor categories is true MFA.'
+    },
+    {
+      id: 12, domain: 'Security', topic: 'Multifactor Authentication', objective: '2.2', difficulty: 'Hard',
+      question: 'Which of the following is the BEST example of a "something you are" authentication factor used in MFA?',
+      options: { A: 'A hardware security key', B: 'A one-time SMS code', C: 'A fingerprint scan', D: 'A PIN' },
+      answer: 'C',
+      explanation: 'A fingerprint is a biometric — "something you are." A hardware key and SMS code are "something you have"; a PIN is "something you know."'
+    },
+    {
+      id: 13, domain: 'Security', topic: 'Wireless Security', objective: '2.2', difficulty: 'Medium',
+      question: 'Which wireless security protocol is the MOST secure choice for a modern small-office network?',
+      options: { A: 'WEP', B: 'WPA', C: 'WPA2', D: 'WPA3' },
+      answer: 'D',
+      explanation: 'WPA3 is the current strongest standard. WEP and the original WPA are deprecated and easily broken; WPA2 is still common but WPA3 is preferred where supported.'
+    },
+    {
+      id: 14, domain: 'Security', topic: 'Malware Types', objective: '2.3', difficulty: 'Medium',
+      question: 'A user\'s files are encrypted and a message demands payment to restore access. Which malware type is this?',
+      options: { A: 'Spyware', B: 'Ransomware', C: 'Rootkit', D: 'Adware' },
+      answer: 'B',
+      explanation: 'Ransomware encrypts data and demands payment for the key. Spyware secretly collects data; a rootkit hides at a privileged level; adware displays unwanted ads.'
+    },
+
+    // ── Domain 3.0 Software Troubleshooting (5 · ~23%) — biased to malware removal ──
+    {
+      id: 15, domain: 'Software Troubleshooting', topic: 'Malware Removal', objective: '3.3', difficulty: 'Hard',
+      question: 'According to the CompTIA best-practice malware removal procedure, which step comes IMMEDIATELY after identifying and verifying malware symptoms?',
+      options: { A: 'Educate the end user', B: 'Quarantine the infected system', C: 'Schedule scans and run updates', D: 'Enable System Restore' },
+      answer: 'B',
+      explanation: 'After identifying/verifying malware, the next step is to quarantine the infected system (disconnect it) to stop spread. Disabling System Restore comes after, then remediation, then re-enabling restore, scheduling scans, and finally educating the user.'
+    },
+    {
+      id: 16, domain: 'Software Troubleshooting', topic: 'Malware Removal', objective: '3.3', difficulty: 'Hard',
+      question: 'During malware remediation on Windows, why should a technician DISABLE System Restore before cleaning the system?',
+      options: { A: 'It speeds up the antivirus scan', B: 'Restore points can re-infect the system from saved malware', C: 'It frees up RAM for scanning', D: 'It is required to boot into Safe Mode' },
+      answer: 'B',
+      explanation: 'Malware can hide in restore points; cleaning without disabling System Restore risks re-infection when a point is restored. Restore is re-enabled and a clean point created after remediation.'
+    },
+    {
+      id: 17, domain: 'Software Troubleshooting', topic: 'OS Boot Issues', objective: '3.1', difficulty: 'Medium',
+      question: 'A Windows PC repeatedly fails to boot. A technician wants to load a minimal driver set to troubleshoot. Which startup option should they use?',
+      options: { A: 'Fast Startup', B: 'Safe Mode', C: 'Hibernate', D: 'Sleep' },
+      answer: 'B',
+      explanation: 'Safe Mode loads only essential drivers and services, ideal for diagnosing boot or driver problems. Fast Startup, Hibernate, and Sleep are power states, not diagnostic modes.'
+    },
+    {
+      id: 18, domain: 'Software Troubleshooting', topic: 'Mobile OS Issues', objective: '3.4', difficulty: 'Medium',
+      question: 'A user reports their smartphone battery drains very quickly and the device runs hot even when idle. Which is the MOST likely cause to investigate FIRST?',
+      options: { A: 'A cracked screen', B: 'A power-hungry or malicious app running in the background', C: 'An outdated SIM card', D: 'A weak Wi-Fi signal' },
+      answer: 'B',
+      explanation: 'Rapid drain and heat at idle usually point to a misbehaving or malicious background app consuming resources. Checking battery usage by app is the first step; a cracked screen or SIM does not cause this.'
+    },
+    {
+      id: 19, domain: 'Software Troubleshooting', topic: 'Application Issues', objective: '3.1', difficulty: 'Medium',
+      question: 'A Windows application hangs and stops responding. Which tool lets a technician force-close just that process?',
+      options: { A: 'Disk Management', B: 'Task Manager', C: 'Event Viewer', D: 'Device Manager' },
+      answer: 'B',
+      explanation: 'Task Manager can end an unresponsive process directly. Event Viewer shows logs, Device Manager handles hardware/drivers, and Disk Management handles volumes.'
+    },
+
+    // ── Domain 4.0 Operational Procedures (4 · ~21%) ──
+    {
+      id: 20, domain: 'Operational Procedures', topic: 'Documentation', objective: '4.1', difficulty: 'Easy',
+      question: 'Which document describes the expected level of service, uptime, and response times agreed between a provider and a customer?',
+      options: { A: 'AUP', B: 'SLA', C: 'NDA', D: 'MSDS' },
+      answer: 'B',
+      explanation: 'An SLA (Service Level Agreement) defines service expectations such as uptime and response time. An AUP governs acceptable use; an NDA covers confidentiality; an MSDS/SDS covers chemical safety.'
+    },
+    {
+      id: 21, domain: 'Operational Procedures', topic: 'Change Management', objective: '4.2', difficulty: 'Medium',
+      question: 'Before implementing a major change, a technician documents how to revert if it fails. What is this plan called?',
+      options: { A: 'Risk analysis', B: 'Backout plan', C: 'Scope statement', D: 'Change request' },
+      answer: 'B',
+      explanation: 'A backout (rollback) plan defines how to return to the prior state if a change fails. Risk analysis assesses impact; the scope statement defines boundaries; the change request initiates the process.'
+    },
+    {
+      id: 22, domain: 'Operational Procedures', topic: 'Safety', objective: '4.4', difficulty: 'Medium',
+      question: 'Which device should a technician wear to prevent electrostatic discharge from damaging computer components during a repair?',
+      options: { A: 'Safety goggles', B: 'Anti-static wrist strap', C: 'Insulated gloves', D: 'Respirator' },
+      answer: 'B',
+      explanation: 'An anti-static (ESD) wrist strap safely grounds the technician, preventing static discharge that can damage components. Goggles, gloves, and respirators address other hazards.'
+    },
+    {
+      id: 23, domain: 'Operational Procedures', topic: 'Backups', objective: '4.3', difficulty: 'Medium',
+      question: 'The 3-2-1 backup rule recommends keeping three copies of data on two different media with how many copies kept off-site?',
+      options: { A: 'Zero', B: 'One', C: 'Two', D: 'Three' },
+      answer: 'B',
+      explanation: 'The 3-2-1 rule: 3 copies, on 2 different media, with 1 copy stored off-site. This protects against site-level disasters such as fire or theft.'
+    },
+    {
+      id: 24, domain: 'Operational Procedures', topic: 'Incident Response', objective: '4.6', difficulty: 'Hard',
+      question: 'A technician discovers evidence of illegal activity on a user\'s machine. To preserve admissibility of the evidence, what must they maintain?',
+      options: { A: 'A backout plan', B: 'Chain of custody', C: 'An acceptable use policy', D: 'A service level agreement' },
+      answer: 'B',
+      explanation: 'Chain of custody documents who handled evidence, when, and how, preserving its integrity for legal proceedings. The other documents serve unrelated operational purposes.'
+    },
+    {
+      id: 25, domain: 'Operational Procedures', topic: 'Communication & Professionalism', objective: '4.7', difficulty: 'Easy',
+      question: 'When dealing with a difficult or frustrated customer, which is the BEST professional practice?',
+      options: { A: 'Argue to prove you are correct', B: 'Actively listen and avoid interrupting', C: 'Dismiss the issue as user error', D: 'Use technical jargon to assert authority' },
+      answer: 'B',
+      explanation: 'Actively listening without interrupting and avoiding dismissiveness or jargon is the professional standard. Arguing, dismissing the user, or talking down erodes trust.'
+    }
+  ];
+
+  // ── 2. State + sessionStorage ──
+  var SESSION_KEY = 'certanvilDiagnosticSession';
+  var RESULTS_KEY = 'certanvilDiagnosticResults';
+  var INTAKE_KEY = 'certanvilDiagnosticIntake';
+
+  var DIAGNOSTIC_DURATION_MS = 30 * 60 * 1000;  // 30 min · informational only
+  var CERT = 'aplus-core2';
+  var TARGET_QUESTION_COUNT = 20;
+  var GENERATE_ENDPOINT = '/api/diagnostic/generate';
+  var TURNSTILE_TIMEOUT_MS = 10000;  // bail to fallback if no token in 10s
+  var FETCH_TIMEOUT_MS = 25000;       // bail if /api/diagnostic/generate stalls
+
+  // v4.99.54 D.3: session envelope now carries the full questions array
+  // (instead of just IDs into the inline pool) because AI-generated questions
+  // have new IDs that won't match the static QUESTION_POOL. Both AI and
+  // inline-pool paths produce the same envelope shape · downstream rendering
+  // is source-agnostic.
+  //
+  // session = {
+  //   cert, startedAt, questions: [<20 normalised Q objects>],
+  //   source: 'ai' | 'fallback' | 'inline',
+  //   currentIdx, answers, pickedLetter, pickedConfidence
+  // }
+  var session = null;
+  try {
+    var rawSession = sessionStorage.getItem(SESSION_KEY);
+    if (rawSession) {
+      var parsed = JSON.parse(rawSession);
+      if (parsed && parsed.cert === CERT
+          && Array.isArray(parsed.questions) && parsed.questions.length === TARGET_QUESTION_COUNT
+          && Array.isArray(parsed.answers) && parsed.answers.length === TARGET_QUESTION_COUNT) {
+        session = parsed;
+      }
+    }
+  } catch (_) {}
+
+  function persistSession() {
+    try { sessionStorage.setItem(SESSION_KEY, JSON.stringify(session)); } catch (_) {}
+  }
+
+  function shuffleInlinePool() {
+    // Fisher-Yates over the inline pool · used as the fallback question source
+    var copy = QUESTION_POOL.slice();
+    for (var i = copy.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var tmp = copy[i]; copy[i] = copy[j]; copy[j] = tmp;
+    }
+    return copy.slice(0, TARGET_QUESTION_COUNT);
+  }
+
+  function createFreshSession(questions, source) {
+    return {
+      cert: CERT,
+      startedAt: Date.now(),
+      source: source,                          // 'ai' · 'fallback' · 'inline'
+      questions: questions,                    // full Q objects, ordered
+      currentIdx: 0,
+      answers: new Array(TARGET_QUESTION_COUNT).fill(null),
+      pickedLetter: null,
+      pickedConfidence: null
+    };
+  }
+
+  // ── 3. DOM refs ──
+  var loadingEl = document.getElementById('dq-loading');
+  var liveEl = document.getElementById('dq-live');
+  var pillsEl = document.getElementById('dq-card-pills');
+  var stemEl = document.getElementById('dq-stem');
+  var optionsEl = document.getElementById('dq-options');
+  var confidenceBtns = document.querySelectorAll('.dq-confidence-btn[data-confidence]');
+  var nextBtn = document.getElementById('dq-next-btn');
+  var hintEl = document.getElementById('dq-hint');
+  var progressLabel = document.getElementById('dq-progress-label');
+  var progressFill = document.getElementById('dq-progress-fill');
+  var timerEl = document.getElementById('dq-timer');
+  var quitBtn = document.getElementById('dq-quit-btn');
+
+  // ── 4. Render current question ──
+  function getCurrentQ() {
+    if (!session || !session.questions) return null;
+    return session.questions[session.currentIdx];
+  }
+
+  function render() {
+    var q = getCurrentQ();
+    if (!q) return;
+
+    // Header
+    var n = session.questions.length;
+    progressLabel.textContent = 'Question ' + (session.currentIdx + 1) + ' of ' + n;
+    var pct = Math.round(((session.currentIdx + 1) / n) * 100);
+    progressFill.style.width = pct + '%';
+
+    // Pills
+    var diffClass = q.difficulty === 'Easy' ? 'is-easy' : (q.difficulty === 'Hard' ? 'is-hard' : '');
+    pillsEl.innerHTML =
+      '<span class="dq-pill dq-pill-domain">' + escHtml(q.domain) + '</span>' +
+      '<span class="dq-pill dq-pill-difficulty ' + diffClass + '">' + escHtml(q.difficulty) + '</span>' +
+      '<span class="dq-pill dq-pill-meta">Q' + (session.currentIdx + 1) + ' · obj. ' + escHtml(q.objective) + '</span>';
+
+    // Stem
+    stemEl.textContent = q.question;
+
+    // Options
+    optionsEl.innerHTML = '';
+    ['A', 'B', 'C', 'D'].forEach(function(letter) {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'dq-option';
+      btn.setAttribute('data-letter', letter);
+      btn.setAttribute('role', 'radio');
+      btn.setAttribute('aria-checked', 'false');
+      btn.innerHTML = '<span class="dq-option-letter">' + letter + '</span><span class="dq-option-text">' + escHtml(q.options[letter]) + '</span>';
+      btn.addEventListener('click', function() { pickOption(letter); });
+      optionsEl.appendChild(btn);
+    });
+
+    // Confidence reset
+    session.pickedLetter = null;
+    session.pickedConfidence = null;
+    confidenceBtns.forEach(function(b) {
+      b.classList.remove('is-selected');
+      b.setAttribute('aria-pressed', 'false');
+    });
+
+    // Hint + next btn
+    hintEl.textContent = 'Pick an answer + confidence, then continue.';
+    nextBtn.disabled = true;
+    nextBtn.textContent = (session.currentIdx === n - 1) ? 'Finish diagnostic →' : 'Next →';
+  }
+
+  function pickOption(letter) {
+    session.pickedLetter = letter;
+    optionsEl.querySelectorAll('.dq-option').forEach(function(btn) {
+      var match = btn.getAttribute('data-letter') === letter;
+      btn.classList.toggle('is-selected', match);
+      btn.setAttribute('aria-checked', match ? 'true' : 'false');
+    });
+    refreshNextBtn();
+  }
+
+  confidenceBtns.forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      session.pickedConfidence = btn.getAttribute('data-confidence');
+      confidenceBtns.forEach(function(b) {
+        var match = (b === btn);
+        b.classList.toggle('is-selected', match);
+        b.setAttribute('aria-pressed', match ? 'true' : 'false');
+      });
+      refreshNextBtn();
+    });
+  });
+
+  function refreshNextBtn() {
+    var ready = session.pickedLetter && session.pickedConfidence;
+    nextBtn.disabled = !ready;
+    if (ready) {
+      hintEl.textContent = (session.currentIdx === session.questions.length - 1)
+        ? 'Last one. Click Finish to see your score.'
+        : 'Ready. Click Next to continue.';
+    } else if (session.pickedLetter && !session.pickedConfidence) {
+      hintEl.textContent = 'Now pick your confidence level.';
+    } else if (!session.pickedLetter && session.pickedConfidence) {
+      hintEl.textContent = 'Now pick an answer.';
+    }
+  }
+
+  // ── 5. Submit current Q + advance ──
+  var questionStartTime = Date.now();
+
+  nextBtn.addEventListener('click', function() {
+    if (nextBtn.disabled) return;
+    var q = getCurrentQ();
+    var elapsed = Date.now() - questionStartTime;
+    session.answers[session.currentIdx] = {
+      qId: q.id,
+      picked: session.pickedLetter,
+      correct: q.answer,
+      isCorrect: session.pickedLetter === q.answer,
+      confidence: session.pickedConfidence,
+      timeMs: elapsed,
+      domain: q.domain,
+      difficulty: q.difficulty
+    };
+    persistSession();
+
+    if (session.currentIdx + 1 >= session.questions.length) {
+      finishDiagnostic();
+      return;
+    }
+
+    session.currentIdx++;
+    persistSession();
+    questionStartTime = Date.now();
+    render();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+
+  // ── 6. Finish · compute score + navigate to /results ──
+  function finishDiagnostic() {
+    var n = session.questions.length;
+    var correctCount = 0;
+    var domainStats = {};
+    var confidenceStats = { 'guessing': { picked: 0, correct: 0 }, 'pretty-sure': { picked: 0, correct: 0 }, 'locked-in': { picked: 0, correct: 0 } };
+
+    session.answers.forEach(function(a) {
+      if (!a) return;
+      if (a.isCorrect) correctCount++;
+      if (!domainStats[a.domain]) domainStats[a.domain] = { correct: 0, total: 0 };
+      domainStats[a.domain].total++;
+      if (a.isCorrect) domainStats[a.domain].correct++;
+      if (confidenceStats[a.confidence]) {
+        confidenceStats[a.confidence].picked++;
+        if (a.isCorrect) confidenceStats[a.confidence].correct++;
+      }
+    });
+
+    // Scaled score: linear 0-900 (CompTIA A+ scale, Core 2 pass = 700).
+    // 0 correct → 0 · 20 correct → 900. A more sophisticated IRT-style
+    // scoring lands in D.4 when we have user data to calibrate against.
+    var scaledScore = Math.round((correctCount / n) * 900);
+
+    // Domain breakdown sorted weakest-first
+    var domainBreakdown = Object.keys(domainStats).map(function(d) {
+      return {
+        domain: d,
+        correct: domainStats[d].correct,
+        total: domainStats[d].total,
+        accuracy: domainStats[d].total ? (domainStats[d].correct / domainStats[d].total) : 0
+      };
+    }).sort(function(a, b) { return a.accuracy - b.accuracy; });
+
+    // Load intake for downstream personalisation (Pass Plan in D.4)
+    var intake = null;
+    try { intake = JSON.parse(sessionStorage.getItem(INTAKE_KEY) || 'null'); } catch (_) {}
+
+    var results = {
+      cert: CERT,
+      diagnosticId: 'diag_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8),
+      startedAt: session.startedAt,
+      completedAt: Date.now(),
+      durationMs: Date.now() - session.startedAt,
+      totalQuestions: n,
+      correctCount: correctCount,
+      accuracy: correctCount / n,
+      scaledScore: scaledScore,
+      passThreshold: 700,
+      isPassing: scaledScore >= 700,
+      domainBreakdown: domainBreakdown,
+      confidenceStats: confidenceStats,
+      questions: session.answers,
+      intake: intake
+    };
+
+    try { sessionStorage.setItem(RESULTS_KEY, JSON.stringify(results)); } catch (_) {}
+
+    // Score-only snapshot for landing-page resume CTA (persists across tab close)
+    try {
+      localStorage.setItem('certanvilLastDiagnostic', JSON.stringify({
+        cert: CERT,
+        scaledScore: scaledScore,
+        correctCount: correctCount,
+        totalQuestions: n,
+        completedAt: Date.now(),
+        weakestDomain: domainBreakdown[0] ? domainBreakdown[0].domain : null
+      }));
+    } catch (_) {}
+
+    // Clear in-progress session
+    try { sessionStorage.removeItem(SESSION_KEY); } catch (_) {}
+
+    releaseWakeLock();
+    window.location.href = '/diagnostic/' + CERT + '/results';
+  }
+
+  // ── 7. Timer (30:00 countdown · informational, no hard cutoff) ──
+  // v4.99.54 D.3: timer no longer auto-starts at module load · session is
+  // null until either the resume path restores it or the fresh-start path
+  // (AI fetch or inline-pool fallback) creates it. Timer is now started
+  // inside startTimer() which is called from showLive().
+  var timerInterval = null;
+  var hiddenAt = null;
+  var totalHiddenMs = 0;
+
+  function tickTimer() {
+    if (!session || !session.startedAt) return;  // not yet started
+    var elapsed = Date.now() - session.startedAt - totalHiddenMs;
+    var remaining = DIAGNOSTIC_DURATION_MS - elapsed;
+    if (remaining < 0) {
+      timerEl.classList.add('is-overtime');
+      var over = Math.abs(remaining);
+      var oM = Math.floor(over / 60000);
+      var oS = Math.floor((over % 60000) / 1000);
+      timerEl.textContent = '+' + (oM < 10 ? '0' + oM : oM) + ':' + (oS < 10 ? '0' + oS : oS);
+    } else {
+      var m = Math.floor(remaining / 60000);
+      var s = Math.floor((remaining % 60000) / 1000);
+      timerEl.textContent = (m < 10 ? '0' + m : m) + ':' + (s < 10 ? '0' + s : s);
+    }
+  }
+
+  function startTimer() {
+    if (timerInterval) return;  // already running
+    tickTimer();
+    timerInterval = setInterval(tickTimer, 1000);
+  }
+
+  // ── 8. Visibility API · pause timer when tab backgrounded ──
+  document.addEventListener('visibilitychange', function() {
+    if (document.visibilityState === 'hidden') {
+      hiddenAt = Date.now();
+      document.body.classList.add('dq-paused');
+      timerEl.classList.add('is-paused');
+      releaseWakeLock();
+    } else if (document.visibilityState === 'visible' && hiddenAt) {
+      var pauseDuration = Date.now() - hiddenAt;
+      hiddenAt = null;
+      if (pauseDuration > 250) totalHiddenMs += pauseDuration;
+      document.body.classList.remove('dq-paused');
+      timerEl.classList.remove('is-paused');
+      acquireWakeLock();
+      tickTimer();
+    }
+  });
+
+  // ── 9. Wake Lock · keep phone screen on for the 30-min flow ──
+  // Mirrors the Phase 10 v4.99.49 exam-mode pattern.
+  var wakeLock = null;
+  async function acquireWakeLock() {
+    try {
+      if (typeof navigator !== 'undefined' && 'wakeLock' in navigator) {
+        wakeLock = await navigator.wakeLock.request('screen');
+        wakeLock.addEventListener('release', function() { wakeLock = null; });
+      }
+    } catch (_) { wakeLock = null; }
+  }
+  async function releaseWakeLock() {
+    try {
+      if (wakeLock) { await wakeLock.release(); wakeLock = null; }
+    } catch (_) { wakeLock = null; }
+  }
+  acquireWakeLock();
+
+  // ── 10. Quit button · confirm + clear session ──
+  quitBtn.addEventListener('click', function() {
+    if (confirm('Quit the diagnostic? Your progress will be lost.')) {
+      try { sessionStorage.removeItem(SESSION_KEY); } catch (_) {}
+      if (timerInterval) clearInterval(timerInterval);
+      releaseWakeLock();
+      window.location.href = '/diagnostic';
+    }
+  });
+
+  // ── 11. Helpers ──
+  function escHtml(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function(c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  // ══════════════════════════════════════════════════════════════════════
+  // ── 12. Boot · AI-first with inline-pool fallback ──
+  // ══════════════════════════════════════════════════════════════════════
+  // Flow:
+  //   A. Session restored from sessionStorage (resume case)
+  //      → start the live quiz immediately at saved currentIdx
+  //
+  //   B. No session in storage (fresh start)
+  //      → wait for Turnstile token (10s timeout, then fallback)
+  //      → POST /api/diagnostic/generate
+  //      → on 2xx success: session.source='ai', use those questions
+  //      → on any failure (429, 5xx, timeout, parse error): session.source='fallback',
+  //        use the inline pool (shuffled). Show a small banner explaining
+  //        we're using the local pool.
+  //
+  // The 25-question hard cap is enforced server-side; we just request 20.
+  // ══════════════════════════════════════════════════════════════════════
+
+  var sourceBanner = document.getElementById('dq-source-banner');
+  var loadingText = document.getElementById('dq-loading-text');
+  var loadingSub = document.getElementById('dq-loading-sub');
+
+  function showSourceBanner(source) {
+    if (!sourceBanner) return;
+    if (source === 'fallback') {
+      sourceBanner.innerHTML = '📦 <strong style="font-weight:700">Local question set</strong> · high traffic right now, so we\'re using our curated 20-Q pool instead of live AI generation. Scoring is identical.';
+      sourceBanner.style.display = 'block';
+    } else if (source === 'inline') {
+      // Dev/preview mode · endpoint unconfigured. Silent (don't worry the user).
+      sourceBanner.style.display = 'none';
+    } else {
+      sourceBanner.style.display = 'none';
+    }
+  }
+
+  function showLive() {
+    loadingEl.style.display = 'none';
+    liveEl.style.display = 'block';
+    render();
+    startTimer();           // begin 30:00 countdown (session is now guaranteed populated)
+    acquireWakeLock();
+    questionStartTime = Date.now();  // reset per-Q timer for the first question
+  }
+
+  // ── Path A · Resume in-progress session ──
+  if (session) {
+    showSourceBanner(session.source);
+    showLive();
+    return;  // exit the IIFE early · no AI fetch needed
+  }
+
+  // ── Path B · Fresh start · AI-first with fallback ──
+  loadingText.textContent = 'Loading questions…';
+  loadingSub.textContent = '20 questions across the 4 CompTIA A+ Core 2 domains.';
+
+  // Turnstile callback · set on window so the cf-turnstile widget can call it
+  var turnstileSettled = false;
+  var turnstileTimeoutHandle = null;
+
+  window.dqTurnstileCallback = function(token) {
+    if (turnstileSettled) return;
+    turnstileSettled = true;
+    if (turnstileTimeoutHandle) clearTimeout(turnstileTimeoutHandle);
+    fetchAIQuestions(token);
+  };
+
+  window.dqTurnstileErrorCallback = function() {
+    if (turnstileSettled) return;
+    turnstileSettled = true;
+    if (turnstileTimeoutHandle) clearTimeout(turnstileTimeoutHandle);
+    console.warn('[dq] Turnstile errored · using inline pool fallback');
+    bootWithFallback('fallback');
+  };
+
+  // Timeout: if Turnstile doesn't fire its callback within 10s, fall back.
+  // This handles cases where the script is blocked by an extension / CSP /
+  // ad-blocker · common enough that we can't assume Turnstile will load.
+  turnstileTimeoutHandle = setTimeout(function() {
+    if (turnstileSettled) return;
+    turnstileSettled = true;
+    console.warn('[dq] Turnstile timed out · using inline pool fallback');
+    bootWithFallback('fallback');
+  }, TURNSTILE_TIMEOUT_MS);
+
+  // Some browsers / ad-blockers strip the Turnstile script entirely. In that
+  // case `window.turnstile` is undefined after a tick. We don't wait · the
+  // timeout above catches it. But we DO check for the existence after a
+  // short delay so we can fail fast with a clearer log.
+  setTimeout(function() {
+    if (typeof window.turnstile === 'undefined' && !turnstileSettled) {
+      console.warn('[dq] Turnstile script not loaded · waiting for timeout');
+    }
+  }, 2000);
+
+  function bootWithFallback(reason) {
+    var freshQuestions = shuffleInlinePool();
+    session = createFreshSession(freshQuestions, reason);
+    persistSession();
+    showSourceBanner(reason);
+    showLive();
+  }
+
+  async function fetchAIQuestions(turnstileToken) {
+    loadingText.textContent = 'Building your question set…';
+    loadingSub.textContent = '~10 seconds · powered by Claude Haiku.';
+
+    var controller = new AbortController();
+    var fetchTimer = setTimeout(function() { controller.abort(); }, FETCH_TIMEOUT_MS);
+
+    try {
+      var resp = await fetch(GENERATE_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          cert: CERT,
+          count: TARGET_QUESTION_COUNT,
+          turnstileToken: turnstileToken,
+          intake: getIntake()
+        }),
+        signal: controller.signal
+      });
+      clearTimeout(fetchTimer);
+
+      if (!resp.ok) {
+        var errBody;
+        try { errBody = await resp.json(); } catch (_) { errBody = {}; }
+        if (resp.status === 429) {
+          console.warn('[dq] Rate limit exceeded · using inline pool fallback', errBody);
+          // Show a quota-specific banner via the fallback path
+          bootWithFallback('fallback');
+          if (sourceBanner) {
+            sourceBanner.innerHTML = '⏱ <strong style="font-weight:700">Daily limit reached</strong> · IPs are limited to 25 AI calls per 24h. Using the local pool for this attempt. Sign up for unlimited retakes after.';
+          }
+          return;
+        }
+        if (resp.status === 503) {
+          console.warn('[dq] Endpoint unavailable · using inline pool fallback', errBody);
+          bootWithFallback(errBody && errBody.error === 'service-unavailable' ? 'inline' : 'fallback');
+          return;
+        }
+        console.warn('[dq] AI generate failed · using inline pool fallback', resp.status, errBody);
+        bootWithFallback('fallback');
+        return;
+      }
+
+      var data = await resp.json();
+      if (!data || !Array.isArray(data.questions) || data.questions.length < TARGET_QUESTION_COUNT) {
+        console.warn('[dq] AI response malformed · using inline pool fallback');
+        bootWithFallback('fallback');
+        return;
+      }
+
+      // Success · use AI questions
+      session = createFreshSession(data.questions.slice(0, TARGET_QUESTION_COUNT), 'ai');
+      persistSession();
+      showSourceBanner('ai');
+      showLive();
+    } catch (e) {
+      clearTimeout(fetchTimer);
+      console.warn('[dq] AI fetch threw · using inline pool fallback:', e && e.message);
+      bootWithFallback('fallback');
+    }
+  }
+
+  function getIntake() {
+    try {
+      var raw = sessionStorage.getItem(INTAKE_KEY);
+      if (!raw) return null;
+      return JSON.parse(raw);
+    } catch (_) { return null; }
+  }
+})();
+</script>
+
+</body>
+</html>

@@ -88,14 +88,19 @@
       { id: 'netplus', name: 'Network+',                       code: 'N10-009', tier: 'free' },
       { id: 'secplus', name: 'Security+',                      code: 'SY0-701', tier: 'pro'  },
       { id: 'az900',   name: 'Microsoft Azure Fundamentals',   code: 'AZ-900',  tier: 'pro'  },
-      { id: 'ai900',   name: 'Microsoft Azure AI Fundamentals',code: 'AI-900',  tier: 'pro'  }
+      { id: 'ai900',   name: 'Microsoft Azure AI Fundamentals',code: 'AI-900',  tier: 'pro'  },
+      // v7.6.0 — fifth cert family CompTIA A+ (dual-exam): both Core 1 + Core 2
+      // are selectable rows on the shared aplus.certanvil.com subdomain.
+      { id: 'aplus-core1', name: 'CompTIA A+ Core 1', code: '220-1201', tier: 'pro' },
+      { id: 'aplus-core2', name: 'CompTIA A+ Core 2', code: '220-1202', tier: 'pro' }
     ];
   }
 
   function getActiveCertId() {
     try {
       var dev = localStorage.getItem(CERT_OVERRIDE_KEY);
-      if (dev === 'secplus' || dev === 'netplus' || dev === 'az900' || dev === 'ai900') return dev;
+      if (dev === 'secplus' || dev === 'netplus' || dev === 'az900' || dev === 'ai900'
+          || dev === 'aplus-core1' || dev === 'aplus-core2') return dev;
     } catch (e) {}
     try {
       var host = window.location.hostname || '';
@@ -116,6 +121,14 @@
       if (host.indexOf('ai.') === 0
           || host.indexOf('ai-') === 0
           || host === 'ai.certanvil.com') return 'ai900';
+      // v7.6.0 — fifth cert family CompTIA A+ on aplus.certanvil.com (Pattern
+      // A; founder lock 2026-05-27). Core 1 + Core 2 share the subdomain; the
+      // localStorage override above (checked FIRST) differentiates the active
+      // exam for the in-app switcher, so a cold subdomain entry defaults here
+      // to Core 1.
+      if (host.indexOf('aplus.') === 0
+          || host.indexOf('aplus-') === 0
+          || host === 'aplus.certanvil.com') return 'aplus-core1';
     } catch (e) {}
     return 'netplus';
   }
@@ -138,7 +151,8 @@
   // override. localhost still uses the override fallback for local dev
   // where subdomain hosts aren't available.
   window.tadSwitchCert = function (certId) {
-    if (certId !== 'netplus' && certId !== 'secplus' && certId !== 'az900' && certId !== 'ai900') return false;
+    if (certId !== 'netplus' && certId !== 'secplus' && certId !== 'az900' && certId !== 'ai900'
+        && certId !== 'aplus-core1' && certId !== 'aplus-core2') return false;
     // Pro gate for Sec+ + AZ-900 + AI-900: delegate to canonical _gateProOnly.
     // Returns true if Pro/admin (proceed) OR false if Free (modal already shown, abort).
     // v7.3.0: az900 joins secplus on the Pro tier.
@@ -152,13 +166,43 @@
     if (certId === 'ai900' && typeof window._gateProOnly === 'function') {
       if (!window._gateProOnly('Azure AI Fundamentals (AI-900)')) return false;
     }
+    // v7.6.0: both A+ exams are Pro-tier.
+    if (certId === 'aplus-core1' && typeof window._gateProOnly === 'function') {
+      if (!window._gateProOnly('CompTIA A+ Core 1')) return false;
+    }
+    if (certId === 'aplus-core2' && typeof window._gateProOnly === 'function') {
+      if (!window._gateProOnly('CompTIA A+ Core 2')) return false;
+    }
     var host = '';
     try { host = window.location.hostname || ''; } catch (e) {}
     var isLocalhost = host === 'localhost' || host === '127.0.0.1' || host.indexOf('192.168.') === 0;
     if (isLocalhost) {
       // Local dev — keep override + reload (no subdomain alias on localhost).
+      // Handles all certs incl. both A+ exams (override = certId, reload).
       try { localStorage.setItem(CERT_OVERRIDE_KEY, certId); } catch (e) {}
       try { window.location.reload(); } catch (e) {}
+    } else if (certId === 'aplus-core1' || certId === 'aplus-core2') {
+      // v7.6.0 WITHIN-SUBDOMAIN SWITCHING — the FIRST cert switch that may NOT
+      // change subdomain. Core 1 + Core 2 share aplus.certanvil.com.
+      var onAplus = host.indexOf('aplus.') === 0
+        || host.indexOf('aplus-') === 0
+        || host === 'aplus.certanvil.com';
+      if (onAplus) {
+        // Same subdomain (Core 1 <-> Core 2 toggle): write the exam override +
+        // reload. The reload re-fires the inline IIFE + detectCert() +
+        // getActiveCertId(), all of which read this override FIRST for aplus,
+        // so the correct pack loads + content + dropdown all agree.
+        try { localStorage.setItem(CERT_OVERRIDE_KEY, certId); } catch (e) {}
+        try { window.location.reload(); } catch (e) {}
+      } else {
+        // Coming from a DIFFERENT cert subdomain — navigate to aplus carrying
+        // the exam via ?exam= so the inline IIFE document.writes the right pack
+        // on arrival. Clear the stale override first (the deep-link param wins
+        // + re-persists on arrival).
+        try { localStorage.removeItem(CERT_OVERRIDE_KEY); } catch (e) {}
+        var examSlug = (certId === 'aplus-core2') ? 'core2' : 'core1';
+        try { window.location.href = 'https://aplus.certanvil.com/?exam=' + examSlug; } catch (e) {}
+      }
     } else {
       // Pattern A: navigate to the cert's subdomain. Clear any stale override
       // so getActiveCertId() trusts the subdomain on arrival.
