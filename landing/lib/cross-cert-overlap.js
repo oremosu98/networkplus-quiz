@@ -27,10 +27,12 @@
 //     similar to v4.99.0 readiness snapshots. Possible Phase B.5 work.
 //   • A study sequence recommender. That's Panel 3 (deterministic ranker).
 //
-// Total entries: 10 directional pairs covering the meaningfully-overlapping
-// subset of C(6,2)=15 possible cert combinations. Pairs with <20% overlap
-// (e.g. AZ-900 ↔ CCNA) are deliberately omitted — they exist mathematically
-// but don't earn a row.
+// Total entries: 26 directional pairs (incl. aspirational future-cert rows
+// like CCNA / AWS-SAA / AZ-104) covering the meaningfully-overlapping
+// subset of cert combinations. Pairs with <20% overlap (e.g. AZ-900 ↔ CCNA,
+// A+ Core 1 ↔ Sec+, A+ Core 2 ↔ Net+, A+ ↔ AI-900) are deliberately omitted —
+// they exist mathematically but don't earn a row. v7.6.0 added 6 A+ pairs
+// (Core 1 ↔ Core 2 both directions; Core 1 ↔ Net+ both; Core 2 ↔ Sec+ both).
 // ══════════════════════════════════════════════════════════════════════════
 
 (function () {
@@ -635,6 +637,178 @@
       hoursSaved: 8,
       daysSaved: 2,
       callout: 'AI-900 teaches the Azure platform layer just enough to host AI services. AZ-900 expects depth on compute, networking, storage, governance — most of that is net-new study.'
+    },
+
+    // ── A+ Core 1 → A+ Core 2 — same cert family, complementary halves ──────
+    {
+      from: 'aplus-core1',
+      to: 'aplus-core2',
+      pct: 42,
+      sharedCount: 6,
+      totalTargetCount: 14,
+      headline: 'Same A+ cert family — shared terminology + workflow',
+      sharedTopics: [
+        'CompTIA troubleshooting mindset + scenario framing',
+        'Networking fundamentals (ports, IP, DNS) reused in OS networking config',
+        'Mobile device concepts carry into mobile OS + security',
+        'BEST / NEXT / FIRST qualifier-style reasoning',
+        'Hardware awareness feeding OS install + boot troubleshooting',
+        'SOHO networking basics'
+      ],
+      newTopics: [
+        'Operating systems depth (Windows editions, command line, macOS, Linux)',
+        'Security domain (social engineering, malware removal, MFA, encryption)',
+        'Software troubleshooting (BSOD, boot, malware symptoms)',
+        'Operational procedures (change management, backups, scripting, AI basics)'
+      ],
+      hoursSaved: 14,
+      daysSaved: 3,
+      callout: 'You must pass BOTH exams to earn A+. Core 1 builds the hardware/networking foundation; Core 2 is the software/security/operations half. The CompTIA framing transfers, but Core 2 content is largely new — budget full prep for OS + Security.'
+    },
+
+    // ── A+ Core 2 → A+ Core 1 — reverse direction ───────────────────────────
+    {
+      from: 'aplus-core2',
+      to: 'aplus-core1',
+      pct: 42,
+      sharedCount: 6,
+      totalTargetCount: 14,
+      headline: 'Same A+ cert family — finish the pair',
+      sharedTopics: [
+        'CompTIA troubleshooting methodology + scenario stems',
+        'OS networking config maps onto Core 1 networking',
+        'Security awareness underpins SOHO + wireless security',
+        'Mobile OS knowledge reused in mobile hardware',
+        'Command-line familiarity helps network diagnostics',
+        'Documentation + safety discipline'
+      ],
+      newTopics: [
+        'Mobile + laptop hardware + replacement',
+        'Networking depth (cabling, wireless standards, hardware devices)',
+        'PC hardware (RAM, storage, RAID, motherboards, CPUs, power)',
+        'Virtualization + cloud models',
+        'Hardware/network troubleshooting (RAID repair, printers, displays)'
+      ],
+      hoursSaved: 14,
+      daysSaved: 3,
+      callout: 'If you passed Core 2 first, Core 1 is the hardware-heavy half. The shared CompTIA framing helps, but RAID configuration/repair, printers, and physical hardware are net-new — those are the highest-yield Core 1 study areas.'
+    },
+
+    // ── Net+ → A+ Core 1 — networking foundation feeds the A+ networking domain ──
+    {
+      from: 'netplus',
+      to: 'aplus-core1',
+      pct: 35,
+      sharedCount: 5,
+      totalTargetCount: 14,
+      headline: 'Net+ networking carries into A+ Core 1',
+      sharedTopics: [
+        'TCP/UDP ports & protocols',
+        'DNS records (incl. SPF/DKIM/DMARC) + DHCP',
+        'IP addressing, subnetting, SOHO config',
+        'Wireless standards + frequencies',
+        'Cabling, connectors, networking hardware + tools'
+      ],
+      newTopics: [
+        'Mobile devices (hardware, MDM, sync, connectivity)',
+        'PC hardware depth (RAM, storage, RAID, motherboards, CPUs, power)',
+        'Printers — deploy, configure, maintain, troubleshoot',
+        'Virtualization + cloud service/deployment models + characteristics',
+        'Hardware troubleshooting (POST, drives/RAID repair, displays)'
+      ],
+      hoursSaved: 12,
+      daysSaved: 3,
+      callout: 'A+ Core 1 networking (23%) is largely review for a Net+ holder. Spend your Core 1 prep on Hardware (25%) + Troubleshooting (28%) — RAID config/repair + printers are the surprise-heavy areas.'
+    },
+
+    // ── A+ Core 1 → Net+ — reverse: A+ networking is a head start on Net+ ───
+    {
+      from: 'aplus-core1',
+      to: 'netplus',
+      pct: 38,
+      sharedCount: 6,
+      totalTargetCount: 16,
+      headline: 'A+ Core 1 networking is a Net+ head start',
+      sharedTopics: [
+        'Ports & protocols + TCP vs UDP',
+        'DNS + DHCP fundamentals',
+        'IP addressing + SOHO configuration',
+        'Wireless standards + frequencies/channels',
+        'Cabling types + connectors',
+        'Networking hardware devices + tools'
+      ],
+      refresherTopics: [
+        'Routing goes far deeper — OSPF, BGP, route selection',
+        'Switching expands to STP, VLAN trunking, port security'
+      ],
+      newTopics: [
+        'Routing protocols depth (OSPF/BGP/EIGRP)',
+        'Advanced switching (STP, EtherChannel, 802.1Q)',
+        'Network operations (SNMP, monitoring, documentation)',
+        'Network security depth (Zero Trust, NAC, posture)',
+        'Network troubleshooting methodology at scale'
+      ],
+      hoursSaved: 13,
+      daysSaved: 3,
+      callout: 'A+ Core 1 gives you the networking vocabulary; Net+ N10-009 expands every networking topic to far greater depth (routing, switching, operations, security). Treat A+ networking as the on-ramp, not the destination.'
+    },
+
+    // ── Sec+ → A+ Core 2 — security knowledge feeds the A+ Core 2 security domain ──
+    {
+      from: 'secplus',
+      to: 'aplus-core2',
+      pct: 32,
+      sharedCount: 5,
+      totalTargetCount: 16,
+      headline: 'Sec+ security feeds A+ Core 2 Security (28%)',
+      sharedTopics: [
+        'Social engineering family (phishing/vishing/smishing/tailgating)',
+        'Malware types + identification',
+        'MFA factors + authentication concepts',
+        'Encryption + hashing basics (BitLocker, AES, TPM)',
+        'SOHO + wireless security (WPA2/WPA3)'
+      ],
+      newTopics: [
+        'Operating systems depth (Windows editions, command line, macOS, Linux)',
+        'Windows OS security settings (NTFS vs share permissions, UAC)',
+        'SOHO malware removal — the 10-step ordered procedure',
+        'Software troubleshooting (BSOD, boot, malware symptoms)',
+        'Operational procedures (change management, backups, scripting, AI basics)'
+      ],
+      hoursSaved: 11,
+      daysSaved: 3,
+      callout: 'A Sec+ holder finds A+ Core 2 Security (28%) largely familiar at a foundational level. Focus Core 2 prep on Operating Systems (28%) + Software Troubleshooting + Operational Procedures, which are A+-specific.'
+    },
+
+    // ── A+ Core 2 → Sec+ — reverse: A+ Core 2 security is a Sec+ on-ramp ────
+    {
+      from: 'aplus-core2',
+      to: 'secplus',
+      pct: 30,
+      sharedCount: 5,
+      totalTargetCount: 16,
+      headline: 'A+ Core 2 security is a Sec+ on-ramp',
+      sharedTopics: [
+        'Social engineering attack distinctions',
+        'Malware types + removal basics',
+        'MFA factor categories + authentication',
+        'Encryption + hashing fundamentals',
+        'SOHO + wireless security hardening'
+      ],
+      refresherTopics: [
+        'Cryptography + PKI go much deeper (cert formats, key management)',
+        'IAM expands to federation, SSO, SAML, conditional access'
+      ],
+      newTopics: [
+        'Risk management + governance (Sec+ Domain 5)',
+        'Security architecture + Zero Trust models',
+        'Incident response (PICERL) + digital forensics',
+        'Threat intelligence + threat modelling',
+        'Security operations + SIEM + automation'
+      ],
+      hoursSaved: 10,
+      daysSaved: 2,
+      callout: 'A+ Core 2 gives you the security vocabulary; Sec+ SY0-701 expands it into governance, architecture, operations, and risk. The shared concepts are real but Sec+ is far broader — budget full prep for Domains 4 + 5.'
     }
   ];
 })();

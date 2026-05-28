@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>CompTIA A+ Core 2 Baseline · 30-sec setup — CertAnvil</title>
+<meta name="theme-color" content="#fafbff">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="CertAnvil">
+<meta name="description" content="Calibrate the CompTIA A+ Core 2 Pass Plan to your exam date and study intensity. 30 seconds, optional, skippable.">
+<link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+<link rel="apple-touch-icon" href="../../favicon.svg">
+<link rel="stylesheet" href="../../styles.css">
+<link rel="canonical" href="https://certanvil.com/diagnostic/aplus-core2/intake">
+<meta name="robots" content="noindex, nofollow">
+<script>
+(function() {
+  var theme = 'light';
+  try {
+    var saved = localStorage.getItem('certanvil_theme');
+    if (saved === 'light' || saved === 'dark') theme = saved;
+  } catch (e) {}
+  document.documentElement.setAttribute('data-theme', theme);
+})();
+</script>
+<style>
+  /* Inherits shell styling pattern from /diagnostic. Duplicated here so each
+     page is self-contained; in v1.2 we'll extract /landing/diagnostic/shell.css */
+  .dx-hero { padding: 64px 0 24px; text-align: center; }
+  .dx-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--accent-dim, rgba(124,111,247,.15));
+    color: var(--accent, #7c6ff7);
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .12em;
+    padding: 5px 12px;
+    border-radius: 12px;
+    margin-bottom: 16px;
+  }
+  .dx-eyebrow-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent, #7c6ff7); }
+  .dx-h1 {
+    font-size: clamp(28px, 4vw, 38px);
+    font-weight: 800;
+    letter-spacing: -.02em;
+    margin: 0 0 10px;
+    line-height: 1.1;
+  }
+  .dx-sub {
+    color: var(--text-mid, #6c6d80);
+    font-size: 15px;
+    max-width: 480px;
+    margin: 0 auto 20px;
+    line-height: 1.5;
+  }
+  .dx-step-progress {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    margin-bottom: 16px;
+    font-size: 11px;
+    color: var(--text-dim, #8a8b9c);
+  }
+  .dx-step-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--border, rgba(0,0,0,.12));
+  }
+  .dx-step-dot.active { background: var(--accent, #7c6ff7); }
+  .dx-step-dot.done { background: var(--green, #22c55e); }
+  .dx-card-stack { max-width: 480px; margin: 0 auto 48px; padding: 0 12px; }
+
+  /* Form fields */
+  .dx-field { margin-bottom: 18px; }
+  .dx-field-label {
+    display: block;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--text-dim, #8a8b9c);
+    margin-bottom: 8px;
+  }
+  .dx-field-help {
+    font-size: 11px;
+    color: var(--text-dim, #8a8b9c);
+    margin-top: 6px;
+  }
+  .dx-input {
+    width: 100%;
+    background: var(--surface, #fff);
+    border: 1px solid var(--border, rgba(0,0,0,.12));
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-family: inherit;
+    font-size: 14px;
+    color: var(--text, #1a1a26);
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  .dx-input:focus {
+    outline: none;
+    border-color: var(--accent, #7c6ff7);
+    box-shadow: 0 0 0 3px rgba(124,111,247,.18);
+  }
+
+  /* Intensity radio segment */
+  .dx-intensity-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 6px;
+  }
+  .dx-intensity-btn {
+    background: var(--surface, #fff);
+    border: 1px solid var(--border, rgba(0,0,0,.12));
+    border-radius: 10px;
+    padding: 12px 10px;
+    font-family: inherit;
+    font-size: 12px;
+    cursor: pointer;
+    text-align: left;
+    transition: border-color .15s, background .15s;
+    color: var(--text, #1a1a26);
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    line-height: 1.2;
+  }
+  .dx-intensity-btn-emoji { font-size: 18px; }
+  .dx-intensity-btn-name { font-size: 13px; font-weight: 700; }
+  .dx-intensity-btn-meta { font-size: 10px; color: var(--text-dim, #8a8b9c); font-weight: 600; }
+  .dx-intensity-btn:hover { border-color: var(--accent, #7c6ff7); }
+  .dx-intensity-btn.is-selected {
+    border-color: var(--accent, #7c6ff7);
+    background: linear-gradient(135deg, rgba(124,111,247,.08), var(--surface, #fff));
+  }
+  .dx-intensity-btn.is-selected .dx-intensity-btn-name { color: var(--accent, #7c6ff7); }
+
+  /* Actions */
+  .dx-actions { margin-top: 24px; display: flex; flex-direction: column; gap: 10px; }
+  .dx-btn {
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 700;
+    padding: 13px 18px;
+    border-radius: 10px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: transform .15s, background .15s, border-color .15s, color .15s;
+    text-align: center;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  .dx-btn-primary { background: var(--accent, #7c6ff7); color: white; border-color: var(--accent, #7c6ff7); }
+  .dx-btn-primary:hover { background: var(--accent-light, #9b8df9); border-color: var(--accent-light, #9b8df9); }
+  .dx-btn-primary:active { transform: scale(.98); }
+  .dx-btn-ghost { background: transparent; color: var(--text-mid, #4a4b5e); border-color: var(--border, rgba(0,0,0,.12)); }
+  .dx-btn-ghost:hover { background: var(--surface2, #f5f6f9); color: var(--text, #1a1a26); }
+  .dx-back-link {
+    display: inline-block;
+    margin-top: 12px;
+    color: var(--accent, #7c6ff7);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 600;
+    text-align: center;
+  }
+  .dx-back-link:hover { text-decoration: underline; }
+  .dx-skip-link {
+    display: block;
+    text-align: center;
+    color: var(--text-dim, #8a8b9c);
+    text-decoration: none;
+    font-size: 12px;
+    font-weight: 600;
+    margin-top: 6px;
+  }
+  .dx-skip-link:hover { color: var(--text-mid, #4a4b5e); text-decoration: underline; }
+
+  /* Cert-specific hero accent */
+  .dx-cert-pill {
+    display: inline-block;
+    background: rgba(124,111,247,.12);
+    color: var(--accent, #7c6ff7);
+    font-size: 11px;
+    font-weight: 800;
+    padding: 4px 11px;
+    border-radius: 9px;
+    margin-bottom: 8px;
+    letter-spacing: .04em;
+  }
+
+  @media (max-width: 600px) {
+    .dx-hero { padding: 40px 0 18px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="logo" href="/" aria-label="CertAnvil home">
+      <span class="logo-mark" aria-hidden="true">
+        <svg viewBox="0 0 100 100" fill="none" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+          <path d="M58 12 C42 6, 16 16, 14 34 C12 52, 22 62, 42 64" stroke="#b8860b" stroke-width="7" stroke-linecap="round"/>
+          <line x1="30" y1="84" x2="70" y2="16" stroke="#6a6a76" stroke-width="5" stroke-linecap="round"/>
+          <path d="M46 88 L64 50 L82 88 M53 74 L75 74" stroke="#b8860b" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </span>
+      <span class="logo-name">CertAnvil</span>
+    </a>
+    <nav class="topbar-nav" aria-label="Primary navigation">
+      <a href="/#why" class="nav-link">Why CertAnvil</a>
+      <a href="/#certs" class="nav-link">Certs</a>
+      <a href="/pricing" class="nav-link">Pricing</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+<div class="container">
+
+<section class="dx-hero">
+  <span class="dx-eyebrow"><span class="dx-eyebrow-dot"></span> Baseline Diagnostic · CompTIA A+ Core 2 220-1202</span>
+  <div class="dx-step-progress" aria-label="Step 2 of 4">
+    <span class="dx-step-dot done" aria-hidden="true"></span>
+    <span class="dx-step-dot active" aria-hidden="true"></span>
+    <span class="dx-step-dot" aria-hidden="true"></span>
+    <span class="dx-step-dot" aria-hidden="true"></span>
+    <span style="margin-left:8px">Step 2 of 4 · Calibrate the plan</span>
+  </div>
+  <h1 class="dx-h1">30 seconds of setup · then we start.</h1>
+  <p class="dx-sub">Optional. Skip and we'll use sensible defaults. Both fields just help us tune the Pass Plan to your reality.</p>
+</section>
+
+<section class="dx-card-stack">
+  <div class="dx-field">
+    <label for="dx-exam-date" class="dx-field-label">When's your CompTIA A+ Core 2 exam?</label>
+    <input type="date" id="dx-exam-date" class="dx-input" aria-describedby="dx-exam-date-help">
+    <div id="dx-exam-date-help" class="dx-field-help">Leave blank if not yet booked — we'll plan for a 6-week-from-now default.</div>
+  </div>
+
+  <div class="dx-field">
+    <span class="dx-field-label">How intense will you study?</span>
+    <div class="dx-intensity-row" role="radiogroup" aria-label="Study intensity">
+      <button type="button" class="dx-intensity-btn" data-intensity="light" aria-pressed="false">
+        <span class="dx-intensity-btn-emoji">🌱</span>
+        <span class="dx-intensity-btn-name">Light</span>
+        <span class="dx-intensity-btn-meta">~10 Q/day</span>
+      </button>
+      <button type="button" class="dx-intensity-btn is-selected" data-intensity="standard" aria-pressed="true">
+        <span class="dx-intensity-btn-emoji">⚡</span>
+        <span class="dx-intensity-btn-name">Standard</span>
+        <span class="dx-intensity-btn-meta">~25 Q/day</span>
+      </button>
+      <button type="button" class="dx-intensity-btn" data-intensity="intense" aria-pressed="false">
+        <span class="dx-intensity-btn-emoji">🔥</span>
+        <span class="dx-intensity-btn-name">Intense</span>
+        <span class="dx-intensity-btn-meta">~50 Q/day</span>
+      </button>
+    </div>
+    <div class="dx-field-help">Default is Standard. You can change this anytime in the app later.</div>
+  </div>
+
+  <div class="dx-actions">
+    <button type="button" class="dx-btn dx-btn-primary" id="dx-start-btn">
+      Start the diagnostic · 30 min →
+    </button>
+    <a href="/diagnostic/aplus-core2/quiz" class="dx-skip-link" id="dx-skip-link">Skip — use defaults</a>
+    <a href="/diagnostic" class="dx-back-link">← Back to cert picker</a>
+  </div>
+</section>
+
+</div>
+</main>
+
+<footer class="foot">
+  <div class="container">
+    <div class="foot-inner">
+      <span class="foot-brand">certanvil.com · forged for the exam</span>
+      <nav class="foot-nav" aria-label="Footer navigation">
+        <a href="/privacy" class="foot-link">Privacy</a>
+        <a href="/terms" class="foot-link">Terms</a>
+        <a href="mailto:hello@certanvil.com" class="foot-link">Contact</a>
+      </nav>
+    </div>
+  </div>
+</footer>
+
+<script>
+// ══════════════════════════════════════════
+// D.1 · Intake page (CompTIA A+ Core 2) · Stage 4
+// ══════════════════════════════════════════
+// Stores chosen exam date + intensity in sessionStorage under the diagnostic
+// state envelope. Both fields are optional. The "Start" button always
+// proceeds — saving empty values is fine; D.4 (Pass Plan) uses sensible
+// defaults for missing fields.
+
+(function() {
+  'use strict';
+
+  var INTAKE_KEY = 'certanvilDiagnosticIntake';
+  var SELECTED_CERT_KEY = 'certanvilDiagnosticCert';
+  var CERT = 'aplus-core2';
+  var dateInput = document.getElementById('dx-exam-date');
+  var intensityBtns = document.querySelectorAll('.dx-intensity-btn[data-intensity]');
+  var startBtn = document.getElementById('dx-start-btn');
+  var skipLink = document.getElementById('dx-skip-link');
+
+  // ── Ensure cert state is in sync (handles deep-link to intake without picker) ──
+  try { sessionStorage.setItem(SELECTED_CERT_KEY, CERT); } catch (_) {}
+
+  // ── Restore previous selections if revisiting ──
+  var selectedIntensity = 'standard';
+  try {
+    var saved = sessionStorage.getItem(INTAKE_KEY);
+    if (saved) {
+      var parsed = JSON.parse(saved);
+      if (parsed && parsed.cert === CERT) {
+        if (parsed.examDate) dateInput.value = parsed.examDate;
+        if (parsed.intensity) selectedIntensity = parsed.intensity;
+      }
+    }
+  } catch (_) {}
+
+  function selectIntensity(level) {
+    selectedIntensity = level;
+    intensityBtns.forEach(function(btn) {
+      var match = btn.getAttribute('data-intensity') === level;
+      btn.classList.toggle('is-selected', match);
+      btn.setAttribute('aria-pressed', match ? 'true' : 'false');
+    });
+  }
+  selectIntensity(selectedIntensity);
+
+  intensityBtns.forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      selectIntensity(btn.getAttribute('data-intensity'));
+    });
+  });
+
+  function persistIntake() {
+    try {
+      sessionStorage.setItem(INTAKE_KEY, JSON.stringify({
+        cert: CERT,
+        examDate: dateInput.value || null,
+        intensity: selectedIntensity,
+        capturedAt: Date.now()
+      }));
+    } catch (_) { /* private mode etc — diagnostic still works with sensible defaults */ }
+  }
+
+  startBtn.addEventListener('click', function() {
+    persistIntake();
+    window.location.href = '/diagnostic/' + CERT + '/quiz';
+  });
+
+  // The skip link is an actual <a> so it works without JS, but we still
+  // persist the (default) intake state on click for downstream pages.
+  skipLink.addEventListener('click', function() {
+    persistIntake();
+  });
+})();
+</script>
+
+</body>
+</html>

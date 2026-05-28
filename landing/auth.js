@@ -486,6 +486,26 @@
       activeMeta: 'available now',
       href: 'https://azure.certanvil.com/'
     }));
+    // Stage 4 — CompTIA A+ Core 1 + Core 2 rows. Mirror the az900 Pattern A
+    // entry; in-app Pro gating happens on the aplus.certanvil.com subdomain.
+    rows.push(rowForCert({
+      id: 'aplus-core1',
+      glyph: 'A+',
+      glyphClass: 'cert-glyph-aplus',
+      name: 'CompTIA A+ Core 1',
+      code: '220-1201',
+      activeMeta: 'available now',
+      href: 'https://aplus.certanvil.com/?exam=core1'
+    }));
+    rows.push(rowForCert({
+      id: 'aplus-core2',
+      glyph: 'A+',
+      glyphClass: 'cert-glyph-aplus',
+      name: 'CompTIA A+ Core 2',
+      code: '220-1202',
+      activeMeta: 'available now',
+      href: 'https://aplus.certanvil.com/?exam=core2'
+    }));
     listEl.innerHTML = rows.join('');
 
     // Show Security+ analytics quick link in the cross-cert modal too

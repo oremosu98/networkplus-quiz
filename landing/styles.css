@@ -403,6 +403,7 @@ button { font: inherit; border: 0; background: transparent; cursor: pointer; col
 .cert-glyph-netplus,
 .cert-glyph-secplus,
 .cert-glyph-az900,
+.cert-glyph-aplus,
 .cert-glyph-ccna,
 .cert-glyph-aws,
 .cert-glyph-az104 {
@@ -412,6 +413,7 @@ button { font: inherit; border: 0; background: transparent; cursor: pointer; col
 .cert-glyph-netplus { color: var(--accent-light); }
 .cert-glyph-secplus { color: #fbbf24; }
 .cert-glyph-az900   { color: #38bdf8; }
+.cert-glyph-aplus   { color: #e07a5f; }
 .cert-glyph-ccna    { color: #34d399; }
 .cert-glyph-aws     { color: #fcd34d; }
 .cert-glyph-az104   { color: #a99df9; }
