@@ -48,7 +48,7 @@ function detectCert() {
       const url = new URL(location.href);
       const param = (url.searchParams.get('cert') || '').toLowerCase().trim();
       if (param === 'netplus' || param === 'secplus' || param === 'az900' || param === 'ai900'
-          || param === 'aplus-core1' || param === 'aplus-core2' || param === 'sc900') {
+          || param === 'aplus-core1' || param === 'aplus-core2' || param === 'sc900' || param === 'clfc02') {
         try { localStorage.setItem(certOverrideKey, param); } catch (e) {}
         try {
           url.searchParams.delete('cert');
@@ -114,6 +114,15 @@ function detectCert() {
       if (host.indexOf('sc900.') === 0
           || host.indexOf('sc900-') === 0
           || host === 'sc900.certanvil.com') return 'sc900';
+      // v7.8.0 — seventh cert AWS Certified Cloud Practitioner CLF-C02 on
+      // clfc02.certanvil.com (Pattern A; founder lock 2026-05-29). Third
+      // VENDOR (AWS, alongside CompTIA + Microsoft). Single-exam — plain
+      // return, standard cross-subdomain nav from the switcher. Cert-id
+      // 'clfc02' matches the az900/ai900/sc900 no-hyphen single-vendor
+      // convention; the displayed exam code stays 'CLF-C02'.
+      if (host.indexOf('clfc02.') === 0
+          || host.indexOf('clfc02-') === 0
+          || host === 'clfc02.certanvil.com') return 'clfc02';
       // v7.6.0 — fifth cert family CompTIA A+ on aplus.certanvil.com (Pattern
       // A; founder lock 2026-05-27). A+ is ONE certification with TWO exams
       // (Core 1 220-1201 + Core 2 220-1202) that SHARE one subdomain — the
@@ -141,7 +150,7 @@ function detectCert() {
     if (typeof localStorage !== 'undefined') {
       const dev = localStorage.getItem('nplus_dev_cert');
       if (dev === 'secplus' || dev === 'netplus' || dev === 'az900' || dev === 'ai900'
-          || dev === 'aplus-core1' || dev === 'aplus-core2' || dev === 'sc900') return dev;
+          || dev === 'aplus-core1' || dev === 'aplus-core2' || dev === 'sc900' || dev === 'clfc02') return dev;
     }
   } catch (e) { /* localStorage may be blocked */ }
 
@@ -17029,7 +17038,39 @@ function renderSetupDomainGrid() {
       { label: 'Insider Risk',          key: 'Insider Risk Management' },
     ],
   };
-  // v7.7.0 — 7-way cert selector (was 6-way ternary). Falls through to Net+
+  // v7.8.0 — seventh cert AWS Cloud Practitioner CLF-C02 (4 domains × 5 canon
+  // topics; keys match topicDomains in certs/clfc02.js exactly).
+  const _CANONICAL_CLFC02 = {
+    'cloud-concepts': [
+      { label: 'Cloud Benefits',        key: 'Benefits of the AWS Cloud' },
+      { label: 'Well-Architected',      key: 'Well-Architected Framework' },
+      { label: 'Sustainability',        key: 'Sustainability Pillar' },
+      { label: 'Migration (7 Rs)',      key: 'Cloud Migration Strategies (7 Rs)' },
+      { label: 'Cloud Economics',       key: 'Cloud Economics' },
+    ],
+    'security-compliance': [
+      { label: 'Shared Responsibility', key: 'Shared Responsibility Model' },
+      { label: 'IAM',                   key: 'IAM Users, Groups & Roles' },
+      { label: 'Organizations',         key: 'AWS Organizations' },
+      { label: 'GuardDuty',             key: 'Amazon GuardDuty' },
+      { label: 'KMS & Encryption',      key: 'AWS KMS & Encryption' },
+    ],
+    'cloud-tech-services': [
+      { label: 'Global Infra',          key: 'AWS Global Infrastructure' },
+      { label: 'EC2',                   key: 'Amazon EC2 & Instance Types' },
+      { label: 'S3 Classes',            key: 'Amazon S3 Storage Classes' },
+      { label: 'RDS/Aurora',            key: 'Relational Databases (RDS/Aurora)' },
+      { label: 'VPC/Route 53/CDN',      key: 'Networking (VPC/Route 53/CloudFront)' },
+    ],
+    'billing-pricing-support': [
+      { label: 'Pricing Models',        key: 'EC2 Pricing Models' },
+      { label: 'Support Plans',         key: 'AWS Support Plans' },
+      { label: 'Trusted Advisor',       key: 'AWS Trusted Advisor & Compute Optimizer' },
+      { label: 'Billing & Budgets',     key: 'Consolidated Billing & Budgets' },
+      { label: 'Free Tier',             key: 'AWS Free Tier & Pricing Calculator' },
+    ],
+  };
+  // v7.8.0 — 8-way cert selector (was 7-way ternary). Falls through to Net+
   // when CURRENT_CERT isn't recognised (defensive; preserves prior behavior).
   const CANONICAL_DOMAIN_TOPICS = (typeof CURRENT_CERT !== 'undefined' && CURRENT_CERT === 'secplus')
     ? _CANONICAL_SECPLUS
@@ -17043,7 +17084,9 @@ function renderSetupDomainGrid() {
                     ? _CANONICAL_APLUS_CORE1
                     : ((typeof CURRENT_CERT !== 'undefined' && CURRENT_CERT === 'aplus-core2')
                         ? _CANONICAL_APLUS_CORE2
-                        : _CANONICAL_NETPLUS)))));
+                        : ((typeof CURRENT_CERT !== 'undefined' && CURRENT_CERT === 'clfc02')
+                            ? _CANONICAL_CLFC02
+                            : _CANONICAL_NETPLUS))))));
   // Build a set of weak topic keys for quick lookup
   const weakSet = new Set();
   try {

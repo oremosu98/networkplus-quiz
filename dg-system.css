@@ -2255,3 +2255,13 @@ html[data-cert="sc900"] .dgh-db[data-domain-idx="5"]{
   display:none !important;
 }
 
+/* v7.8.0 — CLF-C02 (AWS Cloud Practitioner) is a 4-domain cert (cloud-concepts /
+   security-compliance / cloud-tech-services / billing-pricing-support), the same
+   4-domain shape as SC-900 + A+ Core 2. Hide the stale 5th slot on all three
+   surfaces. Scoped by data-cert on <html> (set by the index.html inline IIFE). */
+html[data-cert="clfc02"] details.topic-domain-group[data-domain-idx="5"],
+html[data-cert="clfc02"] .tdp-pill[data-domain-idx="5"],
+html[data-cert="clfc02"] .dgh-db[data-domain-idx="5"]{
+  display:none !important;
+}
+

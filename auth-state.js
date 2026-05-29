@@ -91,6 +91,8 @@
       { id: 'ai900',   name: 'Microsoft Azure AI Fundamentals',code: 'AI-900',  tier: 'pro'  },
       // v7.7.0 — sixth cert SC-900 (single-exam, Microsoft Security/Compliance/Identity)
       { id: 'sc900',   name: 'Microsoft SC-900',                code: 'SC-900',  tier: 'pro'  },
+      // v7.8.0 — seventh cert AWS Cloud Practitioner CLF-C02 (single-exam, AWS — third vendor)
+      { id: 'clfc02',  name: 'AWS Cloud Practitioner',          code: 'CLF-C02', tier: 'pro'  },
       // v7.6.0 — fifth cert family CompTIA A+ (dual-exam): both Core 1 + Core 2
       // are selectable rows on the shared aplus.certanvil.com subdomain.
       { id: 'aplus-core1', name: 'CompTIA A+ Core 1', code: '220-1201', tier: 'pro' },
@@ -102,7 +104,7 @@
     try {
       var dev = localStorage.getItem(CERT_OVERRIDE_KEY);
       if (dev === 'secplus' || dev === 'netplus' || dev === 'az900' || dev === 'ai900'
-          || dev === 'aplus-core1' || dev === 'aplus-core2' || dev === 'sc900') return dev;
+          || dev === 'aplus-core1' || dev === 'aplus-core2' || dev === 'sc900' || dev === 'clfc02') return dev;
     } catch (e) {}
     try {
       var host = window.location.hostname || '';
@@ -129,6 +131,12 @@
       if (host.indexOf('sc900.') === 0
           || host.indexOf('sc900-') === 0
           || host === 'sc900.certanvil.com') return 'sc900';
+      // v7.8.0 — seventh cert AWS Cloud Practitioner CLF-C02 on
+      // clfc02.certanvil.com (Pattern A; founder lock 2026-05-29). Single-exam,
+      // AWS vendor (third vendor). Standard cross-subdomain switcher nav.
+      if (host.indexOf('clfc02.') === 0
+          || host.indexOf('clfc02-') === 0
+          || host === 'clfc02.certanvil.com') return 'clfc02';
       // v7.6.0 — fifth cert family CompTIA A+ on aplus.certanvil.com (Pattern
       // A; founder lock 2026-05-27). Core 1 + Core 2 share the subdomain; the
       // localStorage override above (checked FIRST) differentiates the active
@@ -160,7 +168,7 @@
   // where subdomain hosts aren't available.
   window.tadSwitchCert = function (certId) {
     if (certId !== 'netplus' && certId !== 'secplus' && certId !== 'az900' && certId !== 'ai900'
-        && certId !== 'aplus-core1' && certId !== 'aplus-core2' && certId !== 'sc900') return false;
+        && certId !== 'aplus-core1' && certId !== 'aplus-core2' && certId !== 'sc900' && certId !== 'clfc02') return false;
     // Pro gate for Sec+ + AZ-900 + AI-900: delegate to canonical _gateProOnly.
     // Returns true if Pro/admin (proceed) OR false if Free (modal already shown, abort).
     // v7.3.0: az900 joins secplus on the Pro tier.
@@ -177,6 +185,10 @@
     // v7.7.0: sc900 joins as the sixth Pro-tier cert (founder lock 2026-05-28).
     if (certId === 'sc900' && typeof window._gateProOnly === 'function') {
       if (!window._gateProOnly('Microsoft SC-900 Security, Compliance & Identity Fundamentals')) return false;
+    }
+    // v7.8.0: clfc02 joins as the seventh Pro-tier cert (founder lock 2026-05-29).
+    if (certId === 'clfc02' && typeof window._gateProOnly === 'function') {
+      if (!window._gateProOnly('AWS Certified Cloud Practitioner (CLF-C02)')) return false;
     }
     // v7.6.0: both A+ exams are Pro-tier.
     if (certId === 'aplus-core1' && typeof window._gateProOnly === 'function') {
@@ -228,7 +240,9 @@
             ? 'ai.certanvil.com'
             : (certId === 'sc900')
               ? 'sc900.certanvil.com'
-              : 'networkplus.certanvil.com';
+              : (certId === 'clfc02')
+                ? 'clfc02.certanvil.com'
+                : 'networkplus.certanvil.com';
       try { window.location.href = 'https://' + targetHost + '/'; } catch (e) {}
     }
     return false;
