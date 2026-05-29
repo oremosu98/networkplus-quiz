@@ -181,6 +181,11 @@
     return certs;
   }
 
+  // E2E hook (v7.8.2): expose the entitlements builder so Playwright can assert
+  // the canonical 8-exam set + no phantom certs (cd8c784 contract). Read-only
+  // data getter — mirrors the cert-app's window.renderHistoryPanel pattern.
+  window.accGetCertEntitlements = getCertEntitlements;
+
   // ── Render: identity + profile + subscription ─────────────────────────
   function renderEverything(user, profile) {
     var role = (profile && profile.role) || 'user';

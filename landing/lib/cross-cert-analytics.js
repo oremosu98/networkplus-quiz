@@ -232,6 +232,11 @@
     ];
   }
 
+  // E2E hook (v7.8.2): expose the cert catalog so Playwright can assert the
+  // canonical 8-exam set renders + no phantom certs leak (cd8c784 contract).
+  // Read-only data getter — same pattern as the cert-app's window.renderHistoryPanel.
+  window.ccaGetCertCatalog = getCertCatalog;
+
   // ── Auth flow ──────────────────────────────────────────────────────────
   function showLoading() {
     if (elLoading) elLoading.removeAttribute('hidden');

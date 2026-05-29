@@ -33,8 +33,10 @@ jobs:
       # local iOS testing (`npm run test:webkit` / `test:mobile-safari`).
       # CI gates on Chromium only until the existing Chromium suite is
       # triaged + iOS-specific failures are catalogued separately.
-      - name: Run Playwright E2E tests (Chromium only — gating)
-        run: npx playwright test --project=chromium
+      # v7.8.2: also gate on the `landing` project (serves landing/ on :3132,
+      # asserts the cd8c784 cert-coverage contract). Both projects use Chromium.
+      - name: Run Playwright E2E tests (Chromium + landing — gating)
+        run: npx playwright test --project=chromium --project=landing
 
       - name: Upload Playwright report on failure
         if: failure()

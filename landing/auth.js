@@ -546,6 +546,11 @@
     if (secplusLink) secplusLink.removeAttribute('hidden');
   }
 
+  // E2E hook (v7.8.2): expose the My Certs renderer so Playwright can populate
+  // #my-certs-list with a stub profile and assert the canonical 8-exam set +
+  // no phantom certs (cd8c784 contract). Mirrors window.renderHistoryPanel.
+  window.renderMyCertsList = renderMyCertsList;
+
   function buildMyCertRow(c) {
     return ''
       + '<a class="my-cert-row" href="' + escapeHtml(c.href) + '">'
