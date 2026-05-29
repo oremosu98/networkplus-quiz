@@ -24,10 +24,28 @@
 //                                   for the builder to see
 //   - SUPABASE_URL                — (optional) override; defaults to certanvil project
 //   - SUPABASE_PUBLISHABLE_KEY    — (optional) override; defaults to certanvil pub key
+//   - SUPABASE_SERVICE_ROLE_KEY   — (optional) service-role key for the per-IP-hash
+//                                   rate-limit RPC. If absent, the rate limit is
+//                                   skipped (fail-OPEN) and signups continue —
+//                                   so this ships safely BEFORE the env var is set.
 //
-// Migration to apply BEFORE this code is useful:
+// CORS (Security Phase 3 · M3b): the real signup is a same-origin POST from the
+// certanvil.com landing page (script.js → fetch('/api/notify')), so CORS is only
+// relevant to cross-origin callers. We allowlist the certanvil.com origins and
+// echo the matching Origin back — no more `Access-Control-Allow-Origin: *`, which
+// let any site on the web spam-insert waitlist rows.
+//
+// Rate limiting (Security Phase 3 · M3a): per-IP-hash, 10 POSTs / 1h rolling
+// window, enforced via a Supabase SECURITY DEFINER RPC. Fails OPEN on any infra
+// error (missing key / RPC down / throw) so a Supabase blip never blocks a real
+// signup — the abuse it stops (bulk row spam) is lower-stakes than losing a lead.
+//
+// Migrations to apply BEFORE this code is useful:
 //   supabase/migrations/20260509_notify_signups.sql
-//   (creates the table + RLS policy that lets anon insert)
+//     (creates the table + RLS policy that lets anon insert)
+//   supabase/migrations/20260529_phase3_notify_rate_limit.sql
+//     (creates notify_rate_limit + notify_rl_check_and_increment RPC — deploy
+//      this migration together with this code change)
 //
 // Reading the signups (admin-only):
 //   Open Supabase SQL editor → run:
@@ -37,27 +55,26 @@
 export const config = { runtime: 'edge' };
 
 export default async function handler(req) {
-  // CORS — same origin only is fine, but allow OPTIONS preflight
+  // CORS (M3b) — allowlist the certanvil.com origins; echo the matching Origin.
+  // The real signup is same-origin, so this never blocks legit traffic; it just
+  // stops cross-origin sites from POSTing waitlist rows. OPTIONS preflight gets
+  // the same headers (no ACAO when the Origin isn't allowed → browser blocks it).
   if (req.method === 'OPTIONS') {
     return new Response(null, {
       status: 204,
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type',
-      },
+      headers: corsHeaders(req),
     });
   }
 
   if (req.method !== 'POST') {
-    return json({ error: 'Method not allowed' }, 405);
+    return json({ error: 'Method not allowed' }, 405, req);
   }
 
   let body;
   try {
     body = await req.json();
   } catch (e) {
-    return json({ error: 'Invalid JSON body' }, 400);
+    return json({ error: 'Invalid JSON body' }, 400, req);
   }
 
   const email = (body && body.email || '').trim().toLowerCase();
@@ -66,15 +83,32 @@ export default async function handler(req) {
 
   // ── Validate ────────────────────────────────────────────────────────────
   if (!email || !email.includes('@') || email.length > 254) {
-    return json({ error: 'Invalid email' }, 400);
+    return json({ error: 'Invalid email' }, 400, req);
   }
   if (!cert || cert.length > 100) {
-    return json({ error: 'Cert label required' }, 400);
+    return json({ error: 'Cert label required' }, 400, req);
   }
 
   // Honeypot — basic anti-bot. If body includes 'website' field, bail.
+  // Kept BEFORE the rate limit so a tripped bot doesn't spend a real IP's
+  // rate-limit budget (and we still "pretend success" with no side effects).
   if (body.website) {
-    return json({ ok: true }, 200); // pretend success, log nothing
+    return json({ ok: true }, 200, req); // pretend success, log nothing
+  }
+
+  // ── Rate limit (M3a) — per-IP-hash, 10 / 1h, fail-OPEN ───────────────────
+  // Gates row spam from a single IP. Fails OPEN: a missing service-role key or
+  // any RPC error lets the signup through (a Supabase blip must never cost a
+  // real lead). Only an explicit allowed:false from the RPC returns 429.
+  const rl = await checkNotifyRateLimit(req);
+  if (rl.limited) {
+    return json({
+      error: 'rate-limited',
+      message: 'Too many signups from your network · please try again shortly',
+      hourlyLimit: rl.hourlyLimit,
+      currentCount: rl.currentCount,
+      resetsAt: rl.resetsAt,
+    }, 429, req);
   }
 
   // Log the signup (always, even when email service is unconfigured) —
@@ -190,19 +224,116 @@ export default async function handler(req) {
     // tweak the modal copy when persisted_to_supabase: true vs false). Default
     // copy still works for both.
     persisted_to_supabase: persistedToSupabase,
-  }, 200);
+  }, 200, req);
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────
 
-function json(payload, status) {
+// CORS allowlist (M3b). The notify form is served from certanvil.com (apex) —
+// www is included defensively in case a visitor lands there. Per-cert subdomains
+// (networkplus.certanvil.com, …) live in separate Vercel projects and never call
+// this endpoint, so they're intentionally NOT here.
+const ALLOWED_ORIGINS = new Set([
+  'https://certanvil.com',
+  'https://www.certanvil.com',
+]);
+
+function corsHeaders(req) {
+  const headers = {
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Vary': 'Origin',
+  };
+  const origin = req && req.headers && req.headers.get('origin');
+  if (origin && ALLOWED_ORIGINS.has(origin)) {
+    headers['Access-Control-Allow-Origin'] = origin;
+  }
+  return headers;
+}
+
+function json(payload, status, req) {
   return new Response(JSON.stringify(payload), {
     status: status || 200,
     headers: {
+      ...corsHeaders(req),
       'Content-Type': 'application/json',
-      'Access-Control-Allow-Origin': '*',
     },
   });
+}
+
+// ── Rate limit (M3a) ───────────────────────────────────────────────────────
+// Per-IP-hash, 10 POSTs / 1h, via the notify_rl_check_and_increment SECURITY
+// DEFINER RPC (service-role key). FAIL-OPEN on every infra error path: a missing
+// key, a non-2xx RPC response, an empty body, or a thrown fetch all return
+// { limited: false } so the signup proceeds. Only an explicit allowed:false from
+// the RPC returns { limited: true } → 429.
+async function checkNotifyRateLimit(req) {
+  const PASS = { limited: false };
+  const supabaseUrl = process.env.SUPABASE_URL || 'https://appmuaqwuethndvalarl.supabase.co';
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  // No service-role key configured → skip the limit (graceful pre-config; same
+  // soft-degrade philosophy as the rest of this endpoint).
+  if (!supabaseUrl || !serviceKey) {
+    console.warn('[certanvil-notify] SUPABASE_SERVICE_ROLE_KEY missing · rate limit skipped (fail-open)');
+    return PASS;
+  }
+  try {
+    const ipHash = await hashIp(extractIp(req));
+    const resp = await fetch(supabaseUrl + '/rest/v1/rpc/notify_rl_check_and_increment', {
+      method: 'POST',
+      headers: {
+        'apikey': serviceKey,
+        'Authorization': 'Bearer ' + serviceKey,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ p_ip_hash: ipHash }),
+    });
+    if (!resp.ok) {
+      const text = await resp.text();
+      console.error('[certanvil-notify] Rate-limit RPC failed (fail-open):', resp.status, text);
+      return PASS; // fail-OPEN
+    }
+    const data = await resp.json();
+    const row = Array.isArray(data) ? data[0] : data;
+    if (!row) {
+      console.error('[certanvil-notify] Rate-limit RPC returned empty (fail-open)');
+      return PASS; // fail-OPEN
+    }
+    if (row.allowed === false) {
+      return {
+        limited: true,
+        hourlyLimit: row.hourly_limit,
+        currentCount: row.current_count,
+        resetsAt: row.resets_at,
+      };
+    }
+    return PASS;
+  } catch (e) {
+    console.error('[certanvil-notify] Rate-limit RPC threw (fail-open):', e && (e.message || String(e)));
+    return PASS; // fail-OPEN
+  }
+}
+
+function extractIp(req) {
+  // Vercel forwards client IP via x-forwarded-for · x-real-ip · cf-connecting-ip
+  return (
+    req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+    req.headers.get('x-real-ip') ||
+    req.headers.get('cf-connecting-ip') ||
+    '0.0.0.0'
+  );
+}
+
+async function hashIp(ip) {
+  // SHA-256 truncated to first 16 hex chars · raw IP never stored. Distinct salt
+  // from the diagnostic endpoints so the same IP's hashes don't correlate across
+  // tables.
+  const enc = new TextEncoder().encode(ip + '::certanvil-notify-salt-v1');
+  const buf = await crypto.subtle.digest('SHA-256', enc);
+  return Array.from(new Uint8Array(buf))
+    .slice(0, 8)
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
 }
 
 function buildUserHtml(cert) {

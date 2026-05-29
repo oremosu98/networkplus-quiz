@@ -24900,6 +24900,86 @@ console.log('\n\x1b[1m── Security Phase 2 — DB QUICK WINS ──\x1b[0m');
     && /'email_mismatch'/.test(p2));
 })();
 
+// ══════════════════════════════════════════════════════════════════════════
+// Security Phase 3 · notify-me rate limit + CORS (20260529_phase3_notify_rate_limit.sql
+// + landing/api/notify.js). M3a per-IP-hash rate limit (fail-OPEN) · M3b CORS
+// tightened from `*` to the certanvil.com allowlist. See SECURITY-AUDIT-2026-05-29.md.
+// ══════════════════════════════════════════════════════════════════════════
+console.log('\n\x1b[1m── Security Phase 3 — NOTIFY RATE LIMIT + CORS ──\x1b[0m');
+(function () {
+  const p3Path = path.join(ROOT, 'supabase/migrations/20260529_phase3_notify_rate_limit.sql');
+  const p3 = fs.existsSync(p3Path) ? fs.readFileSync(p3Path, 'utf8') : '';
+  const notify = fs.existsSync(path.join(ROOT, 'landing/api/notify.js'))
+    ? fs.readFileSync(path.join(ROOT, 'landing/api/notify.js'), 'utf8') : '';
+
+  // — file + gated-lane convention —
+  test('Sec-P3 migration: 20260529_phase3_notify_rate_limit.sql exists',
+    p3.length > 1000);
+  test('Sec-P3 migration: carries a -- ROLLBACK block (gated-lane discipline, dated >= 2026-05-12)',
+    /-- ROLLBACK/.test(p3));
+  test('Sec-P3 migration: preflight guard requires notify_signups + is_admin()',
+    /notify_signups not found/.test(p3) && /is_admin\(\) not found/.test(p3));
+
+  // — M3a: rate-limit table + RPC (mirrors diag_signup pattern) —
+  test('Sec-P3 M3a: creates notify_rate_limit table (ip_hash PK + counters)',
+    /create\s+table\s+if\s+not\s+exists\s+notify_rate_limit/i.test(p3)
+    && /ip_hash\s+text\s+primary key/i.test(p3)
+    && /call_count\s+int/i.test(p3)
+    && /first_at\s+timestamptz/i.test(p3)
+    && /last_at\s+timestamptz/i.test(p3));
+  test('Sec-P3 M3a: creates notify_rl_check_and_increment RPC',
+    /create\s+or\s+replace\s+function\s+notify_rl_check_and_increment/i.test(p3));
+  test('Sec-P3 M3a: RPC is SECURITY DEFINER with pinned search_path (atomic RL check)',
+    /notify_rl_check_and_increment[\s\S]{0,800}security\s+definer/i.test(p3)
+    && /notify_rl_check_and_increment[\s\S]{0,900}set\s+search_path\s*=\s*public/i.test(p3));
+  test('Sec-P3 M3a: RPC enforces 10-call / 1h window',
+    /v_limit\s+constant\s+int\s*:=\s*10/.test(p3)
+    && /interval\s+'1 hour'/.test(p3));
+  test('Sec-P3 M3a: RLS admin-only select on rate-limit table (clients have no read/write)',
+    /alter\s+table\s+notify_rate_limit\s+enable\s+row\s+level\s+security/i.test(p3)
+    && /notify_rl_admin_select[\s\S]{0,200}is_admin\(\)/i.test(p3));
+  test('Sec-P3 M3a: migration includes purge helper (notify_rl_purge_old)',
+    /create\s+or\s+replace\s+function\s+notify_rl_purge_old/i.test(p3));
+
+  // — M3a: endpoint wiring —
+  test('Sec-P3 M3a: notify.js calls the rate-limit RPC',
+    /\/rest\/v1\/rpc\/notify_rl_check_and_increment/.test(notify));
+  test('Sec-P3 M3a: notify.js hashes client IP (SHA-256, raw IP never stored, distinct salt)',
+    /crypto\.subtle\.digest\(\s*['"]SHA-256['"]/.test(notify)
+    && /certanvil-notify-salt-v1/.test(notify));
+  test('Sec-P3 M3a: notify.js uses the service-role key for the RL RPC',
+    /SUPABASE_SERVICE_ROLE_KEY/.test(notify));
+  test('Sec-P3 M3a: rate limit FAILS OPEN on infra error (missing key / RPC fail / throw)',
+    /rate limit skipped \(fail-open\)/i.test(notify)
+    && /fail-open\)/i.test(notify)
+    && /threw \(fail-open\)/i.test(notify));
+  test('Sec-P3 M3a: notify.js returns 429 only on explicit allowed:false',
+    /row\.allowed\s*===\s*false/.test(notify)
+    && /\}\s*,\s*429\s*,\s*req\s*\)/.test(notify));
+  test('Sec-P3 M3a: rate-limit check sits AFTER the honeypot (bots do not spend RL budget)',
+    /body\.website[\s\S]{0,700}checkNotifyRateLimit\(req\)/.test(notify));
+
+  // — M3b: CORS tightened from `*` to the certanvil.com allowlist —
+  test('Sec-P3 M3b: no Access-Control-Allow-Origin: * anywhere in notify.js',
+    !/Access-Control-Allow-Origin['"]?\s*:\s*['"]\*['"]/.test(notify));
+  test('Sec-P3 M3b: ALLOWED_ORIGINS allowlist contains the certanvil.com origins',
+    /ALLOWED_ORIGINS\s*=\s*new\s+Set\(/.test(notify)
+    && /https:\/\/certanvil\.com/.test(notify)
+    && /https:\/\/www\.certanvil\.com/.test(notify));
+  test('Sec-P3 M3b: corsHeaders echoes an allowlisted Origin + sets Vary: Origin',
+    /ALLOWED_ORIGINS\.has\(origin\)/.test(notify)
+    && /['"]Vary['"]\s*:\s*['"]Origin['"]/.test(notify));
+  test('Sec-P3 M3b: OPTIONS preflight + json() both route through corsHeaders(req)',
+    /headers:\s*corsHeaders\(req\)/.test(notify)
+    && /\.\.\.corsHeaders\(req\)/.test(notify));
+
+  // — graceful-degrade preserved (M3 must not break the existing soft-fail flow) —
+  test('Sec-P3 graceful: notify.js still soft-fails the Supabase insert (try/catch preserved)',
+    /try\s*\{[\s\S]{0,2000}\/rest\/v1\/notify_signups[\s\S]{0,2000}\}\s*catch\s*\(/.test(notify));
+  test('Sec-P3 graceful: notify.js still returns persisted_to_supabase flag (UX contract intact)',
+    /persisted_to_supabase:\s*persistedToSupabase/.test(notify));
+})();
+
 // ── Summary ──
 console.log('\n' + '═'.repeat(50));
 const total = results.pass + results.fail;
