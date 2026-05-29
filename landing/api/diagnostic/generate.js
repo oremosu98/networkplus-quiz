@@ -57,8 +57,8 @@ export default async function handler(req) {
   const intake = (body && typeof body.intake === 'object') ? body.intake : null;
 
   // ── 2. Validate input ──
-  if (cert !== 'network-plus' && cert !== 'security-plus' && cert !== 'azure-fundamentals' && cert !== 'azure-ai-fundamentals' && cert !== 'aplus-core1' && cert !== 'aplus-core2' && cert !== 'sc900') {
-    return json({ error: 'bad-request', message: 'Invalid cert · must be "network-plus", "security-plus", "azure-fundamentals", "azure-ai-fundamentals", "aplus-core1", "aplus-core2", or "sc900"' }, 400);
+  if (cert !== 'network-plus' && cert !== 'security-plus' && cert !== 'azure-fundamentals' && cert !== 'azure-ai-fundamentals' && cert !== 'aplus-core1' && cert !== 'aplus-core2' && cert !== 'sc900' && cert !== 'clfc02') {
+    return json({ error: 'bad-request', message: 'Invalid cert · must be "network-plus", "security-plus", "azure-fundamentals", "azure-ai-fundamentals", "aplus-core1", "aplus-core2", "sc900", or "clfc02"' }, 400);
   }
   if (!Number.isFinite(requestedCount) || requestedCount < 1 || requestedCount > HARD_QUESTION_CAP) {
     return json({ error: 'bad-request', message: 'Invalid count · 1-' + HARD_QUESTION_CAP }, 400);
@@ -445,6 +445,26 @@ function buildDiagnosticPrompt(cert, count, intake) {
       // Public Microsoft SC-900 Skills Measured (effective 2025-11-07) objective ranges
       objectiveRanges: ['1.1', '1.2', '2.1', '2.2', '2.3', '2.4', '3.1', '3.2', '3.3', '3.4', '4.1', '4.2', '4.3', '4.4'],
     };
+  } else if (cert === 'clfc02') {
+    // v7.8.0 — AWS Certified Cloud Practitioner CLF-C02 branch. Official AWS
+    // exam guide 4-domain blueprint, exact weights (sum 100). Bias toward
+    // service-discrimination scenarios (the VoC #1 pattern). vendor 'AWS' routes
+    // to the AWS bannedSources list (Tutorials Dojo + Maarek + ACG, etc.).
+    certMeta = {
+      name: 'AWS Certified Cloud Practitioner',
+      code: 'CLF-C02',
+      vendor: 'AWS',
+      domains: [
+        { id: 1, label: 'Cloud Concepts', weight: 24 },
+        { id: 2, label: 'Security and Compliance', weight: 30 },
+        { id: 3, label: 'Cloud Technology and Services', weight: 34 },
+        { id: 4, label: 'Billing, Pricing, and Support', weight: 12 },
+      ],
+      passMark: 700,
+      maxScore: 1000,
+      // Public AWS CLF-C02 Exam Guide objective ranges
+      objectiveRanges: ['1.1', '1.2', '1.3', '1.4', '2.1', '2.2', '2.3', '2.4', '3.1', '3.2', '3.3', '3.4', '3.5', '3.6', '4.1', '4.2', '4.3'],
+    };
   } else {
     certMeta = {
       name: 'CompTIA Network+',
@@ -474,6 +494,8 @@ function buildDiagnosticPrompt(cert, count, intake) {
   const isAplus = cert === 'aplus-core1' || cert === 'aplus-core2';
   const bannedSources = vendor === 'Microsoft'
     ? 'MeasureUp, Whizlabs, Skillcertpro, ExamTopics, Tutorials Dojo, ITExams, or any commercial prep bank'
+    : vendor === 'AWS'
+    ? 'Tutorials Dojo (Jon Bonso), Stephane Maarek, A Cloud Guru, Whizlabs, MeasureUp, Skillcertpro, ExamTopics, or any commercial prep bank'
     : (isAplus
       ? 'Jason Dion, Mike Meyers, Pearson Exam Cram, CompTIA CertMaster, Skillcertpro, BurningIceTech, Crucial Exams, CertEmpire, or any commercial prep bank'
       : 'CompTIA, Jason Dion, Professor Messer, CertMaster, or any commercial prep bank');

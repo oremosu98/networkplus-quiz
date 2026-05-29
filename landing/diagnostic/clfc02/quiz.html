@@ -1,0 +1,963 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>CLF-C02 Baseline · 20-Q diagnostic · CertAnvil</title>
+<meta name="theme-color" content="#fafbff">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="CertAnvil">
+<meta name="description" content="20-question AWS Cloud Practitioner (CLF-C02) diagnostic. ~30 minutes. Score + weak-domain map at the end.">
+<link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+<link rel="stylesheet" href="../../styles.css">
+<link rel="canonical" href="https://certanvil.com/diagnostic/clfc02/quiz">
+<meta name="robots" content="noindex, nofollow">
+<script>
+(function() {
+  var t;
+  try { t = localStorage.getItem('certanvilTheme') || localStorage.getItem('certanvilDiagnosticTheme') || localStorage.getItem('certanvil_theme'); } catch (e) {}
+  if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
+  /* else: no attribute -> @media prefers-color-scheme drives default */
+})();
+</script>
+
+<!-- v4.99.54 D.3: Cloudflare Turnstile invisible bot-protection challenge.
+     Site key is PUBLIC (safe to embed). Dev/test key below always passes;
+     production needs a real site key from dash.cloudflare.com/?to=/:account/turnstile -->
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+<link rel="stylesheet" href="../diagnostic-system.css?v=4.99.63">
+</head>
+<body class="no-js">
+
+<!-- TOPBAR (slim for quiz focus) -->
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="logo" href="/" aria-label="CertAnvil home">
+      <span class="logo-mark" aria-hidden="true">
+        <svg viewBox="0 0 100 100" fill="none" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+          <path d="M58 12 C42 6, 16 16, 14 34 C12 52, 22 62, 42 64" stroke="#b8860b" stroke-width="7" stroke-linecap="round"/>
+          <line x1="30" y1="84" x2="70" y2="16" stroke="#6a6a76" stroke-width="5" stroke-linecap="round"/>
+          <path d="M46 88 L64 50 L82 88 M53 74 L75 74" stroke="#b8860b" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </span>
+      <span class="logo-name">CertAnvil</span>
+    </a>
+  </div>
+</header>
+
+<main>
+
+<!-- No-JS fallback -->
+<div class="dq-no-js">
+  <h2 style="font-size:22px;font-weight:800;margin:0 0 10px">JavaScript required</h2>
+  <p style="font-size:14px;color:var(--text-mid, #4a4b5e);max-width:420px;margin:0 auto">The CLF-C02 diagnostic needs JavaScript to track your answers and time. Enable it in your browser, then refresh this page.</p>
+</div>
+
+<!-- Loading state (replaced once JS hydrates) -->
+<div class="dq-shell" id="dq-shell">
+  <!-- v4.99.54 D.3: invisible Turnstile widget. Site key 3x...FF is Cloudflare's
+       public dev/test INVISIBLE key (always passes the challenge). Prod swap to
+       a real invisible-mode key from dash.cloudflare.com → Turnstile.
+       Note: data-size is NOT set · invisible mode is determined by the key
+       itself; setting data-size="invisible" throws a TurnstileError. -->
+  <div id="dq-turnstile"
+       class="cf-turnstile"
+       data-sitekey="3x00000000000000000000FF"
+       data-callback="dqTurnstileCallback"
+       data-error-callback="dqTurnstileErrorCallback"
+       data-timeout-callback="dqTurnstileErrorCallback"></div>
+
+  <div class="dq-loading" id="dq-loading">
+    <div class="dq-loading-spinner" aria-hidden="true"></div>
+    <p id="dq-loading-text">Loading questions…</p>
+    <p style="font-size:12px;color:var(--text-dim, #8a8b9c);margin-top:6px" id="dq-loading-sub">20 questions across the 4 CLF-C02 domains.</p>
+  </div>
+
+  <!-- Source banner · surfaces when we fall back to the inline pool -->
+  <div id="dq-source-banner" role="status" aria-live="polite" style="display:none;background:linear-gradient(135deg,rgba(56,189,248,.06),transparent);border:1px solid rgba(56,189,248,.3);border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:var(--blue, #38bdf8);text-align:center"></div>
+
+  <!-- Live UI (built by JS) -->
+  <div id="dq-live" style="display:none">
+    <div class="dq-header">
+      <div class="dq-header-left">
+        <span id="dq-progress-label">Question 1 of 20</span>
+      </div>
+      <div class="dq-header-right">
+        <span class="dq-timer" id="dq-timer">30:00</span>
+        <button type="button" class="dq-quit-link" id="dq-quit-btn">Quit</button>
+      </div>
+    </div>
+
+    <div class="dq-progress" aria-hidden="true">
+      <div class="dq-progress-fill" id="dq-progress-fill" style="width:5%"></div>
+    </div>
+
+    <div class="dq-pause-banner" role="status" aria-live="polite">
+      ⏸ Paused · your timer froze when you switched tabs. Click here or come back to resume.
+    </div>
+
+    <div class="dq-card">
+      <div class="dq-card-pills" id="dq-card-pills"></div>
+      <p class="dq-stem" id="dq-stem"></p>
+      <div class="dq-options" id="dq-options" role="radiogroup" aria-label="Answer choices"></div>
+
+      <div class="dq-confidence" role="group" aria-labelledby="dq-confidence-label">
+        <p class="dq-confidence-label" id="dq-confidence-label">How confident are you?</p>
+        <div class="dq-confidence-row">
+          <button type="button" class="dq-confidence-btn" data-confidence="guessing" aria-pressed="false">
+            <span class="dq-confidence-btn-emoji">😬</span>Guessing
+          </button>
+          <button type="button" class="dq-confidence-btn" data-confidence="pretty-sure" aria-pressed="false">
+            <span class="dq-confidence-btn-emoji">🤔</span>Pretty sure
+          </button>
+          <button type="button" class="dq-confidence-btn" data-confidence="locked-in" aria-pressed="false">
+            <span class="dq-confidence-btn-emoji">💪</span>Locked in
+          </button>
+        </div>
+      </div>
+
+      <div class="dq-actions">
+        <span class="dq-hint" id="dq-hint">Pick an answer + confidence, then continue.</span>
+        <button type="button" class="dq-btn dq-btn-primary" id="dq-next-btn" disabled>Next →</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+</main>
+
+<script>
+// =========================================================================
+// D.2 · Landing Baseline Diagnostic · AWS Cloud Practitioner (CLF-C02) quiz UI · v7.8.0
+// =========================================================================
+// Self-contained 20-Q flow. Inline question pool covers all 4 CLF-C02 domains
+// weighted to the official AWS CLF-C02 Exam Guide blueprint:
+//   Domain 1: Cloud Concepts (24%) -> ~5Q
+//   Domain 2: Security and Compliance (30%) -> ~6Q
+//   Domain 3: Cloud Technology and Services (34%) -> ~7Q
+//   Domain 4: Billing, Pricing, and Support (12%) -> ~2Q
+//
+// Live AI generation runs via /api/diagnostic/generate with cert: "clfc02";
+// inline pool is the fallback when AI is unavailable.
+//
+// State envelope (sessionStorage.certanvilDiagnosticSession):
+//   { cert, startedAt, durationMs, currentIdx, questionOrder, answers }
+// On completion, writes a richer envelope to certanvilDiagnosticResults for
+// the /results page (D.4) to render, then navigates to /diagnostic/clfc02/results.
+//
+// Wake Lock + Visibility-API pause-on-blur mirrors the exam-mode pattern.
+//
+// Legal boundary: all questions originate from the PUBLIC AWS CLF-C02 Exam
+// Guide + public AWS documentation ONLY. ZERO paid-bank ingestion (Tutorials
+// Dojo, Stephane Maarek, A Cloud Guru, Whizlabs, Skillcertpro, ExamTopics).
+// =========================================================================
+// Self-contained 20-Q flow. Inline question pool covers all 4 CLF-C02 domains
+// weighted to the official AWS CLF-C02 Exam Guide blueprint:
+//   Domain 1: Cloud Concepts (24%) -> ~5Q
+//   Domain 2: Security and Compliance (30%) -> ~6Q
+//   Domain 3: Cloud Technology and Services (34%) -> ~7Q
+//   Domain 4: Billing, Pricing, and Support (12%) -> ~2Q
+//
+// Live AI generation runs via /api/diagnostic/generate with cert: "clfc02";
+// inline pool is the fallback when AI is unavailable.
+//
+// State envelope (sessionStorage.certanvilDiagnosticSession):
+//   { cert, startedAt, durationMs, currentIdx, questionOrder, answers }
+// On completion, writes a richer envelope to certanvilDiagnosticResults for
+// the /results page (D.4) to render, then navigates to /diagnostic/clfc02/results.
+//
+// Wake Lock + Visibility-API pause-on-blur mirrors the exam-mode pattern:
+// the phone screen stays awake and the timer pauses when the tab is backgrounded.
+//
+// Legal boundary: all questions originate from the PUBLIC AWS CLF-C02 Exam
+// Guide + public AWS documentation ONLY. ZERO paid-bank ingestion (Tutorials
+// Dojo, Stephane Maarek, A Cloud Guru, Whizlabs, Skillcertpro, ExamTopics).
+// ══════════════════════════════════════════════════════════════════════════
+
+(function() {
+  'use strict';
+  document.body.classList.remove('no-js');
+
+  // ── 1. Question pool · 20 original CLF-C02 questions across 4 domains ──
+  // Each Q: { id, domain, topic, objective, difficulty, question, options:{A,B,C,D}, answer, explanation }
+  // Reused verbatim from the reviewed certs/clfc02.js exemplar bank (public AWS CLF-C02 Exam Guide).
+  // Domain distribution: D1 x5 D2 x6 D3 x7 D4 x2 (= 20 total)
+  var QUESTION_POOL = [
+    {
+      id: 'clf-d1-1',
+      domain: "Cloud Concepts",
+      topic: "Benefits of the AWS Cloud",
+      objective: "1.1",
+      difficulty: "Foundational",
+      question: "A startup wants to build a web application but is concerned about accurately forecasting the compute capacity it will need over the next 12 months. Which cloud benefit most directly addresses this challenge?",
+      options: { A: "Trade fixed expense for variable expense", B: "Stop spending money on running and maintaining data centers", C: "Stop guessing about capacity needs", D: "Benefit from massive economies of scale" },
+      answer: "C",
+      explanation: "The core benefit here is eliminating the need to guess capacity in advance. Cloud elasticity allows the startup to scale compute up or down based on actual demand, avoiding both over-provisioning (wasted cost) and under-provisioning (poor performance). A describes the CapEx-to-OpEx shift, which is a real benefit but not the most direct solution to forecasting risk. B addresses data center elimination, which is relevant but a broader operational benefit. D refers to pricing advantages from AWS's scale, not the capacity uncertainty problem."
+    },
+
+    {
+      id: 'clf-d1-2',
+      domain: "Cloud Concepts",
+      topic: "Operational Excellence Pillar",
+      objective: "1.2",
+      difficulty: "Exam Level",
+      question: "A team is deploying a new microservices application on AWS. To follow the Operational Excellence pillar of the Well-Architected Framework, which practice should they adopt?",
+      options: { A: "Use the cheapest available EC2 instance types to minimize cost", B: "Perform operations as code and make small, reversible changes", C: "Encrypt all data at rest and in transit", D: "Use Spot Instances for all stateless compute workloads" },
+      answer: "B",
+      explanation: "The Operational Excellence pillar design principles include performing operations as code (Infrastructure as Code, automated runbooks), making frequent small reversible changes rather than infrequent large ones, anticipating failure, and learning from operational events. A is a Cost Optimization behavior. C (encrypting data) is a Security pillar practice. D (Spot Instances) is a Cost Optimization pricing strategy, not an operational excellence principle."
+    },
+
+    {
+      id: 'clf-d1-3',
+      domain: "Cloud Concepts",
+      topic: "Cloud Migration Strategies (7 Rs)",
+      objective: "1.3",
+      difficulty: "Foundational",
+      question: "During a migration planning exercise, a team identifies a group of internal applications that are redundant, rarely used, and will reach end-of-life within six months. The team recommends simply shutting these down rather than migrating them. Which migration strategy applies?",
+      options: { A: "Retain", B: "Retire", C: "Repurchase", D: "Rehost" },
+      answer: "B",
+      explanation: "Retire means decommissioning applications that are no longer needed. Identifying that roughly 10-20% of an application portfolio can simply be turned off is a common and cost-effective migration outcome — no cloud migration needed at all. Retain (A) means keeping the application where it is for now (often because migration cannot be justified yet or the application requires major changes before moving). Repurchase (C) means replacing with a SaaS product. Rehost (D) means migrating as-is to the cloud."
+    },
+
+    {
+      id: 'clf-d1-4',
+      domain: "Cloud Concepts",
+      topic: "Operational Excellence Pillar",
+      objective: "1.2",
+      difficulty: "Hard",
+      question: "A development team wants to deploy a new feature to a single AWS Region first to reduce the blast radius of any problems before rolling it out globally. Which Operational Excellence design principle does this align with?",
+      options: { A: "Learn from all operational failures", B: "Make frequent, small, reversible changes", C: "Anticipate failure", D: "Refine operations procedures frequently" },
+      answer: "B",
+      explanation: "Deploying to a single Region first is a small, incremental, reversible change strategy — rather than a large, infrequent, hard-to-rollback release. This is the 'make frequent, small, reversible changes' Operational Excellence principle. It reduces the blast radius of any issues. 'Learn from all operational failures' (A) is a post-event retrospective principle. 'Anticipate failure' (C) involves designing with the assumption that components will fail, such as removing single points of failure. 'Refine operations procedures frequently' (D) is about continuously improving runbooks and processes."
+    },
+
+    {
+      id: 'clf-d1-5',
+      domain: "Cloud Concepts",
+      topic: "Cloud Deployment Models",
+      objective: "1.1",
+      difficulty: "Foundational",
+      question: "A software startup has no physical data centers and builds all of its products entirely on AWS, using AWS services for compute, storage, databases, and networking. There is no self-managed infrastructure of any kind. Which cloud deployment model does this describe?",
+      options: { A: "Hybrid deployment", B: "On-premises deployment", C: "Cloud deployment", D: "Private cloud deployment" },
+      answer: "C",
+      explanation: "A cloud deployment (also called a fully cloud-based or public cloud deployment) means all components of the application run in the cloud — no on-premises or private data center infrastructure is involved. AWS explicitly defines this model as one of the three main cloud deployment models. Hybrid deployment combines cloud resources with on-premises infrastructure. On-premises deployment keeps everything in the organization's own data center without using cloud services. Private cloud means cloud infrastructure operated solely for one organization, typically on-premises."
+    },
+
+    {
+      id: 'clf-d2-1',
+      domain: "Security & Compliance",
+      topic: "Shared Responsibility Model",
+      objective: "2.1",
+      difficulty: "Exam Level",
+      question: "A company runs its web application on Amazon EC2 instances. The security team wants to know who is responsible for patching the operating system on those instances. Which statement correctly describes this responsibility under the AWS Shared Responsibility Model?",
+      options: { A: "AWS patches the OS because the instances run on AWS infrastructure.", B: "The customer is responsible for patching the OS on EC2 instances.", C: "AWS and the customer share OS patching duties on a weekly rotation.", D: "The AMI vendor is always responsible for OS patches regardless of instance type." },
+      answer: "B",
+      explanation: "With EC2 (IaaS), the customer controls the OS and therefore owns OS patching — this is 'security IN the cloud.' AWS is responsible for 'security OF the cloud,' meaning the physical hardware, hypervisor, and underlying infrastructure. Option A is wrong because AWS's responsibility stops at the hypervisor layer. Option C is wrong because there is no shared rotation for OS patching. Option D is wrong because the AMI vendor provides the base image but post-launch patching belongs to the customer."
+    },
+
+    {
+      id: 'clf-d2-2',
+      domain: "Security & Compliance",
+      topic: "AWS Config",
+      objective: "2.2",
+      difficulty: "Exam Level",
+      question: "A company's AWS environment spans multiple accounts. A security engineer needs to monitor configuration changes to resources — such as detecting when an S3 bucket's public-access block is disabled — and evaluate those changes against company compliance rules. Which AWS service is best suited for this task?",
+      options: { A: "Amazon GuardDuty", B: "AWS CloudTrail", C: "AWS Config", D: "Amazon Macie" },
+      answer: "C",
+      explanation: "AWS Config records configuration changes to AWS resources and evaluates those changes against Config Rules to determine compliance. It is the correct tool for 'has this resource been configured correctly?' questions. GuardDuty detects threats from log analysis but does not evaluate resource configuration. CloudTrail logs API calls (who did what, when) but does not evaluate ongoing resource compliance posture. Macie discovers PII in S3 but does not evaluate general resource configuration."
+    },
+
+    {
+      id: 'clf-d2-3',
+      domain: "Security & Compliance",
+      topic: "IAM Policies & Least Privilege",
+      objective: "2.3",
+      difficulty: "Hard",
+      question: "An IAM policy is attached to an IAM user. The policy grants s3:PutObject on a specific bucket. However, the user reports they cannot upload objects to that bucket. An administrator finds a resource-based policy on the bucket that has an explicit Deny for the user. What is the result of this configuration?",
+      options: { A: "The IAM policy Allow overrides the bucket Deny because identity-based policies take precedence.", B: "The explicit Deny on the bucket policy overrides the Allow in the IAM policy.", C: "The user can still upload because both policies must agree to deny access.", D: "The conflict causes an error, and AWS defaults to allowing access." },
+      answer: "B",
+      explanation: "In AWS, an explicit Deny always overrides any Allow, regardless of which policy type contains it. The IAM policy evaluation logic is: if there is an explicit Deny anywhere in the evaluated policies, the action is denied. Options A and C are wrong because explicit Denies win over Allows. Option D is wrong because the AWS default is to deny (implicit deny), and explicit denies compound that restriction."
+    },
+
+    {
+      id: 'clf-d2-4',
+      domain: "Security & Compliance",
+      topic: "AWS Shield & WAF",
+      objective: "2.4",
+      difficulty: "Exam Level",
+      question: "A retail company's web application is being targeted by automated bots that are attempting SQL injection attacks through the login form. The security team wants to create custom rules to block these requests before they reach the application. Which AWS service should they use?",
+      options: { A: "AWS Shield Standard", B: "Amazon GuardDuty", C: "AWS WAF", D: "AWS Shield Advanced" },
+      answer: "C",
+      explanation: "AWS WAF (Web Application Firewall) operates at Layer 7 (the application layer) and allows creation of custom rules and managed rule groups to block common web exploits such as SQL injection, cross-site scripting, and bot traffic. Shield Standard protects against Layer 3/4 DDoS attacks, not application-layer exploits. GuardDuty is a threat detection service that analyzes logs — it does not block traffic. Shield Advanced offers enhanced DDoS protection but not application-layer filtering rules."
+    },
+
+    {
+      id: 'clf-d2-5',
+      domain: "Security & Compliance",
+      topic: "IAM Users, Groups & Roles",
+      objective: "2.3",
+      difficulty: "Foundational",
+      question: "A solutions architect is explaining IAM to a junior engineer. The junior engineer asks: 'Can I add an EC2 instance directly to an IAM group to give it permissions?' What is the correct answer?",
+      options: { A: "Yes, IAM groups accept EC2 instances as members.", B: "No, IAM groups only contain IAM users. EC2 instances use IAM roles for permissions.", C: "Yes, but only if the EC2 instance has an IAM user attached.", D: "No, EC2 instances cannot use IAM at all." },
+      answer: "B",
+      explanation: "IAM groups are collections of IAM users only. AWS services like EC2 instances use IAM roles to obtain temporary credentials via the instance profile mechanism. There is no concept of adding an EC2 instance to an IAM group. Option A is incorrect by definition. Option C is wrong because EC2 instances do not have IAM users attached. Option D is wrong because EC2 can absolutely use IAM — via roles, not groups."
+    },
+
+    {
+      id: 'clf-d2-6',
+      domain: "Security & Compliance",
+      topic: "Security Support Resources",
+      objective: "2.4",
+      difficulty: "Foundational",
+      question: "An AWS customer notices that their application is running slowly and suspects an AWS infrastructure issue. They want to check if AWS has reported any service events or disruptions that are specifically affecting their account and resources. Which AWS service provides a personalized view of AWS service health events relevant to their account?",
+      options: { A: "AWS Service Health Dashboard (status.aws.amazon.com).", B: "Amazon CloudWatch metrics.", C: "AWS Personal Health Dashboard.", D: "AWS Trusted Advisor." },
+      answer: "C",
+      explanation: "The AWS Personal Health Dashboard (now part of AWS Health) provides a personalized view of health events and scheduled maintenance that affect the customer's specific resources and account. The public Service Health Dashboard (A) shows general AWS service status globally but is not account-specific. CloudWatch shows application metrics. Trusted Advisor provides best-practice checks, not service health events."
+    },
+
+    {
+      id: 'clf-d3-1',
+      domain: "Cloud Technology & Services",
+      topic: "AWS Lambda",
+      objective: "3.3",
+      difficulty: "Exam Level",
+      question: "A developer needs to run a small script that processes uploaded images whenever a new object is placed in an S3 bucket. The script takes less than 30 seconds and runs infrequently. Which compute option is MOST cost-effective?",
+      options: { A: "Launch a dedicated EC2 On-Demand instance that polls the bucket", B: "Deploy the script on AWS Fargate with a scheduled task", C: "Run the script on an EC2 Spot Instance with Auto Scaling", D: "Use AWS Lambda triggered by an S3 event notification" },
+      answer: "D",
+      explanation: "AWS Lambda is event-driven and serverless; you pay only for the milliseconds the function runs, making it ideal for infrequent, short-duration tasks triggered by S3 events. A — EC2 On-Demand runs 24/7 and incurs cost even when idle. B — Fargate requires a container definition and task scheduler, adding overhead for a simple script. D — Spot Instances can be interrupted and still require EC2 management overhead."
+    },
+
+    {
+      id: 'clf-d3-2',
+      domain: "Cloud Technology & Services",
+      topic: "Amazon S3 Storage Classes",
+      objective: "3.6",
+      difficulty: "Exam Level",
+      question: "A healthcare company must retain patient records for 10 years for compliance. The records will never be accessed after archiving. Cost minimization is the top priority. Which S3 storage class is MOST appropriate?",
+      options: { A: "S3 Standard-Infrequent Access (S3 Standard-IA)", B: "S3 Glacier Flexible Retrieval", C: "S3 Glacier Instant Retrieval", D: "S3 Glacier Deep Archive" },
+      answer: "D",
+      explanation: "S3 Glacier Deep Archive is the lowest-cost AWS storage class, designed for data that is retained for 7–10+ years and rarely if ever accessed. Retrieval time is up to 12 hours. Minimum storage duration is 180 days. A — Standard-IA has higher cost than Glacier classes for long-term archival. B — Glacier Flexible Retrieval costs more than Deep Archive. D — Glacier Instant Retrieval provides millisecond access and is priced higher than Deep Archive."
+    },
+
+    {
+      id: 'clf-d3-3',
+      domain: "Cloud Technology & Services",
+      topic: "Storage Gateway & Snow Family",
+      objective: "3.6",
+      difficulty: "Hard",
+      question: "An on-premises application writes data to a local NFS mount, but the company wants all files stored durably in Amazon S3 while maintaining a cached copy locally. Which AWS Storage Gateway mode supports this?",
+      options: { A: "File Gateway", B: "Volume Gateway — Cached mode", C: "Tape Gateway", D: "Volume Gateway — Stored mode" },
+      answer: "A",
+      explanation: "AWS Storage Gateway File Gateway presents an NFS (or SMB) interface to on-premises applications while storing files durably in Amazon S3. Frequently accessed files are cached locally. A — Volume Gateway Cached mode stores primary data in S3 and caches frequently accessed data on-premises, but presents block storage (iSCSI), not NFS. C — Tape Gateway virtualizes physical tape libraries for backup software. D — Volume Gateway Stored mode keeps primary data on-premises and asynchronously backs up to S3 as EBS snapshots."
+    },
+
+    {
+      id: 'clf-d3-4',
+      domain: "Cloud Technology & Services",
+      topic: "Networking (VPC/Route 53/CloudFront)",
+      objective: "3.5",
+      difficulty: "Foundational",
+      question: "A company has a global web application with static assets (images, CSS, JavaScript). Users in Asia are experiencing high latency fetching assets from the US-East origin. Which AWS service reduces latency by serving content from locations closer to users?",
+      options: { A: "Amazon Route 53 latency routing", B: "AWS Global Accelerator", C: "AWS Direct Connect", D: "Amazon CloudFront" },
+      answer: "D",
+      explanation: "Amazon CloudFront is a content delivery network (CDN) that caches content at edge locations worldwide. Static assets are served from the nearest edge location, dramatically reducing latency for global users. A — Route 53 latency routing routes DNS queries to the nearest AWS Region but does not cache content. B — Global Accelerator routes TCP/UDP traffic to optimal AWS endpoints using Anycast IPs but does not cache content. D — Direct Connect is a dedicated network link, not a CDN."
+    },
+
+    {
+      id: 'clf-d3-5',
+      domain: "Cloud Technology & Services",
+      topic: "Monitoring (CloudWatch/CloudTrail)",
+      objective: "3.1",
+      difficulty: "Hard",
+      question: "A developer wants to understand the end-to-end path of a request through a distributed microservices application to identify which service is causing latency. Which AWS service provides distributed request tracing?",
+      options: { A: "AWS CloudTrail", B: "Amazon CloudWatch Container Insights", C: "AWS X-Ray", D: "AWS Config" },
+      answer: "C",
+      explanation: "AWS X-Ray provides distributed tracing for applications, enabling developers to analyze and debug production and distributed applications by mapping request flows across services and identifying bottlenecks. A — CloudTrail records AWS API calls, not application-level request traces. B — CloudWatch Container Insights collects metrics and logs from containerized workloads but does not provide distributed request tracing. D — Config tracks resource configurations, not application request traces."
+    },
+
+    {
+      id: 'clf-d3-6',
+      domain: "Cloud Technology & Services",
+      topic: "Infrastructure as Code (CloudFormation)",
+      objective: "3.1",
+      difficulty: "Exam Level",
+      question: "A sysadmin wants to automate the deployment of identical AWS infrastructure across 10 different AWS accounts using a template that can be version-controlled. Which approach is MOST appropriate?",
+      options: { A: "Manually configure resources in each account using the AWS Management Console", B: "Use AWS CloudFormation templates deployed with StackSets", C: "Write individual AWS CLI commands in a shell script", D: "Use the AWS SDK to call each API directly" },
+      answer: "B",
+      explanation: "AWS CloudFormation StackSets allow you to deploy a CloudFormation template (infrastructure as code) across multiple AWS accounts and Regions in a single operation, ensuring consistency and enabling version control. A — Manual console configuration is error-prone and not scalable across 10 accounts. C — Shell scripts with CLI commands can work but are fragile, not idempotent, and harder to maintain than declarative templates. D — SDK calls require significant custom code and drift management logic."
+    },
+
+    {
+      id: 'clf-d3-7',
+      domain: "Cloud Technology & Services",
+      topic: "AI/ML & Analytics Services",
+      objective: "3.3",
+      difficulty: "Exam Level",
+      question: "A business intelligence team wants to run SQL queries directly on log files stored in Amazon S3 without loading the data into a database first. Which AWS service supports this?",
+      options: { A: "Amazon Redshift", B: "AWS Glue", C: "Amazon Athena", D: "Amazon EMR" },
+      answer: "C",
+      explanation: "Amazon Athena is a serverless interactive query service that runs standard SQL queries directly on data stored in Amazon S3. There is no need to load data into a database; you pay per query. A — Redshift requires loading data into a data warehouse first. B — Glue is for ETL; it can catalog data for Athena but does not itself run interactive SQL queries on S3. D — EMR is a big data platform for complex processing frameworks like Spark and Hadoop, requiring more setup than Athena."
+    },
+
+    {
+      id: 'clf-d4-1',
+      domain: "Billing, Pricing & Support",
+      topic: "EC2 Pricing Models",
+      objective: "4.1",
+      difficulty: "Exam Level",
+      question: "A startup runs a web application with unpredictable traffic spikes. The team wants the lowest possible hourly rate for EC2 instances when traffic is high but cannot tolerate any interruptions. Which pricing model best fits this requirement?",
+      options: { A: "Spot Instances", B: "On-Demand Instances", C: "Convertible Reserved Instances", D: "Dedicated Hosts" },
+      answer: "B",
+      explanation: "On-Demand Instances provide pay-per-use pricing with no interruptions, making them suitable for unpredictable workloads where uptime is critical. Spot Instances (A) offer up to 90% savings but can be interrupted with a 2-minute warning, which violates the no-interruption requirement. Convertible Reserved Instances (C) require a 1- or 3-year commitment, which is unsuitable for unpredictable usage patterns. Dedicated Hosts (D) are physical servers for compliance/BYOL scenarios and are the most expensive option."
+    },
+
+    {
+      id: 'clf-d4-2',
+      domain: "Billing, Pricing & Support",
+      topic: "Cost Explorer & Cost Allocation Tags",
+      objective: "4.2",
+      difficulty: "Exam Level",
+      question: "A company wants to categorize AWS costs by project and cost center to allocate charges back to individual business units. Which feature enables this?",
+      options: { A: "AWS Service Control Policies (SCPs)", B: "AWS Config rules", C: "Cost Allocation Tags activated in the Billing console", D: "AWS Organizations account grouping" },
+      answer: "C",
+      explanation: "Cost Allocation Tags allow organizations to label AWS resources (e.g., Project=Alpha, CostCenter=Finance). Once tags are activated in the AWS Billing and Cost Management console, they appear as filterable dimensions in Cost Explorer and the Cost and Usage Report, enabling chargeback and showback to business units. Service Control Policies (A) set permission guardrails in AWS Organizations — they do not categorize costs. AWS Config rules (B) evaluate resource compliance against configurations and are unrelated to cost allocation. AWS Organizations account grouping (D) can organize accounts by OU but does not generate per-project cost breakdowns without tagging."
+    }
+  ];
+
+  // ── 2. State + sessionStorage ──
+  var SESSION_KEY = 'certanvilDiagnosticSession';
+  var RESULTS_KEY = 'certanvilDiagnosticResults';
+  var INTAKE_KEY = 'certanvilDiagnosticIntake';
+
+  var DIAGNOSTIC_DURATION_MS = 30 * 60 * 1000;  // 30 min · informational only
+  var CERT = 'clfc02';
+  var TARGET_QUESTION_COUNT = 20;
+  var GENERATE_ENDPOINT = '/api/diagnostic/generate';
+  var TURNSTILE_TIMEOUT_MS = 10000;  // bail to fallback if no token in 10s
+  var FETCH_TIMEOUT_MS = 25000;       // bail if /api/diagnostic/generate stalls
+
+  // v4.99.54 D.3: session envelope now carries the full questions array
+  // (instead of just IDs into the inline pool) because AI-generated questions
+  // have new IDs that won't match the static QUESTION_POOL. Both AI and
+  // inline-pool paths produce the same envelope shape · downstream rendering
+  // is source-agnostic.
+  //
+  // session = {
+  //   cert, startedAt, questions: [<20 normalised Q objects>],
+  //   source: 'ai' | 'fallback' | 'inline',
+  //   currentIdx, answers, pickedLetter, pickedConfidence
+  // }
+  var session = null;
+  try {
+    var rawSession = sessionStorage.getItem(SESSION_KEY);
+    if (rawSession) {
+      var parsed = JSON.parse(rawSession);
+      if (parsed && parsed.cert === CERT
+          && Array.isArray(parsed.questions) && parsed.questions.length === TARGET_QUESTION_COUNT
+          && Array.isArray(parsed.answers) && parsed.answers.length === TARGET_QUESTION_COUNT) {
+        session = parsed;
+      }
+    }
+  } catch (_) {}
+
+  function persistSession() {
+    try { sessionStorage.setItem(SESSION_KEY, JSON.stringify(session)); } catch (_) {}
+  }
+
+  function shuffleInlinePool() {
+    // Fisher-Yates over the inline pool · used as the fallback question source
+    var copy = QUESTION_POOL.slice();
+    for (var i = copy.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var tmp = copy[i]; copy[i] = copy[j]; copy[j] = tmp;
+    }
+    return copy.slice(0, TARGET_QUESTION_COUNT);
+  }
+
+  function createFreshSession(questions, source) {
+    return {
+      cert: CERT,
+      startedAt: Date.now(),
+      source: source,                          // 'ai' · 'fallback' · 'inline'
+      questions: questions,                    // full Q objects, ordered
+      currentIdx: 0,
+      answers: new Array(TARGET_QUESTION_COUNT).fill(null),
+      pickedLetter: null,
+      pickedConfidence: null
+    };
+  }
+
+  // ── 3. DOM refs ──
+  var loadingEl = document.getElementById('dq-loading');
+  var liveEl = document.getElementById('dq-live');
+  var pillsEl = document.getElementById('dq-card-pills');
+  var stemEl = document.getElementById('dq-stem');
+  var optionsEl = document.getElementById('dq-options');
+  var confidenceBtns = document.querySelectorAll('.dq-confidence-btn[data-confidence]');
+  var nextBtn = document.getElementById('dq-next-btn');
+  var hintEl = document.getElementById('dq-hint');
+  var progressLabel = document.getElementById('dq-progress-label');
+  var progressFill = document.getElementById('dq-progress-fill');
+  var timerEl = document.getElementById('dq-timer');
+  var quitBtn = document.getElementById('dq-quit-btn');
+
+  // ── 4. Render current question ──
+  function getCurrentQ() {
+    if (!session || !session.questions) return null;
+    return session.questions[session.currentIdx];
+  }
+
+  function render() {
+    var q = getCurrentQ();
+    if (!q) return;
+
+    // Header
+    var n = session.questions.length;
+    progressLabel.textContent = 'Question ' + (session.currentIdx + 1) + ' of ' + n;
+    var pct = Math.round(((session.currentIdx + 1) / n) * 100);
+    progressFill.style.width = pct + '%';
+
+    // Pills
+    var diffClass = q.difficulty === 'Easy' ? 'is-easy' : (q.difficulty === 'Hard' ? 'is-hard' : '');
+    pillsEl.innerHTML =
+      '<span class="dq-pill dq-pill-domain">' + escHtml(q.domain) + '</span>' +
+      '<span class="dq-pill dq-pill-difficulty ' + diffClass + '">' + escHtml(q.difficulty) + '</span>' +
+      '<span class="dq-pill dq-pill-meta">Q' + (session.currentIdx + 1) + ' · obj. ' + escHtml(q.objective) + '</span>';
+
+    // Stem
+    stemEl.textContent = q.question;
+
+    // Options
+    optionsEl.innerHTML = '';
+    ['A', 'B', 'C', 'D'].forEach(function(letter) {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'dq-option';
+      btn.setAttribute('data-letter', letter);
+      btn.setAttribute('role', 'radio');
+      btn.setAttribute('aria-checked', 'false');
+      btn.innerHTML = '<span class="dq-option-letter">' + letter + '</span><span class="dq-option-text">' + escHtml(q.options[letter]) + '</span>';
+      btn.addEventListener('click', function() { pickOption(letter); });
+      optionsEl.appendChild(btn);
+    });
+
+    // Confidence reset
+    session.pickedLetter = null;
+    session.pickedConfidence = null;
+    confidenceBtns.forEach(function(b) {
+      b.classList.remove('is-selected');
+      b.setAttribute('aria-pressed', 'false');
+    });
+
+    // Hint + next btn
+    hintEl.textContent = 'Pick an answer + confidence, then continue.';
+    nextBtn.disabled = true;
+    nextBtn.textContent = (session.currentIdx === n - 1) ? 'Finish diagnostic →' : 'Next →';
+  }
+
+  function pickOption(letter) {
+    session.pickedLetter = letter;
+    optionsEl.querySelectorAll('.dq-option').forEach(function(btn) {
+      var match = btn.getAttribute('data-letter') === letter;
+      btn.classList.toggle('is-selected', match);
+      btn.setAttribute('aria-checked', match ? 'true' : 'false');
+    });
+    refreshNextBtn();
+  }
+
+  confidenceBtns.forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      session.pickedConfidence = btn.getAttribute('data-confidence');
+      confidenceBtns.forEach(function(b) {
+        var match = (b === btn);
+        b.classList.toggle('is-selected', match);
+        b.setAttribute('aria-pressed', match ? 'true' : 'false');
+      });
+      refreshNextBtn();
+    });
+  });
+
+  function refreshNextBtn() {
+    var ready = session.pickedLetter && session.pickedConfidence;
+    nextBtn.disabled = !ready;
+    if (ready) {
+      hintEl.textContent = (session.currentIdx === session.questions.length - 1)
+        ? 'Last one. Click Finish to see your score.'
+        : 'Ready. Click Next to continue.';
+    } else if (session.pickedLetter && !session.pickedConfidence) {
+      hintEl.textContent = 'Now pick your confidence level.';
+    } else if (!session.pickedLetter && session.pickedConfidence) {
+      hintEl.textContent = 'Now pick an answer.';
+    }
+  }
+
+  // ── 5. Submit current Q + advance ──
+  var questionStartTime = Date.now();
+
+  nextBtn.addEventListener('click', function() {
+    if (nextBtn.disabled) return;
+    var q = getCurrentQ();
+    var elapsed = Date.now() - questionStartTime;
+    session.answers[session.currentIdx] = {
+      qId: q.id,
+      picked: session.pickedLetter,
+      correct: q.answer,
+      isCorrect: session.pickedLetter === q.answer,
+      confidence: session.pickedConfidence,
+      timeMs: elapsed,
+      domain: q.domain,
+      difficulty: q.difficulty
+    };
+    persistSession();
+
+    if (session.currentIdx + 1 >= session.questions.length) {
+      finishDiagnostic();
+      return;
+    }
+
+    session.currentIdx++;
+    persistSession();
+    questionStartTime = Date.now();
+    render();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+
+  // ── 6. Finish · compute score + navigate to /results ──
+  function finishDiagnostic() {
+    var n = session.questions.length;
+    var correctCount = 0;
+    var domainStats = {};
+    var confidenceStats = { 'guessing': { picked: 0, correct: 0 }, 'pretty-sure': { picked: 0, correct: 0 }, 'locked-in': { picked: 0, correct: 0 } };
+
+    session.answers.forEach(function(a) {
+      if (!a) return;
+      if (a.isCorrect) correctCount++;
+      if (!domainStats[a.domain]) domainStats[a.domain] = { correct: 0, total: 0 };
+      domainStats[a.domain].total++;
+      if (a.isCorrect) domainStats[a.domain].correct++;
+      if (confidenceStats[a.confidence]) {
+        confidenceStats[a.confidence].picked++;
+        if (a.isCorrect) confidenceStats[a.confidence].correct++;
+      }
+    });
+
+    // Scaled score: linear 0-1000 (AWS Cloud Practitioner scale, pass = 700).
+    // 0 correct → 0 · 20 correct → 1000. A more sophisticated IRT-style
+    // scoring lands in D.4 when we have user data to calibrate against.
+    var scaledScore = Math.round((correctCount / n) * 1000);
+
+    // Domain breakdown sorted weakest-first
+    var domainBreakdown = Object.keys(domainStats).map(function(d) {
+      return {
+        domain: d,
+        correct: domainStats[d].correct,
+        total: domainStats[d].total,
+        accuracy: domainStats[d].total ? (domainStats[d].correct / domainStats[d].total) : 0
+      };
+    }).sort(function(a, b) { return a.accuracy - b.accuracy; });
+
+    // Load intake for downstream personalisation (Pass Plan in D.4)
+    var intake = null;
+    try { intake = JSON.parse(sessionStorage.getItem(INTAKE_KEY) || 'null'); } catch (_) {}
+
+    var results = {
+      cert: CERT,
+      diagnosticId: 'diag_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8),
+      startedAt: session.startedAt,
+      completedAt: Date.now(),
+      durationMs: Date.now() - session.startedAt,
+      totalQuestions: n,
+      correctCount: correctCount,
+      accuracy: correctCount / n,
+      scaledScore: scaledScore,
+      passThreshold: 700,
+      isPassing: scaledScore >= 700,
+      domainBreakdown: domainBreakdown,
+      confidenceStats: confidenceStats,
+      questions: session.answers,
+      intake: intake
+    };
+
+    try { sessionStorage.setItem(RESULTS_KEY, JSON.stringify(results)); } catch (_) {}
+
+    // Score-only snapshot for landing-page resume CTA (persists across tab close)
+    try {
+      localStorage.setItem('certanvilLastDiagnostic', JSON.stringify({
+        cert: CERT,
+        scaledScore: scaledScore,
+        correctCount: correctCount,
+        totalQuestions: n,
+        completedAt: Date.now(),
+        weakestDomain: domainBreakdown[0] ? domainBreakdown[0].domain : null
+      }));
+    } catch (_) {}
+
+    // Clear in-progress session
+    try { sessionStorage.removeItem(SESSION_KEY); } catch (_) {}
+
+    releaseWakeLock();
+    window.location.href = '/diagnostic/' + CERT + '/results';
+  }
+
+  // ── 7. Timer (30:00 countdown · informational, no hard cutoff) ──
+  // v4.99.54 D.3: timer no longer auto-starts at module load · session is
+  // null until either the resume path restores it or the fresh-start path
+  // (AI fetch or inline-pool fallback) creates it. Timer is now started
+  // inside startTimer() which is called from showLive().
+  var timerInterval = null;
+  var hiddenAt = null;
+  var totalHiddenMs = 0;
+
+  function tickTimer() {
+    if (!session || !session.startedAt) return;  // not yet started
+    var elapsed = Date.now() - session.startedAt - totalHiddenMs;
+    var remaining = DIAGNOSTIC_DURATION_MS - elapsed;
+    if (remaining < 0) {
+      timerEl.classList.add('is-overtime');
+      var over = Math.abs(remaining);
+      var oM = Math.floor(over / 60000);
+      var oS = Math.floor((over % 60000) / 1000);
+      timerEl.textContent = '+' + (oM < 10 ? '0' + oM : oM) + ':' + (oS < 10 ? '0' + oS : oS);
+    } else {
+      var m = Math.floor(remaining / 60000);
+      var s = Math.floor((remaining % 60000) / 1000);
+      timerEl.textContent = (m < 10 ? '0' + m : m) + ':' + (s < 10 ? '0' + s : s);
+    }
+  }
+
+  function startTimer() {
+    if (timerInterval) return;  // already running
+    tickTimer();
+    timerInterval = setInterval(tickTimer, 1000);
+  }
+
+  // ── 8. Visibility API · pause timer when tab backgrounded ──
+  document.addEventListener('visibilitychange', function() {
+    if (document.visibilityState === 'hidden') {
+      hiddenAt = Date.now();
+      document.body.classList.add('dq-paused');
+      timerEl.classList.add('is-paused');
+      releaseWakeLock();
+    } else if (document.visibilityState === 'visible' && hiddenAt) {
+      var pauseDuration = Date.now() - hiddenAt;
+      hiddenAt = null;
+      if (pauseDuration > 250) totalHiddenMs += pauseDuration;
+      document.body.classList.remove('dq-paused');
+      timerEl.classList.remove('is-paused');
+      acquireWakeLock();
+      tickTimer();
+    }
+  });
+
+  // ── 9. Wake Lock · keep phone screen on for the 30-min flow ──
+  // Mirrors the Phase 10 v4.99.49 exam-mode pattern.
+  var wakeLock = null;
+  async function acquireWakeLock() {
+    try {
+      if (typeof navigator !== 'undefined' && 'wakeLock' in navigator) {
+        wakeLock = await navigator.wakeLock.request('screen');
+        wakeLock.addEventListener('release', function() { wakeLock = null; });
+      }
+    } catch (_) { wakeLock = null; }
+  }
+  async function releaseWakeLock() {
+    try {
+      if (wakeLock) { await wakeLock.release(); wakeLock = null; }
+    } catch (_) { wakeLock = null; }
+  }
+  acquireWakeLock();
+
+  // ── 10. Quit button · confirm + clear session ──
+  quitBtn.addEventListener('click', function() {
+    if (confirm('Quit the diagnostic? Your progress will be lost.')) {
+      try { sessionStorage.removeItem(SESSION_KEY); } catch (_) {}
+      if (timerInterval) clearInterval(timerInterval);
+      releaseWakeLock();
+      window.location.href = '/diagnostic';
+    }
+  });
+
+  // ── 11. Helpers ──
+  function escHtml(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function(c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  // ══════════════════════════════════════════════════════════════════════
+  // ── 12. Boot · AI-first with inline-pool fallback ──
+  // ══════════════════════════════════════════════════════════════════════
+  // Flow:
+  //   A. Session restored from sessionStorage (resume case)
+  //      → start the live quiz immediately at saved currentIdx
+  //
+  //   B. No session in storage (fresh start)
+  //      → wait for Turnstile token (10s timeout, then fallback)
+  //      → POST /api/diagnostic/generate with cert: "clfc02"
+  //      → on 2xx success: session.source='ai', use those questions
+  //      → on any failure (429, 5xx, timeout, parse error): session.source='fallback',
+  //        use the inline pool (shuffled). Show a small banner explaining
+  //        we're using the local pool.
+  //
+  // The 25-question hard cap is enforced server-side; we just request 20.
+  // ══════════════════════════════════════════════════════════════════════
+
+  var sourceBanner = document.getElementById('dq-source-banner');
+  var loadingText = document.getElementById('dq-loading-text');
+  var loadingSub = document.getElementById('dq-loading-sub');
+
+  function showSourceBanner(source) {
+    if (!sourceBanner) return;
+    if (source === 'fallback') {
+      sourceBanner.innerHTML = '📦 <strong style="font-weight:700">Local question set</strong> · high traffic right now, so we\'re using our curated 20-Q pool instead of live AI generation. Scoring is identical.';
+      sourceBanner.style.display = 'block';
+    } else if (source === 'inline') {
+      // Dev/preview mode · endpoint unconfigured. Silent (don't worry the user).
+      sourceBanner.style.display = 'none';
+    } else {
+      sourceBanner.style.display = 'none';
+    }
+  }
+
+  function showLive() {
+    loadingEl.style.display = 'none';
+    liveEl.style.display = 'block';
+    render();
+    startTimer();           // begin 30:00 countdown (session is now guaranteed populated)
+    acquireWakeLock();
+    questionStartTime = Date.now();  // reset per-Q timer for the first question
+  }
+
+  // ── Path A · Resume in-progress session ──
+  if (session) {
+    showSourceBanner(session.source);
+    showLive();
+    return;  // exit the IIFE early · no AI fetch needed
+  }
+
+  // ── Path B · Fresh start · AI-first with fallback ──
+  loadingText.textContent = 'Loading questions…';
+  loadingSub.textContent = '20 questions across the 4 CLF-C02 domains.';
+
+  // Turnstile callback · set on window so the cf-turnstile widget can call it
+  var turnstileSettled = false;
+  var turnstileTimeoutHandle = null;
+
+  window.dqTurnstileCallback = function(token) {
+    if (turnstileSettled) return;
+    turnstileSettled = true;
+    if (turnstileTimeoutHandle) clearTimeout(turnstileTimeoutHandle);
+    fetchAIQuestions(token);
+  };
+
+  window.dqTurnstileErrorCallback = function() {
+    if (turnstileSettled) return;
+    turnstileSettled = true;
+    if (turnstileTimeoutHandle) clearTimeout(turnstileTimeoutHandle);
+    console.warn('[dq] Turnstile errored · using inline pool fallback');
+    bootWithFallback('fallback');
+  };
+
+  // Timeout: if Turnstile doesn't fire its callback within 10s, fall back.
+  // This handles cases where the script is blocked by an extension / CSP /
+  // ad-blocker · common enough that we can't assume Turnstile will load.
+  turnstileTimeoutHandle = setTimeout(function() {
+    if (turnstileSettled) return;
+    turnstileSettled = true;
+    console.warn('[dq] Turnstile timed out · using inline pool fallback');
+    bootWithFallback('fallback');
+  }, TURNSTILE_TIMEOUT_MS);
+
+  // Some browsers / ad-blockers strip the Turnstile script entirely. In that
+  // case `window.turnstile` is undefined after a tick. We don't wait · the
+  // timeout above catches it. But we DO check for the existence after a
+  // short delay so we can fail fast with a clearer log.
+  setTimeout(function() {
+    if (typeof window.turnstile === 'undefined' && !turnstileSettled) {
+      console.warn('[dq] Turnstile script not loaded · waiting for timeout');
+    }
+  }, 2000);
+
+  function bootWithFallback(reason) {
+    var freshQuestions = shuffleInlinePool();
+    session = createFreshSession(freshQuestions, reason);
+    persistSession();
+    showSourceBanner(reason);
+    showLive();
+  }
+
+  async function fetchAIQuestions(turnstileToken) {
+    loadingText.textContent = 'Building your question set…';
+    loadingSub.textContent = '~10 seconds · powered by Claude Haiku.';
+
+    var controller = new AbortController();
+    var fetchTimer = setTimeout(function() { controller.abort(); }, FETCH_TIMEOUT_MS);
+
+    try {
+      var resp = await fetch(GENERATE_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          cert: CERT,
+          count: TARGET_QUESTION_COUNT,
+          turnstileToken: turnstileToken,
+          intake: getIntake()
+        }),
+        signal: controller.signal
+      });
+      clearTimeout(fetchTimer);
+
+      if (!resp.ok) {
+        var errBody;
+        try { errBody = await resp.json(); } catch (_) { errBody = {}; }
+        if (resp.status === 429) {
+          console.warn('[dq] Rate limit exceeded · using inline pool fallback', errBody);
+          // Show a quota-specific banner via the fallback path
+          bootWithFallback('fallback');
+          if (sourceBanner) {
+            sourceBanner.innerHTML = '⏱ <strong style="font-weight:700">Daily limit reached</strong> · IPs are limited to 25 AI calls per 24h. Using the local pool for this attempt. Sign up for unlimited retakes after.';
+          }
+          return;
+        }
+        if (resp.status === 503) {
+          console.warn('[dq] Endpoint unavailable · using inline pool fallback', errBody);
+          bootWithFallback(errBody && errBody.error === 'service-unavailable' ? 'inline' : 'fallback');
+          return;
+        }
+        console.warn('[dq] AI generate failed · using inline pool fallback', resp.status, errBody);
+        bootWithFallback('fallback');
+        return;
+      }
+
+      var data = await resp.json();
+      if (!data || !Array.isArray(data.questions) || data.questions.length < TARGET_QUESTION_COUNT) {
+        console.warn('[dq] AI response malformed · using inline pool fallback');
+        bootWithFallback('fallback');
+        return;
+      }
+
+      // Success · use AI questions
+      session = createFreshSession(data.questions.slice(0, TARGET_QUESTION_COUNT), 'ai');
+      persistSession();
+      showSourceBanner('ai');
+      showLive();
+    } catch (e) {
+      clearTimeout(fetchTimer);
+      console.warn('[dq] AI fetch threw · using inline pool fallback:', e && e.message);
+      bootWithFallback('fallback');
+    }
+  }
+
+  function getIntake() {
+    try {
+      var raw = sessionStorage.getItem(INTAKE_KEY);
+      if (!raw) return null;
+      return JSON.parse(raw);
+    } catch (_) { return null; }
+  }
+})();
+</script>
+
+</body>
+</html>

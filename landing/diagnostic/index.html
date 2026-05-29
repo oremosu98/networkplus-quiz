@@ -144,6 +144,16 @@
     <span class="dx-cert-tile-badge">Available</span>
   </button>
 
+  <!-- AWS Cloud Practitioner tile (v7.8.0) -->
+  <button type="button" class="dx-cert-tile" data-cert="clfc02" id="dx-cert-clfc02" aria-pressed="false">
+    <span class="dx-cert-tile-icon">AWS</span>
+    <span class="dx-cert-tile-content">
+      <span class="dx-cert-tile-title">AWS Cloud Practitioner <span class="dx-cert-code">· CLF-C02</span></span>
+      <span class="dx-cert-tile-sub">20-Q diagnostic · 4 domains · pass = 700/1000 · Cloud Concepts → Security &amp; Compliance → Cloud Technology &amp; Services → Billing, Pricing &amp; Support</span>
+    </span>
+    <span class="dx-cert-tile-badge">Available</span>
+  </button>
+
   <!-- "More coming" tile -->
   <div class="dx-cert-tile is-disabled" aria-disabled="true">
     <span class="dx-cert-tile-icon">+</span>
@@ -209,7 +219,7 @@
   // ── 1. Restore last-picked cert if revisiting ──
   try {
     var stored = sessionStorage.getItem(SELECTED_CERT_KEY);
-    if (stored === 'network-plus' || stored === 'security-plus' || stored === 'azure-fundamentals' || stored === 'azure-ai-fundamentals' || stored === 'aplus-core1' || stored === 'aplus-core2' || stored === 'sc900') {
+    if (stored === 'network-plus' || stored === 'security-plus' || stored === 'azure-fundamentals' || stored === 'azure-ai-fundamentals' || stored === 'aplus-core1' || stored === 'aplus-core2' || stored === 'sc900' || stored === 'clfc02') {
       selectedCert = stored;
     }
   } catch (_) {}
@@ -231,6 +241,7 @@
     else if (cert === 'aplus-core1') certName = 'A+ Core 1';
     else if (cert === 'aplus-core2') certName = 'A+ Core 2';
     else if (cert === 'sc900') certName = 'SC-900';
+    else if (cert === 'clfc02') certName = 'CLF-C02';
     else certName = 'Network+';
     continueBtn.textContent = 'Continue with ' + certName + ' →';
     continueBtn.disabled = false;

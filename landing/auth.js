@@ -517,6 +517,17 @@
       activeMeta: 'available now',
       href: 'https://sc900.certanvil.com/'
     }));
+    // v7.8.0 — AWS Cloud Practitioner row (single-exam, AWS). Pattern A; in-app
+    // Pro gating happens on the clfc02.certanvil.com subdomain (mirrors sc900).
+    rows.push(rowForCert({
+      id: 'clfc02',
+      glyph: 'AWS',
+      glyphClass: 'cert-glyph-clfc02',
+      name: 'AWS Cloud Practitioner',
+      code: 'CLF-C02',
+      activeMeta: 'available now',
+      href: 'https://clfc02.certanvil.com/'
+    }));
     listEl.innerHTML = rows.join('');
 
     // Show Security+ analytics quick link in the cross-cert modal too

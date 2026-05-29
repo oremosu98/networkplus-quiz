@@ -814,6 +814,90 @@
     // ── v7.7.0 SC-900 pairs (AZ-900 ↔ SC-900 + Sec+ ↔ SC-900, both directions) ──
     // SC-900 ↔ AI-900 (~10-15%) and SC-900 ↔ Net+ (~15%) omitted per the <20% convention.
 
+    // ── AZ-900 → CLF-C02 (v7.8.0) — strong cross-cloud fundamentals overlap ──
+    // The Microsoft-fundamentals graduate is a major CLF-C02 buyer (VoC §11).
+    {
+      from: 'az900',
+      to: 'clfc02',
+      pct: 38,
+      sharedCount: 6,
+      totalTargetCount: 16,
+      headline: 'Cloud fundamentals transfer across AWS and Azure',
+      sharedTopics: [
+        'Shared Responsibility Model (AZ-900 ↔ CLF-C02 Domain 2 — same concept, different services)',
+        'Global infrastructure — Regions + Availability Zones + edge (AZ-900 ↔ CLF-C02 Domain 3)',
+        'Core compute / storage / database concepts (Azure VM/Blob/SQL ↔ EC2/S3/RDS)',
+        'Cloud economics — CapEx vs OpEx, consumption pricing, TCO (AZ-900 ↔ CLF-C02 Domain 1 + 4)',
+        'Identity & access fundamentals (Entra ID/RBAC ↔ AWS IAM)',
+        'Support + cost management concepts (budgets, pricing calculators, support tiers)'
+      ],
+      refresherTopics: [
+        'Every Azure service name maps to a different AWS name — relearn the catalog',
+        'Pricing models restructure: Azure reservations ↔ AWS Reserved Instances vs Savings Plans vs Spot'
+      ],
+      newTopics: [
+        'The AWS service-discrimination catalog — SQS/SNS/EventBridge, EC2/Lambda/Fargate, RDS/DynamoDB/Redshift, CloudWatch/CloudTrail/Config',
+        'Well-Architected Framework — the SIX pillars including Sustainability',
+        'AWS pricing depth — Savings Plans vs Reserved Instances vs Spot vs Dedicated Hosts',
+        'AWS Support plan matrix — Basic/Developer/Business/Enterprise On-Ramp/Enterprise (the named-vs-pool TAM trap)',
+        'AWS governance — Organizations + Control Tower + SCPs; security services (GuardDuty/Inspector/Macie)'
+      ],
+      hoursSaved: 14,
+      daysSaved: 4,
+      callout: 'AZ-900 → CLF-C02 is the dominant cross-cloud journey. The shared-responsibility + global-infra + cloud-economics foundation carries directly — spend your CLF-C02 prep on the AWS service catalog (Domain 3, 34%) and the AWS-specific pricing + support matrix (Domain 4).'
+    },
+
+    // ── CLF-C02 → AZ-900 — reverse, the Azure service catalog is mostly new ──
+    {
+      from: 'clfc02',
+      to: 'az900',
+      pct: 35,
+      sharedCount: 6,
+      totalTargetCount: 13,
+      headline: 'AWS fundamentals transfer in reverse',
+      sharedTopics: [
+        'Shared Responsibility Model',
+        'Global infrastructure — Regions + Availability Zones',
+        'Core compute / storage / database concepts',
+        'Cloud economics — CapEx vs OpEx, consumption pricing, TCO',
+        'Identity & access fundamentals (AWS IAM ↔ Entra ID)',
+        'Cost management + support concepts'
+      ],
+      newTopics: [
+        'Azure service catalog (VM, AKS, Functions, App Service, Blob tiers LRS/ZRS/GRS)',
+        'Microsoft Entra ID + Conditional Access + RBAC specifics',
+        'Azure governance — Management Groups, Azure Policy, Blueprints',
+        'Azure-specific pricing — reservations, Azure Hybrid Benefit, Cost Management + Pricing Calculator'
+      ],
+      hoursSaved: 12,
+      daysSaved: 3,
+      callout: 'CLF-C02 → AZ-900 reuses the same cloud-fundamentals spine. Focus AZ-900 prep on the Azure service names + the Microsoft governance/identity stack.'
+    },
+
+    // ── Security+ → CLF-C02 (v7.8.0) — security & compliance overlap (~25%) ──
+    {
+      from: 'secplus',
+      to: 'clfc02',
+      pct: 24,
+      sharedCount: 4,
+      totalTargetCount: 16,
+      headline: 'Security fundamentals map onto AWS security services',
+      sharedTopics: [
+        'Shared Responsibility Model + cloud security concepts (Sec+ ↔ CLF-C02 Domain 2)',
+        'IAM — least privilege, MFA, roles vs users (Sec+ IAM ↔ CLF-C02 Domain 2.3)',
+        'Encryption at rest / in transit + key management (Sec+ crypto ↔ AWS KMS)',
+        'Compliance frameworks awareness — SOC, ISO, PCI, GDPR (Sec+ governance ↔ AWS Artifact)'
+      ],
+      newTopics: [
+        'AWS-specific security services — GuardDuty / Inspector / Macie / Shield / WAF discrimination',
+        'AWS-specific cloud breadth — compute / storage / database / networking service catalog',
+        'Well-Architected Framework + cloud economics + pricing/support (non-security domains)'
+      ],
+      hoursSaved: 8,
+      daysSaved: 2,
+      callout: 'Security+ → CLF-C02 transfers the security-concept layer (shared responsibility, IAM, encryption, compliance), but most of CLF-C02 is breadth-of-service knowledge across all 4 domains, not depth in security.'
+    },
+
     // ── AZ-900 → SC-900 — strongest SC-900 pair, shared Azure platform + identity ──
     {
       from: 'az900',
