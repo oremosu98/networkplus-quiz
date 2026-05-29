@@ -48,7 +48,7 @@ function detectCert() {
       const url = new URL(location.href);
       const param = (url.searchParams.get('cert') || '').toLowerCase().trim();
       if (param === 'netplus' || param === 'secplus' || param === 'az900' || param === 'ai900'
-          || param === 'aplus-core1' || param === 'aplus-core2') {
+          || param === 'aplus-core1' || param === 'aplus-core2' || param === 'sc900') {
         try { localStorage.setItem(certOverrideKey, param); } catch (e) {}
         try {
           url.searchParams.delete('cert');
@@ -106,6 +106,14 @@ function detectCert() {
       if (host.indexOf('ai.') === 0
           || host.indexOf('ai-') === 0
           || host === 'ai.certanvil.com') return 'ai900';
+      // v7.7.0 — sixth cert SC-900 on sc900.certanvil.com (Pattern A; founder
+      // lock 2026-05-28). Microsoft Security/Compliance/Identity role family;
+      // cert-code-named to AVOID semantic collision with CompTIA Security+
+      // (secplus.certanvil.com). Single-exam (unlike A+), so a plain return —
+      // no in-app exam switch, standard cross-subdomain nav from the switcher.
+      if (host.indexOf('sc900.') === 0
+          || host.indexOf('sc900-') === 0
+          || host === 'sc900.certanvil.com') return 'sc900';
       // v7.6.0 — fifth cert family CompTIA A+ on aplus.certanvil.com (Pattern
       // A; founder lock 2026-05-27). A+ is ONE certification with TWO exams
       // (Core 1 220-1201 + Core 2 220-1202) that SHARE one subdomain — the
@@ -133,7 +141,7 @@ function detectCert() {
     if (typeof localStorage !== 'undefined') {
       const dev = localStorage.getItem('nplus_dev_cert');
       if (dev === 'secplus' || dev === 'netplus' || dev === 'az900' || dev === 'ai900'
-          || dev === 'aplus-core1' || dev === 'aplus-core2') return dev;
+          || dev === 'aplus-core1' || dev === 'aplus-core2' || dev === 'sc900') return dev;
     }
   } catch (e) { /* localStorage may be blocked */ }
 

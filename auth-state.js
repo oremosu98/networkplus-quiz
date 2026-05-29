@@ -100,7 +100,7 @@
     try {
       var dev = localStorage.getItem(CERT_OVERRIDE_KEY);
       if (dev === 'secplus' || dev === 'netplus' || dev === 'az900' || dev === 'ai900'
-          || dev === 'aplus-core1' || dev === 'aplus-core2') return dev;
+          || dev === 'aplus-core1' || dev === 'aplus-core2' || dev === 'sc900') return dev;
     } catch (e) {}
     try {
       var host = window.location.hostname || '';
@@ -121,6 +121,12 @@
       if (host.indexOf('ai.') === 0
           || host.indexOf('ai-') === 0
           || host === 'ai.certanvil.com') return 'ai900';
+      // v7.7.0 — sixth cert SC-900 on sc900.certanvil.com (Pattern A; founder
+      // lock 2026-05-28). Single-exam Microsoft Security/Compliance/Identity
+      // cert; cert-code-named to avoid Security+ (secplus.) collision.
+      if (host.indexOf('sc900.') === 0
+          || host.indexOf('sc900-') === 0
+          || host === 'sc900.certanvil.com') return 'sc900';
       // v7.6.0 — fifth cert family CompTIA A+ on aplus.certanvil.com (Pattern
       // A; founder lock 2026-05-27). Core 1 + Core 2 share the subdomain; the
       // localStorage override above (checked FIRST) differentiates the active

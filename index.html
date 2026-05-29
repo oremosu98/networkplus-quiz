@@ -82,6 +82,8 @@
         cert = 'az900';
       } else if (host.indexOf('ai.') === 0 || host.indexOf('ai-') === 0 || host === 'ai.certanvil.com') {
         cert = 'ai900'; // v7.5.0 — fourth cert AI-900 (Pattern A, founder lock 2026-05-27)
+      } else if (host.indexOf('sc900.') === 0 || host.indexOf('sc900-') === 0 || host === 'sc900.certanvil.com') {
+        cert = 'sc900'; // v7.7.0 — sixth cert SC-900 (Pattern A, founder lock 2026-05-28); single-exam, cert-code-named to avoid Security+ (secplus.) collision
       } else if (host.indexOf('aplus.') === 0 || host.indexOf('aplus-') === 0 || host === 'aplus.certanvil.com') {
         // v7.6.0 — fifth cert family CompTIA A+ (Core 1 220-1201 + Core 2
         // 220-1202) SHARE aplus.certanvil.com. Resolve the active EXAM here so
@@ -114,7 +116,7 @@
       if (typeof localStorage !== 'undefined') {
         var dev = localStorage.getItem('nplus_dev_cert');
         if (dev === 'secplus' || dev === 'netplus' || dev === 'az900' || dev === 'ai900'
-            || dev === 'aplus-core1' || dev === 'aplus-core2') cert = dev;
+            || dev === 'aplus-core1' || dev === 'aplus-core2' || dev === 'sc900') cert = dev;
       }
     } catch (e) { /* localStorage may be blocked */ }
   }
@@ -131,11 +133,13 @@
         ? 'CertAnvil — Azure Fundamentals'
         : (cert === 'ai900')
           ? 'CertAnvil — Azure AI Fundamentals'
-          : (cert === 'aplus-core1')
-            ? 'CertAnvil — A+ Core 1'
-            : (cert === 'aplus-core2')
-              ? 'CertAnvil — A+ Core 2'
-              : 'CertAnvil — Network+';
+          : (cert === 'sc900')
+            ? 'CertAnvil — SC-900'
+            : (cert === 'aplus-core1')
+              ? 'CertAnvil — A+ Core 1'
+              : (cert === 'aplus-core2')
+                ? 'CertAnvil — A+ Core 2'
+                : 'CertAnvil — Network+';
   } catch (e) {}
   // v4.99.30: synchronous active-cert-pack load. document.write before
   // </head> with the body still parsing — the browser blocks parsing on
