@@ -24821,6 +24821,66 @@ test('TB v3 walk: runStep defaults mode to 2d when undefined', (function () {
   return /mode\s*=\s*mode\s*\|\|\s*['"]2d['"]/.test(m[0]);
 })());
 
+// ══════════════════════════════════════════════════════════════════════════
+// Security Phase 2 · DB quick wins (20260529_phase2_db_quick_wins.sql)
+// M1 stripe_events RLS · M2 diagnostic_share enumeration · M4 notify validation
+// · L3 claim_diagnostic_results email-match. See SECURITY-AUDIT-2026-05-29.md.
+// ══════════════════════════════════════════════════════════════════════════
+console.log('\n\x1b[1m── Security Phase 2 — DB QUICK WINS ──\x1b[0m');
+(function () {
+  const p2Path = path.join(ROOT, 'supabase/migrations/20260529_phase2_db_quick_wins.sql');
+  const p2 = fs.existsSync(p2Path) ? fs.readFileSync(p2Path, 'utf8') : '';
+  const shareFetch = fs.existsSync(path.join(ROOT, 'landing/api/diagnostic/share-fetch.js'))
+    ? fs.readFileSync(path.join(ROOT, 'landing/api/diagnostic/share-fetch.js'), 'utf8') : '';
+  const shareRedirect = fs.existsSync(path.join(ROOT, 'landing/api/diagnostic/share-redirect.js'))
+    ? fs.readFileSync(path.join(ROOT, 'landing/api/diagnostic/share-redirect.js'), 'utf8') : '';
+
+  // — file + gated-lane convention —
+  test('Sec-P2 migration: 20260529_phase2_db_quick_wins.sql exists',
+    p2.length > 1000);
+  test('Sec-P2 migration: carries a -- ROLLBACK block (gated-lane discipline)',
+    /-- ROLLBACK/.test(p2));
+
+  // — M1: stripe_events RLS, no client policies —
+  test('Sec-P2 M1: enables RLS on stripe_events',
+    /alter\s+table\s+stripe_events\s+enable\s+row\s+level\s+security/i.test(p2));
+  test('Sec-P2 M1: adds NO client policy on stripe_events (service-role only)',
+    !/create\s+policy[\s\S]{0,120}\son\s+stripe_events/i.test(p2));
+
+  // — M2: diagnostic_share enumeration fix —
+  test('Sec-P2 M2: drops the world-readable open SELECT policy',
+    /drop\s+policy\s+if\s+exists\s+"diag_share_public_select"\s+on\s+diagnostic_share/i.test(p2));
+  test('Sec-P2 M2: get_diagnostic_share is a SECURITY DEFINER fn token+expiry scoped',
+    /create\s+or\s+replace\s+function\s+get_diagnostic_share\s*\(\s*p_token\s+text\s*\)/i.test(p2)
+    && /create\s+or\s+replace\s+function\s+get_diagnostic_share[\s\S]{0,400}security\s+definer/i.test(p2)
+    && /where\s+s\.token\s*=\s*p_token/i.test(p2)
+    && /expires_at\s*>\s*now\(\)/i.test(p2));
+  test('Sec-P2 M2: get_diagnostic_share execute granted to anon',
+    /grant\s+execute\s+on\s+function\s+get_diagnostic_share\(text\)\s+to\s+anon/i.test(p2));
+  test('Sec-P2 M2: share-fetch.js reads via the RPC, not the open table',
+    /\/rest\/v1\/rpc\/get_diagnostic_share/.test(shareFetch)
+    && !/\/rest\/v1\/diagnostic_share'/.test(shareFetch));
+  test('Sec-P2 M2: share-redirect.js reads via the RPC, not the open table',
+    /\/rest\/v1\/rpc\/get_diagnostic_share/.test(shareRedirect)
+    && !/\/rest\/v1\/diagnostic_share'/.test(shareRedirect));
+
+  // — M4: notify_signups NULL-safe validation restored —
+  test('Sec-P2 M4: notify policy recreated with the regex_fix regex + length bounds',
+    /email\s*~\s*'\^\[\^@\]\+@\[\^@\]\+\\\.\[\^@\]\+\$'/.test(p2)
+    && /length\(email\)\s*<=\s*254/i.test(p2)
+    && /length\(cert\)\s*>\s*0/i.test(p2));
+  test('Sec-P2 M4: source-length predicate is NULL-safe (the v4.99.13 42501 root cause)',
+    /source\s+is\s+null\s+or\s+length\(source\)\s*<=\s*100/i.test(p2));
+
+  // — L3: claim_diagnostic_results email-match guard —
+  test('Sec-P2 L3: claim_diagnostic_results recreated',
+    /create\s+or\s+replace\s+function\s+claim_diagnostic_results\s*\(\s*p_token\s+text\s*\)/i.test(p2));
+  test('Sec-P2 L3: adds an email-match guard (auth.users email vs pending email)',
+    /select\s+email\s+into\s+v_user_email\s+from\s+auth\.users/i.test(p2)
+    && /is\s+distinct\s+from\s+lower\(v_pending\.email\)/i.test(p2)
+    && /'email_mismatch'/.test(p2));
+})();
+
 // ── Summary ──
 console.log('\n' + '═'.repeat(50));
 const total = results.pass + results.fail;
