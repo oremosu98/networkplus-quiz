@@ -21666,6 +21666,25 @@ test('v4.99.59 EnvStrategy: PR template exists with the gated-lane checklist', (
   return /Risk tier/i.test(pt) && /Supabase branch DB/.test(pt) && /-- ROLLBACK/.test(pt);
 })());
 
+// ── CLAUDE.md size ceiling (docs slim-down enforcement, 2026-05-29) ──
+// CLAUDE.md auto-loads on every tool call, so bloat taxes every session. If
+// these fail, move detail to docs/ or CHANGELOG.md — never grow the always-
+// loaded file. The 122-row, 530KB Version History bloat is what these prevent.
+(function _claudeMdCeiling() {
+  let md = '';
+  try { md = fs.readFileSync(path.join(ROOT, 'CLAUDE.md'), 'utf8'); } catch (_) {}
+  const lineCount = md ? md.split('\n').length : 0;
+  const byteCount = Buffer.byteLength(md, 'utf8');
+  test('CLAUDE.md ceiling: <= 250 lines (move detail to docs/ or CHANGELOG.md)',
+    lineCount > 0 && lineCount <= 250);
+  test('CLAUDE.md ceiling: <= 30KB (move detail to docs/ or CHANGELOG.md)',
+    byteCount > 0 && byteCount <= 30 * 1024);
+  // No multi-paragraph version rows: each `| v` row stays a terse one-liner.
+  const fatRows = (md.match(/^\| v.*$/gm) || []).filter((r) => r.length > 320);
+  test('CLAUDE.md Version History: no fat version rows (each <= 320 chars; full detail -> CHANGELOG.md)',
+    fatRows.length === 0);
+})();
+
 // ────────────────────────────────────────────────────────────
 // v5.6.x · Bug-Report Pure Functions (4 fixtures)
 // ────────────────────────────────────────────────────────────
