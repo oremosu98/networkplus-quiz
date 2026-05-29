@@ -6,11 +6,12 @@
 // /diagnostic/<cert>/results?token=… (typically arrived via the /r/{token}
 // short URL after share-redirect.js bounced them here).
 //
-// Anon-readable — the diagnostic_share table has an open RLS SELECT policy
-// because token uniqueness + entropy is the access gate. No service-role
-// key needed for the read. We use the SUPABASE_PUBLISHABLE_KEY (anon key,
-// same one the cert app uses) so this endpoint works even without
-// SUPABASE_SERVICE_ROLE_KEY.
+// Reads via the token-scoped get_diagnostic_share() RPC (SECURITY DEFINER).
+// The old open RLS SELECT policy on diagnostic_share was dropped in
+// 20260529_phase2_db_quick_wins.sql (it let anyone with the anon key enumerate
+// every shared diagnostic). The RPC returns ONLY the matching, non-expired row,
+// so the token stays the access gate. Still uses the SUPABASE_PUBLISHABLE_KEY
+// (anon key) — the RPC is granted to anon; no service-role key needed.
 //
 // Also fires increment_share_view(token) so the share-view counter ticks.
 //
@@ -63,15 +64,17 @@ export default async function handler(req) {
   const token = url.searchParams.get('token') || '';
   if (!isValidToken(token)) return json({ ok: false, error: 'invalid_token' }, 400);
 
-  // Fetch the share row via REST · anon key + open RLS = no service role needed
-  const fetchUrl = SUPABASE_URL + '/rest/v1/diagnostic_share' +
-    '?token=eq.' + encodeURIComponent(token) +
-    '&select=token,cert,results,view_count,created_at,expires_at';
-  const res = await fetch(fetchUrl, {
+  // Fetch the share row via the token-scoped SECURITY DEFINER RPC. The RPC
+  // returns an array with the single matching, non-expired row (cert, results,
+  // view_count, created_at, expires_at) — or [] for a bad/expired/unknown token.
+  const res = await fetch(SUPABASE_URL + '/rest/v1/rpc/get_diagnostic_share', {
+    method: 'POST',
     headers: {
       'apikey': SUPABASE_PUBLISHABLE_KEY,
       'Authorization': 'Bearer ' + SUPABASE_PUBLISHABLE_KEY,
+      'Content-Type': 'application/json',
     },
+    body: JSON.stringify({ p_token: token }),
   });
   if (!res.ok) return json({ ok: false, error: 'fetch_failed', status: res.status }, 500);
   const rows = await res.json().catch(() => null);
