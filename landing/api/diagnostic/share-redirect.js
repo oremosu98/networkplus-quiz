@@ -47,14 +47,17 @@ export default async function handler(req) {
   const token = url.searchParams.get('token') || '';
   if (!isValidToken(token)) return redirect('/diagnostic?error=share-invalid-token');
 
-  // Look up cert by token. Anon RLS-open SELECT works here.
-  const fetchUrl = SUPABASE_URL + '/rest/v1/diagnostic_share' +
-    '?token=eq.' + encodeURIComponent(token) + '&select=cert,expires_at';
-  const res = await fetch(fetchUrl, {
+  // Look up cert by token via the token-scoped SECURITY DEFINER RPC. The open
+  // RLS SELECT policy was dropped in 20260529_phase2_db_quick_wins.sql
+  // (anti-enumeration); the RPC returns only the matching, non-expired row.
+  const res = await fetch(SUPABASE_URL + '/rest/v1/rpc/get_diagnostic_share', {
+    method: 'POST',
     headers: {
       'apikey': SUPABASE_PUBLISHABLE_KEY,
       'Authorization': 'Bearer ' + SUPABASE_PUBLISHABLE_KEY,
+      'Content-Type': 'application/json',
     },
+    body: JSON.stringify({ p_token: token }),
   });
   if (!res.ok) return redirect('/diagnostic?error=share-fetch-failed');
   const rows = await res.json().catch(() => null);

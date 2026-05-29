@@ -21666,6 +21666,25 @@ test('v4.99.59 EnvStrategy: PR template exists with the gated-lane checklist', (
   return /Risk tier/i.test(pt) && /Supabase branch DB/.test(pt) && /-- ROLLBACK/.test(pt);
 })());
 
+// ── CLAUDE.md size ceiling (docs slim-down enforcement, 2026-05-29) ──
+// CLAUDE.md auto-loads on every tool call, so bloat taxes every session. If
+// these fail, move detail to docs/ or CHANGELOG.md — never grow the always-
+// loaded file. The 122-row, 530KB Version History bloat is what these prevent.
+(function _claudeMdCeiling() {
+  let md = '';
+  try { md = fs.readFileSync(path.join(ROOT, 'CLAUDE.md'), 'utf8'); } catch (_) {}
+  const lineCount = md ? md.split('\n').length : 0;
+  const byteCount = Buffer.byteLength(md, 'utf8');
+  test('CLAUDE.md ceiling: <= 250 lines (move detail to docs/ or CHANGELOG.md)',
+    lineCount > 0 && lineCount <= 250);
+  test('CLAUDE.md ceiling: <= 30KB (move detail to docs/ or CHANGELOG.md)',
+    byteCount > 0 && byteCount <= 30 * 1024);
+  // No multi-paragraph version rows: each `| v` row stays a terse one-liner.
+  const fatRows = (md.match(/^\| v.*$/gm) || []).filter((r) => r.length > 320);
+  test('CLAUDE.md Version History: no fat version rows (each <= 320 chars; full detail -> CHANGELOG.md)',
+    fatRows.length === 0);
+})();
+
 // ────────────────────────────────────────────────────────────
 // v5.6.x · Bug-Report Pure Functions (4 fixtures)
 // ────────────────────────────────────────────────────────────
@@ -24861,6 +24880,146 @@ test('TB v3 walk: runStep defaults mode to 2d when undefined', (function () {
     /create or replace function ai_rl_check_and_increment/.test(aiRlMig) && /security definer/.test(aiRlMig) && /grant execute on function ai_rl_check_and_increment.+to authenticated/.test(aiRlMig));
   test('Sec-P1 migration: carries a ROLLBACK block',
     /ROLLBACK:/.test(aiRlMig) && /drop table if exists ai_proxy_rate_limit/.test(aiRlMig));
+})();
+
+// ══════════════════════════════════════════════════════════════════════════
+// Security Phase 2 · DB quick wins (20260529_phase2_db_quick_wins.sql)
+// M1 stripe_events RLS · M2 diagnostic_share enumeration · M4 notify validation
+// · L3 claim_diagnostic_results email-match. See SECURITY-AUDIT-2026-05-29.md.
+// ══════════════════════════════════════════════════════════════════════════
+console.log('\n\x1b[1m── Security Phase 2 — DB QUICK WINS ──\x1b[0m');
+(function () {
+  const p2Path = path.join(ROOT, 'supabase/migrations/20260529_phase2_db_quick_wins.sql');
+  const p2 = fs.existsSync(p2Path) ? fs.readFileSync(p2Path, 'utf8') : '';
+  const shareFetch = fs.existsSync(path.join(ROOT, 'landing/api/diagnostic/share-fetch.js'))
+    ? fs.readFileSync(path.join(ROOT, 'landing/api/diagnostic/share-fetch.js'), 'utf8') : '';
+  const shareRedirect = fs.existsSync(path.join(ROOT, 'landing/api/diagnostic/share-redirect.js'))
+    ? fs.readFileSync(path.join(ROOT, 'landing/api/diagnostic/share-redirect.js'), 'utf8') : '';
+
+  // — file + gated-lane convention —
+  test('Sec-P2 migration: 20260529_phase2_db_quick_wins.sql exists',
+    p2.length > 1000);
+  test('Sec-P2 migration: carries a -- ROLLBACK block (gated-lane discipline)',
+    /-- ROLLBACK/.test(p2));
+
+  // — M1: stripe_events RLS, no client policies —
+  test('Sec-P2 M1: enables RLS on stripe_events',
+    /alter\s+table\s+stripe_events\s+enable\s+row\s+level\s+security/i.test(p2));
+  test('Sec-P2 M1: adds NO client policy on stripe_events (service-role only)',
+    !/create\s+policy[\s\S]{0,120}\son\s+stripe_events/i.test(p2));
+
+  // — M2: diagnostic_share enumeration fix —
+  test('Sec-P2 M2: drops the world-readable open SELECT policy',
+    /drop\s+policy\s+if\s+exists\s+"diag_share_public_select"\s+on\s+diagnostic_share/i.test(p2));
+  test('Sec-P2 M2: get_diagnostic_share is a SECURITY DEFINER fn token+expiry scoped',
+    /create\s+or\s+replace\s+function\s+get_diagnostic_share\s*\(\s*p_token\s+text\s*\)/i.test(p2)
+    && /create\s+or\s+replace\s+function\s+get_diagnostic_share[\s\S]{0,400}security\s+definer/i.test(p2)
+    && /where\s+s\.token\s*=\s*p_token/i.test(p2)
+    && /expires_at\s*>\s*now\(\)/i.test(p2));
+  test('Sec-P2 M2: get_diagnostic_share execute granted to anon',
+    /grant\s+execute\s+on\s+function\s+get_diagnostic_share\(text\)\s+to\s+anon/i.test(p2));
+  test('Sec-P2 M2: share-fetch.js reads via the RPC, not the open table',
+    /\/rest\/v1\/rpc\/get_diagnostic_share/.test(shareFetch)
+    && !/\/rest\/v1\/diagnostic_share'/.test(shareFetch));
+  test('Sec-P2 M2: share-redirect.js reads via the RPC, not the open table',
+    /\/rest\/v1\/rpc\/get_diagnostic_share/.test(shareRedirect)
+    && !/\/rest\/v1\/diagnostic_share'/.test(shareRedirect));
+
+  // — M4: notify_signups NULL-safe validation restored —
+  test('Sec-P2 M4: notify policy recreated with the regex_fix regex + length bounds',
+    /email\s*~\s*'\^\[\^@\]\+@\[\^@\]\+\\\.\[\^@\]\+\$'/.test(p2)
+    && /length\(email\)\s*<=\s*254/i.test(p2)
+    && /length\(cert\)\s*>\s*0/i.test(p2));
+  test('Sec-P2 M4: source-length predicate is NULL-safe (the v4.99.13 42501 root cause)',
+    /source\s+is\s+null\s+or\s+length\(source\)\s*<=\s*100/i.test(p2));
+
+  // — L3: claim_diagnostic_results email-match guard —
+  test('Sec-P2 L3: claim_diagnostic_results recreated',
+    /create\s+or\s+replace\s+function\s+claim_diagnostic_results\s*\(\s*p_token\s+text\s*\)/i.test(p2));
+  test('Sec-P2 L3: adds an email-match guard (auth.users email vs pending email)',
+    /select\s+email\s+into\s+v_user_email\s+from\s+auth\.users/i.test(p2)
+    && /is\s+distinct\s+from\s+lower\(v_pending\.email\)/i.test(p2)
+    && /'email_mismatch'/.test(p2));
+})();
+
+// ══════════════════════════════════════════════════════════════════════════
+// Security Phase 3 · notify-me rate limit + CORS (20260529_phase3_notify_rate_limit.sql
+// + landing/api/notify.js). M3a per-IP-hash rate limit (fail-OPEN) · M3b CORS
+// tightened from `*` to the certanvil.com allowlist. See SECURITY-AUDIT-2026-05-29.md.
+// ══════════════════════════════════════════════════════════════════════════
+console.log('\n\x1b[1m── Security Phase 3 — NOTIFY RATE LIMIT + CORS ──\x1b[0m');
+(function () {
+  const p3Path = path.join(ROOT, 'supabase/migrations/20260529_phase3_notify_rate_limit.sql');
+  const p3 = fs.existsSync(p3Path) ? fs.readFileSync(p3Path, 'utf8') : '';
+  const notify = fs.existsSync(path.join(ROOT, 'landing/api/notify.js'))
+    ? fs.readFileSync(path.join(ROOT, 'landing/api/notify.js'), 'utf8') : '';
+
+  // — file + gated-lane convention —
+  test('Sec-P3 migration: 20260529_phase3_notify_rate_limit.sql exists',
+    p3.length > 1000);
+  test('Sec-P3 migration: carries a -- ROLLBACK block (gated-lane discipline, dated >= 2026-05-12)',
+    /-- ROLLBACK/.test(p3));
+  test('Sec-P3 migration: preflight guard requires notify_signups + is_admin()',
+    /notify_signups not found/.test(p3) && /is_admin\(\) not found/.test(p3));
+
+  // — M3a: rate-limit table + RPC (mirrors diag_signup pattern) —
+  test('Sec-P3 M3a: creates notify_rate_limit table (ip_hash PK + counters)',
+    /create\s+table\s+if\s+not\s+exists\s+notify_rate_limit/i.test(p3)
+    && /ip_hash\s+text\s+primary key/i.test(p3)
+    && /call_count\s+int/i.test(p3)
+    && /first_at\s+timestamptz/i.test(p3)
+    && /last_at\s+timestamptz/i.test(p3));
+  test('Sec-P3 M3a: creates notify_rl_check_and_increment RPC',
+    /create\s+or\s+replace\s+function\s+notify_rl_check_and_increment/i.test(p3));
+  test('Sec-P3 M3a: RPC is SECURITY DEFINER with pinned search_path (atomic RL check)',
+    /notify_rl_check_and_increment[\s\S]{0,800}security\s+definer/i.test(p3)
+    && /notify_rl_check_and_increment[\s\S]{0,900}set\s+search_path\s*=\s*public/i.test(p3));
+  test('Sec-P3 M3a: RPC enforces 10-call / 1h window',
+    /v_limit\s+constant\s+int\s*:=\s*10/.test(p3)
+    && /interval\s+'1 hour'/.test(p3));
+  test('Sec-P3 M3a: RLS admin-only select on rate-limit table (clients have no read/write)',
+    /alter\s+table\s+notify_rate_limit\s+enable\s+row\s+level\s+security/i.test(p3)
+    && /notify_rl_admin_select[\s\S]{0,200}is_admin\(\)/i.test(p3));
+  test('Sec-P3 M3a: migration includes purge helper (notify_rl_purge_old)',
+    /create\s+or\s+replace\s+function\s+notify_rl_purge_old/i.test(p3));
+
+  // — M3a: endpoint wiring —
+  test('Sec-P3 M3a: notify.js calls the rate-limit RPC',
+    /\/rest\/v1\/rpc\/notify_rl_check_and_increment/.test(notify));
+  test('Sec-P3 M3a: notify.js hashes client IP (SHA-256, raw IP never stored, distinct salt)',
+    /crypto\.subtle\.digest\(\s*['"]SHA-256['"]/.test(notify)
+    && /certanvil-notify-salt-v1/.test(notify));
+  test('Sec-P3 M3a: notify.js uses the service-role key for the RL RPC',
+    /SUPABASE_SERVICE_ROLE_KEY/.test(notify));
+  test('Sec-P3 M3a: rate limit FAILS OPEN on infra error (missing key / RPC fail / throw)',
+    /rate limit skipped \(fail-open\)/i.test(notify)
+    && /fail-open\)/i.test(notify)
+    && /threw \(fail-open\)/i.test(notify));
+  test('Sec-P3 M3a: notify.js returns 429 only on explicit allowed:false',
+    /row\.allowed\s*===\s*false/.test(notify)
+    && /\}\s*,\s*429\s*,\s*req\s*\)/.test(notify));
+  test('Sec-P3 M3a: rate-limit check sits AFTER the honeypot (bots do not spend RL budget)',
+    /body\.website[\s\S]{0,700}checkNotifyRateLimit\(req\)/.test(notify));
+
+  // — M3b: CORS tightened from `*` to the certanvil.com allowlist —
+  test('Sec-P3 M3b: no Access-Control-Allow-Origin: * anywhere in notify.js',
+    !/Access-Control-Allow-Origin['"]?\s*:\s*['"]\*['"]/.test(notify));
+  test('Sec-P3 M3b: ALLOWED_ORIGINS allowlist contains the certanvil.com origins',
+    /ALLOWED_ORIGINS\s*=\s*new\s+Set\(/.test(notify)
+    && /https:\/\/certanvil\.com/.test(notify)
+    && /https:\/\/www\.certanvil\.com/.test(notify));
+  test('Sec-P3 M3b: corsHeaders echoes an allowlisted Origin + sets Vary: Origin',
+    /ALLOWED_ORIGINS\.has\(origin\)/.test(notify)
+    && /['"]Vary['"]\s*:\s*['"]Origin['"]/.test(notify));
+  test('Sec-P3 M3b: OPTIONS preflight + json() both route through corsHeaders(req)',
+    /headers:\s*corsHeaders\(req\)/.test(notify)
+    && /\.\.\.corsHeaders\(req\)/.test(notify));
+
+  // — graceful-degrade preserved (M3 must not break the existing soft-fail flow) —
+  test('Sec-P3 graceful: notify.js still soft-fails the Supabase insert (try/catch preserved)',
+    /try\s*\{[\s\S]{0,2000}\/rest\/v1\/notify_signups[\s\S]{0,2000}\}\s*catch\s*\(/.test(notify));
+  test('Sec-P3 graceful: notify.js still returns persisted_to_supabase flag (UX contract intact)',
+    /persisted_to_supabase:\s*persistedToSupabase/.test(notify));
 })();
 
 // ── Summary ──
