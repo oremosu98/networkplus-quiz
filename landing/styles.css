@@ -403,6 +403,7 @@ button { font: inherit; border: 0; background: transparent; cursor: pointer; col
 .cert-glyph-netplus,
 .cert-glyph-secplus,
 .cert-glyph-az900,
+.cert-glyph-sc900,
 .cert-glyph-aplus,
 .cert-glyph-ccna,
 .cert-glyph-aws,
@@ -413,6 +414,7 @@ button { font: inherit; border: 0; background: transparent; cursor: pointer; col
 .cert-glyph-netplus { color: var(--accent-light); }
 .cert-glyph-secplus { color: #fbbf24; }
 .cert-glyph-az900   { color: #38bdf8; }
+.cert-glyph-sc900   { color: #fb7185; } /* v7.7.0 — SC-900 rose, distinct from the cool/warm cert palette */
 .cert-glyph-aplus   { color: #e07a5f; }
 .cert-glyph-ccna    { color: #34d399; }
 .cert-glyph-aws     { color: #fcd34d; }

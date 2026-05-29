@@ -506,6 +506,17 @@
       activeMeta: 'available now',
       href: 'https://aplus.certanvil.com/?exam=core2'
     }));
+    // v7.7.0 — Microsoft SC-900 row (single-exam). Pattern A; in-app Pro gating
+    // happens on the sc900.certanvil.com subdomain (mirrors the az900 pattern).
+    rows.push(rowForCert({
+      id: 'sc900',
+      glyph: 'SC',
+      glyphClass: 'cert-glyph-sc900',
+      name: 'Microsoft SC-900',
+      code: 'SC-900',
+      activeMeta: 'available now',
+      href: 'https://sc900.certanvil.com/'
+    }));
     listEl.innerHTML = rows.join('');
 
     // Show Security+ analytics quick link in the cross-cert modal too
