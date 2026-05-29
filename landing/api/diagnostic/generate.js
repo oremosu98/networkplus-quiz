@@ -57,8 +57,8 @@ export default async function handler(req) {
   const intake = (body && typeof body.intake === 'object') ? body.intake : null;
 
   // ── 2. Validate input ──
-  if (cert !== 'network-plus' && cert !== 'security-plus' && cert !== 'azure-fundamentals' && cert !== 'azure-ai-fundamentals' && cert !== 'aplus-core1' && cert !== 'aplus-core2') {
-    return json({ error: 'bad-request', message: 'Invalid cert · must be "network-plus", "security-plus", "azure-fundamentals", "azure-ai-fundamentals", "aplus-core1", or "aplus-core2"' }, 400);
+  if (cert !== 'network-plus' && cert !== 'security-plus' && cert !== 'azure-fundamentals' && cert !== 'azure-ai-fundamentals' && cert !== 'aplus-core1' && cert !== 'aplus-core2' && cert !== 'sc900') {
+    return json({ error: 'bad-request', message: 'Invalid cert · must be "network-plus", "security-plus", "azure-fundamentals", "azure-ai-fundamentals", "aplus-core1", "aplus-core2", or "sc900"' }, 400);
   }
   if (!Number.isFinite(requestedCount) || requestedCount < 1 || requestedCount > HARD_QUESTION_CAP) {
     return json({ error: 'bad-request', message: 'Invalid count · 1-' + HARD_QUESTION_CAP }, 400);
@@ -423,6 +423,27 @@ function buildDiagnosticPrompt(cert, count, intake) {
       maxScore: 900,
       // Public CompTIA A+ 220-1202 v4.0 Exam Objectives ranges
       objectiveRanges: ['1.1', '1.2', '1.3', '1.4', '1.5', '1.6', '1.7', '1.8', '1.9', '1.10', '1.11', '2.1', '2.2', '2.3', '2.4', '2.5', '2.6', '2.7', '2.8', '2.9', '2.10', '2.11', '3.1', '3.2', '3.3', '3.4', '4.1', '4.2', '4.3', '4.4', '4.5', '4.6', '4.7', '4.8', '4.9', '4.10'],
+    };
+  } else if (cert === 'sc900') {
+    // v7.7.0 — SC-900 cert branch. Official Microsoft Skills Measured
+    // (effective 2025-11-07) 4-domain blueprint, midpoint weights. Bias toward
+    // product-distinction scenarios (the "many Defenders" + Purview confusables)
+    // per VoC. vendor 'Microsoft' routes to the Microsoft bannedSources list
+    // (which already includes Skillcertpro). NO KQL (that is SC-200, not SC-900).
+    certMeta = {
+      name: 'Microsoft SC-900',
+      code: 'SC-900',
+      vendor: 'Microsoft',
+      domains: [
+        { id: 1, label: 'Security, Compliance & Identity Concepts', weight: 13 },
+        { id: 2, label: 'Microsoft Entra', weight: 28 },
+        { id: 3, label: 'Microsoft Security Solutions', weight: 37 },
+        { id: 4, label: 'Microsoft Compliance Solutions', weight: 22 },
+      ],
+      passMark: 700,
+      maxScore: 1000,
+      // Public Microsoft SC-900 Skills Measured (effective 2025-11-07) objective ranges
+      objectiveRanges: ['1.1', '1.2', '2.1', '2.2', '2.3', '2.4', '3.1', '3.2', '3.3', '3.4', '4.1', '4.2', '4.3', '4.4'],
     };
   } else {
     certMeta = {

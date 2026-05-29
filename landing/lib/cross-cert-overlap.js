@@ -809,6 +809,131 @@
       hoursSaved: 10,
       daysSaved: 2,
       callout: 'A+ Core 2 gives you the security vocabulary; Sec+ SY0-701 expands it into governance, architecture, operations, and risk. The shared concepts are real but Sec+ is far broader — budget full prep for Domains 4 + 5.'
+    },
+
+    // ── v7.7.0 SC-900 pairs (AZ-900 ↔ SC-900 + Sec+ ↔ SC-900, both directions) ──
+    // SC-900 ↔ AI-900 (~10-15%) and SC-900 ↔ Net+ (~15%) omitted per the <20% convention.
+
+    // ── AZ-900 → SC-900 — strongest SC-900 pair, shared Azure platform + identity ──
+    {
+      from: 'az900',
+      to: 'sc900',
+      pct: 40,
+      sharedCount: 7,
+      totalTargetCount: 16,
+      headline: 'Azure platform + identity foundation transfers',
+      sharedTopics: [
+        'Microsoft Entra ID + RBAC (AZ-900 identity layer ↔ SC-900 Domain 2)',
+        'Shared Responsibility Model (AZ-900 ↔ SC-900 Domain 1)',
+        'Zero Trust model (AZ-900 security ↔ SC-900 Domain 1)',
+        'Microsoft Defender for Cloud awareness (AZ-900 governance ↔ SC-900 Domain 3.2)',
+        'Conditional Access fundamentals (AZ-900 ↔ SC-900 Entra)',
+        'Azure network security primitives — NSG, Azure Firewall (AZ-900 ↔ SC-900 Domain 3.1)',
+        'Microsoft Purview governance basics (AZ-900 governance ↔ SC-900 Domain 4)'
+      ],
+      refresherTopics: [
+        'Entra ID expands from "the identity service" into Conditional Access vs Identity Protection vs PIM as distinct tools',
+        'Defender for Cloud awareness deepens into the full Microsoft Defender XDR family'
+      ],
+      newTopics: [
+        'The "many Defenders" product map — Defender XDR / Endpoint / Identity / Office 365 / Cloud Apps / for Cloud',
+        'Microsoft Sentinel (SIEM + SOAR, Playbook vs Workbook)',
+        'Identity Protection vs PIM vs Conditional Access distinctions',
+        'Microsoft Purview compliance depth — sensitivity vs retention labels vs DLP, Compliance Manager, eDiscovery, insider risk',
+        'SCI concepts — defense in depth layers, encryption vs hashing, preventive/detective/corrective controls'
+      ],
+      hoursSaved: 16,
+      daysSaved: 4,
+      callout: 'AZ-900 → SC-900 is the strongest SC-900 pair and the dominant buyer journey. The Azure platform + Entra + shared-responsibility foundation carries directly. Spend your SC-900 prep on the security solutions (Domain 3, 37% — the Defender family + Sentinel) and Purview compliance (Domain 4).'
+    },
+
+    // ── SC-900 → AZ-900 — reverse, the Azure platform layer is mostly new ──
+    {
+      from: 'sc900',
+      to: 'az900',
+      pct: 32,
+      sharedCount: 5,
+      totalTargetCount: 13,
+      headline: 'Identity + security foundation transfers in reverse',
+      sharedTopics: [
+        'Microsoft Entra ID + RBAC',
+        'Shared Responsibility Model',
+        'Zero Trust model + defense in depth',
+        'Azure infrastructure security (NSG, Azure Firewall, Bastion, Key Vault)',
+        'Microsoft Defender for Cloud awareness'
+      ],
+      newTopics: [
+        'Azure compute services (VM, AKS, Functions, App Service)',
+        'Azure storage tiers + redundancy (LRS/ZRS/GRS/GZRS)',
+        'Cloud business model (CapEx vs OpEx, consumption-based pricing)',
+        'Cost management (Pricing Calculator, TCO, budgets, tags)',
+        'Azure governance (Policy, Blueprints, Resource Locks)',
+        'Management + monitoring tools (CLI, PowerShell, ARM/Bicep, Azure Monitor, Log Analytics)'
+      ],
+      hoursSaved: 10,
+      daysSaved: 2,
+      callout: 'SC-900 teaches the Azure identity + security layer; AZ-900 expects breadth on compute, storage, networking, cost, and governance. Your identity + Defender foundation helps, but most of AZ-900\'s platform mechanics are new study.'
+    },
+
+    // ── Sec+ → SC-900 — vendor-neutral security concepts into the Microsoft frame ──
+    {
+      from: 'secplus',
+      to: 'sc900',
+      pct: 35,
+      sharedCount: 6,
+      totalTargetCount: 14,
+      headline: 'Security concepts carry into the Microsoft stack',
+      sharedTopics: [
+        'Zero Trust architecture (Sec+ Domain 3.2 ↔ SC-900 Domain 1)',
+        'Identity & access management — MFA, SSO, federation (Sec+ Domain 4.6 ↔ SC-900 Entra)',
+        'Defense in depth + shared responsibility (Sec+ Domain 3.1 ↔ SC-900 Domain 1)',
+        'Encryption + hashing fundamentals (Sec+ Domain 1.4 ↔ SC-900 Domain 1)',
+        'Incident response + SIEM/SOAR concepts (Sec+ Domain 4 ↔ SC-900 Microsoft Sentinel)',
+        'Data protection + DLP + compliance frameworks (Sec+ Domain 5 ↔ Microsoft Purview)'
+      ],
+      refresherTopics: [
+        'Vendor-neutral names become Microsoft-specific — IDP → Microsoft Entra ID, generic SIEM/SOAR → Microsoft Sentinel, generic CASB → Defender for Cloud Apps'
+      ],
+      newTopics: [
+        'The "many Defenders" product identification (which Defender protects which workload)',
+        'Microsoft Entra specifics — Conditional Access vs Identity Protection vs PIM',
+        'Azure infrastructure security services (DDoS Protection, Azure Firewall, WAF, NSGs, Bastion, Key Vault)',
+        'Microsoft Purview suite — sensitivity vs retention labels vs DLP, Service Trust Portal vs Compliance Manager, eDiscovery, insider risk'
+      ],
+      hoursSaved: 18,
+      daysSaved: 4,
+      callout: 'Sec+ gives you the conceptual scaffolding — Zero Trust, IAM, defense in depth, IR, compliance. SC-900 is largely "how Microsoft names + implements these," plus the product-identification layer (the Defender family + Purview suite) that is the real SC-900 study target.'
+    },
+
+    // ── SC-900 → Sec+ — reverse, vendor-neutral depth is mostly new ──
+    {
+      from: 'sc900',
+      to: 'secplus',
+      pct: 30,
+      sharedCount: 5,
+      totalTargetCount: 16,
+      headline: 'Microsoft security literacy is a Sec+ on-ramp',
+      sharedTopics: [
+        'Zero Trust principles + defense in depth',
+        'Identity & access management — MFA, Conditional Access concepts',
+        'Encryption + hashing fundamentals',
+        'Shared responsibility model',
+        'Compliance + governance literacy (Purview → frameworks)'
+      ],
+      refresherTopics: [
+        'Microsoft-specific names become vendor-neutral — Microsoft Entra ID → IDP, Microsoft Sentinel → generic SIEM/SOAR'
+      ],
+      newTopics: [
+        'Cryptography + PKI depth (cert formats, key management)',
+        'Threat actors, attack vectors, vulnerabilities (Sec+ Domain 2)',
+        'Malware types + analysis + social engineering',
+        'Network security architecture depth (segmentation, IDS/IPS, NAC)',
+        'Incident response (PICERL) + digital forensics',
+        'Risk management, third-party risk + governance frameworks (Sec+ Domain 5)'
+      ],
+      hoursSaved: 12,
+      daysSaved: 3,
+      callout: 'SC-900\'s Zero Trust + identity + compliance literacy gives you a head start on Sec+ Domains 3 + 4. The bulk of Sec+ — cryptography, threats, malware, IR/forensics, risk governance — is net-new study at far greater depth.'
     }
   ];
 })();

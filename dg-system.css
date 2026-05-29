@@ -2243,3 +2243,15 @@ html[data-cert="aplus-core2"] .dgh-db[data-domain-idx="5"]{
   display:none !important;
 }
 
+/* v7.7.0 — SC-900 is a 4-domain cert (sci-concepts / entra / security-solutions /
+   compliance-solutions), the same 4-domain shape as A+ Core 2. The static domain
+   grid has 5 slots (data-domain-idx 1-5); _renderTopicChipsForActiveCert populates
+   the first 4 and bails, leaving idx 5 stale. Hide it on all three surfaces
+   (Custom-Quiz accordion / tdp-pill / dgh-db). Scoped by data-cert on <html>
+   (set by the index.html inline IIFE before app.js loads). */
+html[data-cert="sc900"] details.topic-domain-group[data-domain-idx="5"],
+html[data-cert="sc900"] .tdp-pill[data-domain-idx="5"],
+html[data-cert="sc900"] .dgh-db[data-domain-idx="5"]{
+  display:none !important;
+}
+

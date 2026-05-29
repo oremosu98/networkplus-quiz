@@ -59,7 +59,7 @@ function mockMatchMedia(reducedMotion) {
   };
 }
 
-let html, js, css, sw, certNetplus, certSecplus, certAz900, certAi900, certAplusCore1, certAplusCore2, cloudStoreJs, authStateJs;
+let html, js, css, sw, certNetplus, certSecplus, certAz900, certAi900, certAplusCore1, certAplusCore2, certSc900, cloudStoreJs, authStateJs;
 try {
   html = read('index.html');
   js   = read('app.js');
@@ -82,6 +82,9 @@ try {
   // switching). Mirrors the AI-900 loader pattern.
   certAplusCore1 = read('certs/aplus-core1.js');
   certAplusCore2 = read('certs/aplus-core2.js');
+  // v7.7.0: SC-900 cert pack source for 8 new tombstones (sixth cert, Microsoft
+  // Security/Compliance/Identity on sc900.certanvil.com). Mirrors AI-900 loader.
+  certSc900 = read('certs/sc900.js');
   // v4.89.0 Phase C′: cloud-store source so we can assert USER_DATA_KEYS coverage
   // for new namespaced storage keys (e.g. v4.91.0 SAB_*).
   cloudStoreJs = read('cloud-store.js');
@@ -16491,6 +16494,81 @@ test('v7.6.0 CertPack: every Core 2 exemplar topic exists in topicDomains',
     while ((km = keyRe.exec(sec[1])) !== null) topicKeys.add(km[1]);
     if (topicKeys.size < 40) return false; // extraction sanity
     var exTopics = certAplusCore2.match(/topic:\s*"([^"]+)"/g) || [];
+    if (exTopics.length === 0) return false;
+    for (var i = 0; i < exTopics.length; i++) {
+      var t = exTopics[i].replace(/^topic:\s*"/, '').replace(/"$/, '');
+      if (!topicKeys.has(t)) return false;
+    }
+    return true;
+  })());
+
+// ══════════════════════════════════════════════════════════════════════
+// v7.7.0 CertPack — Microsoft SC-900 Security, Compliance & Identity (sixth cert)
+// ══════════════════════════════════════════════════════════════════════
+// 8 regression tombstones for the sixth cert. Mirrors the v7.5.0 AI-900 shape
+// (single-exam Pattern A): subdomain mirror on 3 surfaces + 7-cert switcher +
+// cert pack schema (declaration, domain weights, exemplar bank, topic catalog,
+// exemplar-topic integrity). Locks the SC-900 cert pack contract (Microsoft
+// Security/Compliance/Identity on sc900.certanvil.com).
+// ══════════════════════════════════════════════════════════════════════
+test('v7.7.0 CertPack: certs/sc900.js declares window.CERT_PACKS.sc900',
+  /window\.CERT_PACKS\.sc900\s*=\s*\{/.test(certSc900));
+test('v7.7.0 CertPack: app.js detectCert handles sc900. + sc900- + sc900.certanvil.com',
+  /host\.indexOf\(['"]sc900\.['"]\)\s*===\s*0/.test(js)
+  && /host\.indexOf\(['"]sc900-['"]\)\s*===\s*0/.test(js)
+  && /host\s*===\s*['"]sc900\.certanvil\.com['"]/.test(js));
+test('v7.7.0 CertPack: index.html inline IIFE maps sc900.certanvil.com to sc900',
+  /\(function\s*\(\)\s*\{[\s\S]{0,6000}sc900\.certanvil\.com[\s\S]{0,200}cert\s*=\s*['"]sc900['"]/.test(html));
+test('v7.7.0 CertPack: auth-state.js getAvailableCerts returns 7 certs (netplus + secplus + az900 + ai900 + sc900 + aplus-core1 + aplus-core2)',
+  (() => {
+    var src = authStateJs || '';
+    return /id:\s*['"]netplus['"]/.test(src)
+        && /id:\s*['"]secplus['"]/.test(src)
+        && /id:\s*['"]az900['"]/.test(src)
+        && /id:\s*['"]ai900['"]/.test(src)
+        && /id:\s*['"]sc900['"]/.test(src)
+        && /id:\s*['"]aplus-core1['"]/.test(src)
+        && /id:\s*['"]aplus-core2['"]/.test(src);
+  })());
+test('v7.7.0 CertPack: SC-900 domain weights sum within tolerance (>= 0.95 && <= 1.05)',
+  (() => {
+    // 4-domain weights (0.125/0.275/0.375/0.225 per the 2025-11-07 Skills
+    // Measured midpoints). Sums to exactly 1.00. Decimal-only regex avoids
+    // matching the integer percentages in the inline comments.
+    var m = certSc900.match(/domainWeights:\s*\{([\s\S]*?)\}/);
+    if (!m) return false;
+    var nums = (m[1].match(/[0-9]*\.[0-9]+/g) || []).map(Number);
+    var sum = nums.reduce(function (a, b) { return a + b; }, 0);
+    return sum >= 0.95 && sum <= 1.05;
+  })());
+test('v7.7.0 CertPack: SC-900 exemplar bank >= 195 entries',
+  (() => {
+    // Count addedVersion: "7.7.0" markers — one per exemplar (final count 200
+    // per Stage 6: D1 25 / D2 55 / D3 75 / D4 45). Floor 195 gives headroom.
+    var matches = certSc900.match(/addedVersion:\s*"7\.7\.0"/g);
+    return matches && matches.length >= 195;
+  })());
+test('v7.7.0 CertPack: SC-900 topic catalog has >= 40 topics',
+  (() => {
+    // Count keys in topicDomains (SC-900 has 53: D1 9 / D2 12 / D3 19 / D4 13).
+    var topicSection = certSc900.match(/topicDomains:\s*\{([\s\S]*?)\},\s*\n\s*\/\//);
+    if (!topicSection) return false;
+    var keys = topicSection[1].match(/^\s*'[^']+':/gm) || [];
+    return keys.length >= 40;
+  })());
+test('v7.7.0 CertPack: every SC-900 exemplar topic exists in topicDomains',
+  (() => {
+    // 4-domain set: sci-concepts / entra / security-solutions / compliance-solutions.
+    var topicSection = certSc900.match(/topicDomains:\s*\{([\s\S]*?)\},\s*\n\s*\/\//);
+    if (!topicSection) return false;
+    var topicKeys = new Set();
+    var keyMatch;
+    var keyRe = /'([^']+)':\s*'(?:sci-concepts|entra|security-solutions|compliance-solutions)'/g;
+    while ((keyMatch = keyRe.exec(topicSection[1])) !== null) {
+      topicKeys.add(keyMatch[1]);
+    }
+    if (topicKeys.size < 40) return false; // sanity check that extraction worked
+    var exTopics = certSc900.match(/topic:\s*"([^"]+)"/g) || [];
     if (exTopics.length === 0) return false;
     for (var i = 0; i < exTopics.length; i++) {
       var t = exTopics[i].replace(/^topic:\s*"/, '').replace(/"$/, '');

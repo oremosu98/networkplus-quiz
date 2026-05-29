@@ -89,6 +89,8 @@
       { id: 'secplus', name: 'Security+',                      code: 'SY0-701', tier: 'pro'  },
       { id: 'az900',   name: 'Microsoft Azure Fundamentals',   code: 'AZ-900',  tier: 'pro'  },
       { id: 'ai900',   name: 'Microsoft Azure AI Fundamentals',code: 'AI-900',  tier: 'pro'  },
+      // v7.7.0 — sixth cert SC-900 (single-exam, Microsoft Security/Compliance/Identity)
+      { id: 'sc900',   name: 'Microsoft SC-900',                code: 'SC-900',  tier: 'pro'  },
       // v7.6.0 — fifth cert family CompTIA A+ (dual-exam): both Core 1 + Core 2
       // are selectable rows on the shared aplus.certanvil.com subdomain.
       { id: 'aplus-core1', name: 'CompTIA A+ Core 1', code: '220-1201', tier: 'pro' },
@@ -100,7 +102,7 @@
     try {
       var dev = localStorage.getItem(CERT_OVERRIDE_KEY);
       if (dev === 'secplus' || dev === 'netplus' || dev === 'az900' || dev === 'ai900'
-          || dev === 'aplus-core1' || dev === 'aplus-core2') return dev;
+          || dev === 'aplus-core1' || dev === 'aplus-core2' || dev === 'sc900') return dev;
     } catch (e) {}
     try {
       var host = window.location.hostname || '';
@@ -121,6 +123,12 @@
       if (host.indexOf('ai.') === 0
           || host.indexOf('ai-') === 0
           || host === 'ai.certanvil.com') return 'ai900';
+      // v7.7.0 — sixth cert SC-900 on sc900.certanvil.com (Pattern A; founder
+      // lock 2026-05-28). Single-exam Microsoft Security/Compliance/Identity
+      // cert; cert-code-named to avoid Security+ (secplus.) collision.
+      if (host.indexOf('sc900.') === 0
+          || host.indexOf('sc900-') === 0
+          || host === 'sc900.certanvil.com') return 'sc900';
       // v7.6.0 — fifth cert family CompTIA A+ on aplus.certanvil.com (Pattern
       // A; founder lock 2026-05-27). Core 1 + Core 2 share the subdomain; the
       // localStorage override above (checked FIRST) differentiates the active
@@ -152,7 +160,7 @@
   // where subdomain hosts aren't available.
   window.tadSwitchCert = function (certId) {
     if (certId !== 'netplus' && certId !== 'secplus' && certId !== 'az900' && certId !== 'ai900'
-        && certId !== 'aplus-core1' && certId !== 'aplus-core2') return false;
+        && certId !== 'aplus-core1' && certId !== 'aplus-core2' && certId !== 'sc900') return false;
     // Pro gate for Sec+ + AZ-900 + AI-900: delegate to canonical _gateProOnly.
     // Returns true if Pro/admin (proceed) OR false if Free (modal already shown, abort).
     // v7.3.0: az900 joins secplus on the Pro tier.
@@ -165,6 +173,10 @@
     }
     if (certId === 'ai900' && typeof window._gateProOnly === 'function') {
       if (!window._gateProOnly('Azure AI Fundamentals (AI-900)')) return false;
+    }
+    // v7.7.0: sc900 joins as the sixth Pro-tier cert (founder lock 2026-05-28).
+    if (certId === 'sc900' && typeof window._gateProOnly === 'function') {
+      if (!window._gateProOnly('Microsoft SC-900 Security, Compliance & Identity Fundamentals')) return false;
     }
     // v7.6.0: both A+ exams are Pro-tier.
     if (certId === 'aplus-core1' && typeof window._gateProOnly === 'function') {
@@ -214,7 +226,9 @@
           ? 'azure.certanvil.com'
           : (certId === 'ai900')
             ? 'ai.certanvil.com'
-            : 'networkplus.certanvil.com';
+            : (certId === 'sc900')
+              ? 'sc900.certanvil.com'
+              : 'networkplus.certanvil.com';
       try { window.location.href = 'https://' + targetHost + '/'; } catch (e) {}
     }
     return false;

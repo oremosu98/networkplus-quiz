@@ -1,0 +1,1068 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>SC-900 Baseline · 20-Q diagnostic · CertAnvil</title>
+<meta name="theme-color" content="#fafbff">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="CertAnvil">
+<meta name="description" content="20-question Microsoft SC-900 — Security, Compliance &amp; Identity Fundamentals diagnostic. ~30 minutes. Score + weak-domain map at the end.">
+<link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+<link rel="stylesheet" href="../../styles.css">
+<link rel="canonical" href="https://certanvil.com/diagnostic/sc900/quiz">
+<meta name="robots" content="noindex, nofollow">
+<script>
+(function() {
+  var t;
+  try { t = localStorage.getItem('certanvilTheme') || localStorage.getItem('certanvilDiagnosticTheme') || localStorage.getItem('certanvil_theme'); } catch (e) {}
+  if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
+  /* else: no attribute -> @media prefers-color-scheme drives default */
+})();
+</script>
+
+<!-- v4.99.54 D.3: Cloudflare Turnstile invisible bot-protection challenge.
+     Site key is PUBLIC (safe to embed). Dev/test key below always passes;
+     production needs a real site key from dash.cloudflare.com/?to=/:account/turnstile -->
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+<link rel="stylesheet" href="../diagnostic-system.css?v=4.99.63">
+</head>
+<body class="no-js">
+
+<!-- TOPBAR (slim for quiz focus) -->
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="logo" href="/" aria-label="CertAnvil home">
+      <span class="logo-mark" aria-hidden="true">
+        <svg viewBox="0 0 100 100" fill="none" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+          <path d="M58 12 C42 6, 16 16, 14 34 C12 52, 22 62, 42 64" stroke="#b8860b" stroke-width="7" stroke-linecap="round"/>
+          <line x1="30" y1="84" x2="70" y2="16" stroke="#6a6a76" stroke-width="5" stroke-linecap="round"/>
+          <path d="M46 88 L64 50 L82 88 M53 74 L75 74" stroke="#b8860b" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </span>
+      <span class="logo-name">CertAnvil</span>
+    </a>
+  </div>
+</header>
+
+<main>
+
+<!-- No-JS fallback -->
+<div class="dq-no-js">
+  <h2 style="font-size:22px;font-weight:800;margin:0 0 10px">JavaScript required</h2>
+  <p style="font-size:14px;color:var(--text-mid, #4a4b5e);max-width:420px;margin:0 auto">The SC-900 diagnostic needs JavaScript to track your answers and time. Enable it in your browser, then refresh this page.</p>
+</div>
+
+<!-- Loading state (replaced once JS hydrates) -->
+<div class="dq-shell" id="dq-shell">
+  <!-- v4.99.54 D.3: invisible Turnstile widget. Site key 3x...FF is Cloudflare's
+       public dev/test INVISIBLE key (always passes the challenge). Prod swap to
+       a real invisible-mode key from dash.cloudflare.com → Turnstile.
+       Note: data-size is NOT set · invisible mode is determined by the key
+       itself; setting data-size="invisible" throws a TurnstileError. -->
+  <div id="dq-turnstile"
+       class="cf-turnstile"
+       data-sitekey="3x00000000000000000000FF"
+       data-callback="dqTurnstileCallback"
+       data-error-callback="dqTurnstileErrorCallback"
+       data-timeout-callback="dqTurnstileErrorCallback"></div>
+
+  <div class="dq-loading" id="dq-loading">
+    <div class="dq-loading-spinner" aria-hidden="true"></div>
+    <p id="dq-loading-text">Loading questions…</p>
+    <p style="font-size:12px;color:var(--text-dim, #8a8b9c);margin-top:6px" id="dq-loading-sub">20 questions across the 4 SC-900 domains.</p>
+  </div>
+
+  <!-- Source banner · surfaces when we fall back to the inline pool -->
+  <div id="dq-source-banner" role="status" aria-live="polite" style="display:none;background:linear-gradient(135deg,rgba(56,189,248,.06),transparent);border:1px solid rgba(56,189,248,.3);border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:var(--blue, #38bdf8);text-align:center"></div>
+
+  <!-- Live UI (built by JS) -->
+  <div id="dq-live" style="display:none">
+    <div class="dq-header">
+      <div class="dq-header-left">
+        <span id="dq-progress-label">Question 1 of 20</span>
+      </div>
+      <div class="dq-header-right">
+        <span class="dq-timer" id="dq-timer">30:00</span>
+        <button type="button" class="dq-quit-link" id="dq-quit-btn">Quit</button>
+      </div>
+    </div>
+
+    <div class="dq-progress" aria-hidden="true">
+      <div class="dq-progress-fill" id="dq-progress-fill" style="width:5%"></div>
+    </div>
+
+    <div class="dq-pause-banner" role="status" aria-live="polite">
+      ⏸ Paused · your timer froze when you switched tabs. Click here or come back to resume.
+    </div>
+
+    <div class="dq-card">
+      <div class="dq-card-pills" id="dq-card-pills"></div>
+      <p class="dq-stem" id="dq-stem"></p>
+      <div class="dq-options" id="dq-options" role="radiogroup" aria-label="Answer choices"></div>
+
+      <div class="dq-confidence" role="group" aria-labelledby="dq-confidence-label">
+        <p class="dq-confidence-label" id="dq-confidence-label">How confident are you?</p>
+        <div class="dq-confidence-row">
+          <button type="button" class="dq-confidence-btn" data-confidence="guessing" aria-pressed="false">
+            <span class="dq-confidence-btn-emoji">😬</span>Guessing
+          </button>
+          <button type="button" class="dq-confidence-btn" data-confidence="pretty-sure" aria-pressed="false">
+            <span class="dq-confidence-btn-emoji">🤔</span>Pretty sure
+          </button>
+          <button type="button" class="dq-confidence-btn" data-confidence="locked-in" aria-pressed="false">
+            <span class="dq-confidence-btn-emoji">💪</span>Locked in
+          </button>
+        </div>
+      </div>
+
+      <div class="dq-actions">
+        <span class="dq-hint" id="dq-hint">Pick an answer + confidence, then continue.</span>
+        <button type="button" class="dq-btn dq-btn-primary" id="dq-next-btn" disabled>Next →</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+</main>
+
+<script>
+// ══════════════════════════════════════════════════════════════════════════
+// D.2 · Landing Baseline Diagnostic · Microsoft SC-900 quiz UI · v7.3.0
+// ══════════════════════════════════════════════════════════════════════════
+// Self-contained 20-Q flow. Inline question pool covers all 4 SC-900 domains
+// weighted to Microsoft SC-900 Skills Measured blueprint:
+//   Domain 1: Security, Compliance & Identity Concepts (13%) → ~3Q
+//   Domain 2: Microsoft Entra (28%) → ~6Q
+//   Domain 3: Microsoft Security Solutions (37%) → ~8Q
+//   Domain 4: Microsoft Compliance Solutions (22%) → ~5Q
+// (weighted total rounds to 22 inline questions; API target is 20)
+//
+// Live AI generation runs via /api/diagnostic/generate with cert: "sc900";
+// inline pool is the fallback when AI is unavailable.
+//
+// State envelope (sessionStorage.certanvilDiagnosticSession):
+//   { cert, startedAt, durationMs, currentIdx, questionOrder, answers }
+// On completion, writes a richer envelope to certanvilDiagnosticResults for
+// the /results page (D.4) to render, then navigates to /diagnostic/sc900/results.
+//
+// Wake Lock + Visibility-API pause-on-blur mirrors the Phase 10 v4.99.49
+// exam-mode pattern: phone screen stays awake for 30 min; timer pauses
+// when user backgrounds the tab and resumes (with deadline extension) on
+// return.
+//
+// Legal boundary: all questions originate from PUBLIC Microsoft SC-900
+// Skills Measured study guide + public Microsoft Learn modules ONLY.
+// ZERO paid-bank ingestion (Skillcertpro BANNED, MeasureUp, Whizlabs,
+// Tutorials Dojo, ExamTopics, etc.).
+// No KQL/Kusto content (that is SC-200, not SC-900).
+// ══════════════════════════════════════════════════════════════════════════
+
+(function() {
+  'use strict';
+  document.body.classList.remove('no-js');
+
+  // ── 1. Question pool · 22 original SC-900 questions across 4 domains ──
+  // Each Q: { id, domain, topic, objective, difficulty, question, options:{A,B,C,D}, answer, explanation }
+  // Authored from public Microsoft SC-900 Skills Measured + Microsoft Learn modules.
+  // Domain distribution: D1 ×3 · D2 ×6 · D3 ×8 · D4 ×5 (= 22 total)
+  var QUESTION_POOL = [
+
+    // ── Domain 1: Security, Compliance & Identity Concepts (3Q · obj 1.1–1.2) ──
+    {
+      id: 1,
+      domain: 'Security, Compliance & Identity Concepts',
+      topic: 'Zero Trust',
+      objective: '1.1',
+      difficulty: 'Easy',
+      question: 'Which security model assumes that no user, device, or network should be trusted by default — even inside the corporate perimeter?',
+      options: {
+        A: 'Defense-in-depth',
+        B: 'Zero Trust',
+        C: 'Shared responsibility',
+        D: 'Implicit trust'
+      },
+      answer: 'B',
+      explanation: 'Zero Trust operates on the principle "never trust, always verify." Every access request is authenticated and authorized regardless of network location. Defense-in-depth layers controls; shared responsibility divides duties between cloud provider and customer.'
+    },
+    {
+      id: 2,
+      domain: 'Security, Compliance & Identity Concepts',
+      topic: 'Defense-in-Depth',
+      objective: '1.1',
+      difficulty: 'Medium',
+      question: 'A security team adds a firewall at the network perimeter, enforces MFA at the identity layer, and encrypts data at rest. This approach is best described as:',
+      options: {
+        A: 'Zero Trust',
+        B: 'Least privilege',
+        C: 'Defense-in-depth',
+        D: 'Shared responsibility'
+      },
+      answer: 'C',
+      explanation: 'Defense-in-depth uses multiple, layered security controls so that if one layer fails, others remain. Zero Trust is about eliminating implicit trust; least privilege restricts permissions to the minimum needed.'
+    },
+    {
+      id: 3,
+      domain: 'Security, Compliance & Identity Concepts',
+      topic: 'Shared Responsibility',
+      objective: '1.2',
+      difficulty: 'Medium',
+      question: 'Under the Microsoft cloud shared responsibility model, which responsibility always remains with the customer regardless of service model (IaaS, PaaS, or SaaS)?',
+      options: {
+        A: 'Physical datacenter security',
+        B: 'Operating system patching',
+        C: 'Customer data and identities',
+        D: 'Network infrastructure management'
+      },
+      answer: 'C',
+      explanation: 'Across all cloud service models, customers always retain responsibility for their own data and the management of user identities and access. Microsoft handles physical security; OS patching shifts to Microsoft in PaaS/SaaS.'
+    },
+
+    // ── Domain 2: Microsoft Entra (6Q · obj 2.1–2.4) ──
+    {
+      id: 4,
+      domain: 'Microsoft Entra',
+      topic: 'Microsoft Entra ID',
+      objective: '2.1',
+      difficulty: 'Easy',
+      question: 'Microsoft Entra ID (formerly Azure Active Directory) is primarily described as:',
+      options: {
+        A: 'An on-premises domain controller replacement',
+        B: 'A cloud-based identity and access management service',
+        C: 'A network firewall service',
+        D: 'A data loss prevention platform'
+      },
+      answer: 'B',
+      explanation: 'Microsoft Entra ID (formerly Azure AD) is Microsoft\'s cloud-based identity and access management service. It is not a direct replacement for on-premises Active Directory Domain Services (AD DS), though the two can be synchronized via Microsoft Entra Connect.'
+    },
+    {
+      id: 5,
+      domain: 'Microsoft Entra',
+      topic: 'Authentication Methods',
+      objective: '2.2',
+      difficulty: 'Easy',
+      question: 'Which Microsoft Entra feature requires users to present a second verification factor — such as an authenticator app approval or SMS code — in addition to their password?',
+      options: {
+        A: 'Conditional Access',
+        B: 'Multi-Factor Authentication (MFA)',
+        C: 'Privileged Identity Management (PIM)',
+        D: 'Identity Protection'
+      },
+      answer: 'B',
+      explanation: 'MFA adds a second verification step beyond the password. Conditional Access is the policy engine that decides when to require MFA; PIM manages just-in-time privileged roles; Identity Protection detects risky sign-in behaviors.'
+    },
+    {
+      id: 6,
+      domain: 'Microsoft Entra',
+      topic: 'Conditional Access',
+      objective: '2.3',
+      difficulty: 'Medium',
+      question: 'A company wants to block access to Microsoft 365 from unmanaged devices and require MFA when users sign in from outside the corporate network. Which Microsoft Entra feature implements these rules?',
+      options: {
+        A: 'Multi-Factor Authentication',
+        B: 'Microsoft Entra Identity Protection',
+        C: 'Conditional Access',
+        D: 'Privileged Identity Management'
+      },
+      answer: 'C',
+      explanation: 'Conditional Access is the policy engine in Microsoft Entra ID that evaluates signals (user, location, device, app, risk) and enforces access controls such as requiring MFA or blocking access from non-compliant devices.'
+    },
+    {
+      id: 7,
+      domain: 'Microsoft Entra',
+      topic: 'Privileged Identity Management',
+      objective: '2.3',
+      difficulty: 'Medium',
+      question: 'An organization wants administrators to hold elevated roles only for the duration needed for a specific task, activating them on demand. Which Microsoft Entra feature supports this just-in-time access model?',
+      options: {
+        A: 'Identity Protection',
+        B: 'Privileged Identity Management (PIM)',
+        C: 'Conditional Access',
+        D: 'Access Reviews'
+      },
+      answer: 'B',
+      explanation: 'Microsoft Entra Privileged Identity Management (PIM) provides just-in-time activation of privileged roles with optional approval and time limits. This reduces the standing attack surface of permanent admin assignments.'
+    },
+    {
+      id: 8,
+      domain: 'Microsoft Entra',
+      topic: 'Identity Types',
+      objective: '2.1',
+      difficulty: 'Medium',
+      question: 'A manufacturing company registers its IoT sensors so they can authenticate to Azure services without human credentials. What identity type do these sensors use in Microsoft Entra ID?',
+      options: {
+        A: 'User identity',
+        B: 'Guest identity',
+        C: 'Service principal / managed identity',
+        D: 'Hybrid identity'
+      },
+      answer: 'C',
+      explanation: 'Non-human resources such as applications, VMs, and IoT devices use service principals or managed identities in Microsoft Entra ID. User identities represent people; guest identities are external users invited via B2B.'
+    },
+    {
+      id: 9,
+      domain: 'Microsoft Entra',
+      topic: 'Identity Protection',
+      objective: '2.4',
+      difficulty: 'Hard',
+      question: 'Microsoft Entra Identity Protection detects that a user account has signed in from two geographically distant locations within an impossibly short time. How does Identity Protection classify this event?',
+      options: {
+        A: 'A compliance violation',
+        B: 'A data loss prevention alert',
+        C: 'A risky sign-in (user risk or sign-in risk)',
+        D: 'A Conditional Access policy block'
+      },
+      answer: 'C',
+      explanation: 'Microsoft Entra Identity Protection assigns risk scores to sign-ins (sign-in risk) and users (user risk) based on anomalous signals such as impossible travel. Risk policies can then require MFA or block access automatically. This is distinct from Conditional Access, which acts on the risk signal.'
+    },
+
+    // ── Domain 3: Microsoft Security Solutions (8Q · obj 3.1–3.4) ──
+    {
+      id: 10,
+      domain: 'Microsoft Security Solutions',
+      topic: 'Microsoft Defender for Cloud',
+      objective: '3.1',
+      difficulty: 'Medium',
+      question: 'Which Microsoft Defender product provides cloud security posture management (CSPM) and cloud workload protection across Azure, AWS, and Google Cloud?',
+      options: {
+        A: 'Microsoft Defender for Endpoint',
+        B: 'Microsoft Defender for Cloud',
+        C: 'Microsoft Defender for Identity',
+        D: 'Microsoft Defender XDR'
+      },
+      answer: 'B',
+      explanation: 'Microsoft Defender for Cloud is the multicloud CSPM and cloud workload protection platform. Defender for Endpoint (formerly ATP) is the EDR for devices; Defender for Identity monitors on-premises Active Directory; Defender XDR is the unified threat detection portal.'
+    },
+    {
+      id: 11,
+      domain: 'Microsoft Security Solutions',
+      topic: 'Microsoft Defender for Endpoint',
+      objective: '3.1',
+      difficulty: 'Medium',
+      question: 'A security analyst needs to detect and respond to threats on Windows laptops and servers, including behavioral analysis and automated remediation. Which Defender product is designed for this scenario?',
+      options: {
+        A: 'Microsoft Defender for Cloud',
+        B: 'Microsoft Defender for Identity',
+        C: 'Microsoft Defender for Endpoint',
+        D: 'Microsoft Defender for Cloud Apps'
+      },
+      answer: 'C',
+      explanation: 'Microsoft Defender for Endpoint is the endpoint detection and response (EDR) solution for devices. Defender for Cloud covers cloud infrastructure; Defender for Identity targets on-premises AD; Defender for Cloud Apps is the CASB solution.'
+    },
+    {
+      id: 12,
+      domain: 'Microsoft Security Solutions',
+      topic: 'Microsoft Defender for Identity',
+      objective: '3.1',
+      difficulty: 'Medium',
+      question: 'Which Microsoft Defender product monitors on-premises Active Directory Domain Services to detect threats such as pass-the-hash and lateral movement attacks?',
+      options: {
+        A: 'Microsoft Defender for Endpoint',
+        B: 'Microsoft Defender for Cloud',
+        C: 'Microsoft Defender for Identity',
+        D: 'Microsoft Sentinel'
+      },
+      answer: 'C',
+      explanation: 'Microsoft Defender for Identity (formerly Azure ATP) uses on-premises AD signals to detect identity-based attacks including pass-the-hash, golden ticket, and lateral movement. It is specifically designed for on-premises Active Directory — not Azure AD (Entra ID).'
+    },
+    {
+      id: 13,
+      domain: 'Microsoft Security Solutions',
+      topic: 'Microsoft Defender for Cloud Apps',
+      objective: '3.2',
+      difficulty: 'Medium',
+      question: 'An organization wants to discover all cloud apps employees are using — including unsanctioned apps — and enforce data-sharing policies. Which Microsoft security service addresses this need?',
+      options: {
+        A: 'Microsoft Defender for Endpoint',
+        B: 'Microsoft Defender for Cloud Apps',
+        C: 'Microsoft Defender for Cloud',
+        D: 'Microsoft Entra Identity Protection'
+      },
+      answer: 'B',
+      explanation: 'Microsoft Defender for Cloud Apps is a Cloud Access Security Broker (CASB) that provides shadow IT discovery, app governance, and data protection for cloud applications. Defender for Endpoint protects devices; Defender for Cloud covers cloud infrastructure posture.'
+    },
+    {
+      id: 14,
+      domain: 'Microsoft Security Solutions',
+      topic: 'Microsoft Sentinel',
+      objective: '3.3',
+      difficulty: 'Hard',
+      question: 'Microsoft Sentinel is best described as:',
+      options: {
+        A: 'An endpoint detection and response (EDR) platform for Windows devices',
+        B: 'A cloud-native SIEM and SOAR solution for threat detection and automated response',
+        C: 'A firewall and network security product',
+        D: 'A cloud security posture management (CSPM) tool'
+      },
+      answer: 'B',
+      explanation: 'Microsoft Sentinel is a cloud-native Security Information and Event Management (SIEM) and Security Orchestration, Automation, and Response (SOAR) solution. It ingests data at cloud scale, detects threats with analytics and AI, and can trigger automated playbooks. It is not an EDR (that is Defender for Endpoint), a firewall, or a CSPM (that is Defender for Cloud).'
+    },
+    {
+      id: 15,
+      domain: 'Microsoft Security Solutions',
+      topic: 'Azure Network Security',
+      objective: '3.4',
+      difficulty: 'Medium',
+      question: 'Which Azure service protects web applications from common exploits such as SQL injection and cross-site scripting by inspecting HTTP/S traffic at the application layer?',
+      options: {
+        A: 'Azure Firewall',
+        B: 'Network Security Group (NSG)',
+        C: 'Azure Web Application Firewall (WAF)',
+        D: 'Azure DDoS Protection'
+      },
+      answer: 'C',
+      explanation: 'Azure Web Application Firewall (WAF) operates at Layer 7 (HTTP/S) and protects against OWASP Top 10 exploits. Azure Firewall is a stateful L3-L7 network firewall; NSGs filter traffic at L3/L4 using IP/port rules; Azure DDoS Protection mitigates volumetric and protocol attacks.'
+    },
+    {
+      id: 16,
+      domain: 'Microsoft Security Solutions',
+      topic: 'Microsoft Defender XDR',
+      objective: '3.1',
+      difficulty: 'Hard',
+      question: 'A security operations center wants a single portal that correlates incidents across endpoints, email, identities, and cloud apps, providing a unified investigation experience. Which Microsoft solution provides this?',
+      options: {
+        A: 'Microsoft Defender for Cloud',
+        B: 'Microsoft Sentinel',
+        C: 'Microsoft Defender XDR',
+        D: 'Microsoft Defender for Endpoint'
+      },
+      answer: 'C',
+      explanation: 'Microsoft Defender XDR (Extended Detection and Response) is the unified security operations portal that correlates signals from Defender for Endpoint, Defender for Office 365, Defender for Identity, and Defender for Cloud Apps into a single incident view. Sentinel is a separate SIEM/SOAR; Defender for Cloud focuses on cloud infrastructure.'
+    },
+    {
+      id: 17,
+      domain: 'Microsoft Security Solutions',
+      topic: 'Azure DDoS Protection',
+      objective: '3.4',
+      difficulty: 'Easy',
+      question: 'Which Azure service specifically mitigates volumetric DDoS (Distributed Denial of Service) attacks targeting Azure resources?',
+      options: {
+        A: 'Azure Web Application Firewall',
+        B: 'Azure Firewall',
+        C: 'Azure DDoS Protection',
+        D: 'Network Security Groups'
+      },
+      answer: 'C',
+      explanation: 'Azure DDoS Protection automatically detects and mitigates DDoS attacks against Azure public IP addresses. The Standard tier provides enhanced mitigation, telemetry, and cost protection. Azure Firewall and WAF address different threat vectors (network/application layer attacks, not volumetric floods).'
+    },
+
+    // ── Domain 4: Microsoft Compliance Solutions (5Q · obj 4.1–4.4) ──
+    {
+      id: 18,
+      domain: 'Microsoft Compliance Solutions',
+      topic: 'Microsoft Purview Sensitivity Labels',
+      objective: '4.1',
+      difficulty: 'Medium',
+      question: 'A compliance team needs to classify documents so that confidential files are automatically encrypted when emailed outside the organization. Which Microsoft Purview capability achieves this?',
+      options: {
+        A: 'Retention labels',
+        B: 'Sensitivity labels',
+        C: 'Data Loss Prevention policies',
+        D: 'Communication compliance'
+      },
+      answer: 'B',
+      explanation: 'Microsoft Purview sensitivity labels classify and optionally protect content by applying encryption, access restrictions, and visual markings. Retention labels govern how long data is kept; DLP policies detect and block sensitive data from being shared; communication compliance monitors for policy violations in messages.'
+    },
+    {
+      id: 19,
+      domain: 'Microsoft Compliance Solutions',
+      topic: 'Microsoft Purview Retention',
+      objective: '4.2',
+      difficulty: 'Medium',
+      question: 'A legal team needs to ensure that all Exchange email is retained for a minimum of seven years to meet regulatory requirements, regardless of whether users delete messages. Which Microsoft Purview feature accomplishes this?',
+      options: {
+        A: 'Sensitivity labels',
+        B: 'Data Loss Prevention policies',
+        C: 'Retention labels or retention policies',
+        D: 'eDiscovery holds'
+      },
+      answer: 'C',
+      explanation: 'Microsoft Purview retention labels and retention policies enforce minimum or maximum retention periods, preventing deletion before the period expires. They are distinct from sensitivity labels (classification/protection) and eDiscovery holds (litigation-specific preservation).'
+    },
+    {
+      id: 20,
+      domain: 'Microsoft Compliance Solutions',
+      topic: 'Compliance Manager',
+      objective: '4.3',
+      difficulty: 'Medium',
+      question: 'An organization needs to track its compliance posture against frameworks such as ISO 27001 and GDPR within Microsoft 365. Which tool provides a compliance score and recommended improvement actions?',
+      options: {
+        A: 'Microsoft Defender for Cloud',
+        B: 'Service Trust Portal',
+        C: 'Microsoft Purview Compliance Manager',
+        D: 'Azure Policy'
+      },
+      answer: 'C',
+      explanation: 'Microsoft Purview Compliance Manager provides a compliance score, pre-built regulatory templates (GDPR, ISO 27001, HIPAA, etc.), and step-by-step improvement actions mapped to Microsoft 365 controls. The Service Trust Portal publishes audit reports and third-party certifications for external review.'
+    },
+    {
+      id: 21,
+      domain: 'Microsoft Compliance Solutions',
+      topic: 'Service Trust Portal',
+      objective: '4.4',
+      difficulty: 'Medium',
+      question: 'An external auditor needs to download Microsoft\'s ISO 27001 audit report and review documentation about how Microsoft handles customer data. Where should they go?',
+      options: {
+        A: 'Microsoft Purview Compliance Manager',
+        B: 'Microsoft Defender for Cloud',
+        C: 'Service Trust Portal',
+        D: 'Azure Monitor'
+      },
+      answer: 'C',
+      explanation: 'The Service Trust Portal (trust.microsoft.com) is the public repository for Microsoft\'s third-party audit reports, compliance certifications, whitepapers, and data protection resources. Compliance Manager is for tracking your organization\'s own compliance posture internally.'
+    },
+    {
+      id: 22,
+      domain: 'Microsoft Compliance Solutions',
+      topic: 'Microsoft Purview DLP',
+      objective: '4.1',
+      difficulty: 'Hard',
+      question: 'A data protection officer wants to automatically block employees from emailing documents that contain credit card numbers, even if those documents are not labeled as sensitive. Which Microsoft Purview feature is most appropriate?',
+      options: {
+        A: 'Sensitivity labels',
+        B: 'Retention policies',
+        C: 'Data Loss Prevention (DLP) policies',
+        D: 'Microsoft Purview Compliance Manager'
+      },
+      answer: 'C',
+      explanation: 'Microsoft Purview Data Loss Prevention (DLP) policies detect sensitive content — such as credit card numbers, Social Security numbers, or custom patterns — in transit (email, Teams) and at rest (SharePoint, OneDrive), and can automatically block or restrict sharing. Sensitivity labels protect already-classified content; DLP policies scan content for sensitive information types regardless of labels.'
+    }
+  ];
+
+  // ── 2. State + sessionStorage ──
+  var SESSION_KEY = 'certanvilDiagnosticSession';
+  var RESULTS_KEY = 'certanvilDiagnosticResults';
+  var INTAKE_KEY = 'certanvilDiagnosticIntake';
+
+  var DIAGNOSTIC_DURATION_MS = 30 * 60 * 1000;  // 30 min · informational only
+  var CERT = 'sc900';
+  var TARGET_QUESTION_COUNT = 20;
+  var GENERATE_ENDPOINT = '/api/diagnostic/generate';
+  var TURNSTILE_TIMEOUT_MS = 10000;  // bail to fallback if no token in 10s
+  var FETCH_TIMEOUT_MS = 25000;       // bail if /api/diagnostic/generate stalls
+
+  // v4.99.54 D.3: session envelope now carries the full questions array
+  // (instead of just IDs into the inline pool) because AI-generated questions
+  // have new IDs that won't match the static QUESTION_POOL. Both AI and
+  // inline-pool paths produce the same envelope shape · downstream rendering
+  // is source-agnostic.
+  //
+  // session = {
+  //   cert, startedAt, questions: [<20 normalised Q objects>],
+  //   source: 'ai' | 'fallback' | 'inline',
+  //   currentIdx, answers, pickedLetter, pickedConfidence
+  // }
+  var session = null;
+  try {
+    var rawSession = sessionStorage.getItem(SESSION_KEY);
+    if (rawSession) {
+      var parsed = JSON.parse(rawSession);
+      if (parsed && parsed.cert === CERT
+          && Array.isArray(parsed.questions) && parsed.questions.length === TARGET_QUESTION_COUNT
+          && Array.isArray(parsed.answers) && parsed.answers.length === TARGET_QUESTION_COUNT) {
+        session = parsed;
+      }
+    }
+  } catch (_) {}
+
+  function persistSession() {
+    try { sessionStorage.setItem(SESSION_KEY, JSON.stringify(session)); } catch (_) {}
+  }
+
+  function shuffleInlinePool() {
+    // Fisher-Yates over the inline pool · used as the fallback question source
+    var copy = QUESTION_POOL.slice();
+    for (var i = copy.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var tmp = copy[i]; copy[i] = copy[j]; copy[j] = tmp;
+    }
+    return copy.slice(0, TARGET_QUESTION_COUNT);
+  }
+
+  function createFreshSession(questions, source) {
+    return {
+      cert: CERT,
+      startedAt: Date.now(),
+      source: source,                          // 'ai' · 'fallback' · 'inline'
+      questions: questions,                    // full Q objects, ordered
+      currentIdx: 0,
+      answers: new Array(TARGET_QUESTION_COUNT).fill(null),
+      pickedLetter: null,
+      pickedConfidence: null
+    };
+  }
+
+  // ── 3. DOM refs ──
+  var loadingEl = document.getElementById('dq-loading');
+  var liveEl = document.getElementById('dq-live');
+  var pillsEl = document.getElementById('dq-card-pills');
+  var stemEl = document.getElementById('dq-stem');
+  var optionsEl = document.getElementById('dq-options');
+  var confidenceBtns = document.querySelectorAll('.dq-confidence-btn[data-confidence]');
+  var nextBtn = document.getElementById('dq-next-btn');
+  var hintEl = document.getElementById('dq-hint');
+  var progressLabel = document.getElementById('dq-progress-label');
+  var progressFill = document.getElementById('dq-progress-fill');
+  var timerEl = document.getElementById('dq-timer');
+  var quitBtn = document.getElementById('dq-quit-btn');
+
+  // ── 4. Render current question ──
+  function getCurrentQ() {
+    if (!session || !session.questions) return null;
+    return session.questions[session.currentIdx];
+  }
+
+  function render() {
+    var q = getCurrentQ();
+    if (!q) return;
+
+    // Header
+    var n = session.questions.length;
+    progressLabel.textContent = 'Question ' + (session.currentIdx + 1) + ' of ' + n;
+    var pct = Math.round(((session.currentIdx + 1) / n) * 100);
+    progressFill.style.width = pct + '%';
+
+    // Pills
+    var diffClass = q.difficulty === 'Easy' ? 'is-easy' : (q.difficulty === 'Hard' ? 'is-hard' : '');
+    pillsEl.innerHTML =
+      '<span class="dq-pill dq-pill-domain">' + escHtml(q.domain) + '</span>' +
+      '<span class="dq-pill dq-pill-difficulty ' + diffClass + '">' + escHtml(q.difficulty) + '</span>' +
+      '<span class="dq-pill dq-pill-meta">Q' + (session.currentIdx + 1) + ' · obj. ' + escHtml(q.objective) + '</span>';
+
+    // Stem
+    stemEl.textContent = q.question;
+
+    // Options
+    optionsEl.innerHTML = '';
+    ['A', 'B', 'C', 'D'].forEach(function(letter) {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'dq-option';
+      btn.setAttribute('data-letter', letter);
+      btn.setAttribute('role', 'radio');
+      btn.setAttribute('aria-checked', 'false');
+      btn.innerHTML = '<span class="dq-option-letter">' + letter + '</span><span class="dq-option-text">' + escHtml(q.options[letter]) + '</span>';
+      btn.addEventListener('click', function() { pickOption(letter); });
+      optionsEl.appendChild(btn);
+    });
+
+    // Confidence reset
+    session.pickedLetter = null;
+    session.pickedConfidence = null;
+    confidenceBtns.forEach(function(b) {
+      b.classList.remove('is-selected');
+      b.setAttribute('aria-pressed', 'false');
+    });
+
+    // Hint + next btn
+    hintEl.textContent = 'Pick an answer + confidence, then continue.';
+    nextBtn.disabled = true;
+    nextBtn.textContent = (session.currentIdx === n - 1) ? 'Finish diagnostic →' : 'Next →';
+  }
+
+  function pickOption(letter) {
+    session.pickedLetter = letter;
+    optionsEl.querySelectorAll('.dq-option').forEach(function(btn) {
+      var match = btn.getAttribute('data-letter') === letter;
+      btn.classList.toggle('is-selected', match);
+      btn.setAttribute('aria-checked', match ? 'true' : 'false');
+    });
+    refreshNextBtn();
+  }
+
+  confidenceBtns.forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      session.pickedConfidence = btn.getAttribute('data-confidence');
+      confidenceBtns.forEach(function(b) {
+        var match = (b === btn);
+        b.classList.toggle('is-selected', match);
+        b.setAttribute('aria-pressed', match ? 'true' : 'false');
+      });
+      refreshNextBtn();
+    });
+  });
+
+  function refreshNextBtn() {
+    var ready = session.pickedLetter && session.pickedConfidence;
+    nextBtn.disabled = !ready;
+    if (ready) {
+      hintEl.textContent = (session.currentIdx === session.questions.length - 1)
+        ? 'Last one. Click Finish to see your score.'
+        : 'Ready. Click Next to continue.';
+    } else if (session.pickedLetter && !session.pickedConfidence) {
+      hintEl.textContent = 'Now pick your confidence level.';
+    } else if (!session.pickedLetter && session.pickedConfidence) {
+      hintEl.textContent = 'Now pick an answer.';
+    }
+  }
+
+  // ── 5. Submit current Q + advance ──
+  var questionStartTime = Date.now();
+
+  nextBtn.addEventListener('click', function() {
+    if (nextBtn.disabled) return;
+    var q = getCurrentQ();
+    var elapsed = Date.now() - questionStartTime;
+    session.answers[session.currentIdx] = {
+      qId: q.id,
+      picked: session.pickedLetter,
+      correct: q.answer,
+      isCorrect: session.pickedLetter === q.answer,
+      confidence: session.pickedConfidence,
+      timeMs: elapsed,
+      domain: q.domain,
+      difficulty: q.difficulty
+    };
+    persistSession();
+
+    if (session.currentIdx + 1 >= session.questions.length) {
+      finishDiagnostic();
+      return;
+    }
+
+    session.currentIdx++;
+    persistSession();
+    questionStartTime = Date.now();
+    render();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+
+  // ── 6. Finish · compute score + navigate to /results ──
+  function finishDiagnostic() {
+    var n = session.questions.length;
+    var correctCount = 0;
+    var domainStats = {};
+    var confidenceStats = { 'guessing': { picked: 0, correct: 0 }, 'pretty-sure': { picked: 0, correct: 0 }, 'locked-in': { picked: 0, correct: 0 } };
+
+    session.answers.forEach(function(a) {
+      if (!a) return;
+      if (a.isCorrect) correctCount++;
+      if (!domainStats[a.domain]) domainStats[a.domain] = { correct: 0, total: 0 };
+      domainStats[a.domain].total++;
+      if (a.isCorrect) domainStats[a.domain].correct++;
+      if (confidenceStats[a.confidence]) {
+        confidenceStats[a.confidence].picked++;
+        if (a.isCorrect) confidenceStats[a.confidence].correct++;
+      }
+    });
+
+    // Scaled score: linear 0-1000 (Microsoft SC-900 scale, pass = 700).
+    // 0 correct → 0 · 20 correct → 1000. A more sophisticated IRT-style
+    // scoring lands in D.4 when we have user data to calibrate against.
+    var scaledScore = Math.round((correctCount / n) * 1000);
+
+    // Domain breakdown sorted weakest-first
+    var domainBreakdown = Object.keys(domainStats).map(function(d) {
+      return {
+        domain: d,
+        correct: domainStats[d].correct,
+        total: domainStats[d].total,
+        accuracy: domainStats[d].total ? (domainStats[d].correct / domainStats[d].total) : 0
+      };
+    }).sort(function(a, b) { return a.accuracy - b.accuracy; });
+
+    // Load intake for downstream personalisation (Pass Plan in D.4)
+    var intake = null;
+    try { intake = JSON.parse(sessionStorage.getItem(INTAKE_KEY) || 'null'); } catch (_) {}
+
+    var results = {
+      cert: CERT,
+      diagnosticId: 'diag_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8),
+      startedAt: session.startedAt,
+      completedAt: Date.now(),
+      durationMs: Date.now() - session.startedAt,
+      totalQuestions: n,
+      correctCount: correctCount,
+      accuracy: correctCount / n,
+      scaledScore: scaledScore,
+      passThreshold: 700,
+      isPassing: scaledScore >= 700,
+      domainBreakdown: domainBreakdown,
+      confidenceStats: confidenceStats,
+      questions: session.answers,
+      intake: intake
+    };
+
+    try { sessionStorage.setItem(RESULTS_KEY, JSON.stringify(results)); } catch (_) {}
+
+    // Score-only snapshot for landing-page resume CTA (persists across tab close)
+    try {
+      localStorage.setItem('certanvilLastDiagnostic', JSON.stringify({
+        cert: CERT,
+        scaledScore: scaledScore,
+        correctCount: correctCount,
+        totalQuestions: n,
+        completedAt: Date.now(),
+        weakestDomain: domainBreakdown[0] ? domainBreakdown[0].domain : null
+      }));
+    } catch (_) {}
+
+    // Clear in-progress session
+    try { sessionStorage.removeItem(SESSION_KEY); } catch (_) {}
+
+    releaseWakeLock();
+    window.location.href = '/diagnostic/' + CERT + '/results';
+  }
+
+  // ── 7. Timer (30:00 countdown · informational, no hard cutoff) ──
+  // v4.99.54 D.3: timer no longer auto-starts at module load · session is
+  // null until either the resume path restores it or the fresh-start path
+  // (AI fetch or inline-pool fallback) creates it. Timer is now started
+  // inside startTimer() which is called from showLive().
+  var timerInterval = null;
+  var hiddenAt = null;
+  var totalHiddenMs = 0;
+
+  function tickTimer() {
+    if (!session || !session.startedAt) return;  // not yet started
+    var elapsed = Date.now() - session.startedAt - totalHiddenMs;
+    var remaining = DIAGNOSTIC_DURATION_MS - elapsed;
+    if (remaining < 0) {
+      timerEl.classList.add('is-overtime');
+      var over = Math.abs(remaining);
+      var oM = Math.floor(over / 60000);
+      var oS = Math.floor((over % 60000) / 1000);
+      timerEl.textContent = '+' + (oM < 10 ? '0' + oM : oM) + ':' + (oS < 10 ? '0' + oS : oS);
+    } else {
+      var m = Math.floor(remaining / 60000);
+      var s = Math.floor((remaining % 60000) / 1000);
+      timerEl.textContent = (m < 10 ? '0' + m : m) + ':' + (s < 10 ? '0' + s : s);
+    }
+  }
+
+  function startTimer() {
+    if (timerInterval) return;  // already running
+    tickTimer();
+    timerInterval = setInterval(tickTimer, 1000);
+  }
+
+  // ── 8. Visibility API · pause timer when tab backgrounded ──
+  document.addEventListener('visibilitychange', function() {
+    if (document.visibilityState === 'hidden') {
+      hiddenAt = Date.now();
+      document.body.classList.add('dq-paused');
+      timerEl.classList.add('is-paused');
+      releaseWakeLock();
+    } else if (document.visibilityState === 'visible' && hiddenAt) {
+      var pauseDuration = Date.now() - hiddenAt;
+      hiddenAt = null;
+      if (pauseDuration > 250) totalHiddenMs += pauseDuration;
+      document.body.classList.remove('dq-paused');
+      timerEl.classList.remove('is-paused');
+      acquireWakeLock();
+      tickTimer();
+    }
+  });
+
+  // ── 9. Wake Lock · keep phone screen on for the 30-min flow ──
+  // Mirrors the Phase 10 v4.99.49 exam-mode pattern.
+  var wakeLock = null;
+  async function acquireWakeLock() {
+    try {
+      if (typeof navigator !== 'undefined' && 'wakeLock' in navigator) {
+        wakeLock = await navigator.wakeLock.request('screen');
+        wakeLock.addEventListener('release', function() { wakeLock = null; });
+      }
+    } catch (_) { wakeLock = null; }
+  }
+  async function releaseWakeLock() {
+    try {
+      if (wakeLock) { await wakeLock.release(); wakeLock = null; }
+    } catch (_) { wakeLock = null; }
+  }
+  acquireWakeLock();
+
+  // ── 10. Quit button · confirm + clear session ──
+  quitBtn.addEventListener('click', function() {
+    if (confirm('Quit the diagnostic? Your progress will be lost.')) {
+      try { sessionStorage.removeItem(SESSION_KEY); } catch (_) {}
+      if (timerInterval) clearInterval(timerInterval);
+      releaseWakeLock();
+      window.location.href = '/diagnostic';
+    }
+  });
+
+  // ── 11. Helpers ──
+  function escHtml(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function(c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  // ══════════════════════════════════════════════════════════════════════
+  // ── 12. Boot · AI-first with inline-pool fallback ──
+  // ══════════════════════════════════════════════════════════════════════
+  // Flow:
+  //   A. Session restored from sessionStorage (resume case)
+  //      → start the live quiz immediately at saved currentIdx
+  //
+  //   B. No session in storage (fresh start)
+  //      → wait for Turnstile token (10s timeout, then fallback)
+  //      → POST /api/diagnostic/generate with cert: "sc900"
+  //      → on 2xx success: session.source='ai', use those questions
+  //      → on any failure (429, 5xx, timeout, parse error): session.source='fallback',
+  //        use the inline pool (shuffled). Show a small banner explaining
+  //        we're using the local pool.
+  //
+  // The 25-question hard cap is enforced server-side; we just request 20.
+  // ══════════════════════════════════════════════════════════════════════
+
+  var sourceBanner = document.getElementById('dq-source-banner');
+  var loadingText = document.getElementById('dq-loading-text');
+  var loadingSub = document.getElementById('dq-loading-sub');
+
+  function showSourceBanner(source) {
+    if (!sourceBanner) return;
+    if (source === 'fallback') {
+      sourceBanner.innerHTML = '📦 <strong style="font-weight:700">Local question set</strong> · high traffic right now, so we\'re using our curated 20-Q pool instead of live AI generation. Scoring is identical.';
+      sourceBanner.style.display = 'block';
+    } else if (source === 'inline') {
+      // Dev/preview mode · endpoint unconfigured. Silent (don't worry the user).
+      sourceBanner.style.display = 'none';
+    } else {
+      sourceBanner.style.display = 'none';
+    }
+  }
+
+  function showLive() {
+    loadingEl.style.display = 'none';
+    liveEl.style.display = 'block';
+    render();
+    startTimer();           // begin 30:00 countdown (session is now guaranteed populated)
+    acquireWakeLock();
+    questionStartTime = Date.now();  // reset per-Q timer for the first question
+  }
+
+  // ── Path A · Resume in-progress session ──
+  if (session) {
+    showSourceBanner(session.source);
+    showLive();
+    return;  // exit the IIFE early · no AI fetch needed
+  }
+
+  // ── Path B · Fresh start · AI-first with fallback ──
+  loadingText.textContent = 'Loading questions…';
+  loadingSub.textContent = '20 questions across the 4 SC-900 domains.';
+
+  // Turnstile callback · set on window so the cf-turnstile widget can call it
+  var turnstileSettled = false;
+  var turnstileTimeoutHandle = null;
+
+  window.dqTurnstileCallback = function(token) {
+    if (turnstileSettled) return;
+    turnstileSettled = true;
+    if (turnstileTimeoutHandle) clearTimeout(turnstileTimeoutHandle);
+    fetchAIQuestions(token);
+  };
+
+  window.dqTurnstileErrorCallback = function() {
+    if (turnstileSettled) return;
+    turnstileSettled = true;
+    if (turnstileTimeoutHandle) clearTimeout(turnstileTimeoutHandle);
+    console.warn('[dq] Turnstile errored · using inline pool fallback');
+    bootWithFallback('fallback');
+  };
+
+  // Timeout: if Turnstile doesn't fire its callback within 10s, fall back.
+  // This handles cases where the script is blocked by an extension / CSP /
+  // ad-blocker · common enough that we can't assume Turnstile will load.
+  turnstileTimeoutHandle = setTimeout(function() {
+    if (turnstileSettled) return;
+    turnstileSettled = true;
+    console.warn('[dq] Turnstile timed out · using inline pool fallback');
+    bootWithFallback('fallback');
+  }, TURNSTILE_TIMEOUT_MS);
+
+  // Some browsers / ad-blockers strip the Turnstile script entirely. In that
+  // case `window.turnstile` is undefined after a tick. We don't wait · the
+  // timeout above catches it. But we DO check for the existence after a
+  // short delay so we can fail fast with a clearer log.
+  setTimeout(function() {
+    if (typeof window.turnstile === 'undefined' && !turnstileSettled) {
+      console.warn('[dq] Turnstile script not loaded · waiting for timeout');
+    }
+  }, 2000);
+
+  function bootWithFallback(reason) {
+    var freshQuestions = shuffleInlinePool();
+    session = createFreshSession(freshQuestions, reason);
+    persistSession();
+    showSourceBanner(reason);
+    showLive();
+  }
+
+  async function fetchAIQuestions(turnstileToken) {
+    loadingText.textContent = 'Building your question set…';
+    loadingSub.textContent = '~10 seconds · powered by Claude Haiku.';
+
+    var controller = new AbortController();
+    var fetchTimer = setTimeout(function() { controller.abort(); }, FETCH_TIMEOUT_MS);
+
+    try {
+      var resp = await fetch(GENERATE_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          cert: CERT,
+          count: TARGET_QUESTION_COUNT,
+          turnstileToken: turnstileToken,
+          intake: getIntake()
+        }),
+        signal: controller.signal
+      });
+      clearTimeout(fetchTimer);
+
+      if (!resp.ok) {
+        var errBody;
+        try { errBody = await resp.json(); } catch (_) { errBody = {}; }
+        if (resp.status === 429) {
+          console.warn('[dq] Rate limit exceeded · using inline pool fallback', errBody);
+          // Show a quota-specific banner via the fallback path
+          bootWithFallback('fallback');
+          if (sourceBanner) {
+            sourceBanner.innerHTML = '⏱ <strong style="font-weight:700">Daily limit reached</strong> · IPs are limited to 25 AI calls per 24h. Using the local pool for this attempt. Sign up for unlimited retakes after.';
+          }
+          return;
+        }
+        if (resp.status === 503) {
+          console.warn('[dq] Endpoint unavailable · using inline pool fallback', errBody);
+          bootWithFallback(errBody && errBody.error === 'service-unavailable' ? 'inline' : 'fallback');
+          return;
+        }
+        console.warn('[dq] AI generate failed · using inline pool fallback', resp.status, errBody);
+        bootWithFallback('fallback');
+        return;
+      }
+
+      var data = await resp.json();
+      if (!data || !Array.isArray(data.questions) || data.questions.length < TARGET_QUESTION_COUNT) {
+        console.warn('[dq] AI response malformed · using inline pool fallback');
+        bootWithFallback('fallback');
+        return;
+      }
+
+      // Success · use AI questions
+      session = createFreshSession(data.questions.slice(0, TARGET_QUESTION_COUNT), 'ai');
+      persistSession();
+      showSourceBanner('ai');
+      showLive();
+    } catch (e) {
+      clearTimeout(fetchTimer);
+      console.warn('[dq] AI fetch threw · using inline pool fallback:', e && e.message);
+      bootWithFallback('fallback');
+    }
+  }
+
+  function getIntake() {
+    try {
+      var raw = sessionStorage.getItem(INTAKE_KEY);
+      if (!raw) return null;
+      return JSON.parse(raw);
+    } catch (_) { return null; }
+  }
+})();
+</script>
+
+</body>
+</html>

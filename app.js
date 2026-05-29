@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v7.6.0
+// Network+ AI Quiz — app.js  v7.7.0
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '7.6.0';
+const APP_VERSION = '7.7.0';
 // v4.99.45 (Phase 6b): expose APP_VERSION on window so the web-vitals
 // collector (lib/web-vitals-collector.js, loaded BEFORE app.js so its
 // PerformanceObservers attach earlier) can stamp this version onto every
@@ -48,7 +48,7 @@ function detectCert() {
       const url = new URL(location.href);
       const param = (url.searchParams.get('cert') || '').toLowerCase().trim();
       if (param === 'netplus' || param === 'secplus' || param === 'az900' || param === 'ai900'
-          || param === 'aplus-core1' || param === 'aplus-core2') {
+          || param === 'aplus-core1' || param === 'aplus-core2' || param === 'sc900') {
         try { localStorage.setItem(certOverrideKey, param); } catch (e) {}
         try {
           url.searchParams.delete('cert');
@@ -106,6 +106,14 @@ function detectCert() {
       if (host.indexOf('ai.') === 0
           || host.indexOf('ai-') === 0
           || host === 'ai.certanvil.com') return 'ai900';
+      // v7.7.0 — sixth cert SC-900 on sc900.certanvil.com (Pattern A; founder
+      // lock 2026-05-28). Microsoft Security/Compliance/Identity role family;
+      // cert-code-named to AVOID semantic collision with CompTIA Security+
+      // (secplus.certanvil.com). Single-exam (unlike A+), so a plain return —
+      // no in-app exam switch, standard cross-subdomain nav from the switcher.
+      if (host.indexOf('sc900.') === 0
+          || host.indexOf('sc900-') === 0
+          || host === 'sc900.certanvil.com') return 'sc900';
       // v7.6.0 — fifth cert family CompTIA A+ on aplus.certanvil.com (Pattern
       // A; founder lock 2026-05-27). A+ is ONE certification with TWO exams
       // (Core 1 220-1201 + Core 2 220-1202) that SHARE one subdomain — the
@@ -133,7 +141,7 @@ function detectCert() {
     if (typeof localStorage !== 'undefined') {
       const dev = localStorage.getItem('nplus_dev_cert');
       if (dev === 'secplus' || dev === 'netplus' || dev === 'az900' || dev === 'ai900'
-          || dev === 'aplus-core1' || dev === 'aplus-core2') return dev;
+          || dev === 'aplus-core1' || dev === 'aplus-core2' || dev === 'sc900') return dev;
     }
   } catch (e) { /* localStorage may be blocked */ }
 
@@ -16987,7 +16995,41 @@ function renderSetupDomainGrid() {
       { label: 'Remote Access',         key: 'Remote Access Technologies' },
     ],
   };
-  // v7.6.0 — 6-way cert selector (was 4-way ternary). Falls through to Net+
+  // v7.7.0 — sixth cert SC-900. 4 domains (matches A+ Core 2's 4-domain shape).
+  // 5 canonical topics per domain for the home-page domain grid. Mirrors the
+  // _CANONICAL_* shape verbatim — { domainKey: [{ label, key }, …] } where key
+  // matches a topicDomains key in certs/sc900.js exactly.
+  const _CANONICAL_SC900 = {
+    'sci-concepts': [
+      { label: 'Zero Trust',            key: 'Zero Trust Model' },
+      { label: 'Defense in Depth',      key: 'Defense in Depth' },
+      { label: 'Shared Responsibility', key: 'Shared Responsibility Model' },
+      { label: 'AuthN vs AuthZ',        key: 'Authentication vs Authorization' },
+      { label: 'Encryption & Hashing',  key: 'Encryption & Hashing' },
+    ],
+    'entra': [
+      { label: 'Entra ID',              key: 'Entra ID Function & Identity Types' },
+      { label: 'Conditional Access',    key: 'Conditional Access' },
+      { label: 'MFA',                   key: 'Multifactor Authentication (Entra)' },
+      { label: 'PIM',                   key: 'Privileged Identity Management (PIM)' },
+      { label: 'ID Protection',         key: 'Entra ID Protection' },
+    ],
+    'security-solutions': [
+      { label: 'Defender XDR',          key: 'Microsoft Defender XDR' },
+      { label: 'Defender for Cloud',    key: 'Microsoft Defender for Cloud' },
+      { label: 'Sentinel',              key: 'Microsoft Sentinel' },
+      { label: 'Azure Firewall',        key: 'Azure Firewall' },
+      { label: 'Key Vault',             key: 'Azure Key Vault' },
+    ],
+    'compliance-solutions': [
+      { label: 'Purview Portal',        key: 'Microsoft Purview Portal' },
+      { label: 'Compliance Manager',    key: 'Compliance Manager & Compliance Score' },
+      { label: 'Sensitivity Labels',    key: 'Sensitivity Labels & Policies' },
+      { label: 'DLP',                   key: 'Data Loss Prevention (DLP)' },
+      { label: 'Insider Risk',          key: 'Insider Risk Management' },
+    ],
+  };
+  // v7.7.0 — 7-way cert selector (was 6-way ternary). Falls through to Net+
   // when CURRENT_CERT isn't recognised (defensive; preserves prior behavior).
   const CANONICAL_DOMAIN_TOPICS = (typeof CURRENT_CERT !== 'undefined' && CURRENT_CERT === 'secplus')
     ? _CANONICAL_SECPLUS
@@ -16995,11 +17037,13 @@ function renderSetupDomainGrid() {
         ? _CANONICAL_AZ900
         : ((typeof CURRENT_CERT !== 'undefined' && CURRENT_CERT === 'ai900')
             ? _CANONICAL_AI900
-            : ((typeof CURRENT_CERT !== 'undefined' && CURRENT_CERT === 'aplus-core1')
-                ? _CANONICAL_APLUS_CORE1
-                : ((typeof CURRENT_CERT !== 'undefined' && CURRENT_CERT === 'aplus-core2')
-                    ? _CANONICAL_APLUS_CORE2
-                    : _CANONICAL_NETPLUS))));
+            : ((typeof CURRENT_CERT !== 'undefined' && CURRENT_CERT === 'sc900')
+                ? _CANONICAL_SC900
+                : ((typeof CURRENT_CERT !== 'undefined' && CURRENT_CERT === 'aplus-core1')
+                    ? _CANONICAL_APLUS_CORE1
+                    : ((typeof CURRENT_CERT !== 'undefined' && CURRENT_CERT === 'aplus-core2')
+                        ? _CANONICAL_APLUS_CORE2
+                        : _CANONICAL_NETPLUS)))));
   // Build a set of weak topic keys for quick lookup
   const weakSet = new Set();
   try {
