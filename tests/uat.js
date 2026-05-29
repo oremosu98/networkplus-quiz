@@ -24840,6 +24840,48 @@ test('TB v3 walk: runStep defaults mode to 2d when undefined', (function () {
   return /mode\s*=\s*mode\s*\|\|\s*['"]2d['"]/.test(m[0]);
 })());
 
+// ── Security Phase 1 (2026-05-29) — AI-proxy hardening guards (audit C1/C2/H1/L1) ──
+(() => {
+  const aiProxySrc = fs.existsSync(path.join(ROOT, 'api/ai/generate.js'))
+    ? fs.readFileSync(path.join(ROOT, 'api/ai/generate.js'), 'utf8') : '';
+  const aiRlMig = fs.existsSync(path.join(ROOT, 'supabase/migrations/20260529_ai_proxy_rate_limit.sql'))
+    ? fs.readFileSync(path.join(ROOT, 'supabase/migrations/20260529_ai_proxy_rate_limit.sql'), 'utf8') : '';
+
+  // C2 — input allowlist (no more open Claude relay)
+  test('Sec-P1 C2: ai-proxy no longer spreads req.body to Anthropic',
+    aiProxySrc.length > 0 && !/Object\.assign\(\{\},\s*req\.body\)/.test(aiProxySrc));
+  test('Sec-P1 C2: ai-proxy enforces a model allowlist',
+    /ALLOWED_MODELS/.test(aiProxySrc) && /invalid_model/.test(aiProxySrc));
+  test('Sec-P1 C2: ai-proxy clamps max_tokens to a cap',
+    /MAX_TOKENS_CAP/.test(aiProxySrc) && /maxTokens\s*>\s*MAX_TOKENS_CAP/.test(aiProxySrc));
+  test('Sec-P1 C2: ai-proxy caps prompt size',
+    /MAX_PROMPT_BYTES/.test(aiProxySrc) && /prompt_too_large/.test(aiProxySrc));
+
+  // H1 — rate limiting + spend ceiling
+  test('Sec-P1 H1: ai-proxy calls the ai_rl rate-limit RPC',
+    /ai_rl_check_and_increment/.test(aiProxySrc) && /rlCheck\(/.test(aiProxySrc));
+  test('Sec-P1 H1: ai-proxy enforces per-user + per-IP + global ceilings',
+    /USER_DAILY_LIMIT/.test(aiProxySrc) && /IP_HOURLY_LIMIT/.test(aiProxySrc) && /GLOBAL_DAILY_LIMIT/.test(aiProxySrc));
+  test('Sec-P1 H1: ai-proxy returns 429 when rate-limited',
+    /rate_limited/.test(aiProxySrc) && /429/.test(aiProxySrc));
+  test('Sec-P1 H1: ai-proxy hashes the IP, never stores raw',
+    /_hashIp/.test(aiProxySrc) && /sha256/.test(aiProxySrc));
+
+  // L1 — error sanitization
+  test('Sec-P1 L1: ai-proxy does not leak raw error detail to client',
+    aiProxySrc.length > 0 && !/detail:\s*String\(e/.test(aiProxySrc));
+  test('Sec-P1 L1: ai-proxy returns a generic error_id on failure',
+    /error_id/.test(aiProxySrc));
+
+  // Migration
+  test('Sec-P1 migration: ai_proxy_rate_limit table + RLS enabled',
+    /create table if not exists ai_proxy_rate_limit/.test(aiRlMig) && /enable row level security/.test(aiRlMig));
+  test('Sec-P1 migration: ai_rl_check_and_increment is SECURITY DEFINER + granted to authenticated',
+    /create or replace function ai_rl_check_and_increment/.test(aiRlMig) && /security definer/.test(aiRlMig) && /grant execute on function ai_rl_check_and_increment.+to authenticated/.test(aiRlMig));
+  test('Sec-P1 migration: carries a ROLLBACK block',
+    /ROLLBACK:/.test(aiRlMig) && /drop table if exists ai_proxy_rate_limit/.test(aiRlMig));
+})();
+
 // ══════════════════════════════════════════════════════════════════════════
 // Security Phase 2 · DB quick wins (20260529_phase2_db_quick_wins.sql)
 // M1 stripe_events RLS · M2 diagnostic_share enumeration · M4 notify validation
