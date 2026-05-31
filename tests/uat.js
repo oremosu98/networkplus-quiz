@@ -25095,6 +25095,90 @@ console.log('\n\x1b[1m── Security Phase 4 — XSS DEFENCE-IN-DEPTH (DOMPurif
     /^\.env$/m.test(gitig) && /^\*\.key$/m.test(gitig) && /^\*\.pem$/m.test(gitig) && /^secrets\/$/m.test(gitig));
 })();
 
+// ══════════════════════════════════════════════════════════════════════════
+// Security Phase 5 · RBAC formalization + admin audit log
+// (20260531_phase5_admin_audit_log.sql + docs/decisions/ADR-001 + ADR-002)
+// Append-only admin_audit_log table + SECURITY DEFINER triggers on the three
+// privilege/entitlement-sensitive tables (profiles.role, subscriptions,
+// cert_entitlements). M5 closed as an accepted-decision ADR (no BFF build).
+// See SECURITY-AUDIT-2026-05-29.md.
+// ══════════════════════════════════════════════════════════════════════════
+console.log('\n\x1b[1m── Security Phase 5 — RBAC + ADMIN AUDIT LOG ──\x1b[0m');
+(function () {
+  const rd = (p) => { const f = path.join(ROOT, p); return fs.existsSync(f) ? fs.readFileSync(f, 'utf8') : ''; };
+  const p5    = rd('supabase/migrations/20260531_phase5_admin_audit_log.sql');
+  const adr1  = rd('docs/decisions/ADR-001-m5-supabase-session-cookies.md');
+  const adr2  = rd('docs/decisions/ADR-002-rbac-admin-surface.md');
+
+  // — file + gated-lane convention —
+  test('Sec-P5 migration: 20260531_phase5_admin_audit_log.sql exists',
+    p5.length > 1000);
+  test('Sec-P5 migration: carries a -- ROLLBACK block (gated-lane discipline, dated >= 2026-05-12)',
+    /-- ROLLBACK/.test(p5) && /drop table if exists admin_audit_log/i.test(p5));
+  test('Sec-P5 migration: uses uniquely-tagged dollar quotes ($guard$ / $audit_fn$), no bare $$',
+    /\$guard\$/.test(p5) && /\$audit_fn\$/.test(p5) && !/\$\$/.test(p5));
+  test('Sec-P5 migration: preflight guard requires is_admin() (Phase C′ prereq)',
+    /is_admin\(\) not found/.test(p5));
+
+  // — append-only audit table —
+  test('Sec-P5 table: creates admin_audit_log with actor/action/target/old+new jsonb',
+    /create\s+table\s+if\s+not\s+exists\s+admin_audit_log/i.test(p5)
+    && /actor_id\s+uuid/i.test(p5)
+    && /action\s+text\s+not\s+null/i.test(p5)
+    && /target_table\s+text\s+not\s+null/i.test(p5)
+    && /target_op\s+text\s+not\s+null/i.test(p5)
+    && /old_data\s+jsonb/i.test(p5)
+    && /new_data\s+jsonb/i.test(p5));
+  test('Sec-P5 RLS: admin-only SELECT policy via is_admin()',
+    /alter\s+table\s+admin_audit_log\s+enable\s+row\s+level\s+security/i.test(p5)
+    && /"admin_audit_admin_select"[\s\S]{0,120}for\s+select\s+using\s*\(\s*public\.is_admin\(\)\s*\)/i.test(p5));
+  test('Sec-P5 RLS: append-only — NO client insert/update/delete policy',
+    !/create\s+policy[\s\S]{0,200}on\s+admin_audit_log[\s\S]{0,120}for\s+(insert|update|delete)/i.test(p5));
+
+  // — the single SECURITY DEFINER writer —
+  test('Sec-P5 fn: admin_audit_record is SECURITY DEFINER with pinned search_path',
+    /create\s+or\s+replace\s+function\s+admin_audit_record\(\)/i.test(p5)
+    && /admin_audit_record[\s\S]{0,200}security\s+definer/i.test(p5)
+    && /admin_audit_record[\s\S]{0,260}set\s+search_path\s*=\s*public/i.test(p5));
+  test('Sec-P5 fn: captures auth.uid() actor + tg_op + full old/new jsonb images',
+    /auth\.uid\(\)/.test(p5)
+    && /tg_argv\[0\]/.test(p5)
+    && /tg_op/.test(p5)
+    && /to_jsonb\(old\)/i.test(p5) && /to_jsonb\(new\)/i.test(p5));
+  test('Sec-P5 fn: resolves target id generically (id OR user_id)',
+    /coalesce\(\s*v_rec->>'id'\s*,\s*v_rec->>'user_id'\s*\)/i.test(p5));
+
+  // — triggers on the three sensitive tables —
+  test('Sec-P5 trigger: profiles fires ONLY on a real role change (skips metadata flushes)',
+    /create\s+trigger\s+trg_audit_profiles_role[\s\S]{0,200}after\s+update\s+on\s+public\.profiles/i.test(p5)
+    && /when\s*\(\s*old\.role\s+is\s+distinct\s+from\s+new\.role\s*\)/i.test(p5)
+    && /execute\s+function\s+admin_audit_record\('role_change'\)/i.test(p5));
+  test('Sec-P5 trigger: subscriptions logs every write (insert/update/delete)',
+    /create\s+trigger\s+trg_audit_subscriptions[\s\S]{0,200}after\s+insert\s+or\s+update\s+or\s+delete\s+on\s+public\.subscriptions/i.test(p5)
+    && /execute\s+function\s+admin_audit_record\('subscription_write'\)/i.test(p5));
+  test('Sec-P5 trigger: cert_entitlements logs every write (insert/update/delete)',
+    /create\s+trigger\s+trg_audit_entitlements[\s\S]{0,200}after\s+insert\s+or\s+update\s+or\s+delete\s+on\s+public\.cert_entitlements/i.test(p5)
+    && /execute\s+function\s+admin_audit_record\('entitlement_write'\)/i.test(p5));
+
+  // — M5 decision (ADR-001): accept-as-inherent, no BFF unless trigger fires —
+  test('Sec-P5 M5: ADR-001 exists and records an ACCEPTED accept-as-inherent decision',
+    adr1.length > 800
+    && /Status:\*\*\s*Accepted/i.test(adr1)
+    && /accept the non-HttpOnly token storage as an inherent property/i.test(adr1));
+  test('Sec-P5 M5: ADR-001 documents the BFF revisit trigger (multi-tenant PII at scale)',
+    /Revisit trigger/i.test(adr1)
+    && /multi-tenant SaaS/i.test(adr1)
+    && /HttpOnly/i.test(adr1));
+
+  // — formalization (ADR-002): admin surface documented, no speculative roles —
+  test('Sec-P5 formalization: ADR-002 documents the admin surface + is_admin() routing',
+    adr2.length > 800
+    && /admin surface/i.test(adr2)
+    && /is_admin\(\)/.test(adr2));
+  test('Sec-P5 formalization: ADR-002 explicitly excludes a speculative role-enum expansion',
+    /NOT a role-system expansion/i.test(adr2));
+})();
+
 // ── Summary ──
 console.log('\n' + '═'.repeat(50));
 const total = results.pass + results.fail;
