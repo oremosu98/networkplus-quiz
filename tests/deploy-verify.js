@@ -27,9 +27,12 @@ const TS = Date.now();
 // ── Required DOM IDs that must exist in the live index.html ──
 // v4.81.23: replaced 'todays-focus' (removed in cleanup) with 'today-plan'
 // (the consolidated card that replaces 4 legacy stacked surfaces).
+// v7.10.0: dropped 'page-subnet' + 'page-ports' — the Subnet Trainer and Ports
+// pages were removed in the quiz-only MVP pivot, so the verifier no longer
+// expects them (they were the only two of 17 markers failing every deploy).
 const REQUIRED_IDS = [
   'page-setup', 'page-quiz', 'page-results', 'page-exam', 'page-exam-results',
-  'page-review', 'page-loading', 'page-subnet', 'page-ports', 'page-analytics',
+  'page-review', 'page-loading', 'page-analytics',
   'page-progress', 'topic-group', 'diff-group', 'count-group', 'api-key',
   'version-badge', 'today-plan'
 ];
@@ -64,7 +67,7 @@ try {
   const swJs = fs.readFileSync(path.join(REPO_ROOT, 'sw.js'), 'utf8');
   const indexHtml = fs.readFileSync(path.join(REPO_ROOT, 'index.html'), 'utf8');
 
-  const appMatch = appJs.match(/^const APP_VERSION = '([^']+)'/m);
+  const appMatch = appJs.match(/const APP_VERSION\s*=\s*['"]([^'"]+)['"]/);
   if (!appMatch) throw new Error('APP_VERSION not found in app.js');
   SRC_VERSION = appMatch[1];
 
@@ -160,7 +163,7 @@ async function liveFetches() {
   // bypass any intermediate CDN caching. Real deploy failures still fail
   // loud after the final retry.
   const extractTriad = (appJs, swJs, indexHtml) => ({
-    appV: appJs ? (appJs.match(/^const APP_VERSION = '([^']+)'/m) || [])[1] : undefined,
+    appV: appJs ? (appJs.match(/const APP_VERSION\s*=\s*['"]([^'"]+)['"]/) || [])[1] : undefined,
     cacheV: swJs ? (swJs.match(/^const CACHE_NAME = 'netplus-v([^']+)'/m) || [])[1] : undefined,
     badgeV: indexHtml ? (indexHtml.match(/id="version-badge"[^>]*>v([0-9.]+)</) || [])[1] : undefined,
   });
