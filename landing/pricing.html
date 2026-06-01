@@ -154,7 +154,7 @@
           <li class="tier-feature">Pass Plan tracking + retention coaching</li>
           <li class="tier-feature"><strong>Pass guarantee</strong>: extension if you don't pass first try</li>
         </ul>
-        <a class="tier-cta is-primary" href="#pro-coming-soon" data-action="pro-signup">Start Pro →</a>
+        <a class="tier-cta is-primary" href="#" data-action="pro-signup">Notify me when Pro launches →</a>
       </div>
 
       <!-- TEAM -->
@@ -304,6 +304,21 @@
         Didn't get it? <a href="#" id="auth-resend">Resend</a> · <a href="#" id="auth-different-email">Use different email</a>
       </p>
     </div>
+  </div>
+</div>
+
+<!-- Notify-me modal — Pro launch (Stripe checkout lands in a later phase) +
+     coming-soon certs. Shares #notify-modal wiring in script.js with index.html. -->
+<div class="modal" id="notify-modal" role="dialog" aria-labelledby="notify-modal-title" hidden>
+  <div class="modal-card">
+    <button class="modal-close" type="button" id="notify-modal-close" aria-label="Close">×</button>
+    <h3 id="notify-modal-title" class="modal-title">Notify me when <span id="notify-cert-name">this cert</span> launches</h3>
+    <p class="modal-sub">Drop your email and I'll send one short email the moment <span id="notify-cert-name-2">this cert</span> goes live. No spam, no follow-up sequences. You can unsubscribe with one click.</p>
+    <form class="modal-form" id="notify-form">
+      <input type="email" class="modal-input" id="notify-email" placeholder="you@email.com" required autocomplete="email">
+      <button type="submit" class="modal-cta">Notify me</button>
+    </form>
+    <p class="modal-foot" id="notify-foot">You'll get one email the moment this cert launches. No spam, no follow-up sequences.</p>
   </div>
 </div>
 

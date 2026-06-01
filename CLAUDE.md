@@ -107,6 +107,7 @@ npx playwright test              # E2E (tests/e2e/app.spec.js)
 
 | Version | Features Added |
 |---|---|
+| v7.10.0 | Onboarding funnel: 6 cert diagnostic results pages (shared renderer + thin shells), free-path-primary CTAs, quota wall reframed as streak/SR retention hook, post-BYOK sign-in prompt, dead-tag + waitlist-modal fixes |
 | v7.9.0 | M7 PR-1: event-delegation scaffold (event-actions.js) — no handlers migrated yet |
 | v7.8.4 | Minify-on-deploy build step — esbuild JS+CSS, app.js -44% gzip, ~28% smaller cold load |
 | v7.8.3 | Sec-P4 XSS defence-in-depth: vendored DOMPurify (M6) over AI + cross-user sinks, guide.diagram backstop (L2), .gitignore secrets (L5) |

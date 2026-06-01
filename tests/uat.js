@@ -18948,7 +18948,7 @@ test('v4.99.7 GateRace: _gateProOnly optimistic-allows signed-in users when _quo
 test('v4.99.7 GateRace: anonymous users still default-deny in _gateProOnly',
   /function _gateProOnly[\s\S]{0,1200}_showProOnlyUI\([\s\S]{0,200}return false/.test(js));
 test('v4.99.7 QuotaModal: countdown shows "(midnight UTC)" clarifier',
-  /Resets in <strong>' \+ resetText \+ '<\/strong> \(midnight UTC\)/.test(js));
+  /resets in <strong>' \+ resetText \+ '<\/strong> \(midnight UTC\)/i.test(js));
 
 // ── v4.99.8 — Drill lock indicators on sidebar (Pro-only items show 🔒 to Free/anonymous) ──
 console.log('\n\x1b[1m── v4.99.8 — DRILL LOCK INDICATORS ──\x1b[0m');
@@ -19471,8 +19471,8 @@ console.log('\n\x1b[1m── v4.99.33 — SIGNED-IN BYOK BYPASS ──\x1b[0m');
 
 test('v4.99.33 BYOKBypass: validateApiKey early-returns null for signed-in users',
   /function\s+validateApiKey\([^)]*\)\s*\{\s*\/\/[\s\S]{0,200}window\._certanvilSignedIn\s*===\s*true\s*\)\s*return\s+null/.test(js));
-test('v4.99.33 BYOKBypass: validateApiKey still rejects empty key for anonymous users',
-  /function\s+validateApiKey\([^)]*\)\s*\{[\s\S]{0,400}if\s*\(\s*!key\s*\)\s*return\s+['"]Please enter your Anthropic API key/.test(js));
+test('v4.99.33 BYOKBypass: validateApiKey still rejects empty key for anonymous users (post-BYOK sign-in prompt)',
+  /function\s+validateApiKey\([^)]*\)\s*\{[\s\S]{0,800}if\s*\(\s*!key\s*\)\s*return\s+['"]Sign in to study free/.test(js));
 test('v4.99.33 BYOKBypass: validateApiKey still rejects bad-format key for anonymous users',
   /function\s+validateApiKey\([^)]*\)\s*\{[\s\S]{0,800}startsWith\(['"]sk-ant-['"]\)/.test(js));
 test('v4.99.33 BYOKBypass: signed-in check guards against undefined window (defensive)',
@@ -19489,7 +19489,7 @@ test('v4.99.33 BYOKBypass behavioral: signed-in + no key returns null (the found
     vm.runInContext(m[0], ctx);
     return vm.runInContext("validateApiKey('')", ctx) === null;
   })());
-test('v4.99.33 BYOKBypass behavioral: anonymous + no key still returns error (preserves BYOK contract)',
+test('v4.99.33 BYOKBypass behavioral: anonymous + no key still returns error (post-BYOK sign-in prompt)',
   (() => {
     const vm = require('vm');
     const m = js.match(/function\s+validateApiKey\([\s\S]*?\n\}/);
@@ -19498,7 +19498,7 @@ test('v4.99.33 BYOKBypass behavioral: anonymous + no key still returns error (pr
     vm.createContext(ctx);
     vm.runInContext(m[0], ctx);
     const r = vm.runInContext("validateApiKey('')", ctx);
-    return typeof r === 'string' && r.indexOf('Anthropic API key') !== -1;
+    return typeof r === 'string' && r.indexOf('Sign in to study') !== -1;
   })());
 
 // ── v4.99.34 — Wire up window._certanvilSignedIn flag (PROD followup hotfix) ──
@@ -20511,7 +20511,14 @@ test('v4.99.52 D.1: intake state envelope includes cert + examDate + intensity +
 console.log('\n\x1b[1m── v4.99.53 — D.2 QUIZ UI + RESULTS PLACEHOLDER ──\x1b[0m');
 
 const _dxQuizD2Raw = fs.readFileSync(path.join(ROOT, 'landing/diagnostic/network-plus/quiz.html'), 'utf8');
-const _dxResultsD2Raw = fs.readFileSync(path.join(ROOT, 'landing/diagnostic/network-plus/results.html'), 'utf8');
+// v8.x: the results render logic was extracted from results.html into a shared
+// renderer (results-core.js) + per-cert config (results-config.js) — one renderer
+// now serves all 7 certs. The D.x results "render contract" therefore spans three
+// files; assert against their combined source. (results.html is now a ~50-line shell.)
+const _dxResultsShell = fs.readFileSync(path.join(ROOT, 'landing/diagnostic/network-plus/results.html'), 'utf8');
+const _dxResultsCoreRaw = (() => { try { return fs.readFileSync(path.join(ROOT, 'landing/diagnostic/results-core.js'), 'utf8'); } catch (_) { return ''; } })();
+const _dxResultsCfgRaw = (() => { try { return fs.readFileSync(path.join(ROOT, 'landing/diagnostic/results-config.js'), 'utf8'); } catch (_) { return ''; } })();
+const _dxResultsD2Raw = _dxResultsShell + '\n' + _dxResultsCoreRaw + '\n' + _dxResultsCfgRaw;
 
 // — Quiz page · structural —
 test('v4.99.53 D.2: quiz page has live UI (not just D.1 placeholder)',
@@ -20744,8 +20751,11 @@ test('v4.99.54 D.3: quiz.html forwards intake state to /api/diagnostic/generate'
 console.log('\n\x1b[1m── v4.99.55 — D.4 LANDING DIAGNOSTIC RICH RESULTS ──\x1b[0m');
 
 const _resultsD4Path = path.join(__dirname, '..', 'landing', 'diagnostic', 'network-plus', 'results.html');
-let _resultsD4Raw = '';
-try { _resultsD4Raw = fs.readFileSync(_resultsD4Path, 'utf8'); } catch (_) {}
+let _resultsD4Shell = '';
+try { _resultsD4Shell = fs.readFileSync(_resultsD4Path, 'utf8'); } catch (_) {}
+// Combined render-contract source (shell + shared core + per-cert config) — see
+// the D.2 note above; reuses the core/config reads from the D.2 block.
+const _resultsD4Raw = _resultsD4Shell + '\n' + _dxResultsCoreRaw + '\n' + _dxResultsCfgRaw;
 // v4.99.60 redesign: results.html's inline <style> was extracted into the
 // shared diagnostic-system.css (one source of truth for the whole flow).
 // Moved-rule guards now assert against the shared system; behaviour/JS
@@ -20755,7 +20765,7 @@ const _dgSysPath = path.join(__dirname, '..', 'landing', 'diagnostic', 'diagnost
 let _dgSys = '';
 try { _dgSys = fs.readFileSync(_dgSysPath, 'utf8'); } catch (_) {}
 
-test('v4.99.55 D.4: landing/diagnostic/network-plus/results.html exists', _resultsD4Raw.length > 0);
+test('v4.99.55 D.4: landing/diagnostic/network-plus/results.html exists', _resultsD4Shell.length > 0);
 
 // Tombstone: the D.2 placeholder banner must not reappear
 test('v4.99.55 D.4: D.2 placeholder banner removed (dr-d4-banner tombstone)',
@@ -20779,8 +20789,9 @@ test('v4.99.55 D.4: pass tick rotates to passFraction × 360°',
   /passFraction\s*\*\s*360/.test(_resultsD4Raw));
 
 // Score band classification: foundation / near-pass / on-pace / ready
-test('v4.99.55 D.4: classifyBand function defined with 4 band thresholds',
-  /function\s+classifyBand[\s\S]{0,200}>=\s*800[\s\S]{0,80}>=\s*720[\s\S]{0,80}>=\s*600/.test(_resultsD4Raw));
+test('v4.99.55 D.4: classifyBand uses per-cert band thresholds (shared core + config)',
+  /function\s+classifyBand[\s\S]{0,200}cfg\.bands\.ready[\s\S]{0,160}cfg\.bands\.onPace[\s\S]{0,160}cfg\.bands\.nearPass/.test(_dxResultsCoreRaw) &&
+  /['"]network-plus['"][\s\S]{0,600}bands:\s*\{\s*ready:\s*800,\s*onPace:\s*720,\s*nearPass:\s*600/.test(_dxResultsCfgRaw));
 test('v4.99.60 redesign: score/band state-colour classes live in shared system',
   /\.dr-score-num\.is-passing/.test(_dgSys) && /\.dr-score-num\.is-foundation/.test(_dgSys) &&
   /\.dr-passplan-band\.is-near-pass/.test(_dgSys) && _dgSys.includes('is-on-pace') && _dgSys.includes('is-ready'));
@@ -20796,14 +20807,16 @@ test('v4.99.55 D.4: Pass Plan keyed to intake.examDate (daysUntil helper)',
   /function\s+daysUntil/.test(_resultsD4Raw) && _resultsD4Raw.includes('examDays'));
 test('v4.99.55 D.4: Pass Plan keyed to intake.intensity (casual/balanced/intense)',
   _resultsD4Raw.includes("intensity === 'intense'") && _resultsD4Raw.includes("intensity === 'casual'"));
-test('v4.99.55 D.4: DOMAIN_DRILLS map covers all 5 N10-009 domains',
-  /DOMAIN_DRILLS\s*=[\s\S]{0,1200}Networking Concepts[\s\S]{0,1200}Network Implementation[\s\S]{0,1200}Network Operations[\s\S]{0,1200}Network Security[\s\S]{0,1200}Network Troubleshooting/.test(_resultsD4Raw));
+test('v4.99.55 D.4: network-plus domain drills cover all 5 N10-009 domains (config)',
+  /['"]network-plus['"][\s\S]{0,2400}Networking Concepts[\s\S]{0,400}Network Implementation[\s\S]{0,400}Network Operations[\s\S]{0,400}Network Security[\s\S]{0,400}Network Troubleshooting/.test(_dxResultsCfgRaw));
 
 // 5-path CTAs (in priority order)
-test('v4.99.55 D.4: CTA 1 · Subscribe (primary, Path A)',
-  /id="dr-cta-subscribe"[\s\S]{0,300}Subscribe to CertAnvil Pro/.test(_resultsD4Raw));
-test('v4.99.55 D.4: CTA 2 · Continue with free account (Path B · magic-link)',
-  /id="dr-cta-continue"[\s\S]{0,300}Continue with a free account/.test(_resultsD4Raw));
+// Pre-Stripe CTA hierarchy: the free path (Continue · magic-link) is the
+// PRIMARY action; the Pro waitlist is demoted to secondary until checkout ships.
+test('v4.99.55 D.4: CTA · primary free path (Continue · magic-link)',
+  /id="dr-cta-continue"[\s\S]{0,300}keep practising free/.test(_resultsD4Raw));
+test('v4.99.55 D.4: CTA · Pro waitlist present (demoted to secondary pre-Stripe)',
+  /id="dr-cta-subscribe"[\s\S]{0,300}Get CertAnvil Pro at launch/.test(_resultsD4Raw));
 test('v4.99.55 D.4: CTA 3 · Download / email score report (Path C)',
   /id="dr-cta-download"[\s\S]{0,300}Download or email score report/.test(_resultsD4Raw));
 test('v4.99.55 D.4: CTA 4 · Retake (Path D · clears session + results)',
@@ -20814,8 +20827,8 @@ test('v4.99.55 D.4: Retake button confirms before clearing results',
   /window\.confirm\([^)]*[Rr]etake/.test(_resultsD4Raw));
 
 // Stub panels (pre-Stripe / pre-D.5 / pre-D.6 placeholders)
-test('v4.99.55 D.4: Subscribe stub panel mentions D.6.5 next ship',
-  _resultsD4Raw.includes('dr-stub-subscribe') && _resultsD4Raw.includes('D.6.5 next ship'));
+test('v4.99.55 D.4: Subscribe stub panel present with launch-waitlist copy',
+  _resultsD4Raw.includes('dr-stub-subscribe') && _resultsD4Raw.includes('Launching soon'));
 test('v4.99.55 D.4: Continue stub panel exists (v4.99.56: stub copy replaced by D.5 magic-link form)',
   _resultsD4Raw.includes('dr-stub-continue') &&
   // v4.99.56 D.5: stub no longer has "D.5 next ship" placeholder copy — it has a working form
@@ -20846,8 +20859,8 @@ test('v4.99.55 D.4: empty state shown when sessionStorage results missing',
   // v4.99.57: empty-state predicate + renderer can live in separate functions now.
   /!results\s*\|\|\s*!results\.totalQuestions/.test(_resultsD4Raw) &&
   _resultsD4Raw.includes('Take the diagnostic to see results'));
-test('v4.99.55 D.4: empty state CTA points to /diagnostic/network-plus/intake',
-  /Take the diagnostic to see results[\s\S]{0,800}\/diagnostic\/network-plus\/intake/.test(_resultsD4Raw));
+test('v4.99.55 D.4: empty state CTA builds intake link from the page cert slug',
+  /\/diagnostic\/['"]\s*\+\s*pageCfg\.slug\s*\+\s*['"]\/intake/.test(_dxResultsCoreRaw));
 
 // Accessibility + reduced motion
 test('v4.99.60 redesign: prefers-reduced-motion gate in shared system (neutralises transitions)',
@@ -23792,9 +23805,12 @@ test('TB v3 walk: walkthroughs file exists and exports array', (function () {
   return /var TB_V3_WALKTHROUGHS = \[/.test(walkJs);
 })());
 
-test('TB v3 walk: walkthroughs script tag is parser-friendly (no async / no module)', (function () {
-  const m = html.match(/<script[^>]*topology-builder-v3-walkthroughs\.js[^>]*><\/script>/);
-  return !!m && !/\basync\b|type=["']module/.test(m[0]);
+// Tombstone: the TB v3 walkthroughs feature + its JS file were removed in the
+// quiz-only MVP pivot. index.html must NOT reference the deleted script (the
+// dead <script defer src="features/topology-builder-v3-walkthroughs.js"> tag
+// was pruned). Keep it gone.
+test('TB v3 walk: dead walkthroughs script reference removed from index.html', (function () {
+  return !/topology-builder-v3-walkthroughs\.js/.test(html);
 })());
 
 test('TB v3 walk: state declares activeWalkthroughId field', (function () {

@@ -122,6 +122,17 @@
     });
   });
 
+  // Wire the pricing-page "Start Pro" CTA into the same notify flow. Stripe
+  // checkout lands in a later phase; until then capture launch intent instead
+  // of dead-ending on the (non-existent) #pro-coming-soon anchor.
+  document.querySelectorAll('[data-action="pro-signup"]').forEach(function(btn) {
+    btn.addEventListener('click', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      openNotifyModal('CertAnvil Pro');
+    });
+  });
+
   // Submit handler for notify form — POSTs to /api/notify (Vercel edge fn)
   // with localStorage as a fallback if the API call fails (offline /
   // RESEND_API_KEY unset / network blip).

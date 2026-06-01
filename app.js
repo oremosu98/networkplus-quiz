@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v7.9.0
+// Network+ AI Quiz — app.js  v7.10.0
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '7.9.0';
+const APP_VERSION = '7.10.0';
 // v4.99.45 (Phase 6b): expose APP_VERSION on window so the web-vitals
 // collector (lib/web-vitals-collector.js, loaded BEFORE app.js so its
 // PerformanceObservers attach earlier) can stamp this version onto every
@@ -643,6 +643,22 @@ function _showQuotaExceededUI(detail) {
     }
   } catch (_) {}
 
+  // Reframe the cap as a retention hook, not a wall: acknowledge the streak the
+  // user just earned, and offer the non-metered spaced-repetition review so the
+  // session doesn't dead-end at 20/20.
+  var _streakPrefix = '';
+  try {
+    var _qs = (typeof getStreak === 'function') ? getStreak() : null;
+    if (_qs && _qs.current >= 1) {
+      _streakPrefix = '&#128293; Day ' + _qs.current + ' streak locked in &middot; come back tomorrow to keep it going. ';
+    }
+  } catch (_) {}
+  var _srDue = 0;
+  try { if (typeof getSrDueCount === 'function') _srDue = getSrDueCount() || 0; } catch (_) {}
+  var _srBtnHtml = _srDue > 0
+    ? '<button type="button" class="quota-exceeded-cta" id="quota-review-sr">Review ' + _srDue + ' saved card' + (_srDue === 1 ? '' : 's') + ' &middot; no AI needed &rarr;</button>'
+    : '';
+
   // Remove any existing instance first
   var prev = document.getElementById('quota-exceeded-modal');
   if (prev) prev.remove();
@@ -654,8 +670,9 @@ function _showQuotaExceededUI(detail) {
     '<div class="quota-exceeded-card">' +
       '<div class="quota-exceeded-icon">&#128267;</div>' +
       '<div class="quota-exceeded-title">You&rsquo;ve used today&rsquo;s free questions</div>' +
-      '<div class="quota-exceeded-sub">Free is 20 questions per day, every day, no card required. Resets in <strong>' + resetText + '</strong> (midnight UTC) &middot; or upgrade to Pro for unlimited.</div>' +
+      '<div class="quota-exceeded-sub">' + _streakPrefix + 'Free is 20 questions a day, every day, no card required &middot; resets in <strong>' + resetText + '</strong> (midnight UTC).</div>' +
       '<div class="quota-exceeded-actions">' +
+        _srBtnHtml +
         '<a class="quota-exceeded-cta" href="https://certanvil.com/pricing" target="_blank" rel="noopener">Upgrade to Pro &middot; $9.99/mo &rarr;</a>' +
         '<button type="button" class="quota-exceeded-dismiss" id="quota-exceeded-dismiss">I&rsquo;ll wait until reset</button>' +
       '</div>' +
@@ -665,6 +682,14 @@ function _showQuotaExceededUI(detail) {
   var dismissBtn = document.getElementById('quota-exceeded-dismiss');
   if (dismissBtn) {
     dismissBtn.addEventListener('click', function () { modal.remove(); });
+  }
+  // Non-metered escape hatch: drill saved cards instead of dead-ending at the cap.
+  var srReviewBtn = document.getElementById('quota-review-sr');
+  if (srReviewBtn) {
+    srReviewBtn.addEventListener('click', function () {
+      modal.remove();
+      try { if (typeof startSrReview === 'function') startSrReview(); } catch (_) {}
+    });
   }
   // Click outside card → dismiss
   modal.addEventListener('click', function (e) {
@@ -2367,7 +2392,9 @@ function getTodayQuestionCount() {
 }
 
 // ── Daily goal ──
-const DEFAULT_DAILY_GOAL = 20;
+// Kept BELOW the 20/day free quota cap so completing the goal leaves headroom
+// for "one more" instead of landing the user on the paywall at the same moment.
+const DEFAULT_DAILY_GOAL = 15;
 function getDailyGoal() {
   const raw = parseInt(localStorage.getItem(STORAGE.DAILY_GOAL), 10);
   return (Number.isFinite(raw) && raw > 0) ? raw : DEFAULT_DAILY_GOAL;
@@ -5612,7 +5639,10 @@ function validateApiKey(key) {
   // Signed-in users → server proxy, no client key needed. _claudeFetch
   // (line 270) handles the actual routing based on session presence.
   if (typeof window !== 'undefined' && window._certanvilSignedIn === true) return null;
-  if (!key) return 'Please enter your Anthropic API key.';
+  // BYOK retired (v4.99.3): a signed-out user with no key can't reach the proxy.
+  // Prompt sign-in (free, 20/day) up front instead of the stale "enter API key"
+  // wall or a thrown needsAuth error mid-quiz.
+  if (!key) return 'Sign in to study free: 20 questions a day, no API key needed. Tap "Sign in" at the top right.';
   if (!key.startsWith('sk-ant-')) return 'Invalid API key format. Anthropic keys start with "sk-ant-".';
   if (key.length < 20) return 'API key looks too short. Please check and try again.';
   return null;
