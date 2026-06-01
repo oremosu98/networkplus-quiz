@@ -289,7 +289,7 @@
       var btnClass = c.cta.disabled ? 'btn-ghost-sm' : (c.status === 'locked' ? 'btn-primary-sm' : 'btn-ghost-sm');
       return ''
         + '<div class="ent-row' + (c.status === 'locked' ? ' is-locked' : '') + '">'
-        +   '<div class="ent-glyph ' + c.glyphClass + '">' + escapeHtml(c.glyph) + '</div>'
+        +   '<div class="ent-glyph ' + c.glyphClass + '">' + certGlyphHTML(c.glyph, c.glyphClass) + '</div>'
         +   '<div class="ent-info">'
         +     '<div class="ent-name-row">'
         +       '<span class="ent-name">' + escapeHtml(c.name) + '</span>'
@@ -334,7 +334,7 @@
     if (result && result.status === 'passed') {
       return ''
         + '<div class="er-row is-passed" data-cert="' + cert.id + '">'
-        +   '<div class="er-glyph ' + cert.glyphClass + '">' + escapeHtml(cert.glyph) + '</div>'
+        +   '<div class="er-glyph ' + cert.glyphClass + '">' + certGlyphHTML(cert.glyph, cert.glyphClass) + '</div>'
         +   '<div class="er-info">'
         +     '<div class="er-name">' + escapeHtml(cert.name) + ' · ' + escapeHtml(cert.code) + '</div>'
         +     '<div class="er-detail">'
@@ -352,7 +352,7 @@
     if (result && result.status === 'attempted') {
       return ''
         + '<div class="er-row is-attempted" data-cert="' + cert.id + '">'
-        +   '<div class="er-glyph ' + cert.glyphClass + '">' + escapeHtml(cert.glyph) + '</div>'
+        +   '<div class="er-glyph ' + cert.glyphClass + '">' + certGlyphHTML(cert.glyph, cert.glyphClass) + '</div>'
         +   '<div class="er-info">'
         +     '<div class="er-name">' + escapeHtml(cert.name) + ' · ' + escapeHtml(cert.code) + '</div>'
         +     '<div class="er-detail">'
@@ -368,7 +368,7 @@
     }
     return ''
       + '<div class="er-row" data-cert="' + cert.id + '">'
-      +   '<div class="er-glyph ' + cert.glyphClass + '">' + escapeHtml(cert.glyph) + '</div>'
+      +   '<div class="er-glyph ' + cert.glyphClass + '">' + certGlyphHTML(cert.glyph, cert.glyphClass) + '</div>'
       +   '<div class="er-info">'
       +     '<div class="er-name">' + escapeHtml(cert.name) + ' · ' + escapeHtml(cert.code) + '</div>'
       +     '<div class="er-detail">' + escapeHtml(fmt.examName) + ' · pass ≥ ' + fmt.passScore + '/' + fmt.maxScore + '</div>'
@@ -540,7 +540,7 @@
         + '<p class="confetti-prose">' + escapeHtml(cert.name) + ' in the bag. Your tile on the home page just earned a Passed badge.</p>'
         + '<div class="confetti-cert-card">'
         +   '<div class="confetti-cert-row">'
-        +     '<div class="confetti-cert-glyph ' + cert.glyphClass + '">' + escapeHtml(cert.glyph) + '</div>'
+        +     '<div class="confetti-cert-glyph ' + cert.glyphClass + '">' + certGlyphHTML(cert.glyph, cert.glyphClass) + '</div>'
         +     '<div style="flex:1">'
         +       '<div class="confetti-cert-name">' + escapeHtml(fmt.examName) + '</div>'
         +       '<div class="confetti-cert-sub">CompTIA scaled score</div>'
@@ -559,7 +559,7 @@
         + '<p class="confetti-prose">First-attempt fails are normal. Your study data is intact, your weak spots are mapped, and you have plenty of retake window left.</p>'
         + '<div class="confetti-cert-card att-cert-card">'
         +   '<div class="confetti-cert-row">'
-        +     '<div class="confetti-cert-glyph ' + cert.glyphClass + '">' + escapeHtml(cert.glyph) + '</div>'
+        +     '<div class="confetti-cert-glyph ' + cert.glyphClass + '">' + certGlyphHTML(cert.glyph, cert.glyphClass) + '</div>'
         +     '<div style="flex:1">'
         +       '<div class="confetti-cert-name">' + escapeHtml(fmt.examName) + '</div>'
         +       '<div class="confetti-cert-sub">CompTIA scaled score</div>'
@@ -652,6 +652,15 @@
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#39;');
+  }
+
+  function certGlyphHTML(glyph, glyphClass){
+    var g = String(glyph || '');
+    if (!g) return '';
+    var sup = glyphClass === 'aplus-core1' ? '1' : glyphClass === 'aplus-core2' ? '2' : '';
+    var esc = function(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); };
+    var head = esc(g.slice(0, -1)), last = esc(g.slice(-1));
+    return head + '<span class="cg-ac">' + last + '</span>' + (sup ? '<span class="cg-sup">' + sup + '</span>' : '');
   }
 
   // ── Notification toggle persistence ─────────────────────────────────────

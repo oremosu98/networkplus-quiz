@@ -508,6 +508,9 @@ html[data-theme] body .confetti-eyebrow{color:var(--dg-accent);font-size:10px;fo
 html[data-theme] body .confetti-title{color:var(--dg-text);font-weight:800;}
 html[data-theme] body .confetti-prose{color:var(--dg-text-2);}
 html[data-theme] body .confetti-cert-card{background:var(--dg-bg-2);border:1px solid var(--dg-rule-soft);border-radius:10px;box-shadow:none;}
+html[data-theme] body .confetti-cert-glyph{font-family:'Fraunces',Georgia,serif;font-weight:600;font-size:15px;line-height:1;letter-spacing:-.02em;color:var(--dg-text);}
+html[data-theme] body .confetti-cert-glyph .cg-ac{color:var(--dg-accent);}
+html[data-theme] body .confetti-cert-glyph .cg-sup{font-size:.5em;vertical-align:super;color:var(--dg-accent);font-weight:700;}
 
 /* ── ADMIN DASHBOARD: stat grid (divided strip, not 4 cards) ─────────────── */
 html[data-theme] body .admin-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:0;border:1px solid var(--dg-rule);border-radius:14px;overflow:hidden;margin-bottom:36px;}
