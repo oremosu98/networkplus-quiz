@@ -1415,11 +1415,8 @@
      spacing. .pp-eyebrow excluded from the pseudo-kill (it uses ::after
      here). DESIGN_PLAYBOOK Phase 3. */
   #proof-of-product .pp-head,#proof-of-product .pp-head-text,#proof-of-product .pp-eyebrow,
-  #proof-of-product .pp-title,#proof-of-product .pp-sub,#proof-of-product .pp-tabs,
-  #proof-of-product .pp-tab,#proof-of-product .pp-tab-dot,#proof-of-product .pp-content,
+  #proof-of-product .pp-title,#proof-of-product .pp-sub,#proof-of-product .pp-content,
   #proof-of-product .pp-foot,#proof-of-product .pp-cta-btn{margin:0;padding:0;min-height:0;max-width:none}
-  #proof-of-product .pp-tab::before,#proof-of-product .pp-tab::after,
-  #proof-of-product .pp-tabs::before,#proof-of-product .pp-tabs::after,
   #proof-of-product .pp-content::before,#proof-of-product .pp-content::after,
   #proof-of-product .pp-foot::before,#proof-of-product .pp-foot::after,
   #proof-of-product .pp-cta-btn::before,#proof-of-product .pp-cta-btn::after{content:none!important}
@@ -1432,16 +1429,6 @@
   #proof-of-product .pp-title{font-family:'Fraunces',Georgia,serif;font-weight:600;font-size:clamp(28px,3.4vw,46px);line-height:1.06;letter-spacing:-.02em;color:var(--ink);margin-bottom:12px}
   #proof-of-product .pp-title .pp-em{font-style:italic;color:var(--accent)}
   #proof-of-product .pp-sub{font-size:clamp(14.5px,1.1vw,16.5px);line-height:1.6;color:var(--ink-soft);max-width:46ch}
-  #proof-of-product .pp-tabs{display:flex;flex-direction:row;gap:6px;background:var(--surface-2);border:1px solid var(--border);border-radius:14px;padding:5px;width:max-content;max-width:100%;overflow-x:auto}
-  #proof-of-product .pp-tab{display:inline-flex;flex-direction:row;align-items:center;gap:8px;font:inherit;font-size:13.5px;font-weight:600;color:var(--muted);background:none;border:0;border-radius:10px;padding:9px 15px;cursor:pointer;white-space:nowrap;transition:color 150ms ease,background 150ms ease}
-  #proof-of-product .pp-tab .pp-tab-dot{width:7px;height:7px;border-radius:50%;background:var(--muted);flex:none}
-  #proof-of-product .pp-tab .pp-tab-dot.live{background:var(--accent)}
-  #proof-of-product .pp-tab .pp-tab-dot.active{background:var(--accent-bright)}
-  #proof-of-product .pp-tab .pp-tab-dot.soon{background:none;border:1.5px solid var(--muted)}
-  @media (hover:hover){#proof-of-product .pp-tab:hover{color:var(--ink)}}
-  #proof-of-product .pp-tab.is-active{color:var(--ink);background:var(--surface);box-shadow:var(--shadow-soft)}
-  #proof-of-product .pp-tab.is-active .pp-tab-dot.live{box-shadow:0 0 0 3px color-mix(in oklab,var(--accent) 22%,transparent)}
-  #proof-of-product .pp-tab:focus-visible{outline:2px solid color-mix(in oklab,var(--accent) 55%,transparent);outline-offset:2px}
 
   #proof-of-product .pp-content{opacity:0;transition:opacity 280ms var(--eo)}
   #proof-of-product .pp-content.is-active{opacity:1}
@@ -1487,33 +1474,23 @@
   #proof-of-product .pp-cert-chip.is-soon .pp-cert-dot{background:none;border:1.5px solid var(--muted)}
   #proof-of-product .pp-certs-foot{margin-top:14px;font-size:12.5px;line-height:1.55;color:var(--muted)}
 
-  #proof-of-product .pp-locked{display:flex;flex-direction:column;align-items:flex-start;text-align:left;background:linear-gradient(180deg,var(--surface),var(--surface-2));border:1px solid var(--border);border-radius:22px;box-shadow:var(--shadow-card);padding:clamp(36px,5vw,64px);max-width:760px}
-  #proof-of-product .pp-locked-ic{width:64px;height:64px;border-radius:18px;background-color:#FFFBF3;border:1px solid var(--border);display:grid;place-items:center;margin-bottom:24px;box-shadow:var(--shadow-soft)}
-  #proof-of-product .pp-locked-ic svg{width:42px;height:42px;display:block}
-  #proof-of-product .pp-locked-eyebrow{font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:12px}
-  #proof-of-product .pp-locked-title{font-family:'Fraunces',Georgia,serif;font-size:clamp(24px,2.4vw,34px);font-weight:600;letter-spacing:-.02em;color:var(--ink);margin-bottom:14px}
-  #proof-of-product .pp-locked-sub{font-size:15px;line-height:1.62;color:var(--ink-soft);max-width:54ch;margin-bottom:20px}
-  #proof-of-product .pp-locked-eta{font-size:12.5px;font-weight:600;letter-spacing:.04em;color:var(--muted);padding:8px 14px;border:1px solid var(--border);border-radius:999px;margin-bottom:26px}
-  #proof-of-product .pp-locked-foot{display:flex;flex-direction:row;align-items:center;gap:18px;flex-wrap:wrap}
 
   #proof-of-product .pp-r{opacity:0;transform:translateY(16px);transition:opacity 600ms var(--eo),transform 600ms var(--eo)}
   #proof-of-product.pp-in .pp-r{opacity:1;transform:none}
   #proof-of-product.pp-in .pp-r[data-d="1"]{transition-delay:40ms}
   #proof-of-product.pp-in .pp-r[data-d="2"]{transition-delay:110ms}
-  #proof-of-product .pp-feature,#proof-of-product .pp-roster,#proof-of-product .pp-locked{opacity:0;transform:translateY(20px) scale(0.99);transition:opacity 680ms var(--eo) 200ms,transform 680ms var(--eo) 200ms}
-  #proof-of-product.pp-in .pp-content.is-active .pp-feature,#proof-of-product.pp-in .pp-content.is-active .pp-roster,#proof-of-product.pp-in .pp-content.is-active .pp-locked{opacity:1;transform:none}
+  #proof-of-product .pp-feature,#proof-of-product .pp-roster{opacity:0;transform:translateY(20px) scale(0.99);transition:opacity 680ms var(--eo) 200ms,transform 680ms var(--eo) 200ms}
+  #proof-of-product.pp-in .pp-content.is-active .pp-feature,#proof-of-product.pp-in .pp-content.is-active .pp-roster{opacity:1;transform:none}
 
   @media (max-width:920px){
     #proof-of-product .pp-grid{grid-template-columns:1fr;gap:20px}
-    #proof-of-product .pp-tabs{width:100%}
   }
   @media (max-width:560px){
     #proof-of-product .pp-title{font-size:clamp(24px,7vw,32px)}
-    #proof-of-product .pp-tab{padding:9px 12px;font-size:12.5px}
     #proof-of-product .pp-feature-foot{flex-direction:column;align-items:flex-start}
   }
   @media (prefers-reduced-motion:reduce){
-    #proof-of-product .pp-r,#proof-of-product .pp-feature,#proof-of-product .pp-roster,#proof-of-product .pp-locked,#proof-of-product .pp-content{transition:opacity 220ms ease !important;transform:none !important}
+    #proof-of-product .pp-r,#proof-of-product .pp-feature,#proof-of-product .pp-roster,#proof-of-product .pp-content{transition:opacity 220ms ease !important;transform:none !important}
     #proof-of-product.pp-in .pp-r{transform:none !important}
   }
 </style>
