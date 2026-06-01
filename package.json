@@ -11,12 +11,16 @@
     "test:ios": "npx playwright test --project=webkit --project=mobile-safari",
     "test": "npm run test:uat && npm run test:e2e",
     "serve": "npx serve . -l 3131 -s",
+    "serve:dist": "npx serve dist -l 3132 -s",
+    "build": "node scripts/build.js",
+    "build:test": "node tests/build.test.js",
     "bump": "node scripts/bump-version.js",
     "stage": "node scripts/stage.js",
     "prepare": "git config core.hooksPath .githooks 2>/dev/null || true"
   },
   "devDependencies": {
     "@playwright/test": "^1.49.0",
+    "esbuild": "^0.28.0",
     "serve": "^14.2.0"
   }
 }
