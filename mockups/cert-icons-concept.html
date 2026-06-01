@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cert icons concept · typographic lettermark</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  :root{ --bronze:oklch(0.50 0.155 55); --ink:oklch(0.24 0.018 280); }
+  body{margin:0;font-family:Inter,system-ui,sans-serif;background:oklch(0.975 0.007 85);color:oklch(0.22 0.015 280)}
+  body[data-theme="dark"]{background:oklch(0.16 0.009 275);color:oklch(0.96 0.006 275)}
+  .bar{display:flex;gap:10px;align-items:center;padding:16px 28px;border-bottom:1px solid oklch(0.86 0.008 85)}
+  body[data-theme="dark"] .bar{border-color:oklch(0.30 0.008 275)}
+  .bar button{font:inherit;font-size:13px;font-weight:600;padding:7px 14px;border-radius:9px;border:1px solid currentColor;background:none;color:inherit;cursor:pointer}
+  h2{font-family:Georgia,serif;font-weight:600;margin:28px 28px 4px}
+  .note{margin:0 28px;font-size:12.5px;color:oklch(0.50 0.013 280)}
+  body[data-theme="dark"] .note{color:oklch(0.60 0.013 275)}
+  .row{display:flex;gap:20px;flex-wrap:wrap;padding:16px 28px 10px}
+  .cell{display:flex;flex-direction:column;align-items:center;gap:9px;width:104px}
+  /* live tile: 84px cream, mirrors .cert-tile.is-live .cert-glyph */
+  .glyph{width:84px;height:84px;background-color:#FFFBF3;border:1px solid oklch(0.86 0.008 85);border-radius:20px;
+    box-shadow:0 1px 0 rgba(255,255,255,.55),0 18px 38px -18px oklch(0.22 0.015 280 / .20);
+    display:grid;place-items:center;position:relative}
+  .lbl{font-size:12px;font-weight:600;color:oklch(0.50 0.013 280)}
+  body[data-theme="dark"] .lbl{color:oklch(0.60 0.013 275)}
+
+  /* the lettermark */
+  .cg{font-family:'Fraunces',Georgia,serif;font-weight:600;font-size:34px;line-height:1;letter-spacing:-.02em;color:var(--ink);display:flex;align-items:baseline}
+  .cg .ac{color:var(--bronze)}                 /* bronze accent glyph */
+  .cg .sup{font-size:15px;color:var(--bronze);align-self:flex-start;margin-left:1px;font-weight:700}
+  .cg.three{font-size:27px;letter-spacing:-.03em}
+  /* roster small tile 46px */
+  .glyph.sm{width:46px;height:46px;border-radius:13px}
+  .glyph.sm .cg{font-size:19px}
+
+  /* Inter alternative row */
+  .cg.inter{font-family:'Inter',sans-serif;font-weight:700;letter-spacing:-.03em}
+</style>
+</head>
+<body>
+  <div class="bar"><strong>Cert lettermarks · ink + bronze accent (Variant B)</strong><button onclick="document.body.dataset.theme = document.body.dataset.theme==='dark'?'':'dark'">Toggle theme</button></div>
+
+  <h2>All 8 live certs · Fraunces (brand display)</h2>
+  <p class="note">Rule: prefix in ink, the distinguishing last glyph in bronze. A+ Core 1/2 split by a small bronze numeral.</p>
+  <div class="row">
+    <div class="cell"><div class="glyph"><span class="cg">N<span class="ac">+</span></span></div><span class="lbl">Network+</span></div>
+    <div class="cell"><div class="glyph"><span class="cg">S<span class="ac">+</span></span></div><span class="lbl">Security+</span></div>
+    <div class="cell"><div class="glyph"><span class="cg">A<span class="ac">Z</span></span></div><span class="lbl">AZ-900</span></div>
+    <div class="cell"><div class="glyph"><span class="cg">A<span class="ac">I</span></span></div><span class="lbl">AI-900</span></div>
+    <div class="cell"><div class="glyph"><span class="cg">A<span class="ac">+</span><span class="sup">1</span></span></div><span class="lbl">A+ Core 1</span></div>
+    <div class="cell"><div class="glyph"><span class="cg">A<span class="ac">+</span><span class="sup">2</span></span></div><span class="lbl">A+ Core 2</span></div>
+    <div class="cell"><div class="glyph"><span class="cg">S<span class="ac">C</span></span></div><span class="lbl">SC-900</span></div>
+    <div class="cell"><div class="glyph"><span class="cg three">AW<span class="ac">S</span></span></div><span class="lbl">AWS CLF-C02</span></div>
+  </div>
+
+  <h2>Inter alternative (techier, less editorial)</h2>
+  <div class="row">
+    <div class="cell"><div class="glyph"><span class="cg inter">N<span class="ac">+</span></span></div><span class="lbl">Network+</span></div>
+    <div class="cell"><div class="glyph"><span class="cg inter">S<span class="ac">+</span></span></div><span class="lbl">Security+</span></div>
+    <div class="cell"><div class="glyph"><span class="cg inter">A<span class="ac">Z</span></span></div><span class="lbl">AZ-900</span></div>
+    <div class="cell"><div class="glyph"><span class="cg inter three">AW<span class="ac">S</span></span></div><span class="lbl">AWS</span></div>
+  </div>
+
+  <h2>Roster size (46px tile) · Fraunces</h2>
+  <div class="row">
+    <div class="cell"><div class="glyph sm"><span class="cg">C<span class="ac">C</span></span></div><span class="lbl">CCNA</span></div>
+    <div class="cell"><div class="glyph sm"><span class="cg">A<span class="ac">W</span></span></div><span class="lbl">AWS SAA</span></div>
+    <div class="cell"><div class="glyph sm"><span class="cg">A<span class="ac">Z</span></span></div><span class="lbl">AZ-104</span></div>
+  </div>
+</body>
+</html>
