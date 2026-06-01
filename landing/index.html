@@ -3,18 +3,18 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>CertAnvil — AI cert practice for IT professionals</title>
+<title>CertAnvil · AI cert practice for IT professionals</title>
 <meta name="theme-color" content="#fafbff">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="CertAnvil">
-<meta name="description" content="CertAnvil — AI-powered cert practice. Network+ (N10-009) + Security+ (SY0-701) + Microsoft Azure Fundamentals (AZ-900) + Microsoft Azure AI Fundamentals (AI-900) + CompTIA A+ (Core 1 + Core 2) + Microsoft SC-900 (Security, Compliance & Identity) live. More certs coming. Built and used by an exam-passer (767/900 on N10-009).">
+<meta name="description" content="CertAnvil · AI-powered cert practice. Network+ (N10-009) + Security+ (SY0-701) + Microsoft Azure Fundamentals (AZ-900) + Microsoft Azure AI Fundamentals (AI-900) + CompTIA A+ (Core 1 + Core 2) + Microsoft SC-900 (Security, Compliance & Identity) live. More certs coming. Built and used by an exam-passer (767/900 on N10-009).">
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="apple-touch-icon" href="favicon.svg">
 <link rel="stylesheet" href="styles.css">
 <link rel="stylesheet" href="dg-system.css?v=4.99.91">
 
 <!-- hero-v2 type: warm display serif + UI sans. Conscious production
-     choice — preconnect + display=swap, robust serif/sans fallbacks in
+     choice · preconnect + display=swap, robust serif/sans fallbacks in
      the scoped #hero-v2 CSS so a failed fetch degrades gracefully.
      (Self-hosting is an optional later hardening, not a blocker.) -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -24,26 +24,26 @@
 <!-- Open Graph (Facebook, LinkedIn, Slack, Discord, etc.) -->
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="CertAnvil">
-<meta property="og:title" content="CertAnvil — AI cert practice for IT professionals">
+<meta property="og:title" content="CertAnvil · AI cert practice for IT professionals">
 <meta property="og:description" content="AI-powered cert practice. Network+ (N10-009) + Security+ (SY0-701) + Microsoft Azure Fundamentals (AZ-900) + Microsoft Azure AI Fundamentals (AI-900) + CompTIA A+ (Core 1 + Core 2) + Microsoft SC-900 live. More certs coming. Built and used by an exam-passer (767/900 on N10-009).">
 <meta property="og:url" content="https://certanvil.com">
 <meta property="og:image" content="https://certanvil.com/og-image.svg">
 <meta property="og:image:type" content="image/svg+xml">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="CertAnvil — Forge your way through CompTIA certs">
+<meta property="og:image:alt" content="CertAnvil · Forge your way through CompTIA certs">
 
 <!-- Twitter Card -->
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="CertAnvil — AI cert practice for IT professionals">
+<meta name="twitter:title" content="CertAnvil · AI cert practice for IT professionals">
 <meta name="twitter:description" content="AI-powered cert practice. Network+ (N10-009) + Security+ (SY0-701) + Microsoft Azure Fundamentals (AZ-900) + Microsoft Azure AI Fundamentals (AI-900) live. More certs coming. Built and used by an exam-passer (767/900 on N10-009).">
 <meta name="twitter:image" content="https://certanvil.com/og-image.svg">
-<meta name="twitter:image:alt" content="CertAnvil — Forge your way through CompTIA certs">
+<meta name="twitter:image:alt" content="CertAnvil · Forge your way through CompTIA certs">
 
 <!-- Canonical -->
 <link rel="canonical" href="https://certanvil.com">
 <script>
-// Inline theme bootstrap — runs synchronously before <body> renders so the
+// Inline theme bootstrap · runs synchronously before <body> renders so the
 // page paints in the right theme on first frame (no light→dark flash).
 // Default: light. localStorage 'certanvil_theme' overrides.
 (function() {
@@ -65,7 +65,7 @@
      ANY currently-registered SW on the certanvil.com origin; (3) reloads
      the page once if we just killed an active controller, so the user's
      fetches go straight to network on the new load.
-     Idempotent — once the rogue SW is gone this block is a no-op. -->
+     Idempotent · once the rogue SW is gone this block is a no-op. -->
 <script>
 (function() {
   if (!('serviceWorker' in navigator)) return;
@@ -97,7 +97,7 @@
 <body>
 
 <!-- ══════════════════════════════════════════
-     TOPBAR v2 — editorial reskin of the auth-wired header. UNLIKE the
+     TOPBAR v2 · editorial reskin of the auth-wired header. UNLIKE the
      content sections (fresh DOM + .prefix-* classes), the topbar DOM is
      100% JS-contract (auth.js: sign-in-btn/account-pill/account-dropdown
      /avatar/email/tier/sign-out/my-certs/cca; script.js: theme-toggle +
@@ -106,7 +106,7 @@
      CSS-ONLY reskin: the entire topbar DOM below is preserved BYTE-FOR-
      BYTE (every id/class/href/ARIA/hidden-toggle/both theme-icon SVGs/
      the dropdown emoji spans). The ONLY DOM change is id="site-topbar"
-     on <header> as a pure CSS scoping root — no JS reads the header by
+     on <header> as a pure CSS scoping root · no JS reads the header by
      id, zero functional change. All visual change is #site-topbar-
      scoped CSS over styles.css; the bronze monogram overrides the
      inline stroke= (CSS beats presentation attrs); dropdown emoji are
@@ -156,7 +156,7 @@
   }
 
   #site-topbar .logo{display:flex;align-items:center;gap:11px;text-decoration:none}
-  /* COMPLETE scoped reset — styles.css .logo-mark ships a dark tile
+  /* COMPLETE scoped reset · styles.css .logo-mark ships a dark tile
      (background:var(--logo-mark-bg) + border + radius + padding +
      box-shadow); a partial override bleeds it (DESIGN_PLAYBOOK Phase 3).
      The editorial monogram is the bare bronze strokes, no tile. */
@@ -166,7 +166,7 @@
   }
   #site-topbar .logo-mark::before,#site-topbar .logo-mark::after{content:none!important}
   /* dg-system.css ships a global SVG fill that beats the inline
-     fill="none" (CSS > presentation attr — the same lever used for
+     fill="none" (CSS > presentation attr · the same lever used for
      stroke). Enforce fill:none in the scoped reset so the monogram is
      bare strokes, not dark-filled blobs. */
   #site-topbar .logo-mark svg{width:100%;height:100%;display:block;fill:none}
@@ -309,7 +309,7 @@
       </button>
     </nav>
 
-    <!-- Account dropdown — positioned absolute relative to .topbar-inner -->
+    <!-- Account dropdown · positioned absolute relative to .topbar-inner -->
     <div class="account-dropdown" id="account-dropdown" role="menu" aria-labelledby="account-pill" hidden>
       <div class="dropdown-header">
         <div class="dropdown-email" id="dropdown-email">you@email.com</div>
@@ -340,17 +340,17 @@
      HERO
 ══════════════════════════════════════════ -->
 <!-- ══════════════════════════════════════════
-     HERO v2 — forge-constellation concept.
+     HERO v2 · forge-constellation concept.
      FULLY SCOPED under #hero-v2 + .hv2-* classes so it cannot collide
      with styles.css / dg-system.css (the prior ship's failure mode).
-     Tokens live on #hero-v2, NOT :root — no global override / specificity
+     Tokens live on #hero-v2, NOT :root · no global override / specificity
      war. Dark-theme variant included. The auth-wired <header class=
      "topbar"> above is deliberately untouched, so every account/nav
      link keeps working. CTA targets verified: /diagnostic + #certs.
 ══════════════════════════════════════════ -->
 <style id="hv2-styles">
   #hero-v2{
-    /* logo-system palette — light. Scoped to the section only. */
+    /* logo-system palette · light. Scoped to the section only. */
     --bg:oklch(0.975 0.007 85);
     --bg-deep:oklch(0.955 0.012 82);
     --surface:oklch(0.992 0.004 85);
@@ -381,7 +381,7 @@
     font-family:'Inter',system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
     -webkit-font-smoothing:antialiased;
   }
-  /* dark variant — landing's dark mode is reachable via the topbar
+  /* dark variant · landing's dark mode is reachable via the topbar
      toggle; without this the hero would be a light island. */
   [data-theme="dark"] #hero-v2{
     --bg:oklch(0.16 0.009 275);
@@ -522,7 +522,7 @@
   #hero-v2 .hv2-t-streak{width:27%;right:3%;bottom:9%;z-index:2}
   #hero-v2 .hv2-t-quiz{width:23%;right:20%;top:0;z-index:1}
 
-  /* entrance — scoped trigger class, not body[data-ready] */
+  /* entrance · scoped trigger class, not body[data-ready] */
   #hero-v2 .hv2-reveal{opacity:0;transform:translateY(14px);transition:opacity 560ms var(--hv2-eo),transform 560ms var(--hv2-eo)}
   #hero-v2.hv2-ready .hv2-reveal{opacity:1;transform:none}
   #hero-v2.hv2-ready .hv2-reveal[data-d="1"]{transition-delay:60ms}
@@ -572,7 +572,7 @@
 </style>
 
 <section id="hero-v2">
-  <!-- scoped icon defs — IDs prefixed hv2- so they can't clash with
+  <!-- scoped icon defs · IDs prefixed hv2- so they can't clash with
        anything already in the document. -->
   <svg width="0" height="0" aria-hidden="true" style="position:absolute">
     <defs>
@@ -710,7 +710,7 @@
   </div>
 
   <script>
-    /* scoped entrance trigger — touches only #hero-v2, never body/global */
+    /* scoped entrance trigger · touches only #hero-v2, never body/global */
     (function(){
       var h=document.getElementById('hero-v2');
       if(!h)return;
@@ -720,11 +720,11 @@
 </section>
 
 <!-- ══════════════════════════════════════════
-     SAMPLE QUESTION v2 ("Try one") — answer a real one, see why.
+     SAMPLE QUESTION v2 ("Try one") · answer a real one, see why.
      FULLY SCOPED under #sq2 + .sq2-* (prior failure mode avoided).
      Tokens on #sq2, not :root. [data-theme="dark"] variant matches the
      prod theme system (same as #hero-v2). Self-contained: the legacy
-     #sample-question-host is dropped — sample-questions.js null-guards
+     #sample-question-host is dropped · sample-questions.js null-guards
      (`if (!host) return;`) so it cleanly no-ops. Fonts already loaded
      by the hero-v2 head links. Hero above + certs below untouched.
 ══════════════════════════════════════════ -->
@@ -1018,7 +1018,7 @@
      CERT PICKER
 ══════════════════════════════════════════ -->
 <!-- ══════════════════════════════════════════
-     CERT LIBRARY v2 — featured-live + "on the anvil" roster.
+     CERT LIBRARY v2 · featured-live + "on the anvil" roster.
      FULLY SCOPED under #certs (the section's own id; ID specificity beats
      styles.css/dg-system.css .cert-* class rules). Kept id="certs" so the
      hero/footer anchors still resolve. Every script.js contract preserved:
@@ -1027,7 +1027,7 @@
      cert-tile-secplus-soon) + hidden on the private Sec+ tile +
      .cert-glyph/.cert-name/.cert-code/.cert-desc/.cert-foot/.cert-progress/
      .cert-cta/.cert-cta-notify/.cert-status/.status-dot. Layout is pure
-     scoped CSS over the same hooks — getElementById + .closest('.cert-tile')
+     scoped CSS over the same hooks · getElementById + .closest('.cert-tile')
      + [data-cert] all still resolve, so the builder/notify wiring works.
      [data-theme="dark"] variant matches the prod theme system. Fonts from
      the hero-v2 head links. #sq2 above + #proof-of-product below untouched.
@@ -1069,7 +1069,7 @@
   #certs *{box-sizing:border-box}
   #certs a{color:inherit;text-decoration:none}
   #certs [hidden]{display:none!important}
-  /* COMPLETE scoped reset — this section reuses production .cert-* class
+  /* COMPLETE scoped reset · this section reuses production .cert-* class
      names (script.js contract), so styles.css / dg-system.css inject
      old-vertical-card margins/padding that bleed in. Zero them here at
      #certs (1,2,0) specificity (the ID beats every styles.css/dg-system
@@ -1161,11 +1161,11 @@
     <div class="cl-head">
       <span class="cl-eyebrow cl-r" data-d="1">Our cert library</span>
       <h2 class="cl-title cl-r" data-d="1">Pick your <span class="cl-em">cert</span>.</h2>
-      <p class="cl-sub cl-r" data-d="2">Network+ is live today. Five more are on the anvil — get pinged the day each one ships.</p>
+      <p class="cl-sub cl-r" data-d="2">Network+ is live today. Five more are on the anvil, get pinged the day each one ships.</p>
     </div>
 
     <div class="cl-grid">
-      <!-- Network+ — LIVE (featured). script.js swaps #cert-tile-netplus-status/-cta
+      <!-- Network+ · LIVE (featured). script.js swaps #cert-tile-netplus-status/-cta
            to a "Passed" state for signed-in passers. -->
       <a class="cert-tile is-live cl-r" data-d="2" href="https://networkplus.certanvil.com/?cert=netplus" data-cert="netplus" id="cert-tile-netplus">
         <div class="cert-tile-top">
@@ -1181,7 +1181,7 @@
         </div>
       </a>
 
-      <!-- Security+ — LIVE (Pro tier). v7.1.0 public launch on secplus.certanvil.com. -->
+      <!-- Security+ · LIVE (Pro tier). v7.1.0 public launch on secplus.certanvil.com. -->
       <a class="cert-tile is-live" href="https://secplus.certanvil.com/" data-cert="secplus" id="cert-tile-secplus">
         <div class="cert-tile-top">
           <div class="cert-glyph cert-glyph-secplus">S+</div>
@@ -1196,7 +1196,7 @@
         </div>
       </a>
 
-      <!-- Azure Fundamentals — LIVE (Pro tier). v7.3.0 public launch on azure.certanvil.com. -->
+      <!-- Azure Fundamentals · LIVE (Pro tier). v7.3.0 public launch on azure.certanvil.com. -->
       <a class="cert-tile is-live" href="https://azure.certanvil.com/" data-cert="az900" id="cert-tile-az900">
         <div class="cert-tile-top">
           <div class="cert-glyph cert-glyph-az900">AZ</div>
@@ -1211,7 +1211,7 @@
         </div>
       </a>
 
-      <!-- Azure AI Fundamentals — LIVE (Pro tier). v7.5.0 public launch on ai.certanvil.com. -->
+      <!-- Azure AI Fundamentals · LIVE (Pro tier). v7.5.0 public launch on ai.certanvil.com. -->
       <a class="cert-tile is-live" href="https://ai.certanvil.com/" data-cert="ai900" id="cert-tile-ai900">
         <div class="cert-tile-top">
           <div class="cert-glyph cert-glyph-ai900">AI</div>
@@ -1226,7 +1226,7 @@
         </div>
       </a>
 
-      <!-- CompTIA A+ Core 1 — LIVE (Pro tier). v7.6.0 fifth cert family (dual-exam)
+      <!-- CompTIA A+ Core 1 · LIVE (Pro tier). v7.6.0 fifth cert family (dual-exam)
            on aplus.certanvil.com. Core 1 + Core 2 share the subdomain; the
            ?exam= deep-link selects the exam on arrival (in-app cert switcher). -->
       <a class="cert-tile is-live" href="https://aplus.certanvil.com/?exam=core1" data-cert="aplus-core1" id="cert-tile-aplus-core1">
@@ -1243,7 +1243,7 @@
         </div>
       </a>
 
-      <!-- CompTIA A+ Core 2 — LIVE (Pro tier). v7.6.0. Same subdomain as Core 1;
+      <!-- CompTIA A+ Core 2 · LIVE (Pro tier). v7.6.0. Same subdomain as Core 1;
            ?exam=core2 selects Core 2 on arrival. -->
       <a class="cert-tile is-live" href="https://aplus.certanvil.com/?exam=core2" data-cert="aplus-core2" id="cert-tile-aplus-core2">
         <div class="cert-tile-top">
@@ -1259,7 +1259,7 @@
         </div>
       </a>
 
-      <!-- Microsoft SC-900 — LIVE (Pro tier). v7.7.0 sixth cert (single-exam,
+      <!-- Microsoft SC-900 · LIVE (Pro tier). v7.7.0 sixth cert (single-exam,
            Microsoft Security/Compliance/Identity) on sc900.certanvil.com. -->
       <a class="cert-tile is-live" href="https://sc900.certanvil.com/" data-cert="sc900" id="cert-tile-sc900">
         <div class="cert-tile-top">
@@ -1275,8 +1275,8 @@
         </div>
       </a>
 
-      <!-- AWS Cloud Practitioner — LIVE (Pro tier). v7.8.0 seventh cert (single-exam,
-           AWS — third vendor) on clfc02.certanvil.com. -->
+      <!-- AWS Cloud Practitioner · LIVE (Pro tier). v7.8.0 seventh cert (single-exam,
+           AWS · third vendor) on clfc02.certanvil.com. -->
       <a class="cert-tile is-live" href="https://clfc02.certanvil.com/" data-cert="clfc02" id="cert-tile-clfc02">
         <div class="cert-tile-top">
           <div class="cert-glyph cert-glyph-clfc02">AWS</div>
@@ -1291,7 +1291,7 @@
         </div>
       </a>
 
-      <!-- ROSTER — the four being forged. script.js hides #cert-tile-secplus-soon
+      <!-- ROSTER · the four being forged. script.js hides #cert-tile-secplus-soon
            in builder mode (mutually exclusive with the private tile above). -->
       <div class="cl-roster cl-r" data-d="2">
         <div class="cl-roster-h">On the anvil</div>
@@ -1409,7 +1409,7 @@
   #proof-of-product *{box-sizing:border-box}
   #proof-of-product a{color:inherit;text-decoration:none}
   #proof-of-product [hidden]{display:none!important}
-  /* COMPLETE scoped reset — this section reuses production .pp-* class
+  /* COMPLETE scoped reset · this section reuses production .pp-* class
      names (script.js + styles.css contract); zero the old-design box
      model so styles.css can't bleed. Component rules below re-apply
      spacing. .pp-eyebrow excluded from the pseudo-kill (it uses ::after
@@ -1834,7 +1834,7 @@
   </div>
 
   <script>
-    /* Scoped entrance trigger only — no script.js contract on this
+    /* Scoped entrance trigger only · no script.js contract on this
        section. script.js never touches .pgx-in. */
     (function(){
       var s=document.getElementById('why-ready');
@@ -1848,7 +1848,7 @@
 </section>
 
 <!-- ══════════════════════════════════════════
-     WHY CERTANVIL v2 — editorial header + the four reasons as ONE
+     WHY CERTANVIL v2 · editorial header + the four reasons as ONE
      framed 2x2 ledger (not a 4-equal-card grid). FULLY SCOPED under
      #why (the id is kept as the "#why" nav anchor + scoping root; no
      script.js / sample-questions.js / UAT contract on this section).
@@ -1895,8 +1895,8 @@
   #why *{box-sizing:border-box}
   #why .wyx-wrap{max-width:1140px;margin:0 auto}
 
-  /* — header (centered editorial; a deliberate variation from the
-       section-5 left 2-col, still the same eyebrow/Fraunces grammar) — */
+  /* · header (centered editorial; a deliberate variation from the
+       section-5 left 2-col, still the same eyebrow/Fraunces grammar) · */
   #why .wyx-head{max-width:none;text-align:center;margin-bottom:clamp(36px,5vw,60px)}
   #why .wyx-eyebrow{display:inline-flex;align-items:center;gap:9px;font-size:12.5px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:18px}
   #why .wyx-eyebrow::before,
@@ -1906,8 +1906,8 @@
   #why .wyx-title .wyx-em{font-style:italic;color:var(--accent)}
   #why .wyx-lede{font-size:clamp(15px,1.2vw,17.5px);line-height:1.62;color:var(--ink-soft);max-width:54ch;margin:0 auto}
 
-  /* — the four reasons: ONE framed 2x2 ledger, hairline-divided cells,
-       no per-card chrome (kills the equal-soft-card grid tell) — */
+  /* · the four reasons: ONE framed 2x2 ledger, hairline-divided cells,
+       no per-card chrome (kills the equal-soft-card grid tell) · */
   #why .wyx-grid{
     display:grid;grid-template-columns:1fr 1fr;
     background:linear-gradient(180deg,var(--surface),var(--surface-2));
@@ -1940,8 +1940,8 @@
   #why .wyx-desc{font-size:13.5px;line-height:1.62;color:var(--ink-soft)}
   #why .wyx-desc strong{color:var(--ink);font-weight:650}
 
-  /* — closing proof band: the 5 cert badges as the wordless fifth
-       reason ("one engine, every cert"), not decoration — */
+  /* · closing proof band: the 5 cert badges as the wordless fifth
+       reason ("one engine, every cert"), not decoration · */
   #why .wyx-certs{
     margin-top:clamp(30px,4vw,46px);padding-top:clamp(28px,3.4vw,40px);
     border-top:1px solid var(--border);
@@ -1959,7 +1959,7 @@
   #why .wyx-badge-tag{font-size:10.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--accent)}
   #why .wyx-badge.is-soon .wyx-badge-tag{color:var(--muted)}
 
-  /* entrance (emil) — scoped #why.wyx-in */
+  /* entrance (emil) · scoped #why.wyx-in */
   #why .wyx-r{opacity:0;transform:translateY(16px);transition:opacity 600ms var(--eo),transform 600ms var(--eo)}
   #why.wyx-in .wyx-r{opacity:1;transform:none}
   #why.wyx-in .wyx-r[data-d="1"]{transition-delay:40ms}
@@ -2057,7 +2057,7 @@
   </div>
 
   <script>
-    /* Scoped entrance trigger only — no script.js contract on this
+    /* Scoped entrance trigger only · no script.js contract on this
        section. script.js never touches .wyx-in. */
     (function(){
       var s=document.getElementById('why');
@@ -2071,7 +2071,7 @@
 </section>
 
 <!-- ══════════════════════════════════════════
-     FAQ v2 — editorial 2-col (left rail + ONE framed accordion),
+     FAQ v2 · editorial 2-col (left rail + ONE framed accordion),
      not a flat 9-row stack. FULLY SCOPED under #faq (the id is kept
      as the "#faq" anchor + scoping root; native <details>, zero JS,
      no script.js / sample-questions.js / UAT contract on this
@@ -2423,7 +2423,7 @@
   </div>
 
   <script>
-    /* Scoped entrance trigger only — no script.js contract on this
+    /* Scoped entrance trigger only · no script.js contract on this
        section (native <details>, zero JS). script.js never touches
        .fqx-in. */
     (function(){
@@ -2438,7 +2438,7 @@
 </section>
 
 <!-- ══════════════════════════════════════════
-     FOOTER v2 — editorial closing chord (brand sign-off + nav +
+     FOOTER v2 · editorial closing chord (brand sign-off + nav +
      fine print), not a cramped one-line strip. FULLY SCOPED under
      #site-footer (new scoping-root id; class="foot" kept so the bare
      .foot rule is beaten per-property; no script.js / UAT contract on
@@ -2575,7 +2575,7 @@
   </div>
 
   <script>
-    /* Scoped entrance trigger only — no script.js contract on the
+    /* Scoped entrance trigger only · no script.js contract on the
        footer. script.js never touches .fzx-in. */
     (function(){
       var s=document.getElementById('site-footer');
@@ -2589,12 +2589,12 @@
 </footer>
 
 <!-- ══════════════════════════════════════════
-     MY CERTS MODAL — opened from account dropdown.
+     MY CERTS MODAL · opened from account dropdown.
      Lists the user's enrolled certs with status + actions. Hard-coded
      for builder tonight; future renders pull from cert_entitlements.
 ══════════════════════════════════════════ -->
 <!-- ══════════════════════════════════════════
-     MY-CERTS MODAL v2 — editorial reskin (taste-skill + stop-slop +
+     MY-CERTS MODAL v2 · editorial reskin (taste-skill + stop-slop +
      emil), a compact echo of the account §02 entitlements. SCOPED,
      CONTRACT-SAFE: ZERO DOM change. The #my-certs-modal id already
      exists as the scoping root, so this is a pure scoped <style>
@@ -2602,7 +2602,7 @@
      #my-certs-list rows (.my-cert-row/.my-cert-glyph/.my-cert-status[
      -passed|-attempted|-active]/.my-cert-cta + per-cert glyphClass);
      openMyCertsModal()/close toggle the [hidden] attribute (preserved
-     verbatim — the global [hidden]{display:none!important} keeps it
+     verbatim · the global [hidden]{display:none!important} keeps it
      shut until auth.js opens it; reinforced below). Purple removed →
      locked bronze; [data-theme="dark"] matches the prod theme system.
      auth.js untouched.
@@ -2709,16 +2709,16 @@
   </div>
 </div>
 
-<!-- Cross-cert analytics modal removed in Phase D — dropdown link now
+<!-- Cross-cert analytics modal removed in Phase D · dropdown link now
      routes directly to /analytics (the dedicated page that ships Panel 1
      pass-readiness, Panel 2 skill overlap, and Panel 3 next-up ranker). -->
 
 <!-- ══════════════════════════════════════════
-     AUTH MODAL — Supabase magic-link sign-in
+     AUTH MODAL · Supabase magic-link sign-in
      Same form handles sign-up + sign-in (Supabase auto-creates on
      first magic-link request for an unknown email). Two states:
-       (A) auth-main — form + optional migration banner + Google OAuth (soon)
-       (B) auth-sent — "check your inbox" confirmation
+       (A) auth-main · form + optional migration banner + Google OAuth (soon)
+       (B) auth-sent · "check your inbox" confirmation
      auth.js owns lifecycle + state transitions.
 ══════════════════════════════════════════ -->
 <div class="auth-modal-overlay" id="auth-modal" role="dialog" aria-labelledby="auth-modal-title" aria-modal="true" hidden>
@@ -2727,7 +2727,7 @@
 
     <!-- ── State A: form (default) ── -->
     <div class="auth-state auth-state-main" id="auth-main">
-      <!-- v4.99.17: Playtest mode pill — shown only when ?auth=password URL
+      <!-- v4.99.17: Playtest mode pill · shown only when ?auth=password URL
            param is present OR localStorage flag set after first password
            sign-in. Hidden for normal magic-link flow. -->
       <span class="auth-mode-pill" id="auth-playtest-pill" hidden>
@@ -2745,7 +2745,7 @@
       <h3 class="auth-title" id="auth-modal-title">Sign in to CertAnvil</h3>
       <p class="auth-sub" id="auth-sub">Drop your email and we'll send a one-click sign-in link. New here? Same form; your account gets created automatically.</p>
 
-      <!-- Migration banner (anonymous progress detected) — auth.js shows/hides -->
+      <!-- Migration banner (anonymous progress detected) · auth.js shows/hides -->
       <div class="migration-banner" id="migration-banner" hidden>
         <span class="migration-banner-icon" aria-hidden="true"></span>
         <div class="migration-banner-body" id="migration-stats"></div>
@@ -2756,7 +2756,7 @@
           <label class="auth-label" for="auth-email">Email</label>
           <input type="email" class="auth-input" id="auth-email" placeholder="you@email.com" autocomplete="email" required>
         </div>
-        <!-- v4.99.17: Password input — shown only in playtest mode -->
+        <!-- v4.99.17: Password input · shown only in playtest mode -->
         <div class="auth-input-group" id="auth-password-group" hidden>
           <label class="auth-label" for="auth-password">Password</label>
           <input type="password" class="auth-input" id="auth-password" autocomplete="current-password" placeholder="••••••••">
@@ -2768,7 +2768,7 @@
       <!-- v4.99.22: prominent password-fallback button. Moved out of the
            auth-magic-only wrapper and bumped to be right under the main
            CTA so testers' eyes can't miss it after they type their email.
-           Replaces the small gray link from v4.99.21 (too subtle — testers
+           Replaces the small gray link from v4.99.21 (too subtle · testers
            defaulted to clicking the big blue magic-link button without
            noticing the alternative). Hidden in password mode via setAuthMode. -->
       <button type="button" class="auth-cta-secondary" id="auth-show-password">
@@ -2781,7 +2781,7 @@
       <div id="auth-magic-only">
         <div class="auth-divider"><span class="auth-divider-text">or</span></div>
 
-        <button type="button" class="auth-oauth-btn" disabled aria-disabled="true" title="Coming soon — Google OAuth">
+        <button type="button" class="auth-oauth-btn" disabled aria-disabled="true" title="Coming soon · Google OAuth">
           <svg class="auth-oauth-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
             <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
             <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
@@ -2829,13 +2829,13 @@
 </div>
 
 <!-- ══════════════════════════════════════════
-     SCRIPTS — order matters
+     SCRIPTS · order matters
      Supabase UMD bundle defines window.supabase first, then lib/supabase.js
      consumes it to set window.certanvilSupabase, then auth.js wires up the
      UI, then existing script.js handles theme + builder mode + notify modal.
 ══════════════════════════════════════════ -->
 <!-- v4.89.1: vendored locally instead of cdn.jsdelivr.net (CDN 503'd
-     intermittently — broke auth flow on landing). Local copy is identical
+     intermittently · broke auth flow on landing). Local copy is identical
      to v2.105.3 UMD bundle. -->
 <script src="lib/supabase-umd.min.js"></script>
 <script src="lib/supabase.js"></script>
