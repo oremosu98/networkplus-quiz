@@ -568,10 +568,8 @@
         +   '</div>'
         +   '<div class="confetti-meta">Attempted ' + escapeHtml(result.date) + ' · ' + deltaText + '</div>'
         + '</div>'
-        + '<div class="att-encourage">🛡 You\'re eligible for the <strong>Pass Guarantee</strong>. Submit your booking confirmation + score report on the page below — we\'ll review your case within 7 days and extend your access until you pass.</div>'
         + '<div class="confetti-actions">'
-        +   '<a class="confetti-btn confetti-btn-primary" href="/pricing.html#pass-guarantee?attempt=' + encodeURIComponent(certId) + '&score=' + result.score + '">Apply for Pass Guarantee →</a>'
-        +   '<button class="confetti-btn confetti-btn-secondary" data-erm-close>Keep practicing</button>'
+        +   '<button class="confetti-btn confetti-btn-primary" data-erm-close>Keep practicing</button>'
         + '</div>';
     var modalHtml = ''
       + '<div class="erm-backdrop" id="exam-result-modal-backdrop">'
