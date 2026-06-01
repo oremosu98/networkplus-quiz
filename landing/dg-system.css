@@ -609,6 +609,8 @@ html[data-theme] body .cca-pr-glyph-aws{color:var(--dg-text);}
 html[data-theme] body .cca-pr-glyph-az104{color:var(--dg-text);}
 html[data-theme] body .cca-pr-glyph .cg-ac,html[data-theme] body .cca-so-pair-glyph .cg-ac{color:var(--dg-accent);}
 html[data-theme] body .cca-pr-glyph .cg-sup,html[data-theme] body .cca-so-pair-glyph .cg-sup{font-size:.55em;vertical-align:super;color:var(--dg-accent);font-weight:700;}
+.cg{display:inline-flex;align-items:baseline;white-space:nowrap}
+.cg .cg-sup{align-self:flex-start}
 
 /* status pills — editorial quiet tags */
 html[data-theme] body .cca-pr-status-pill{background:none;border:1px solid var(--dg-rule-soft);border-radius:4px;padding:2px 7px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;}
