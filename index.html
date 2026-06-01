@@ -164,7 +164,7 @@
      stays in sync with showPage(). Mobile: hidden off-screen, opens
      as overlay drawer via .sb-mobile-toggle.
 ══════════════════════════════════════════ -->
-<button type="button" class="sb-mobile-toggle" id="sb-mobile-toggle" aria-label="Open navigation menu" aria-expanded="false" aria-controls="app-sidebar" onclick="toggleSidebarMobile()">&#9776;</button>
+<button type="button" class="sb-mobile-toggle" id="sb-mobile-toggle" aria-label="Open navigation menu" aria-expanded="false" aria-controls="app-sidebar" data-action="toggleSidebarMobile">&#9776;</button>
 <aside id="app-sidebar" class="app-sidebar" role="navigation" aria-label="Main navigation">
   <!-- Contents filled by renderAppSidebar() -->
 </aside>
@@ -179,7 +179,7 @@
      aclShowSolution(). -->
 <div id="acl-hint-modal" class="daily-recap-modal" hidden role="dialog" aria-label="ACL hint ladder">
   <div class="daily-recap-card acl-hint-card">
-    <button type="button" class="daily-recap-close" onclick="dismissHintModal()" aria-label="Close">&times;</button>
+    <button type="button" class="daily-recap-close" data-action="dismissHintModal" aria-label="Close">&times;</button>
     <div class="ed-modalhead">
       <div class="ed-modalhead-eyebrow">ACL hint ladder</div>
       <h2 class="ed-modalhead-title">Nudge, <em>not solve.</em></h2>
@@ -195,7 +195,7 @@
      vs yesterday + days-to-exam countdown. Dismissable. -->
 <div id="daily-recap-modal" class="daily-recap-modal" hidden role="dialog" aria-label="Daily recap">
   <div class="daily-recap-card">
-    <button type="button" class="daily-recap-close" onclick="dismissDailyRecap()" aria-label="Close">&times;</button>
+    <button type="button" class="daily-recap-close" data-action="dismissDailyRecap" aria-label="Close">&times;</button>
     <div class="ed-modalhead">
       <div class="ed-modalhead-eyebrow" id="dr-eyebrow">Day \u00b7 complete</div>
       <h2 class="ed-modalhead-title">Nice <em>work.</em></h2>
@@ -204,22 +204,22 @@
       <!-- Populated by _maybeShowDailyRecap() -->
     </div>
     <div class="daily-recap-foot">
-      <button type="button" class="btn btn-ghost" onclick="dismissDailyRecap()">Close</button>
-      <button type="button" class="btn btn-primary" onclick="dismissDailyRecap(); goSetup();">Back to home</button>
+      <button type="button" class="btn btn-ghost" data-action="dismissDailyRecap">Close</button>
+      <button type="button" class="btn btn-primary" data-action="dismissDailyRecapGoSetup">Back to home</button>
     </div>
   </div>
 </div>
 
 <div id="app-topbar" class="app-topbar" role="banner">
   <div class="topbar-left">
-    <button type="button" class="topbar-toggle" id="topbar-toggle" onclick="toggleSidebarCollapsed()" aria-label="Toggle navigation sidebar" title="Toggle sidebar">&#9776;</button>
+    <button type="button" class="topbar-toggle" id="topbar-toggle" data-action="toggleSidebarCollapsed" aria-label="Toggle navigation sidebar" title="Toggle sidebar">&#9776;</button>
     <span class="topbar-crumb" id="topbar-crumb">Home</span>
   </div>
   <div class="topbar-right">
     <!-- v4.54.17: persistent exam countdown chip. Hidden until user sets a
          date. Click routes to Settings. Urgency tiers (urgent/soon/ok)
          mirror the existing .ana-ready-datechip tiers. -->
-    <button type="button" class="topbar-countdown is-hidden" id="topbar-countdown" onclick="showPage('settings'); if (typeof renderSettingsPage === 'function') renderSettingsPage();" aria-label="Exam countdown \u2014 click to edit date" title="Exam countdown">
+    <button type="button" class="topbar-countdown is-hidden" id="topbar-countdown" data-action="goSettingsPage" aria-label="Exam countdown \u2014 click to edit date" title="Exam countdown">
       <span class="topbar-countdown-dot" aria-hidden="true"></span>
       <span class="topbar-countdown-val" id="topbar-countdown-val">\u2014</span>
     </button>
@@ -236,9 +236,9 @@
          DOMContentLoaded. Mirrors the landing footer .foot-version pill so
          the build is visible on every surface. -->
     <span class="topbar-version-pill" id="topbar-version-pill" aria-label="App version">&mdash;</span>
-    <button type="button" class="topbar-iconbtn" onclick="scrollToSettings()" aria-label="Settings" title="Settings"><svg viewBox="0 0 24 24" fill="none" width="15" height="15"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.6"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1.08-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1.08 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1.08 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1.08z" stroke="currentColor" stroke-width="1.3"/></svg></button>
-    <button type="button" class="topbar-iconbtn" id="topbar-bug-report" onclick="(async()=>{var m=await _loadFeature('reports');m.openDrawer();})()" aria-label="Report an issue" title="Report an issue"><svg viewBox="0 0 24 24" fill="none" width="15" height="15"><path d="M8 2v3M16 2v3M9 6h6c3.31 0 6 2.69 6 6v0c0 3.31-2.69 6-6 6h-6c-3.31 0-6-2.69-6-6v0c0-3.31 2.69-6 6-6z" stroke="currentColor" stroke-width="1.5"/><path d="M9 12h6M9 15h6M9 9h6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></button>
-    <button type="button" class="topbar-iconbtn" id="topbar-theme" onclick="toggleTheme()" aria-label="Toggle light/dark theme" title="Theme"><svg viewBox="0 0 24 24" fill="none" width="15" height="15"><circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.6"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>
+    <button type="button" class="topbar-iconbtn" data-action="scrollToSettings" aria-label="Settings" title="Settings"><svg viewBox="0 0 24 24" fill="none" width="15" height="15"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.6"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1.08-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1.08 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1.08 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1.08z" stroke="currentColor" stroke-width="1.3"/></svg></button>
+    <button type="button" class="topbar-iconbtn" id="topbar-bug-report" data-action="openBugReport" aria-label="Report an issue" title="Report an issue"><svg viewBox="0 0 24 24" fill="none" width="15" height="15"><path d="M8 2v3M16 2v3M9 6h6c3.31 0 6 2.69 6 6v0c0 3.31-2.69 6-6 6h-6c-3.31 0-6-2.69-6-6v0c0-3.31 2.69-6 6-6z" stroke="currentColor" stroke-width="1.5"/><path d="M9 12h6M9 15h6M9 9h6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></button>
+    <button type="button" class="topbar-iconbtn" id="topbar-theme" data-action="toggleTheme" aria-label="Toggle light/dark theme" title="Theme"><svg viewBox="0 0 24 24" fill="none" width="15" height="15"><circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.6"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>
     <!-- Phase C′ (cloud-first): account pill rendered by auth-state.js. -->
     <span id="topbar-account-mount"></span>
   </div>
@@ -320,21 +320,21 @@
         <div class="card-eyebrow"><span class="tag tag-new">New</span> Recommended</div>
         <div class="card-title diagnostic-cta-title">Where do you stand on N10-009?</div>
         <div class="card-desc">Take a 20-question Baseline Diagnostic. Get your pass probability, weak-domain priorities, and your first review cards, all in one go.</div>
-        <a class="diag-skip" href="#" onclick="dismissDiagnosticCta(event)">Skip for now, I'd rather just practise</a>
+        <a class="diag-skip" href="#" data-action="dismissDiagnosticCtaClick">Skip for now, I'd rather just practise</a>
         <div class="diag-stats">
           <div class="diag-stat"><div class="diag-stat-num">20</div><div class="diag-stat-label">Questions</div></div>
           <div class="diag-stat"><div class="diag-stat-num">~30</div><div class="diag-stat-label">Minutes</div></div>
           <div class="diag-stat"><div class="diag-stat-num">5</div><div class="diag-stat-label">Domains</div></div>
         </div>
-        <button type="button" class="btn-primary" onclick="startDiagnostic()">Take the diagnostic</button>
+        <button type="button" class="btn-primary" data-action="startDiagnostic">Take the diagnostic</button>
       </div>
       <div class="card diag-card reveal is-hidden" style="--d:3" id="pass-plan-tile">
         <div class="card-eyebrow">Baseline diagnostic</div>
         <div class="card-title">Your Pass Plan is active</div>
         <div class="card-desc" id="pass-plan-tile-sub">Diagnostic complete</div>
         <div class="plan-header" style="margin-top:14px;align-items:center;justify-content:flex-start;gap:18px">
-          <button type="button" class="btn-primary" style="margin-top:0" onclick="event.preventDefault();viewPassPlan()">View report</button>
-          <a href="#" class="pass-plan-tile-retake" id="pass-plan-tile-retake" onclick="event.preventDefault();retakeDiagnostic()" style="color:var(--text-dim);text-decoration:none;font-size:12px">Retake in 7d</a>
+          <button type="button" class="btn-primary" style="margin-top:0" data-action="viewPassPlanPrevent">View report</button>
+          <a href="#" class="pass-plan-tile-retake" id="pass-plan-tile-retake" data-action="retakeDiagnosticPrevent" style="color:var(--text-dim);text-decoration:none;font-size:12px">Retake in 7d</a>
         </div>
       </div>
 
@@ -383,7 +383,7 @@
             <div class="card-desc">Re-encounter what you have forgotten. Each card comes back on a growing interval.</div>
             <div class="sr-meta" id="sr-review-card-stats"></div>
           </div>
-          <button type="button" class="btn-ghost" id="sr-review-start-btn" onclick="startSrReview()">Start review</button>
+          <button type="button" class="btn-ghost" id="sr-review-start-btn" data-action="startSrReview">Start review</button>
         </div>
       </div>
 
@@ -447,20 +447,20 @@
       <div class="dgh-grp">
         <div class="dgh-grp-h"><span class="t">Quick &middot; 3-5 min</span><span class="d">Daily habit &middot; keeps your streak</span></div>
         <div class="dgh-opts">
-          <button type="button" class="dgh-opt" onclick="applyPreset('warmup')"><span class="on">5-min Warmup</span><span class="od">5 Qs &middot; Foundational</span></button>
-          <button type="button" class="dgh-opt" id="modes-dc-tile" onclick="startDailyChallenge()"><span class="on">Daily Challenge</span><span class="od" id="modes-dc-sub">1 Q &middot; ~1 min &middot; streak +1</span></button>
-          <button type="button" class="dgh-opt is-hidden" id="modes-wrong-tile" onclick="startWrongDrill()"><span class="on">Drill Mistakes</span><span class="od" id="modes-wrong-sub">0 wrong answers saved</span></button>
+          <button type="button" class="dgh-opt" data-action="applyPreset" data-args='["warmup"]'><span class="on">5-min Warmup</span><span class="od">5 Qs &middot; Foundational</span></button>
+          <button type="button" class="dgh-opt" id="modes-dc-tile" data-action="startDailyChallenge"><span class="on">Daily Challenge</span><span class="od" id="modes-dc-sub">1 Q &middot; ~1 min &middot; streak +1</span></button>
+          <button type="button" class="dgh-opt is-hidden" id="modes-wrong-tile" data-action="startWrongDrill"><span class="on">Drill Mistakes</span><span class="od" id="modes-wrong-sub">0 wrong answers saved</span></button>
         </div>
       </div>
 
       <div class="dgh-grp">
         <div class="dgh-grp-h"><span class="t">Practice &middot; 10-30 min</span><span class="d">Focused study &middot; fix your weak spots</span></div>
         <div class="dgh-opts">
-          <button type="button" class="dgh-opt" onclick="applyPreset('focused')"><span class="on">15-min Weak Spots</span><span class="od">10 Qs &middot; Exam level &middot; your weakest topic</span></button>
-          <button type="button" class="dgh-opt" onclick="applyPreset('grind')"><span class="on">20-min Deep Scan</span><span class="od">20 Qs &middot; Exam level &middot; mixed</span></button>
-          <button type="button" class="dgh-opt" onclick="applyPreset('bulk30')"><span class="on">30 Questions</span><span class="od">Marathon mixed &middot; ~25 min</span></button>
-          <button type="button" class="dgh-opt" onclick="applyPreset('bulk45')"><span class="on">45 Questions</span><span class="od">Marathon mixed &middot; ~38 min</span></button>
-          <button type="button" class="dgh-opt" onclick="_jumpToCustomQuiz()"><span class="on">Custom Quiz</span><span class="od">Tune topic, difficulty, length</span></button>
+          <button type="button" class="dgh-opt" data-action="applyPreset" data-args='["focused"]'><span class="on">15-min Weak Spots</span><span class="od">10 Qs &middot; Exam level &middot; your weakest topic</span></button>
+          <button type="button" class="dgh-opt" data-action="applyPreset" data-args='["grind"]'><span class="on">20-min Deep Scan</span><span class="od">20 Qs &middot; Exam level &middot; mixed</span></button>
+          <button type="button" class="dgh-opt" data-action="applyPreset" data-args='["bulk30"]'><span class="on">30 Questions</span><span class="od">Marathon mixed &middot; ~25 min</span></button>
+          <button type="button" class="dgh-opt" data-action="applyPreset" data-args='["bulk45"]'><span class="on">45 Questions</span><span class="od">Marathon mixed &middot; ~38 min</span></button>
+          <button type="button" class="dgh-opt" data-action="_jumpToCustomQuiz"><span class="on">Custom Quiz</span><span class="od">Tune topic, difficulty, length</span></button>
           <button type="button" class="dgh-opt" style="opacity:0;pointer-events:none" tabindex="-1" aria-hidden="true"></button>
         </div>
       </div>
@@ -468,8 +468,8 @@
       <div class="dgh-grp">
         <div class="dgh-grp-h"><span class="t">Exam simulation &middot; 60-90 min</span><span class="d">Pressure-test your readiness &middot; scored 100-900</span></div>
         <div class="dgh-opts">
-          <button type="button" class="dgh-opt exam" onclick="applyPreset('bulk60')"><span class="on">60-Question SIM</span><span class="od">Closest to the real thing without the timer</span></button>
-          <button type="button" class="dgh-opt exam" onclick="startExam()"><span class="on">Full Exam Simulator</span><span class="od">90 questions &middot; 90-min timer &middot; scored 100-900</span></button>
+          <button type="button" class="dgh-opt exam" data-action="applyPreset" data-args='["bulk60"]'><span class="on">60-Question SIM</span><span class="od">Closest to the real thing without the timer</span></button>
+          <button type="button" class="dgh-opt exam" data-action="startExam"><span class="on">Full Exam Simulator</span><span class="od">90 questions &middot; 90-min timer &middot; scored 100-900</span></button>
           <button type="button" class="dgh-opt" style="opacity:0;pointer-events:none" tabindex="-1" aria-hidden="true"></button>
         </div>
       </div>
@@ -478,23 +478,23 @@
     <div class="dgh-dbd-wrap">
       <div class="dgh-grp-h dbd-h"><span class="t">Drill by domain</span><span class="d">Exam weighting &middot; 10 Qs each</span></div>
       <div class="dgh-dbd">
-        <button type="button" class="dgh-db" data-domain-idx="1" onclick="applyDomainPreset('concepts')" title="10 Qs &middot; Exam Level &middot; all 13 Networking Concepts topics"><span class="dbk">1.0 &middot; 23%</span><span class="dbn">Networking Concepts</span><span class="dbm">10 Qs</span></button>
-        <button type="button" class="dgh-db" data-domain-idx="2" onclick="applyDomainPreset('implementation')" title="10 Qs &middot; Exam Level &middot; all 13 Network Implementation topics"><span class="dbk">2.0 &middot; 20%</span><span class="dbn">Network Implementation</span><span class="dbm">10 Qs</span></button>
-        <button type="button" class="dgh-db" data-domain-idx="3" onclick="applyDomainPreset('operations')" title="10 Qs &middot; Exam Level &middot; all 7 Network Operations topics"><span class="dbk">3.0 &middot; 19%</span><span class="dbn">Network Operations</span><span class="dbm">10 Qs</span></button>
-        <button type="button" class="dgh-db" data-domain-idx="4" onclick="applyDomainPreset('security')" title="10 Qs &middot; Exam Level &middot; all 11 Network Security topics"><span class="dbk">4.0 &middot; 14%</span><span class="dbn">Network Security</span><span class="dbm">10 Qs</span></button>
-        <button type="button" class="dgh-db" data-domain-idx="5" onclick="applyDomainPreset('troubleshooting')" title="10 Qs &middot; Exam Level &middot; all 6 Network Troubleshooting topics"><span class="dbk">5.0 &middot; 24%</span><span class="dbn">Network Troubleshooting</span><span class="dbm">10 Qs</span></button>
+        <button type="button" class="dgh-db" data-domain-idx="1" data-action="applyDomainPreset" data-args='["concepts"]' title="10 Qs &middot; Exam Level &middot; all 13 Networking Concepts topics"><span class="dbk">1.0 &middot; 23%</span><span class="dbn">Networking Concepts</span><span class="dbm">10 Qs</span></button>
+        <button type="button" class="dgh-db" data-domain-idx="2" data-action="applyDomainPreset" data-args='["implementation"]' title="10 Qs &middot; Exam Level &middot; all 13 Network Implementation topics"><span class="dbk">2.0 &middot; 20%</span><span class="dbn">Network Implementation</span><span class="dbm">10 Qs</span></button>
+        <button type="button" class="dgh-db" data-domain-idx="3" data-action="applyDomainPreset" data-args='["operations"]' title="10 Qs &middot; Exam Level &middot; all 7 Network Operations topics"><span class="dbk">3.0 &middot; 19%</span><span class="dbn">Network Operations</span><span class="dbm">10 Qs</span></button>
+        <button type="button" class="dgh-db" data-domain-idx="4" data-action="applyDomainPreset" data-args='["security"]' title="10 Qs &middot; Exam Level &middot; all 11 Network Security topics"><span class="dbk">4.0 &middot; 14%</span><span class="dbn">Network Security</span><span class="dbm">10 Qs</span></button>
+        <button type="button" class="dgh-db" data-domain-idx="5" data-action="applyDomainPreset" data-args='["troubleshooting"]' title="10 Qs &middot; Exam Level &middot; all 6 Network Troubleshooting topics"><span class="dbk">5.0 &middot; 24%</span><span class="dbn">Network Troubleshooting</span><span class="dbm">10 Qs</span></button>
       </div>
     </div>
 
     <div class="dgh-foot">
       <label class="dgh-strict" for="modes-strict-checkbox" title="Locked Question Order, No Flagging, No Navigator">
-        <input type="checkbox" id="modes-strict-checkbox" onchange="setHardcoreMode(this.checked); document.getElementById('hardcore-checkbox').checked = this.checked;">
+        <input type="checkbox" id="modes-strict-checkbox" data-action="setHardcoreModeChecked">
         <span class="box" aria-hidden="true"></span>
         <span><b>Strict Mode</b> &middot; locked order &middot; no flagging &middot; no navigator</span>
       </label>
       <div class="custom-row">
         <span class="custom-label">Custom Quiz &middot; Topic, Difficulty &amp; Count</span>
-        <button type="button" class="custom-config" onclick="_jumpToCustomQuiz()">Configure &rarr;</button>
+        <button type="button" class="custom-config" data-action="_jumpToCustomQuiz">Configure &rarr;</button>
       </div>
     </div>
   </div>
@@ -511,7 +511,7 @@
     <div id="setup-domain-grid" class="domain-grid dgh-dom-grid" role="list" aria-label="Domain mastery overview">
       <!-- Filled by renderSetupDomainGrid() -->
     </div>
-    <div class="custom-row" style="margin-top:14px"><span class="custom-label"><b>Custom Quiz</b> &middot; topic, difficulty &amp; count</span><button type="button" class="custom-config" onclick="_jumpToCustomQuiz()">Configure &rarr;</button></div>
+    <div class="custom-row" style="margin-top:14px"><span class="custom-label"><b>Custom Quiz</b> &middot; topic, difficulty &amp; count</span><button type="button" class="custom-config" data-action="_jumpToCustomQuiz">Configure &rarr;</button></div>
   </div>
 
   <!-- Today section — legacy/conditional stubs kept grouped + CSS-clipped.
@@ -532,21 +532,21 @@
         <div class="dg-progress"><strong id="dg-progress-count">0</strong> / <span id="dg-goal-num">20</span> questions today</div>
         <div class="dg-msg" id="dg-msg">Let's get started today</div>
       </div>
-      <button class="dg-edit-btn" onclick="editDailyGoal()" aria-label="Edit daily question goal" title="Edit goal">&#9881;&#65039;</button>
+      <button class="dg-edit-btn" data-action="editDailyGoal" aria-label="Edit daily question goal" title="Edit goal">&#9881;&#65039;</button>
     </div>
     <div id="streak-defender" class="streak-defender is-hidden" role="status" aria-live="polite"></div>
   </div>
 
   <!-- v4.76.0: legacy hidden wrong-preset-tile + sub kept so existing
        renderWrongBankBtn() code still works without modification. -->
-  <button type="button" id="wrong-preset-tile" class="is-hidden" onclick="startWrongDrill()" hidden></button>
+  <button type="button" id="wrong-preset-tile" class="is-hidden" data-action="startWrongDrill" hidden></button>
   <span id="wrong-preset-sub" hidden></span>
   <div id="marathon-section" class="ed-section is-hidden" hidden></div>
 
   <!-- Hidden legacy hero + readiness stubs (CSS-clipped). finish()/
        submitExam()/renderTodaySection still write them; do not remove. -->
   <div class="hero is-hidden">
-    <button class="theme-toggle" id="theme-toggle" onclick="toggleTheme()" aria-label="Toggle light/dark theme">&#9728;&#65039;</button>
+    <button class="theme-toggle" id="theme-toggle" data-action="toggleTheme" aria-label="Toggle light/dark theme">&#9728;&#65039;</button>
     <span class="hero-icon">&#9889;</span>
     <h1>Network+ AI Quiz</h1>
     <p>AI-generated MCQs every session. Never the same quiz twice.</p>
@@ -600,11 +600,11 @@
         <div class="topic-domain-prefill" role="group" aria-label="Pre-fill by domain">
           <span class="tdp-label">Pick a domain:</span>
           <div class="tdp-pills">
-            <button type="button" class="tdp-pill" data-domain-idx="1" onclick="prefillDomainTopics('concepts')" title="Select all 13 Networking Concepts topics">1.0 Concepts</button>
-            <button type="button" class="tdp-pill" data-domain-idx="2" onclick="prefillDomainTopics('implementation')" title="Select all 13 Network Implementation topics">2.0 Implementation</button>
-            <button type="button" class="tdp-pill" data-domain-idx="3" onclick="prefillDomainTopics('operations')" title="Select all 7 Network Operations topics">3.0 Operations</button>
-            <button type="button" class="tdp-pill" data-domain-idx="4" onclick="prefillDomainTopics('security')" title="Select all 11 Network Security topics">4.0 Security</button>
-            <button type="button" class="tdp-pill" data-domain-idx="5" onclick="prefillDomainTopics('troubleshooting')" title="Select all 6 Network Troubleshooting topics">5.0 Troubleshooting</button>
+            <button type="button" class="tdp-pill" data-domain-idx="1" data-action="prefillDomainTopics" data-args='["concepts"]' title="Select all 13 Networking Concepts topics">1.0 Concepts</button>
+            <button type="button" class="tdp-pill" data-domain-idx="2" data-action="prefillDomainTopics" data-args='["implementation"]' title="Select all 13 Network Implementation topics">2.0 Implementation</button>
+            <button type="button" class="tdp-pill" data-domain-idx="3" data-action="prefillDomainTopics" data-args='["operations"]' title="Select all 7 Network Operations topics">3.0 Operations</button>
+            <button type="button" class="tdp-pill" data-domain-idx="4" data-action="prefillDomainTopics" data-args='["security"]' title="Select all 11 Network Security topics">4.0 Security</button>
+            <button type="button" class="tdp-pill" data-domain-idx="5" data-action="prefillDomainTopics" data-args='["troubleshooting"]' title="Select all 6 Network Troubleshooting topics">5.0 Troubleshooting</button>
           </div>
         </div>
         <!-- Quick picks — premium mode cards (always visible) -->
@@ -752,7 +752,7 @@
         <div class="cq-summary-prose" id="cq-summary-prose">
           <strong>10</strong> exam-level questions &middot; <em>Mixed across all topics</em> &middot; est. ~10 min
         </div>
-        <button class="btn btn-primary cq-summary-cta" onclick="startQuiz()">
+        <button class="btn btn-primary cq-summary-cta" data-action="startQuiz">
           <span class="cq-generate-ico" aria-hidden="true">&#9889;</span>
           <span>Generate Quiz &rarr;</span>
         </button>
@@ -775,7 +775,7 @@
        entry. Strict Mode toggle preserved as a hidden compat shim so any
        JS code that toggles #hardcore-checkbox still works. The visible
        Strict Mode toggle now lives inside the Mode Ladder Exam tier. -->
-  <input type="checkbox" id="hardcore-checkbox" onchange="setHardcoreMode(this.checked)" hidden style="display:none">
+  <input type="checkbox" id="hardcore-checkbox" data-action="setHardcoreModeFromCheckbox" hidden style="display:none">
 
   <!-- v4.54.1: #history-panel moved to Analytics page; #advanced-section Settings moved to #page-settings -->
 
@@ -796,7 +796,7 @@
       <div class="diag-quiz-progress-lbl" id="diag-quiz-progress-lbl">Question 1 of 20 · 5% complete</div>
     </div>
     <div class="diag-quiz-timer" id="diag-quiz-timer">30:00</div>
-    <button class="diag-quiz-quit" onclick="quitDiagnostic()" aria-label="Quit diagnostic">Quit</button>
+    <button class="diag-quiz-quit" data-action="quitDiagnostic" aria-label="Quit diagnostic">Quit</button>
   </div>
   <section class="diag-quiz-card">
     <div class="diag-quiz-meta" id="diag-quiz-meta"></div>
@@ -805,15 +805,15 @@
     <div class="diag-quiz-confidence">
       <div class="diag-quiz-confidence-lbl">How confident are you?</div>
       <div class="diag-quiz-confidence-tiers" id="diag-quiz-confidence-tiers">
-        <button type="button" class="diag-conf-tier" data-tier="confident" onclick="setDiagnosticConfidence('confident')">
+        <button type="button" class="diag-conf-tier" data-tier="confident" data-action="setDiagnosticConfidence" data-args='["confident"]'>
           <span class="diag-conf-icon">✅</span>
           <span class="diag-conf-lbl">Confident</span>
         </button>
-        <button type="button" class="diag-conf-tier" data-tier="uncertain" onclick="setDiagnosticConfidence('uncertain')">
+        <button type="button" class="diag-conf-tier" data-tier="uncertain" data-action="setDiagnosticConfidence" data-args='["uncertain"]'>
           <span class="diag-conf-icon">🤔</span>
           <span class="diag-conf-lbl">Uncertain</span>
         </button>
-        <button type="button" class="diag-conf-tier" data-tier="guessing" onclick="setDiagnosticConfidence('guessing')">
+        <button type="button" class="diag-conf-tier" data-tier="guessing" data-action="setDiagnosticConfidence" data-args='["guessing"]'>
           <span class="diag-conf-icon">🎲</span>
           <span class="diag-conf-lbl">Guessing</span>
         </button>
@@ -821,7 +821,7 @@
     </div>
     <div class="diag-quiz-actions">
       <span class="diag-quiz-hint" id="diag-quiz-hint">Pick an answer + a confidence level</span>
-      <button class="btn btn-primary" id="diag-quiz-next-btn" onclick="submitDiagnosticAnswer()" disabled>Next →</button>
+      <button class="btn btn-primary" id="diag-quiz-next-btn" data-action="submitDiagnosticAnswer" disabled>Next →</button>
     </div>
   </section>
 </div>
@@ -880,12 +880,12 @@
         <div class="pass-plan-pbq-title" id="pass-plan-pbq-title">Try the ACL Ordering PBQ</div>
         <div class="pass-plan-pbq-sub" id="pass-plan-pbq-sub">PBQs carry 3-4× weight on the real exam. Start practising now.</div>
       </div>
-      <a href="#" class="pass-plan-pbq-cta" id="pass-plan-pbq-cta" onclick="event.preventDefault();aclOpenFromPassPlan()">Open ACL PBQ →</a>
+      <a href="#" class="pass-plan-pbq-cta" id="pass-plan-pbq-cta" data-action="aclOpenFromPassPlanPrevent">Open ACL PBQ →</a>
     </div>
   </section>
 
   <div class="pass-plan-final-cta">
-    <button class="btn btn-primary btn-full" onclick="closePassPlanReview()">Start today's session →</button>
+    <button class="btn btn-primary btn-full" data-action="closePassPlanReview">Start today's session →</button>
   </div>
 </div>
 
@@ -923,11 +923,11 @@
 ══════════════════════════════════════════ -->
 <div id="page-quiz" class="page">
   <div class="quiz-topbar">
-    <button class="back-btn" onclick="confirmBack()" aria-label="Back to menu">&#8592; Menu</button>
+    <button class="back-btn" data-action="confirmBack" aria-label="Back to menu">&#8592; Menu</button>
     <div class="quiz-stats">
       <div class="stat-pill score" id="live-score" role="status" aria-live="polite" aria-label="Score">0 / 0</div>
       <div class="stat-pill streak" id="live-streak" role="status" aria-live="polite" aria-label="Current streak">Streak 0</div>
-      <button class="flag-btn" id="quiz-flag-btn" onclick="toggleFlag()" title="Flag question (F)" aria-label="Flag question" aria-pressed="false">Flag</button>
+      <button class="flag-btn" id="quiz-flag-btn" data-action="toggleFlag" title="Flag question (F)" aria-label="Flag question" aria-pressed="false">Flag</button>
       <span class="cache-notice" id="cache-notice">Cached</span>
     </div>
   </div>
@@ -937,10 +937,10 @@
       <!-- v4.82.0: Prev/Next nav arrows for revisiting previously answered
            questions. Disabled appropriately based on current/total. Keyboard:
            ArrowLeft / ArrowRight bound in the global keydown handler. -->
-      <button class="quiz-nav-arrow" id="quiz-prev-btn" onclick="prevQuestion()"
+      <button class="quiz-nav-arrow" id="quiz-prev-btn" data-action="prevQuestion"
               title="Previous question (←)" aria-label="Previous question" disabled>&#8249;</button>
       <span id="q-label">Question 1 of 10</span>
-      <button class="quiz-nav-arrow" id="quiz-next-arrow-btn" onclick="nextQuestion()"
+      <button class="quiz-nav-arrow" id="quiz-next-arrow-btn" data-action="nextQuestion"
               title="Next question (→)" aria-label="Next question" disabled>&#8250;</button>
       <span id="q-pct">0%</span>
     </div>
@@ -1033,12 +1033,12 @@
     </section>
 
     <div class="results-v2-cta-row">
-      <button class="btn btn-ghost results-v2-cta-back" onclick="goSetup()" aria-label="Back to menu">&larr; Back to menu</button>
+      <button class="btn btn-ghost results-v2-cta-back" data-action="goSetup" aria-label="Back to menu">&larr; Back to menu</button>
       <div class="results-v2-cta-right">
         <!-- v4.54.8: Drill my mistakes \u2014 one-click wrong-bank drill. Hidden when 0 wrong. -->
-        <button class="btn btn-ghost" id="btn-drill-mistakes" onclick="drillMistakesFromResults()" style="display:none">Drill my mistakes</button>
-        <button class="btn btn-ghost" id="btn-review" onclick="showReview(false)">Review answers</button>
-        <button class="btn btn-primary" onclick="retryQuiz()">New session &rarr;</button>
+        <button class="btn btn-ghost" id="btn-drill-mistakes" data-action="drillMistakesFromResults" style="display:none">Drill my mistakes</button>
+        <button class="btn btn-ghost" id="btn-review" data-action="showReview" data-args='[false]'>Review answers</button>
+        <button class="btn btn-primary" data-action="retryQuiz">New session &rarr;</button>
       </div>
     </div>
 
@@ -1071,7 +1071,7 @@
 ═══════════════════════════════════════════ -->
 <div id="page-sr-review" class="page">
   <div class="ed-pagehead">
-    <button class="btn btn-ghost ed-pagehead-back" onclick="goSetup()" aria-label="Back to home">&#8592; Back</button>
+    <button class="btn btn-ghost ed-pagehead-back" data-action="goSetup" aria-label="Back to home">&#8592; Back</button>
     <div class="ed-pagehead-body">
       <div class="ed-pagehead-eyebrow">Daily Review &middot; spaced repetition</div>
       <h1 class="ed-pagehead-display">SR <em>queue.</em></h1>
@@ -1086,13 +1086,13 @@
     <div class="sr-empty-icon"></div>
     <h2>Queue empty</h2>
     <p>No cards are due right now. Come back later — each card is rescheduled based on your last review and reappears when due.</p>
-    <button class="btn btn-primary" onclick="goSetup()">Back to home</button>
+    <button class="btn btn-primary" data-action="goSetup">Back to home</button>
   </div>
   <div id="sr-complete" class="sr-empty" hidden>
     <div class="sr-empty-icon"></div>
     <h2>Review complete</h2>
     <p id="sr-complete-stats">All cards reviewed.</p>
-    <button class="btn btn-primary" onclick="goSetup()">Back to home</button>
+    <button class="btn btn-primary" data-action="goSetup">Back to home</button>
   </div>
 </div>
 
@@ -1119,8 +1119,8 @@
     <div style="font-size:16px;font-weight:700;color:var(--text)" id="st-next-topic"></div>
     <div style="font-size:12px;color:var(--text-dim);margin-top:4px" id="st-next-reason"></div>
   </div>
-  <button class="btn btn-primary btn-full" onclick="runSessionStep()">Continue Session &#8594;</button>
-  <button class="btn btn-ghost btn-full" style="margin-top:8px" onclick="endSessionEarly()">End Session Early</button>
+  <button class="btn btn-primary btn-full" data-action="runSessionStep">Continue Session &#8594;</button>
+  <button class="btn btn-ghost btn-full" style="margin-top:8px" data-action="endSessionEarly">End Session Early</button>
 </div>
 
 <!-- ══════════════════════════════════════════
@@ -1135,8 +1135,8 @@
     <p style="color:var(--text-mid);margin-top:6px;font-size:15px" id="sc-sub"></p>
   </div>
   <div id="sc-results"></div>
-  <button class="btn btn-primary btn-full" onclick="startSession()">New Session</button>
-  <button class="btn btn-secondary btn-full" style="margin-top:8px" onclick="goSetup()">&#8592; Back to Menu</button>
+  <button class="btn btn-primary btn-full" data-action="startSession">New Session</button>
+  <button class="btn btn-secondary btn-full" style="margin-top:8px" data-action="goSetup">&#8592; Back to Menu</button>
 </div>
 
 <!-- ══════════════════════════════════════════
@@ -1145,7 +1145,7 @@
 <div id="page-progress" class="page">
   <!-- v4.51.0: Topic Progress cleaner header + stats split; v4.54.9: editorial treatment -->
   <div class="ed-pagehead">
-    <button class="btn btn-ghost ed-pagehead-back" onclick="goSetup()" aria-label="Back to menu">&#8592; Menu</button>
+    <button class="btn btn-ghost ed-pagehead-back" data-action="goSetup" aria-label="Back to menu">&#8592; Menu</button>
     <div class="ed-pagehead-body">
       <div class="ed-pagehead-eyebrow">Coverage &middot; 50 topics</div>
       <h1 class="ed-pagehead-display">Topic <em>progress.</em></h1>
@@ -1155,16 +1155,16 @@
   <div id="progress-rec-host" hidden></div>
   <div id="progress-summary" class="progress-summary"></div>
   <div class="progress-toolbar">
-    <input type="search" id="progress-search" class="progress-search" placeholder="Search topic&#8230;" aria-label="Search topics" oninput="filterProgressPage()">
+    <input type="search" id="progress-search" class="progress-search" placeholder="Search topic&#8230;" aria-label="Search topics" data-action="filterProgressPage">
     <div class="progress-filters" role="group" aria-label="Filter topics">
-      <button type="button" class="prog-filter-btn prog-filter-active" data-filter="all" onclick="setProgressFilter('all')" aria-pressed="true">All</button>
-      <button type="button" class="prog-filter-btn" data-filter="weak" onclick="setProgressFilter('weak')" aria-pressed="false">Weak only</button>
-      <button type="button" class="prog-filter-btn" data-filter="untouched" onclick="setProgressFilter('untouched')" aria-pressed="false">Untouched</button>
-      <button type="button" class="prog-filter-btn" data-filter="strong" onclick="setProgressFilter('strong')" aria-pressed="false">Strong</button>
+      <button type="button" class="prog-filter-btn prog-filter-active" data-filter="all" data-action="setProgressFilter" data-args='["all"]' aria-pressed="true">All</button>
+      <button type="button" class="prog-filter-btn" data-filter="weak" data-action="setProgressFilter" data-args='["weak"]' aria-pressed="false">Weak only</button>
+      <button type="button" class="prog-filter-btn" data-filter="untouched" data-action="setProgressFilter" data-args='["untouched"]' aria-pressed="false">Untouched</button>
+      <button type="button" class="prog-filter-btn" data-filter="strong" data-action="setProgressFilter" data-args='["strong"]' aria-pressed="false">Strong</button>
     </div>
     <div class="progress-sort" role="group" aria-label="Sort topics">
       <label for="progress-sort-select" class="prog-sort-label">Sort:</label>
-      <select id="progress-sort-select" class="prog-sort-select" onchange="setProgressSort(this.value)" aria-label="Sort order">
+      <select id="progress-sort-select" class="prog-sort-select" data-action="setProgressSortFromSelect" aria-label="Sort order">
         <option value="worst">Worst first</option>
         <option value="recent">Most recent</option>
         <option value="most">Most studied</option>
@@ -1189,12 +1189,12 @@
       <div class="exam-answered-lbl" id="exam-answered-lbl" aria-live="polite">0 / 90 answered</div>
     </div>
     <div class="exam-topbar-actions">
-      <button class="exam-flag-btn" id="exam-flag-btn" onclick="examToggleFlag()" aria-label="Flag question for review" aria-pressed="false">&#9873; Flag</button>
-      <button class="end-exam-btn" onclick="showExamModal()">End Exam</button>
+      <button class="exam-flag-btn" id="exam-flag-btn" data-action="examToggleFlag" aria-label="Flag question for review" aria-pressed="false">&#9873; Flag</button>
+      <button class="end-exam-btn" data-action="showExamModal">End Exam</button>
     </div>
   </div>
 
-  <button class="qnav-toggle" id="qnav-toggle" onclick="toggleNav()" aria-expanded="false" aria-controls="qnav-grid" aria-label="Toggle question navigator">
+  <button class="qnav-toggle" id="qnav-toggle" data-action="toggleNav" aria-expanded="false" aria-controls="qnav-grid" aria-label="Toggle question navigator">
     <span>Question Navigator</span><span id="qnav-arrow" aria-hidden="true">&#9660;</span>
   </button>
   <div class="qnav-grid" id="qnav-grid"></div>
@@ -1219,14 +1219,14 @@
   </div>
 
   <div class="exam-nav-row">
-    <button class="btn btn-ghost" id="exam-prev-btn" onclick="examPrev()" style="padding:12px 20px" aria-label="Previous question">&#8592; Prev</button>
+    <button class="btn btn-ghost" id="exam-prev-btn" data-action="examPrev" style="padding:12px 20px" aria-label="Previous question">&#8592; Prev</button>
     <!-- v4.54.9: editorial kbd-hints (parallels the quiz page treatment) -->
     <div class="quiz-kbd-hints" aria-label="Keyboard shortcuts">
       <span><kbd>A</kbd><kbd>B</kbd><kbd>C</kbd><kbd>D</kbd> pick</span>
       <span><kbd>&larr;</kbd><kbd>&rarr;</kbd> navigate</span>
       <span><kbd>F</kbd> flag</span>
     </div>
-    <button class="btn btn-primary" id="exam-next-btn" onclick="examNext()" style="padding:12px 20px">Next &#8594;</button>
+    <button class="btn btn-primary" id="exam-next-btn" data-action="examNext" style="padding:12px 20px">Next &#8594;</button>
   </div>
 </div>
 
@@ -1246,9 +1246,9 @@
       <div class="modal-stat"><div class="ms-val" style="color:var(--yellow)" id="modal-flagged">0</div><div class="ms-lbl">Flagged</div></div>
     </div>
     <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="goToFirstFlagged()" id="modal-flagged-btn">&#9873; Review Flagged First</button>
-      <button class="btn btn-primary" onclick="submitExam()">Submit &amp; See Results</button>
-      <button class="btn btn-danger" onclick="abandonExam()">Abandon &mdash; Back to Menu</button>
+      <button class="btn btn-ghost" data-action="goToFirstFlagged" id="modal-flagged-btn">&#9873; Review Flagged First</button>
+      <button class="btn btn-primary" data-action="submitExam">Submit &amp; See Results</button>
+      <button class="btn btn-danger" data-action="abandonExam">Abandon &mdash; Back to Menu</button>
     </div>
   </div>
 </div>
@@ -1293,10 +1293,10 @@
       </div>
     </div>
     <div class="results-v2-cta-row">
-      <button class="btn btn-ghost results-v2-cta-back" onclick="goSetup()" aria-label="Back to menu">&larr; Menu</button>
+      <button class="btn btn-ghost results-v2-cta-back" data-action="goSetup" aria-label="Back to menu">&larr; Menu</button>
       <div class="results-v2-cta-right">
-        <button class="btn btn-ghost" onclick="showReview(true)">Review All</button>
-        <button class="btn btn-exam" onclick="startExam()">Retry Exam</button>
+        <button class="btn btn-ghost" data-action="showReview" data-args='[true]'>Review All</button>
+        <button class="btn btn-exam" data-action="startExam">Retry Exam</button>
       </div>
     </div>
   </div>
@@ -1307,7 +1307,7 @@
 ══════════════════════════════════════════ -->
 <div id="page-acl-pbq" class="page">
   <div class="ed-pagehead">
-    <button class="btn btn-ghost ed-pagehead-back" id="acl-pbq-back" onclick="goSetup()" aria-label="Back to menu">&#8592; Back</button>
+    <button class="btn btn-ghost ed-pagehead-back" id="acl-pbq-back" data-action="goSetup" aria-label="Back to menu">&#8592; Back</button>
     <div class="ed-pagehead-body">
       <div class="ed-pagehead-eyebrow">Performance-based question &middot; ACL Ordering</div>
       <h1 class="ed-pagehead-display">Firewall <em>order.</em></h1>
@@ -1324,7 +1324,7 @@
 <div id="page-analytics" class="page">
   <!-- v4.54.12: editorial header -->
   <div class="ed-pagehead">
-    <button class="btn btn-ghost ed-pagehead-back" onclick="goSetup()" aria-label="Back to menu">&#8592; Menu</button>
+    <button class="btn btn-ghost ed-pagehead-back" data-action="goSetup" aria-label="Back to menu">&#8592; Menu</button>
     <div class="ed-pagehead-body">
       <div class="ed-pagehead-eyebrow">Signals &middot; readiness &amp; trends</div>
       <h1 class="ed-pagehead-display">Performance <em>analytics.</em></h1>
@@ -1353,7 +1353,7 @@
 <div id="page-settings" class="page">
   <!-- v4.54.9: editorial treatment -->
   <div class="ed-pagehead">
-    <button class="btn btn-ghost ed-pagehead-back" onclick="goSetup()" aria-label="Back to menu">&#8592; Menu</button>
+    <button class="btn btn-ghost ed-pagehead-back" data-action="goSetup" aria-label="Back to menu">&#8592; Menu</button>
     <div class="ed-pagehead-body">
       <div class="ed-pagehead-eyebrow">Configuration</div>
       <h1 class="ed-pagehead-display">Your <em>settings.</em></h1>
@@ -1395,13 +1395,13 @@
         <div class="settings-daily-row">
           <input type="number" inputmode="numeric" id="settings-daily-input" min="1" max="500" step="1" aria-label="Daily question goal" class="settings-daily-input" />
           <span class="settings-daily-unit">questions per day</span>
-          <button class="btn btn-primary settings-daily-save" id="settings-daily-save" onclick="saveSettingsDailyGoal()">Save</button>
+          <button class="btn btn-primary settings-daily-save" id="settings-daily-save" data-action="saveSettingsDailyGoal">Save</button>
         </div>
         <div class="settings-daily-presets" role="group" aria-label="Daily goal presets">
-          <button type="button" class="settings-daily-chip" data-goal="10" onclick="pickSettingsDailyPreset(10)">10</button>
-          <button type="button" class="settings-daily-chip" data-goal="20" onclick="pickSettingsDailyPreset(20)">20</button>
-          <button type="button" class="settings-daily-chip" data-goal="30" onclick="pickSettingsDailyPreset(30)">30</button>
-          <button type="button" class="settings-daily-chip" data-goal="50" onclick="pickSettingsDailyPreset(50)">50</button>
+          <button type="button" class="settings-daily-chip" data-goal="10" data-action="pickSettingsDailyPreset" data-args='[10]'>10</button>
+          <button type="button" class="settings-daily-chip" data-goal="20" data-action="pickSettingsDailyPreset" data-args='[20]'>20</button>
+          <button type="button" class="settings-daily-chip" data-goal="30" data-action="pickSettingsDailyPreset" data-args='[30]'>30</button>
+          <button type="button" class="settings-daily-chip" data-goal="50" data-action="pickSettingsDailyPreset" data-args='[50]'>50</button>
         </div>
         <p class="settings-section-hint">The count behind the "Today" card on your home page. Aim for something you can hit every day without burning out.</p>
       </section>
@@ -1429,10 +1429,10 @@
       <section class="card settings-section">
         <h3 class="settings-section-title">Manual export &amp; import</h3>
         <div style="display:flex;gap:10px;flex-wrap:wrap">
-          <button class="btn btn-ghost" style="flex:1;min-width:140px;font-size:13px" onclick="exportData()">Export Data</button>
+          <button class="btn btn-ghost" style="flex:1;min-width:140px;font-size:13px" data-action="exportData">Export Data</button>
           <!-- v4.81.11: Import is a real <button> (Codex r9 #2). -->
-          <button type="button" class="btn btn-ghost" style="flex:1;min-width:140px;font-size:13px" onclick="document.getElementById('import-file-input').click()" aria-label="Import data from JSON file">Import Data</button>
-          <input type="file" id="import-file-input" accept=".json" class="is-hidden" onchange="importData(event)" tabindex="-1" aria-hidden="true" />
+          <button type="button" class="btn btn-ghost" style="flex:1;min-width:140px;font-size:13px" data-action="triggerImportFileInput" aria-label="Import data from JSON file">Import Data</button>
+          <input type="file" id="import-file-input" accept=".json" class="is-hidden" data-action="importDataFromEvent" tabindex="-1" aria-hidden="true" />
         </div>
         <p class="settings-section-hint">Exports all quiz history, streaks, drill stats, topology saves, and ACL state to a JSON file. Import merges into your current local data.</p>
       </section>
@@ -1444,8 +1444,8 @@
           <div class="ab-empty">No automatic backups yet &mdash; one will be created on your next page load.</div>
         </div>
         <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px">
-          <button class="btn btn-ghost" style="flex:1;min-width:140px;font-size:13px" onclick="downloadAutoBackup()">Download latest snapshot</button>
-          <button class="btn btn-ghost" style="flex:1;min-width:140px;font-size:13px" onclick="if(typeof _takeAutoBackup===&#39;function&#39;){_takeAutoBackup();renderAutoBackupList();}">Snapshot now</button>
+          <button class="btn btn-ghost" style="flex:1;min-width:140px;font-size:13px" data-action="downloadAutoBackup">Download latest snapshot</button>
+          <button class="btn btn-ghost" style="flex:1;min-width:140px;font-size:13px" data-action="takeAutoBackupAndRefresh">Snapshot now</button>
         </div>
       </section>
     </div>
@@ -1461,7 +1461,7 @@
       </div>
       <section class="card settings-section settings-section-danger">
         <h3 class="settings-section-title">Wrong Answers Bank</h3>
-        <button class="btn btn-ghost" id="wrong-bank-clear" style="width:100%;font-size:13px" onclick="clearWrongBank()" title="Clear all saved wrong answers" aria-label="Clear all wrong answers">Clear Wrong Answers Bank <span class="wrong-count-badge" id="wrong-bank-clear-count">0</span></button>
+        <button class="btn btn-ghost" id="wrong-bank-clear" style="width:100%;font-size:13px" data-action="clearWrongBank" title="Clear all saved wrong answers" aria-label="Clear all wrong answers">Clear Wrong Answers Bank <span class="wrong-count-badge" id="wrong-bank-clear-count">0</span></button>
         <p class="settings-section-hint">Removes all saved mistakes. The "Drill Mistakes" preset on the home page fires a drill quiz from this bank.</p>
       </section>
     </div>
@@ -1518,14 +1518,14 @@
 ══════════════════════════════════════════ -->
 <div id="page-monitor" class="page">
   <div style="display:flex;align-items:center;gap:14px;margin-bottom:20px">
-    <button class="btn btn-ghost" onclick="goSetup()" style="padding:10px 16px" aria-label="Back to menu">&#8592; Menu</button>
+    <button class="btn btn-ghost" data-action="goSetup" style="padding:10px 16px" aria-label="Back to menu">&#8592; Menu</button>
     <h2>Production Monitor</h2>
   </div>
   <div class="monitor-stats" id="monitor-stats"></div>
   <div class="monitor-actions">
-    <button class="btn btn-ghost" onclick="copyErrorLog()" style="font-size:13px">Copy Log</button>
-    <button class="btn btn-ghost" onclick="exportErrorLog()" style="font-size:13px">Export JSON</button>
-    <button class="btn btn-danger" onclick="clearErrorLog()" style="font-size:13px">Clear All</button>
+    <button class="btn btn-ghost" data-action="copyErrorLog" style="font-size:13px">Copy Log</button>
+    <button class="btn btn-ghost" data-action="exportErrorLog" style="font-size:13px">Export JSON</button>
+    <button class="btn btn-danger" data-action="clearErrorLog" style="font-size:13px">Clear All</button>
   </div>
   <div id="monitor-log" class="monitor-log"></div>
 </div>
@@ -1535,7 +1535,7 @@
      RPC gate. Reachable via /?action=web-vitals or admin sidebar link. -->
 <div id="page-web-vitals" class="page">
   <div style="display:flex;align-items:center;gap:14px;margin-bottom:6px">
-    <button class="btn btn-ghost" onclick="goSetup()" style="padding:10px 16px" aria-label="Back to menu">&#8592; Menu</button>
+    <button class="btn btn-ghost" data-action="goSetup" style="padding:10px 16px" aria-label="Back to menu">&#8592; Menu</button>
     <h2 style="margin:0">Web Vitals · admin</h2>
   </div>
   <p style="color:var(--text-mid);font-size:13px;margin:0 0 16px">Real-user performance telemetry collected by lib/web-vitals-collector.js on every signed-in prod session. Admin-only.</p>

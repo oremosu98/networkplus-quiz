@@ -161,8 +161,8 @@ test('Version badge present', /v\d+\.\d+/.test(html));
 test('API key input', html.includes('id="api-key"'));
 test('Topic chip group', html.includes('id="topic-group"'));
 test('Difficulty chip group', html.includes('id="diff-group"'));
-test('Generate Quiz button', html.includes('startQuiz()'));
-test('Simulate Exam button', html.includes('startExam()'));
+test('Generate Quiz button', html.includes('data-action="startQuiz"'));
+test('Simulate Exam button', html.includes('data-action="startExam"'));
 test('Subnet Trainer button (v4.53.0: in sidebar JS + startSubnetTrainer handler wired)',
   js.includes('startSubnetTrainer') && /APP_SIDEBAR_DRILLS[\s\S]{0,1500}startSubnetTrainer/.test(js));
 test('Port Drill button', html.includes('startPortDrill()') || js.includes('startPortDrill()'));
@@ -188,7 +188,7 @@ test('v6.5.18 tombstone: sw.js does not precache the removed MP4 files', (functi
 })());
 test('Subnet reference table', html.includes('subnet-table'));
 test('Port mastery answer area', html.includes('id="pt-answer-area"'));
-test('Export/Import buttons', html.includes('exportData()') && html.includes('importData('));
+test('Export/Import buttons', html.includes('data-action="exportData"') && html.includes('data-action="triggerImportFileInput"'));
 
 // ── JS Functions ──
 console.log('\n\x1b[1m── JS CORE FUNCTIONS ──\x1b[0m');
@@ -576,9 +576,9 @@ test('daily-challenge-card element', html.includes('id="daily-challenge-card"'))
 test('v4.81.23 tombstone: #todays-focus element removed', !html.includes('id="todays-focus"'));
 // v4.76.0: legacy `.quiz-presets` block replaced by `.modes-tier-cards` inside the Mode Ladder
 test('v4.76.0/dg4: session-picker option grid present (was .modes-tier-cards)', html.includes('class="dgh-opts"'));
-test('Preset tile: warmup', html.includes("applyPreset('warmup')"));
-test('Preset tile: focused', html.includes("applyPreset('focused')"));
-test('Preset tile: grind', html.includes("applyPreset('grind')"));
+test('Preset tile: warmup', html.includes('data-action="applyPreset"') && html.includes('"warmup"'));
+test('Preset tile: focused', html.includes('data-action="applyPreset"') && html.includes('"focused"'));
+test('Preset tile: grind', html.includes('data-action="applyPreset"') && html.includes('"grind"'));
 // CSS
 test('CSS: .streak-defender', css.includes('.streak-defender'));
 test('CSS: .daily-challenge-card', css.includes('.daily-challenge-card'));
@@ -710,9 +710,9 @@ test('HTML: Secure Pairs label in mode bar', html.includes('Secure Pairs') || ht
 
 // ── Bulk Mixed quiz presets (v4.14) ──
 console.log('\n\x1b[1m── BULK MIXED PRESETS (v4.14) ──\x1b[0m');
-test('HTML: bulk30 preset tile', html.includes("applyPreset('bulk30')"));
-test('HTML: bulk45 preset tile', html.includes("applyPreset('bulk45')"));
-test('HTML: bulk60 preset tile', html.includes("applyPreset('bulk60')"));
+test('HTML: bulk30 preset tile', html.includes('data-action="applyPreset"') && html.includes('"bulk30"'));
+test('HTML: bulk45 preset tile', html.includes('data-action="applyPreset"') && html.includes('"bulk45"'));
+test('HTML: bulk60 preset tile', html.includes('data-action="applyPreset"') && html.includes('"bulk60"'));
 test('HTML: 30 Questions title', html.includes('30 Questions'));
 test('HTML: 45 Questions title', html.includes('45 Questions'));
 // v4.76.0: 60Q preset relocated to Exam tier as "60-Question SIM" — title text changed
@@ -1961,7 +1961,7 @@ test('Label: Settings page editorial heading (v4.54.9: .ed-pagehead-display "You
   /id="page-settings"[\s\S]{0,800}ed-pagehead-display[^<]*>Your\s*<em>settings\.<\/em>/.test(html));
 test('Label: sidebar entry "Network Builder" (v4.53.0: moved from setup-nav to sidebar)',
   /APP_SIDEBAR_PRACTICE[\s\S]{0,1500}label:\s*'Network Builder'/.test(js));
-test('codex-home: legacy #marathon-section stub + Marathon presets in session picker', html.includes('id="marathon-section"') && html.includes("applyPreset('bulk30')") && html.includes("applyPreset('bulk45')"));
+test('codex-home: legacy #marathon-section stub + Marathon presets in session picker', html.includes('id="marathon-section"') && html.includes('data-action="applyPreset"') && html.includes('"bulk30"') && html.includes('"bulk45"'));
 // Internal code identifiers must NOT have been renamed
 test('Code: examHardcore state var preserved', js.includes('let examHardcore'));
 test('Code: setHardcoreMode function preserved', js.includes('function setHardcoreMode('));
@@ -1987,7 +1987,7 @@ test('Tier1: renderWeakBanner function removed from app.js', !js.match(/function
 test('Tier1: legacy #wrong-bank-row HTML block removed', !html.includes('id="wrong-bank-row"'));
 test('Tier1: legacy #wrong-bank-btn HTML block removed', !html.includes('id="wrong-bank-btn"'));
 test('Tier1: Clear Wrong Answers Bank button moved to Settings', html.includes('Clear Wrong Answers Bank') && html.includes('id="wrong-bank-clear"'));
-test('Tier1: wrong-bank-clear button still wired to clearWrongBank()', html.indexOf('id="wrong-bank-clear"') !== -1 && html.includes('onclick="clearWrongBank()"'));
+test('Tier1: wrong-bank-clear button still wired to clearWrongBank()', html.indexOf('id="wrong-bank-clear"') !== -1 && /id="wrong-bank-clear"[\s\S]{0,200}data-action="clearWrongBank"|data-action="clearWrongBank"[\s\S]{0,200}id="wrong-bank-clear"/.test(html));
 test('Tier1: clearWrongBank() function still exists', js.includes('function clearWrongBank('));
 test('Tier1: startWrongDrill() function still exists', js.includes('function startWrongDrill('));
 (() => {
@@ -2038,9 +2038,9 @@ test('Tier1: renderMarathonSection called in goSetup',
   js.match(/function goSetup\(\)[\s\S]{0,2500}renderMarathonSection\(\)/));
 test('Tier1: renderMarathonSection called on DOMContentLoaded', js.match(/DOMContentLoaded[\s\S]{0,3000}renderMarathonSection\(\)/));
 // Marathon preset buttons still present inside the wrapper
-test('Tier1: Marathon 30-question preset still wired', html.includes("applyPreset('bulk30')"));
-test('Tier1: Marathon 45-question preset still wired', html.includes("applyPreset('bulk45')"));
-test('Tier1: Marathon 60-question preset still wired', html.includes("applyPreset('bulk60')"));
+test('Tier1: Marathon 30-question preset still wired', html.includes('data-action="applyPreset"') && html.includes('"bulk30"'));
+test('Tier1: Marathon 45-question preset still wired', html.includes('data-action="applyPreset"') && html.includes('"bulk45"'));
+test('Tier1: Marathon 60-question preset still wired', html.includes('data-action="applyPreset"') && html.includes('"bulk60"'));
 
 // ── v4.33 Analytics + Progress Redesign ──
 console.log('\n\x1b[1m── v4.33 ANALYTICS + PROGRESS ──\x1b[0m');
@@ -5622,7 +5622,7 @@ console.log('\n\x1b[1m── v4.53.0 EDITORIAL REDESIGN ──\x1b[0m');
 test('v4.53.0 HTML: #app-sidebar container exists',
   html.includes('id="app-sidebar"') && html.includes('class="app-sidebar"'));
 test('v4.53.0 HTML: mobile sidebar toggle button',
-  html.includes('class="sb-mobile-toggle"') && html.includes('onclick="toggleSidebarMobile()"'));
+  html.includes('class="sb-mobile-toggle"') && html.includes('data-action="toggleSidebarMobile"'));
 // v4.81.23 tombstone: #focus-banner element removed (retired in v4.81.20, deleted in v4.81.23)
 test('v4.81.23 tombstone: #focus-banner element removed', !html.includes('id="focus-banner"'));
 // v4.76.0 update: \u00a701 + \u00a702 retired. Mode Ladder now uses \u00a701 with
@@ -5789,7 +5789,7 @@ test('v4.54.0 HTML: topbar has sidebar-toggle + breadcrumb + time + gear + theme
   html.includes('id="topbar-time"') && html.includes('id="topbar-theme"') &&
   html.includes('id="topbar-account-mount"'));
 test('v4.54.0 HTML: topbar toggle calls toggleSidebarCollapsed',
-  /id="topbar-toggle"[\s\S]{0,200}onclick="toggleSidebarCollapsed/.test(html));
+  /id="topbar-toggle"[\s\S]{0,200}data-action="toggleSidebarCollapsed"/.test(html));
 
 // HTML \u2014 hero v2
 test('codex-home HTML: #setup-hero-v2 hero + #readiness-card-v2 split across .col-main/.col-side',
@@ -5945,7 +5945,7 @@ test('v4.54.1 HTML: #page-settings exists',
 // Backups. Also bumped importData → clearWrongBank window 2500 → 3500 for
 // headroom (current gap ~2250 with §04 Danger Zone wrapper).
 test('v4.54.1 (v4.54.16 update) HTML: settings has API key + Exam Date + Daily Goal + Export/Import + Clear Wrong Bank',
-  html.includes('id="api-key"') && /id="page-settings"[\s\S]{0,7000}exportData\(\)[\s\S]{0,800}importData\([\s\S]{0,3500}clearWrongBank/.test(html));
+  html.includes('id="api-key"') && /id="page-settings"[\s\S]{0,7000}data-action="exportData"[\s\S]{0,800}data-action="triggerImportFileInput"[\s\S]{0,3500}data-action="clearWrongBank"/.test(html));
 test('v4.54.1 HTML: #history-panel moved to #page-analytics',
   /id="page-analytics"[\s\S]{0,1500}id="history-panel"/.test(html));
 test('v4.54.1 HTML: regression \u2014 #advanced-section removed from home',
@@ -6390,7 +6390,7 @@ test('v4.54.8 HTML: #results-review-list container + eyebrow + italic-accent tit
   /results-v2-review-eyebrow[^<]*>Review[^<]*session/.test(html) &&
   /results-v2-review-title[^<]*>Every\s*<em>answer\.<\/em>/.test(html));
 test('v4.54.8 HTML: Drill my mistakes CTA button exists',
-  /id="btn-drill-mistakes"[\s\S]{0,200}drillMistakesFromResults\(\)/.test(html));
+  /id="btn-drill-mistakes"[\s\S]{0,200}data-action="drillMistakesFromResults"/.test(html));
 test('v4.54.8 JS: _sessionStartTs tracked on startQuiz + drillMistakesFromResults',
   /function startQuiz\([\s\S]{0,6000}_sessionStartTs\s*=\s*Date\.now\(\)/.test(js) &&
   js.includes('let _sessionStartTs') &&
@@ -10142,9 +10142,9 @@ test('v4.76.0/dg4 HTML: 3 commitment groups (quick / practice / exam)',
 test('v4.76.0 HTML: Daily Challenge tile in Quick tier', html.includes('id="modes-dc-tile"'));
 test('v4.76.0 HTML: Drill Mistakes tile in Quick tier', html.includes('id="modes-wrong-tile"'));
 test('v4.76.0 HTML: Custom Quiz card delegates to _jumpToCustomQuiz',
-  html.includes('onclick="_jumpToCustomQuiz()"'));
+  html.includes('data-action="_jumpToCustomQuiz"'));
 test('v4.76.0/dg4 HTML: Full Exam Simulator opt delegates to startExam',
-  /onclick="startExam\(\)"[\s\S]{0,80}Full Exam Simulator/.test(html));
+  /data-action="startExam"[\s\S]{0,80}Full Exam Simulator/.test(html));
 test('v4.76.0 HTML: legacy wrong-preset-tile + sub preserved (renderWrongBankBtn compat)',
   html.includes('id="wrong-preset-tile"') && html.includes('id="wrong-preset-sub"'));
 test('v4.76.0 HTML: legacy marathon-section preserved as hidden',
@@ -10293,7 +10293,8 @@ test('v4.79.0 home: legacy #hardcore-checkbox preserved as hidden compat shim',
 test('v4.79.0/dg4 home: Strict Mode toggle in session-picker Exam group',
   html.includes('id="modes-strict-checkbox"') && html.includes('class="dgh-strict"'));
 test('v4.79.0 home: Strict Mode toggle syncs both checkboxes',
-  /modes-strict-checkbox[\s\S]{0,400}hardcore-checkbox/.test(html));
+  html.includes('id="modes-strict-checkbox"') && html.includes('id="hardcore-checkbox"') &&
+  html.includes('data-action="setHardcoreModeChecked"'));
 test('v4.79.0 CSS: .modes-strict-toggle styled', css.includes('.modes-strict-toggle'));
 
 // 2. Analytics empty H1 swap
@@ -10524,9 +10525,9 @@ test('v4.81.0 Diagnostic: confidence ladder (low/medium/high) present',
   && /pass-plan-ladder-tier[^>]*data-tier="medium"/.test(html)
   && /pass-plan-ladder-tier[^>]*data-tier="high"/.test(html));
 test('v4.81.0 Diagnostic: "Take the Diagnostic" CTA wired to startDiagnostic()',
-  /onclick="startDiagnostic\(\)"/.test(html));
+  html.includes('data-action="startDiagnostic"'));
 test('v4.81.0 Diagnostic: Pass Plan tile View report wired to viewPassPlan()',
-  /viewPassPlan\(\)/.test(html));
+  html.includes('data-action="viewPassPlanPrevent"'));
 
 // CSS structural checks
 test('v4.81.0 Diagnostic: .diagnostic-cta-card style declared',
@@ -11280,7 +11281,7 @@ test('v4.81.11 Settings: Import is now a real <button>, not a <label> wrapper',
 test('v4.81.11 Settings: hidden #import-file-input input present',
   /<input[^>]*id="import-file-input"/.test(html) && /<input[^>]*type="file"[^>]*id="import-file-input"|<input[^>]*id="import-file-input"[^>]*type="file"/.test(html));
 test('v4.81.11 Settings: Import button triggers hidden input via .click()',
-  /onclick="document\.getElementById\('import-file-input'\)\.click\(\)"/.test(html));
+  html.includes('data-action="triggerImportFileInput"') && html.includes('id="import-file-input"'));
 test('v4.81.11 Settings: regression — Import is no longer a <label> wrapping <input type="file">',
   !/<label[^>]+class="btn btn-ghost"[^>]*>[\s\S]{0,200}<input type="file"[\s\S]{0,200}importData/.test(html));
 
@@ -11362,7 +11363,7 @@ test('v4.81.12 Settings: Health card lives in §01 Study Setup',
 test('v4.81.12 Settings: API key lives in §02 AI Coach',
   /data-group="ai-coach"[\s\S]{0,800}id="api-key"/.test(html));
 test('v4.81.12 Settings: Export+Import live in §03 Data & Backups',
-  /data-group="data-backups"[\s\S]{0,2000}exportData\(\)/.test(html)
+  /data-group="data-backups"[\s\S]{0,2000}data-action="exportData"/.test(html)
   && /data-group="data-backups"[\s\S]{0,2000}id="import-file-input"/.test(html));
 test('v4.81.12 Settings: Auto-backups list lives in §03 Data & Backups',
   /data-group="data-backups"[\s\S]{0,3000}id="autobackup-list"/.test(html));
@@ -12207,21 +12208,21 @@ test('v4.81.17/dg4 DomainDrill: session-picker drill-by-domain row present',
 test('v4.81.17/dg4 DomainDrill: 5 drill-by-domain buttons',
   (html.match(/class="dgh-db"/g) || []).length === 5);
 test('v4.81.17 DomainDrill: Mode Ladder tiles wired to applyDomainPreset for all 5 domains',
-  /applyDomainPreset\('concepts'\)/.test(html)
-    && /applyDomainPreset\('implementation'\)/.test(html)
-    && /applyDomainPreset\('operations'\)/.test(html)
-    && /applyDomainPreset\('security'\)/.test(html)
-    && /applyDomainPreset\('troubleshooting'\)/.test(html));
+  /data-action="applyDomainPreset"[\s\S]{0,50}data-args='[^']*concepts/.test(html)
+    && /data-action="applyDomainPreset"[\s\S]{0,50}data-args='[^']*implementation/.test(html)
+    && /data-action="applyDomainPreset"[\s\S]{0,50}data-args='[^']*operations/.test(html)
+    && /data-action="applyDomainPreset"[\s\S]{0,50}data-args='[^']*security/.test(html)
+    && /data-action="applyDomainPreset"[\s\S]{0,50}data-args='[^']*troubleshooting/.test(html));
 test('v4.81.17 DomainDrill: Custom Quiz pre-fill pill row present in topic-group',
   html.includes('class="topic-domain-prefill"'));
 test('v4.81.17 DomainDrill: Custom Quiz has 5 tdp-pill buttons',
   (html.match(/class="tdp-pill"/g) || []).length === 5);
 test('v4.81.17 DomainDrill: Custom Quiz pills wired to prefillDomainTopics for all 5 domains',
-  /prefillDomainTopics\('concepts'\)/.test(html)
-    && /prefillDomainTopics\('implementation'\)/.test(html)
-    && /prefillDomainTopics\('operations'\)/.test(html)
-    && /prefillDomainTopics\('security'\)/.test(html)
-    && /prefillDomainTopics\('troubleshooting'\)/.test(html));
+  /data-action="prefillDomainTopics"[\s\S]{0,50}data-args='[^']*concepts/.test(html)
+    && /data-action="prefillDomainTopics"[\s\S]{0,50}data-args='[^']*implementation/.test(html)
+    && /data-action="prefillDomainTopics"[\s\S]{0,50}data-args='[^']*operations/.test(html)
+    && /data-action="prefillDomainTopics"[\s\S]{0,50}data-args='[^']*security/.test(html)
+    && /data-action="prefillDomainTopics"[\s\S]{0,50}data-args='[^']*troubleshooting/.test(html));
 test('v4.81.17 DomainDrill: .modes-domain-tile CSS declared',
   /\.modes-domain-tile\s*\{/.test(css));
 test('v4.81.17 DomainDrill: .tdp-pill CSS declared',
@@ -14157,9 +14158,9 @@ test('v4.82.0 Revisit: _renderRevisitBanner helper defined',
 
 // HTML: prev/next nav arrows + revisit banner element
 test('v4.82.0 Revisit HTML: #quiz-prev-btn exists',
-  /id="quiz-prev-btn"[\s\S]{0,200}onclick="prevQuestion\(\)"/.test(html));
+  /id="quiz-prev-btn"[\s\S]{0,200}data-action="prevQuestion"/.test(html));
 test('v4.82.0 Revisit HTML: #quiz-next-arrow-btn exists',
-  /id="quiz-next-arrow-btn"[\s\S]{0,200}onclick="nextQuestion\(\)"/.test(html));
+  /id="quiz-next-arrow-btn"[\s\S]{0,200}data-action="nextQuestion"/.test(html));
 test('v4.82.0 Revisit HTML: #quiz-revisit-banner element exists',
   /class="quiz-revisit-banner is-hidden"[\s\S]{0,80}id="quiz-revisit-banner"/.test(html));
 
@@ -21839,7 +21840,7 @@ const dgCss = fs.readFileSync(path.join(__dirname, '..', 'dg-system.css'), 'utf8
 
 // Topbar iconbtn exists
 test('topbar bug iconbtn exists', indexHtml.includes('id="topbar-bug-report"'));
-test('bug iconbtn lazy-loads reports module', indexHtml.includes("_loadFeature('reports')"));
+test('bug iconbtn lazy-loads reports module', indexHtml.includes('data-action="openBugReport"') && fs.readFileSync(path.join(__dirname, '..', 'event-actions.js'), 'utf8').includes("_loadFeature('reports')"));
 
 // STORAGE.BUG_REPORTS key
 test('STORAGE.BUG_REPORTS key registered', /BUG_REPORTS:\s*'nplus_bug_reports'/.test(appJs));
