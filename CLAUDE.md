@@ -107,6 +107,7 @@ npx playwright test              # E2E (tests/e2e/app.spec.js)
 
 | Version | Features Added |
 |---|---|
+| v7.8.4 | Minify-on-deploy build step — esbuild JS+CSS, app.js -44% gzip, ~28% smaller cold load |
 | v7.8.3 | Sec-P4 XSS defence-in-depth: vendored DOMPurify (M6) over AI + cross-user sinks, guide.diagram backstop (L2), .gitignore secrets (L5) |
 | v7.8.2 | Landing E2E coverage — a Playwright `landing` project guards the canonical 8-exam set across Account / My Certs / Cross-Cert Analytics. |
 | v7.8.1 | CI fix — pruned the orphaned Playwright suite (deleted-feature describe blocks); restores the green gate + cert-app push-deploy. |
