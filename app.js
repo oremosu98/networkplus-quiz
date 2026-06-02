@@ -8178,6 +8178,38 @@ function launchConfetti() {
 }
 
 // ══════════════════════════════════════════
+// READINESS CARD CELEBRATION
+// ══════════════════════════════════════════
+function queueReadinessAnimation(scaled, barPct){
+  const card=document.getElementById('readiness-card-v2'); if(!card) return;
+  card._rcPending={scaled,barPct};
+  if(card.dataset.ioBound==='1') return;
+  card.dataset.ioBound='1';
+  if(!('IntersectionObserver' in window)){ animateReadinessCardV2(card._rcPending); return; }
+  const io=new IntersectionObserver(es=>{es.forEach(e=>{ if(e.isIntersecting) animateReadinessCardV2(card._rcPending); });},{threshold:0.4});
+  io.observe(card);
+}
+function animateReadinessCardV2(pending){
+  const card=document.getElementById('readiness-card-v2'); if(!card||!pending) return;
+  if(card.dataset.animated==='1') return; card.dataset.animated='1';
+  const scaled=pending.scaled, barPct=pending.barPct;
+  const passLine=(typeof EXAM_PASS_SCORE==='number')?EXAM_PASS_SCORE:720;
+  const passed=scaled>=passLine;
+  const fill=document.getElementById('rc-v2-bar-fill'), green=document.getElementById('rc-v2-bar-fill-green');
+  const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const settle=()=>{ if(green) green.style.width=barPct+'%'; card.classList.toggle('is-pass',passed);
+    if(passed){ drawReadinessRing(card); showReadinessStamp(card,'Exam ready',false); try{ if(typeof launchConfetti==='function') launchConfetti(); else fireReadinessConfetti(card); }catch(_){ fireReadinessConfetti(card);} }
+    else { showReadinessStamp(card,(passLine-scaled)+' pts to pass',true); } };
+  if(reduce){ const n=document.getElementById('rc-v2-num'); if(n) n.textContent=scaled; if(fill) fill.style.width=barPct+'%'; if(green) green.style.width=barPct+'%'; settle(); return; }
+  if(fill) fill.style.width=barPct+'%'; if(green) green.style.width=barPct+'%';
+  animateCount('rc-v2-num',100,scaled,1100); setTimeout(settle,1150);
+}
+function drawReadinessRing(card){ const ring=card.querySelector('.rc-v2-ring'); const path=ring&&ring.querySelector('path'); if(!path) return; const len=path.getTotalLength(); path.style.strokeDasharray=len; path.animate([{strokeDashoffset:len},{strokeDashoffset:0}],{duration:600,easing:'ease-in-out',fill:'forwards'}); ring.animate([{transform:'translateY(-50%) rotate(-7deg) scale(.86)'},{transform:'translateY(-50%) rotate(-3deg) scale(1)'}],{duration:600,easing:'cubic-bezier(.34,1.56,.64,1)',fill:'forwards'}); }
+function showReadinessStamp(card,text,warn){ const stamp=card.querySelector('.rc-v2-stamp'); if(!stamp) return; const t=stamp.querySelector('.txt'); if(t) t.textContent=text; const col=warn?'var(--yellow)':'var(--green)'; stamp.style.borderColor=col; if(t) t.style.color=col; const p=stamp.querySelector('svg path'); if(p) p.style.stroke=col; stamp.animate([{opacity:0,transform:'scale(1.4) rotate(-14deg)'},{opacity:1,transform:'scale(1) rotate(-6deg)'}],{duration:500,delay:120,easing:'cubic-bezier(.34,1.8,.64,1)',fill:'forwards'}); }
+function fireReadinessConfetti(card){ const host=card.querySelector('.rc-v2-confetti'); if(!host) return; host.innerHTML=''; const r=host.getBoundingClientRect(); const ox=r.width*0.3, oy=r.height*0.4; const colors=['var(--green)','var(--accent)','var(--text)']; for(let i=0;i<30;i++){ const p=document.createElement('i'); p.style.left=ox+'px'; p.style.top=oy+'px'; p.style.background=colors[(Math.random()*colors.length)|0]; host.appendChild(p); const ang=(-90+(Math.random()*150-75))*Math.PI/180, dist=120+Math.random()*200; const px=Math.cos(ang)*dist, py=Math.sin(ang)*dist; const fall=r.height-oy+60+Math.random()*80, rot=Math.random()*720-360; p.animate([{transform:'translate(0,0) rotate(0)',opacity:1,offset:0},{transform:`translate(${px}px,${py}px) rotate(${rot*.5}deg)`,opacity:1,offset:.35},{transform:`translate(${px*1.3}px,${fall}px) rotate(${rot}deg)`,opacity:0,offset:1}],{duration:1500+Math.random()*900,delay:Math.random()*160,easing:'cubic-bezier(.2,.7,.3,1)',fill:'forwards'}); } }
+window.__rcAnimTest = function(scaled, barPct){ var c=document.getElementById('readiness-card-v2'); if(c){ c.dataset.animated=''; c.classList.remove('is-pass'); } animateReadinessCardV2({scaled:scaled, barPct:barPct}); };
+
+// ══════════════════════════════════════════
 // v4.42.0 — MILESTONE CELEBRATION (toast + mini confetti)
 // ══════════════════════════════════════════
 // Fires a subtle celebration burst when a milestone unlocks during a quiz or
@@ -16636,6 +16668,7 @@ function renderHeroV2() {
 }
 
 function renderReadinessCardV2() {
+  const _rc = document.getElementById('readiness-card-v2'); if (_rc) _rc.dataset.animated = '';
   const numEl = document.getElementById('rc-v2-num');
   const barEl = document.getElementById('rc-v2-bar-fill');
   const deltaEl = document.getElementById('rc-v2-delta');
@@ -16664,6 +16697,8 @@ function renderReadinessCardV2() {
       numEl.textContent = r.predicted;
       const pct = Math.max(0, Math.min(100, ((r.predicted - 420) / 450) * 100));
       barEl.style.width = pct + '%';
+      queueReadinessAnimation(r.predicted, pct);
+      const pm = document.getElementById('rc-v2-passmark'); if (pm) pm.textContent = EXAM_PASS_SCORE;
 
       // v4.73.0: prediction line \u2014 pass probability + CI inside the dark card
       if (predEl && typeof r.passProbability === 'number') {

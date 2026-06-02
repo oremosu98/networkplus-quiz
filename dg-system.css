@@ -2270,3 +2270,24 @@ html[data-cert="clfc02"] .dgh-db[data-domain-idx="5"]{
   display:none !important;
 }
 
+/* ---- readiness celebration (additive; structure animates, colour from tokens) ---- */
+#readiness-card-v2{position:relative;overflow:hidden}
+#readiness-card-v2 .readiness-score{position:relative}
+#readiness-card-v2 #rc-v2-num{position:relative;z-index:2;transition:color .45s ease}
+html[data-theme] body #page-setup #readiness-card-v2.is-pass .readiness-score #rc-v2-num{color:var(--green)}
+#readiness-card-v2 .rc-v2-glow{position:absolute;left:0;top:50%;width:1.6em;height:1.6em;transform:translateY(-50%);z-index:0;pointer-events:none;opacity:0;background:radial-gradient(50% 50% at 50% 50%,color-mix(in oklab,var(--green) 50%,transparent),transparent 70%);transition:opacity .5s ease}
+#readiness-card-v2.is-pass .rc-v2-glow{opacity:1}
+#readiness-card-v2 .rc-v2-ring{position:absolute;left:-6%;top:50%;width:1.5em;height:1.25em;transform:translateY(-50%) rotate(-3deg);z-index:3;pointer-events:none;overflow:visible;opacity:0;transition:opacity .3s ease}
+#readiness-card-v2.is-pass .rc-v2-ring{opacity:1}
+#readiness-card-v2 .rc-v2-ring path{stroke:var(--green)}
+#readiness-card-v2 .readiness-bar-track{position:relative}
+#readiness-card-v2 .rc-v2-bar-fill-green{position:absolute;left:0;top:0;height:100%;width:0%;border-radius:99px;z-index:2;opacity:0;background:linear-gradient(90deg,color-mix(in oklab,var(--green) 72%,#000),var(--green));transition:width .8s cubic-bezier(.2,.8,.2,1),opacity .4s ease}
+#readiness-card-v2.is-pass .rc-v2-bar-fill-green{opacity:1}
+#readiness-card-v2.is-pass .readiness-bar-mark{background:var(--green)}
+#readiness-card-v2 .rc-v2-stamp{position:absolute;top:14px;right:16px;z-index:5;pointer-events:none;display:inline-flex;flex-direction:column;align-items:center;gap:4px;padding:6px 12px 8px;border:2px solid var(--green);border-radius:10px;background:color-mix(in oklab,var(--green) 12%,transparent);opacity:0;transform:scale(1.4) rotate(-14deg);transform-origin:center}
+#readiness-card-v2 .rc-v2-stamp .txt{font:800 13px/1 'Inter',sans-serif;letter-spacing:.1em;text-transform:uppercase;color:var(--green);white-space:nowrap}
+#readiness-card-v2 .rc-v2-stamp svg path{stroke:var(--green)}
+#readiness-card-v2 .rc-v2-confetti{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:4;border-radius:inherit}
+#readiness-card-v2 .rc-v2-confetti i{position:absolute;width:8px;height:12px;border-radius:2px;opacity:0;will-change:transform,opacity}
+@media (prefers-reduced-motion:reduce){#readiness-card-v2 #rc-v2-num,#readiness-card-v2 .rc-v2-bar-fill-green,#readiness-card-v2 .rc-v2-glow,#readiness-card-v2 .rc-v2-ring{transition:none}}
+

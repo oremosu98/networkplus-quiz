@@ -32,7 +32,7 @@
   html[data-theme="light"] body { color: #1a1a2e; }
 </style>
 <link rel="stylesheet" href="styles.css">
-<link rel="stylesheet" href="dg-system.css?v=7.8.1">
+<link rel="stylesheet" href="dg-system.css?v=7.8.2">
 <!-- v5.5.1 — Fraunces display face for the editorial system (Home v3
      reimagining + cross-surface). Body stays the app font; Fraunces is
      scoped to display moments in dg-system.css. preconnect + display=swap
@@ -351,12 +351,14 @@
 
       <div class="card readiness-card reveal" style="--d:1" id="readiness-card-v2">
         <div class="readiness-eyebrow">Exam readiness &middot; scaled 100&ndash;900</div>
-        <div class="readiness-score"><span id="rc-v2-num">&mdash;</span><span>out of 900</span></div>
+        <div class="readiness-score"><span class="rc-v2-glow" aria-hidden="true"></span><svg class="rc-v2-ring" viewBox="0 0 600 320" preserveAspectRatio="none" aria-hidden="true"><path d="M306,26 C470,16 590,86 582,164 C574,250 432,300 292,296 C150,292 20,232 24,156 C28,78 152,30 318,32" fill="none" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"></path></svg><span id="rc-v2-num">&mdash;</span><span>out of 900</span></div>
         <div class="readiness-tier" id="rc-v2-tier" hidden></div>
         <div class="readiness-prob" id="rc-v2-prediction" hidden></div>
-        <div class="readiness-bar-track"><span class="readiness-bar-fill" id="rc-v2-bar-fill" style="width:0%"></span><div class="readiness-bar-mark" aria-hidden="true" style="left:62.5%"></div></div>
-        <div class="readiness-range"><span id="rc-v2-delta">&mdash;</span><span>pass mark <b>720</b></span></div>
+        <div class="readiness-bar-track"><span class="readiness-bar-fill" id="rc-v2-bar-fill" style="width:0%"></span><span class="rc-v2-bar-fill-green" id="rc-v2-bar-fill-green" style="width:0%"></span><div class="readiness-bar-mark" aria-hidden="true" style="left:62.5%"></div></div>
+        <div class="readiness-range"><span id="rc-v2-delta">&mdash;</span><span>pass mark <b id="rc-v2-passmark">720</b></span></div>
         <div class="readiness-traj" id="rc-v2-trajectory" hidden></div>
+        <div class="rc-v2-stamp" aria-hidden="true"><span class="txt">Exam ready</span><svg width="120" height="12" viewBox="0 0 120 12" preserveAspectRatio="none"><path d="M3,7 Q18,2 33,7 Q48,12 63,6 Q78,1 93,7 Q108,12 117,6" fill="none" stroke-width="3" stroke-linecap="round"></path></svg></div>
+        <div class="rc-v2-confetti" aria-hidden="true"></div>
       </div>
 
       <!-- Next best move (decision-tree CTA; renderNextBestMove fills the
