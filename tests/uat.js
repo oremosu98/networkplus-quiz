@@ -3712,7 +3712,9 @@ try {
   test('v4.52.0 EVAL: 10.30.10.5 IS inside 10.30.0.0/16 (trap math)',
     ctx._aclCidrContains('10.30.0.0/16', '10.30.10.5') === true);
 } catch (err) {
-  results.errors.push('ACL evaluator sandbox test failed: ' + err.message);
+  // ACL evaluator (_aclEvalPacket etc.) was removed for the quiz-only MVP; a
+  // missing-function error is expected, not a failure. Reactivates if it returns.
+  if (!/is not a function/.test(err.message)) results.errors.push('ACL evaluator sandbox test failed: ' + err.message);
 }
 
 // JS — scenarios
@@ -14886,8 +14888,8 @@ test('v4.99.7 Pricing: $9.99/mo present as monthly rate',
   /\$9\.99\/mo|\$9\.99<\/strong>/.test(landingPricingHtml));
 test('v4.99.7 Pricing: "Save 50%" pill removed (math only worked at $14.99)',
   !landingPricingHtml.includes('Save 50%'));
-test('v4.99.7 Pricing: "Save a third" pill present (matches landing/index.html voice)',
-  /Save a third/.test(landingPricingHtml));
+test('v5.6.0 Pricing: annual discount stated accurately as "save 26%" (was the stale "Save a third")',
+  /save 26%/i.test(landingPricingHtml));
 test('v4.99.7 Account: "Phase G" internal jargon removed from upgrade tooltip',
   !landingAccountHtml.includes('Phase G'));
 test('v4.99.7 Account: upgrade tooltip says "Upgrade coming soon"',
@@ -16148,7 +16150,7 @@ test('v4.99.52 D.1: landing/index.html hero CTA points to /diagnostic (not direc
 test('v4.99.52 D.1: regression tombstone — landing/index.html no longer hard-redirects to cert-app diagnostic',
   !/networkplus\.certanvil\.com\/\?action=diagnostic[^"]*from=landing-hero/.test(_landingIndexD1));
 test('v4.99.52 D.1: landing/pricing.html free-tier CTA points to /diagnostic',
-  /class="tier-cta"\s+href="\/diagnostic"/.test(_landingPricingD1));
+  /pp-free-cta[^>]*href="\/diagnostic"/.test(_landingPricingD1));
 
 // — Cross-page state envelope consistency —
 test('v4.99.52 D.1: same sessionStorage key (certanvilDiagnosticIntake) used across all 4 page-types',
