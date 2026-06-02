@@ -1,5 +1,5 @@
-// Service Worker v7.13.0 — Network+ Quiz App (Phase C′ cloud-first)
-const CACHE_NAME = 'netplus-v7.13.0';
+// Service Worker v7.13.1 — Network+ Quiz App (Phase C′ cloud-first)
+const CACHE_NAME = 'netplus-v7.13.1';
 const SHELL_ASSETS = [
   './',
   './index.html',
@@ -102,6 +102,14 @@ self.addEventListener('fetch', event => {
   // SW returned null after cache.put rejected. Pass-through preserves
   // the browser's normal CORS + credential handling.
   if (url.hostname.endsWith('.supabase.co') || url.hostname.endsWith('.supabase.in')) return;
+
+  // Pass ALL cross-origin requests (e.g. Google Fonts) straight to the network.
+  // Intercepting a no-cors cross-origin request makes fetch() return an opaque
+  // response (status 0, ok=false) the browser can't use for a <link> stylesheet
+  // or <script> — which surfaced as net::ERR_FAILED on the Fraunces Google Fonts
+  // stylesheet once CSP began allowing it. The SW only handles same-origin shell
+  // assets anyway, so cross-origin passthrough is strictly safer.
+  if (url.origin !== self.location.origin) return;
 
   // v4.63.0 — pass /vendor/ and /mockups/ through untouched. The vendored
   // Three.js bundle (~1.3 MB) would evict legitimate shell entries under
