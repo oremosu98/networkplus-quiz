@@ -1,0 +1,418 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CertAnvil — The Blueprint Draw</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:oklch(0.975 0.007 85); --bg-deep:oklch(0.955 0.012 82);
+    --surface:oklch(0.992 0.004 85); --surface-2:oklch(0.965 0.010 84);
+    --ink:oklch(0.22 0.015 280); --ink-soft:oklch(0.36 0.014 280); --muted:oklch(0.50 0.013 280);
+    --border:oklch(0.86 0.008 85); --border-soft:oklch(0.91 0.006 85);
+    --accent:oklch(0.50 0.155 55); --accent-bright:oklch(0.80 0.155 64); --accent-deep:oklch(0.42 0.150 52);
+    --on-accent:oklch(0.985 0.010 85);
+    --tile-top:#FFFDF8; --tile-bot:#FFF7EC;
+    --shadow-soft:0 1px 0 rgba(255,255,255,.55),0 18px 38px -18px oklch(0.22 0.015 280 / .20);
+    --shadow-tile:0 2px 4px oklch(0.22 0.015 280 / .05),0 22px 44px -20px oklch(0.22 0.015 280 / .24);
+    --ease-out:cubic-bezier(0.23,1,0.32,1);
+    --ease-in-out:cubic-bezier(0.77,0,0.175,1);
+    --ease-drawer:cubic-bezier(0.32,0.72,0,1);
+  }
+  [data-theme="dark"]{
+    --bg:oklch(0.16 0.009 275); --bg-deep:oklch(0.185 0.012 275);
+    --surface:oklch(0.205 0.009 275); --surface-2:oklch(0.185 0.009 275);
+    --ink:oklch(0.96 0.006 275); --ink-soft:oklch(0.78 0.010 275); --muted:oklch(0.60 0.013 275);
+    --border:oklch(0.30 0.008 275); --border-soft:oklch(0.26 0.008 275);
+    --accent:oklch(0.80 0.155 64); --accent-bright:oklch(0.86 0.140 70); --accent-deep:oklch(0.70 0.150 62);
+    --on-accent:oklch(0.18 0.020 275);
+    --shadow-soft:0 1px 0 rgba(255,255,255,.04),0 20px 40px -18px rgba(0,0,0,.55);
+    --shadow-tile:0 2px 4px rgba(0,0,0,.3),0 24px 46px -20px rgba(0,0,0,.6);
+  }
+  *{box-sizing:border-box;margin:0}
+  html,body{height:100%}
+  body{background:var(--bg);color:var(--ink);font-family:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif;-webkit-font-smoothing:antialiased}
+
+  .hero{min-height:100vh;display:flex;align-items:center;padding:clamp(28px,5vw,72px);overflow:hidden}
+  .hero-grid{width:100%;max-width:1180px;margin:0 auto;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(32px,5vw,72px);align-items:center}
+
+  /* ── left copy (IDENTICAL across all variants) ───────────────── */
+  .hero-copy{max-width:560px}
+  .eyebrow{display:inline-flex;align-items:center;gap:10px;font-size:12px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+  .eyebrow svg{width:15px;height:15px;display:block}
+  .title{font-family:'Fraunces',Georgia,serif;font-weight:600;font-size:clamp(34px,4.6vw,58px);line-height:1.02;letter-spacing:-.022em;color:var(--ink);margin:18px 0 0}
+  .title>span{display:block}
+  .title .forge{font-style:italic;font-weight:600;color:var(--accent)}
+  .sub{margin:20px 0 0;font-size:clamp(14px,1.05vw,15.5px);line-height:1.62;color:var(--ink-soft);max-width:46ch}
+  .proof{display:flex;align-items:center;gap:16px;margin:26px 0 0}
+  .proof-score{font-family:'Fraunces',Georgia,serif;font-weight:600;font-size:30px;letter-spacing:-.01em;color:var(--ink);font-variant-numeric:tabular-nums}
+  .proof-score s{color:var(--muted);text-decoration:none;font-weight:600;font-size:.62em}
+  .proof-div{width:1px;align-self:stretch;background:var(--border)}
+  .proof-text{font-size:13px;line-height:1.45;color:var(--ink-soft)}
+  .proof-text .live{display:inline-flex;align-items:center;gap:6px;font-weight:600;color:var(--accent)}
+  .proof-text .dot{width:7px;height:7px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 3px color-mix(in oklab,var(--accent) 20%,transparent)}
+  .proof-text small{color:var(--muted);font-size:12.5px}
+  .ctas{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:28px 0 0}
+  .cta-primary{position:relative;display:flex;flex-direction:column;gap:3px;background:var(--accent);color:var(--on-accent);padding:13px 22px;border-radius:13px;text-decoration:none;box-shadow:var(--shadow-soft);transition:transform 140ms var(--ease-out),background 200ms var(--ease-out)}
+  .cta-primary .cta-row{display:flex;align-items:center;gap:10px;font-size:15px;font-weight:600}
+  .cta-primary .cta-row svg{width:17px;height:17px;transition:transform 220ms var(--ease-out)}
+  .cta-primary .cta-meta{font-size:11px;font-weight:500;letter-spacing:.03em;text-transform:uppercase;color:color-mix(in oklab,var(--on-accent) 74%,transparent)}
+  @media (hover:hover){.cta-primary:hover{background:var(--accent-deep)}.cta-primary:hover .cta-row svg{transform:translateX(4px)}}
+  .cta-primary:active{transform:scale(0.975)}
+  .cta-secondary{display:inline-flex;align-items:center;gap:7px;font-size:14px;font-weight:600;color:var(--ink-soft);text-decoration:none;padding:12px 6px;transition:color 180ms var(--ease-out)}
+  .cta-secondary svg{width:15px;height:15px}
+  @media (hover:hover){.cta-secondary:hover{color:var(--accent)}}
+  .trust{display:flex;flex-wrap:wrap;gap:7px 18px;margin:26px 0 0;font-size:12.5px;color:var(--muted)}
+  .trust b{color:var(--ink-soft);font-weight:650}
+
+  /* ── right visual anchor ─────────────────────────────────────── */
+  .hero-art{position:relative;aspect-ratio:1/1;width:100%;max-width:540px;margin-left:auto}
+
+  /* entrance for left copy (Emil: ease-out, stagger, reduced-motion safe) */
+  .reveal{opacity:0;transform:translateY(14px);transition:opacity 560ms var(--ease-out),transform 560ms var(--ease-out)}
+  .ready .reveal{opacity:1;transform:none}
+  .ready .reveal[data-d="1"]{transition-delay:40ms}
+  .ready .reveal[data-d="2"]{transition-delay:110ms}
+  .ready .reveal[data-d="3"]{transition-delay:180ms}
+  .ready .reveal[data-d="4"]{transition-delay:250ms}
+  .ready .reveal[data-d="5"]{transition-delay:320ms}
+  .ready .reveal[data-d="6"]{transition-delay:390ms}
+
+  /* chrome */
+  .theme-toggle{position:fixed;top:18px;right:18px;z-index:50;width:40px;height:40px;border-radius:999px;border:1px solid var(--border);background:var(--surface);color:var(--ink);font-size:16px;cursor:pointer;display:grid;place-items:center;transition:transform 140ms var(--ease-out),border-color 200ms var(--ease-out)}
+  .theme-toggle:active{transform:scale(0.94)}
+  .caption{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);z-index:50;font-size:12px;color:var(--muted);letter-spacing:.02em}
+
+  @media (max-width:900px){
+    .hero-grid{grid-template-columns:1fr;gap:44px}
+    .hero-copy{max-width:none}
+    .hero-art{margin:0 auto;max-width:440px}
+  }
+  @media (prefers-reduced-motion:reduce){
+    .reveal{transition:opacity 240ms ease!important;transform:none!important}
+    .ready .reveal{transform:none!important}
+  }
+
+  /* ===== RIGHT-VISUAL CSS — inject below this line ===== */
+  .bp{position:absolute;inset:0;width:100%;height:100%;display:block;
+      border-radius:18px;background:var(--surface);
+      border:1px solid var(--border-soft);box-shadow:var(--shadow-tile);
+      overflow:hidden}
+  .bp svg{position:absolute;inset:0;width:100%;height:100%;display:block}
+
+  /* faint plate tint — like a sheet of drafting film */
+  .bp::before{content:"";position:absolute;inset:0;pointer-events:none;
+      background:radial-gradient(120% 100% at 78% 12%,
+        color-mix(in oklab,var(--accent) 6%,transparent),transparent 60%);
+      opacity:.7}
+
+  /* ── stroke tokens ─────────────────────────────────────── */
+  .bp-hair{fill:none;stroke:var(--border);stroke-width:1;vector-effect:non-scaling-stroke}
+  .bp-tick{fill:none;stroke:var(--muted);stroke-width:1;vector-effect:non-scaling-stroke}
+  .bp-ink{fill:none;stroke:var(--accent);stroke-width:1.4;vector-effect:non-scaling-stroke;
+          stroke-linecap:round;stroke-linejoin:round}
+  .bp-ink-soft{fill:none;stroke:color-mix(in oklab,var(--accent) 62%,transparent);
+          stroke-width:1.2;vector-effect:non-scaling-stroke;stroke-linecap:round}
+  [data-theme="dark"] .bp-ink{filter:drop-shadow(0 0 3px color-mix(in oklab,var(--accent) 45%,transparent))}
+  [data-theme="dark"] .bp-ink-soft{filter:drop-shadow(0 0 2px color-mix(in oklab,var(--accent) 30%,transparent))}
+
+  /* ── annotation text ───────────────────────────────────── */
+  .bp text{font-family:'Inter',system-ui,sans-serif}
+  .bp-label{fill:var(--ink);font-size:7.9px;font-weight:600;letter-spacing:.005em}
+  .bp-wt{fill:var(--accent);font-size:7.6px;font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:.02em}
+  .bp-anno{fill:var(--muted);font-size:6.4px;font-weight:500;letter-spacing:.16em;text-transform:uppercase}
+  .bp-anno-soft{fill:var(--muted);font-size:5.8px;font-weight:500;letter-spacing:.12em}
+  .bp-seal-label{font-family:'Fraunces',Georgia,serif;fill:var(--ink);font-size:9px;font-weight:600;letter-spacing:.01em}
+  .bp-seal-sub{fill:var(--muted);font-size:6px;font-weight:500;letter-spacing:.16em;text-transform:uppercase}
+  .bp-readout{font-family:'Fraunces',Georgia,serif;fill:var(--ink);font-size:11px;font-weight:600;letter-spacing:-.005em}
+  .bp-readout .n{fill:var(--accent)}
+
+  /* ── DRAW-ON mechanics (transform/opacity/dashoffset only) ── */
+  .bp-guides{opacity:0;transition:opacity 520ms var(--ease-out)}
+  .bp.run .bp-guides{opacity:1}
+
+  .bp-draw{stroke-dasharray:var(--len,400);stroke-dashoffset:var(--len,400)}
+  .bp.run .bp-seal-rect{transition:stroke-dashoffset 520ms var(--ease-out) 380ms;stroke-dashoffset:0}
+  .bp.run .bp-branch{transition:stroke-dashoffset 360ms var(--ease-out);stroke-dashoffset:0}
+  .bp.run .bp-branch[data-i="0"]{transition-delay:820ms}
+  .bp.run .bp-branch[data-i="1"]{transition-delay:880ms}
+  .bp.run .bp-branch[data-i="2"]{transition-delay:940ms}
+  .bp.run .bp-branch[data-i="3"]{transition-delay:1000ms}
+  .bp.run .bp-branch[data-i="4"]{transition-delay:1060ms}
+
+  /* node module: pops once as its branch completes (no scale(0)) */
+  .bp-node{opacity:0;transform:scale(0.92);transform-box:fill-box;transform-origin:center;
+           transition:opacity 320ms var(--ease-out),transform 360ms var(--ease-out)}
+  .bp.run .bp-node{opacity:1;transform:scale(1)}
+  .bp.run .bp-node[data-i="0"]{transition-delay:1080ms}
+  .bp.run .bp-node[data-i="1"]{transition-delay:1140ms}
+  .bp.run .bp-node[data-i="2"]{transition-delay:1200ms}
+  .bp.run .bp-node[data-i="3"]{transition-delay:1260ms}
+  .bp.run .bp-node[data-i="4"]{transition-delay:1320ms}
+
+  /* node labels fade up just after their module */
+  .bp-ntext{opacity:0;transform:translateY(4px);transform-box:fill-box;
+            transition:opacity 300ms var(--ease-out),transform 300ms var(--ease-out)}
+  .bp.run .bp-ntext{opacity:1;transform:none}
+  .bp.run .bp-ntext[data-i="0"]{transition-delay:1200ms}
+  .bp.run .bp-ntext[data-i="1"]{transition-delay:1260ms}
+  .bp.run .bp-ntext[data-i="2"]{transition-delay:1320ms}
+  .bp.run .bp-ntext[data-i="3"]{transition-delay:1380ms}
+  .bp.run .bp-ntext[data-i="4"]{transition-delay:1440ms}
+
+  /* weak-spot marker on Network Security */
+  .bp-weak{opacity:0;transform:scale(0.6);transform-box:fill-box;transform-origin:center;
+           transition:opacity 280ms var(--ease-out) 1560ms,transform 320ms var(--ease-out) 1560ms}
+  .bp.run .bp-weak{opacity:1;transform:scale(1)}
+  .bp-weak-dot{fill:var(--accent)}
+  [data-theme="dark"] .bp-weak-dot{filter:drop-shadow(0 0 3px color-mix(in oklab,var(--accent) 60%,transparent))}
+  .bp-weak-txt{fill:var(--accent);font-size:6.2px;font-weight:600;letter-spacing:.06em}
+
+  /* completion readout stamps at the end + a faint settle */
+  .bp-stamp{opacity:0;transform:translateY(5px) scale(0.985);transform-box:fill-box;transform-origin:left center}
+  .bp.run .bp-stamp{opacity:1;transform:none;transition:opacity 300ms var(--ease-out) 1640ms,transform 460ms var(--ease-out) 1640ms}
+
+  /* replay control */
+  .bp-replay{position:absolute;left:14px;bottom:12px;z-index:2;
+      display:inline-flex;align-items:center;gap:6px;
+      font-family:'Inter',sans-serif;font-size:10.5px;font-weight:500;letter-spacing:.04em;
+      color:var(--muted);background:transparent;border:0;padding:4px 6px;cursor:pointer;
+      border-radius:8px;transition:color 180ms var(--ease-out),transform 140ms var(--ease-out)}
+  .bp-replay .gl{display:inline-block;font-size:11px;transition:transform 420ms var(--ease-out)}
+  .bp-replay:active{transform:scale(0.96)}
+  @media (hover:hover) and (pointer:fine){
+    .bp-replay:hover{color:var(--accent)}
+    .bp-replay:hover .gl{transform:rotate(-200deg)}
+  }
+
+  @media (prefers-reduced-motion:reduce){
+    .bp-guides,.bp-node,.bp-ntext,.bp-weak,.bp-stamp{opacity:1!important;transform:none!important;transition:none!important}
+    .bp-draw{stroke-dashoffset:0!important;transition:none!important}
+  }
+  /* ===== /RIGHT-VISUAL CSS ===== */
+</style>
+</head>
+<body>
+  <button class="theme-toggle" id="theme-toggle" aria-label="Toggle theme">☾</button>
+  <div class="caption" id="caption">Variant 5 · The Blueprint Draw</div>
+
+  <main class="hero" id="hero">
+    <div class="hero-grid">
+      <div class="hero-copy">
+        <span class="eyebrow reveal" data-d="1">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4l6 6-9 9H5v-6z"/><path d="M12 6l6 6"/></svg>
+          AI cert practice, forged from CompTIA blueprints
+        </span>
+        <h1 class="title reveal" data-d="2">
+          <span><span class="forge">Forge</span> your way</span>
+          <span>through every</span>
+          <span>CompTIA cert.</span>
+        </h1>
+        <p class="sub reveal" data-d="3">
+          Questions written from the real exam objectives and checked by a
+          seven-layer AI engine. You drill what you keep getting wrong, until
+          the score sticks.
+        </p>
+        <div class="proof reveal" data-d="4">
+          <span class="proof-score">767<s>&thinsp;/&thinsp;900</s></span>
+          <span class="proof-div"></span>
+          <span class="proof-text">
+            <span class="live"><span class="dot"></span>Network+ N10-009 · passed</span><br>
+            <small>Built and passed with this tool on 2026-05-05.</small>
+          </span>
+        </div>
+        <div class="ctas reveal" data-d="5">
+          <a class="cta-primary" href="#">
+            <span class="cta-row">Take the baseline diagnostic
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+            </span>
+            <span class="cta-meta">About 20 minutes · Free · No account</span>
+          </a>
+          <a class="cta-secondary" href="#">Or pick a cert
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+          </a>
+        </div>
+        <div class="trust reveal" data-d="6">
+          <span><b>5</b>&nbsp;N10-009 domains</span>
+          <span><b>7-layer</b>&nbsp;AI validation</span>
+          <span><b>No</b>&nbsp;repeated questions</span>
+        </div>
+      </div>
+
+      <div class="hero-art" id="hero-art" aria-hidden="true">
+        <!-- ===== RIGHT-VISUAL MARKUP — inject inside #hero-art ===== -->
+        <div class="bp" id="bp">
+          <svg viewBox="0 0 340 340" role="img" aria-label="Network+ N10-009 exam blueprint, drawn as a technical schematic plate with five weighted domains">
+
+            <!-- ── corner guides / title block / registration (fade in first) ── -->
+            <g class="bp-guides">
+              <!-- plate frame -->
+              <rect class="bp-hair" x="16" y="16" width="308" height="308" rx="3"/>
+              <rect class="bp-hair" x="22" y="22" width="296" height="296" rx="2" opacity=".5"/>
+
+              <!-- corner registration ticks -->
+              <path class="bp-tick" d="M16 36 H30 M36 16 V30"/>
+              <path class="bp-tick" d="M324 36 H310 M304 16 V30"/>
+              <path class="bp-tick" d="M16 304 H30 M36 324 V310"/>
+              <path class="bp-tick" d="M324 304 H310 M304 324 V310"/>
+
+              <!-- faint guide lines -->
+              <path class="bp-hair" d="M16 56 H324" opacity=".3"/>
+              <path class="bp-hair" d="M16 300 H324" opacity=".3"/>
+
+              <!-- corner title block (top-left) -->
+              <text class="bp-anno" x="30" y="42">BLUEPRINT-WEIGHTED · CertAnvil</text>
+              <text class="bp-anno-soft" x="30" y="51">PLATE N10-009 · REV. A · SHEET 1/1</text>
+
+              <!-- dimension marks (far right edge) -->
+              <path class="bp-tick" d="M312 120 V236 M309 120 H315 M309 236 H315"/>
+              <text class="bp-anno-soft" x="305" y="181" text-anchor="middle" transform="rotate(-90 305 181)">5 DOMAINS</text>
+
+              <!-- scale annotation (bottom band, left) -->
+              <text class="bp-anno-soft" x="30" y="315">DOMAIN WEIGHTS · % OF EXAM</text>
+            </g>
+
+            <!-- ── branch connectors (draw outward, staggered) ── -->
+            <!-- intentionally varied angles, asymmetric -->
+            <path class="bp-ink-soft bp-branch bp-draw" data-i="0" d="M118 138 L168 86"/>
+            <path class="bp-ink-soft bp-branch bp-draw" data-i="1" d="M152 150 L232 128"/>
+            <path class="bp-ink-soft bp-branch bp-draw" data-i="2" d="M154 172 L238 200"/>
+            <path class="bp-ink-soft bp-branch bp-draw" data-i="3" d="M120 188 L204 256"/>
+            <path class="bp-ink-soft bp-branch bp-draw" data-i="4" d="M82 184 L74 244"/>
+
+            <!-- ── central anchor block / seal (draws ~500ms) ── -->
+            <g>
+              <rect class="bp-ink bp-seal-rect bp-draw" x="54" y="134" width="100" height="56" rx="4"/>
+              <rect class="bp-hair" x="60" y="140" width="88" height="44" rx="2" opacity=".5"/>
+              <!-- seal corner notches -->
+              <path class="bp-ink-soft" d="M54 146 V140 H60 M148 140 H154 V146 M54 178 V184 H60 M148 184 H154 V178" opacity=".8"/>
+              <text class="bp-seal-label" x="104" y="159" text-anchor="middle">N10-009</text>
+              <text class="bp-seal-sub" x="104" y="172" text-anchor="middle">EXAM BLUEPRINT</text>
+              <circle class="bp-ink-soft" cx="104" cy="178" r="2.2"/>
+            </g>
+
+            <!-- ── 5 domain modules (pop in) ── -->
+            <!-- each module: tick gutter (left) · name · weight (right), all inside the box -->
+
+            <!-- module 0 · Networking Concepts 23% (top) -->
+            <g class="bp-node" data-i="0">
+              <rect class="bp-ink" x="148" y="64" width="128" height="26" rx="3"/>
+              <path class="bp-tick" d="M156 77 h5" opacity=".7"/>
+              <path class="bp-tick" d="M254 70 V84" opacity=".55"/>
+            </g>
+            <g class="bp-ntext" data-i="0">
+              <text class="bp-label" x="165" y="80">Networking Concepts</text>
+              <text class="bp-wt" x="269" y="80" text-anchor="end">23%</text>
+            </g>
+
+            <!-- module 1 · Network Implementation 20% (upper right) -->
+            <g class="bp-node" data-i="1">
+              <rect class="bp-ink" x="226" y="116" width="88" height="26" rx="3"/>
+              <path class="bp-tick" d="M234 129 h5" opacity=".7"/>
+              <path class="bp-tick" d="M288 122 V136" opacity=".55"/>
+            </g>
+            <g class="bp-ntext" data-i="1">
+              <text class="bp-label" x="243" y="132">Implement.</text>
+              <text class="bp-wt" x="309" y="132" text-anchor="end">20%</text>
+            </g>
+
+            <!-- module 2 · Network Operations 19% (right) -->
+            <g class="bp-node" data-i="2">
+              <rect class="bp-ink" x="226" y="190" width="88" height="26" rx="3"/>
+              <path class="bp-tick" d="M234 203 h5" opacity=".7"/>
+              <path class="bp-tick" d="M288 196 V210" opacity=".55"/>
+            </g>
+            <g class="bp-ntext" data-i="2">
+              <text class="bp-label" x="243" y="206">Operations</text>
+              <text class="bp-wt" x="309" y="206" text-anchor="end">19%</text>
+            </g>
+
+            <!-- module 3 · Network Security 19% (lower right) · WEAK SPOT -->
+            <g class="bp-node" data-i="3">
+              <rect class="bp-ink" x="196" y="252" width="84" height="26" rx="3"/>
+              <path class="bp-tick" d="M204 265 h5" opacity=".7"/>
+              <path class="bp-tick" d="M252 258 V272" opacity=".55"/>
+            </g>
+            <g class="bp-ntext" data-i="3">
+              <text class="bp-label" x="213" y="268">Security</text>
+              <text class="bp-wt" x="273" y="268" text-anchor="end">19%</text>
+            </g>
+            <g class="bp-weak">
+              <circle class="bp-weak-dot" cx="206" cy="265" r="2.6"/>
+              <circle class="bp-ink-soft" cx="206" cy="265" r="5.4" opacity=".7"/>
+              <text class="bp-weak-txt" x="238" y="290" text-anchor="middle">↳ routed next</text>
+            </g>
+
+            <!-- module 4 · Network Troubleshooting 22% (lower left) -->
+            <g class="bp-node" data-i="4">
+              <rect class="bp-ink" x="34" y="252" width="112" height="26" rx="3"/>
+              <path class="bp-tick" d="M42 265 h5" opacity=".7"/>
+              <path class="bp-tick" d="M118 258 V272" opacity=".55"/>
+            </g>
+            <g class="bp-ntext" data-i="4">
+              <text class="bp-label" x="53" y="268">Troubleshooting</text>
+              <text class="bp-wt" x="139" y="268" text-anchor="end">22%</text>
+            </g>
+
+            <!-- ── completion readout (stamps at the end) ── -->
+            <g class="bp-stamp">
+              <path class="bp-ink-soft" d="M58 226 V206 H64" opacity=".55"/>
+              <text class="bp-readout" x="70" y="214">blueprint mapped</text>
+              <text class="bp-readout n" x="70" y="230">78% forged</text>
+            </g>
+
+          </svg>
+          <button class="bp-replay" id="bp-replay" type="button" aria-label="Replay drawing"><span class="gl" aria-hidden="true">↻</span>replay</button>
+        </div>
+        <!-- ===== /RIGHT-VISUAL MARKUP ===== -->
+      </div>
+    </div>
+  </main>
+
+  <script>
+    /* left-copy entrance trigger */
+    requestAnimationFrame(function(){requestAnimationFrame(function(){document.getElementById('hero').classList.add('ready');});});
+    /* theme toggle */
+    (function(){var t=document.getElementById('theme-toggle');t.addEventListener('click',function(){var d=document.documentElement.getAttribute('data-theme')==='dark';document.documentElement.setAttribute('data-theme',d?'light':'dark');t.textContent=d?'☾':'☀';});})();
+
+    /* ===== RIGHT-VISUAL JS — inject below this line ===== */
+    (function(){
+      var bp = document.getElementById('bp');
+      if(!bp) return;
+      var reduce = window.matchMedia('(prefers-reduced-motion:reduce)');
+
+      // measure each draw path so the dash-length matches its geometry
+      var draws = bp.querySelectorAll('.bp-draw');
+      function measure(){
+        draws.forEach(function(p){
+          var len;
+          try{ len = p.getTotalLength(); }catch(e){ len = 400; }
+          len = Math.ceil(len) + 1;
+          p.style.setProperty('--len', len);
+        });
+      }
+      measure();
+
+      function play(){
+        if(reduce.matches){ bp.classList.add('run'); return; }
+        bp.classList.remove('run');
+        // force reflow so the dashoffset reset takes before re-running
+        void bp.getBoundingClientRect();
+        requestAnimationFrame(function(){
+          requestAnimationFrame(function(){ bp.classList.add('run'); });
+        });
+      }
+
+      // initial draw
+      play();
+
+      var btn = document.getElementById('bp-replay');
+      if(btn) btn.addEventListener('click', function(){ measure(); play(); });
+    })();
+    /* ===== /RIGHT-VISUAL JS ===== */
+  </script>
+</body>
+</html>

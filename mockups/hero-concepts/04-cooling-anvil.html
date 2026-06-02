@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CertAnvil — Concept 04 · Cooling Anvil</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:oklch(0.975 0.007 85);
+    --bg-deep:oklch(0.955 0.012 82);
+    --surface:oklch(0.992 0.004 85);
+    --surface-2:oklch(0.965 0.010 84);
+    --ink:oklch(0.22 0.015 280);
+    --ink-soft:oklch(0.36 0.014 280);
+    --muted:oklch(0.50 0.013 280);
+    --border:oklch(0.86 0.008 85);
+    --border-soft:oklch(0.91 0.006 85);
+    --accent:oklch(0.50 0.155 55);
+    --accent-bright:oklch(0.80 0.155 64);
+    --accent-deep:oklch(0.42 0.150 52);
+    --on-accent:oklch(0.985 0.010 85);
+    --white-hot:oklch(0.96 0.06 80);
+
+    --ease-out:cubic-bezier(0.23,1,0.32,1);
+    --ease-in-out:cubic-bezier(0.77,0,0.175,1);
+
+    /* light mode bar treatment */
+    --bar-tail:oklch(0.40 0.020 60);
+    --edge-line:oklch(0.30 0.020 60);
+    --ambient-bloom:transparent;
+    --stamp-deboss-dark:oklch(0.30 0.030 55 / 0.55);
+    --stamp-deboss-light:oklch(0.92 0.040 85 / 0.65);
+    --stamp-ink:oklch(0.34 0.060 55);
+  }
+  html[data-theme="dark"]{
+    --bg:oklch(0.16 0.009 275);
+    --bg-deep:oklch(0.185 0.012 275);
+    --surface:oklch(0.205 0.009 275);
+    --surface-2:oklch(0.185 0.009 275);
+    --ink:oklch(0.96 0.006 275);
+    --ink-soft:oklch(0.78 0.010 275);
+    --muted:oklch(0.60 0.013 275);
+    --border:oklch(0.30 0.008 275);
+    --border-soft:oklch(0.26 0.008 275);
+    --accent:oklch(0.80 0.155 64);
+    --accent-bright:oklch(0.86 0.140 70);
+    --accent-deep:oklch(0.70 0.150 62);
+    --on-accent:oklch(0.18 0.020 275);
+    --white-hot:oklch(0.96 0.06 80);
+
+    --bar-tail:oklch(0.24 0.012 280);
+    --edge-line:oklch(0.92 0.050 80);
+    --ambient-bloom:oklch(0.62 0.13 60 / 0.10);
+    --stamp-deboss-dark:oklch(0.12 0.020 55 / 0.70);
+    --stamp-deboss-light:oklch(0.78 0.090 70 / 0.40);
+    --stamp-ink:oklch(0.16 0.030 60);
+  }
+
+  *{box-sizing:border-box;margin:0;padding:0;}
+
+  html,body{height:100%;}
+  body{
+    background:
+      radial-gradient(120% 90% at 78% 42%, var(--ambient-bloom), transparent 60%),
+      linear-gradient(180deg, var(--bg) 0%, var(--bg-deep) 100%);
+    color:var(--ink);
+    font-family:"Inter",system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+    overflow-x:hidden;
+  }
+
+  /* ---------- THEME TOGGLE ---------- */
+  .theme-toggle{
+    position:fixed;top:20px;right:20px;z-index:50;
+    width:42px;height:42px;border-radius:50%;
+    border:1px solid var(--border);
+    background:var(--surface);
+    color:var(--ink-soft);
+    font-size:17px;line-height:1;
+    display:grid;place-items:center;cursor:pointer;
+    transition:transform .4s var(--ease-out), background-color .4s var(--ease-out), border-color .4s var(--ease-out);
+    box-shadow:0 1px 3px oklch(0 0 0 / 0.10);
+  }
+  @media (hover:hover) and (pointer:fine){
+    .theme-toggle:hover{ background:var(--surface-2); transform:translateY(-1px); }
+  }
+  .theme-toggle:active{ transform:scale(0.97); }
+  .theme-toggle .sun{display:none;}
+  .theme-toggle .moon{display:block;}
+  html[data-theme="dark"] .theme-toggle .sun{display:block;}
+  html[data-theme="dark"] .theme-toggle .moon{display:none;}
+
+  /* ---------- LAYOUT ---------- */
+  .hero{
+    position:relative;
+    min-height:100vh;
+    display:grid;
+    grid-template-columns:minmax(0,1fr) minmax(0,1.08fr);
+    align-items:center;
+    gap:clamp(2rem,5vw,5.5rem);
+    max-width:1280px;
+    margin:0 auto;
+    padding:clamp(4rem,9vh,7rem) clamp(1.4rem,5vw,4rem);
+  }
+
+  /* ---------- LEFT COLUMN ---------- */
+  .copy{
+    max-width:36rem;
+    position:relative;
+    z-index:2;
+  }
+  .eyebrow{
+    font-size:0.72rem;
+    font-weight:600;
+    letter-spacing:0.16em;
+    text-transform:uppercase;
+    color:var(--accent);
+    margin-bottom:1.5rem;
+    display:flex;align-items:center;gap:0.7rem;
+  }
+  .eyebrow::before{
+    content:"";width:1.6rem;height:1px;
+    background:linear-gradient(90deg,var(--accent),transparent);
+  }
+  h1{
+    font-family:"Fraunces",serif;
+    font-weight:600;
+    font-size:clamp(2.5rem,6vw,4.3rem);
+    line-height:1.02;
+    letter-spacing:-0.018em;
+    color:var(--ink);
+    margin-bottom:1.5rem;
+    font-optical-sizing:auto;
+  }
+  h1 .forge{
+    font-style:italic;
+    font-weight:600;
+    color:var(--accent);
+  }
+  .subhead{
+    font-size:clamp(1rem,1.4vw,1.12rem);
+    line-height:1.62;
+    color:var(--ink-soft);
+    max-width:32rem;
+    margin-bottom:2.25rem;
+  }
+  .subhead b{ color:var(--ink); font-weight:600; }
+
+  .actions{
+    display:flex;align-items:center;gap:1.1rem;flex-wrap:wrap;
+  }
+  .btn{
+    font-family:"Inter",sans-serif;
+    font-size:0.95rem;font-weight:600;
+    border-radius:11px;
+    padding:0.85rem 1.4rem;
+    cursor:pointer;
+    border:1px solid transparent;
+    transition:transform .45s var(--ease-out), background-color .45s var(--ease-out), box-shadow .45s var(--ease-out), border-color .45s var(--ease-out), color .45s var(--ease-out);
+    position:relative;
+    overflow:hidden;
+  }
+  .btn-primary{
+    background:linear-gradient(180deg, var(--accent-bright), var(--accent));
+    color:var(--on-accent);
+    box-shadow:0 1px 0 oklch(1 0 0 / 0.25) inset, 0 6px 20px oklch(0.55 0.15 55 / 0.30);
+  }
+  .btn-ghost{
+    background:transparent;
+    color:var(--ink-soft);
+    border-color:var(--border);
+  }
+  @media (hover:hover) and (pointer:fine){
+    .btn-primary:hover{ transform:translateY(-1px); box-shadow:0 1px 0 oklch(1 0 0 / 0.30) inset, 0 10px 28px oklch(0.55 0.15 55 / 0.38); }
+    .btn-ghost:hover{ border-color:var(--accent); color:var(--ink); background:var(--surface); }
+  }
+  .btn:active{ transform:scale(0.97); }
+
+  /* heat-bloom ripple on primary click */
+  .bloom{
+    position:absolute;
+    border-radius:50%;
+    pointer-events:none;
+    background:radial-gradient(circle, var(--white-hot), oklch(0.85 0.14 65 / 0.35) 45%, transparent 70%);
+    transform:translate(-50%,-50%) scale(0);
+    opacity:0.85;
+    mix-blend-mode:screen;
+  }
+  @keyframes bloomOut{
+    0%{ transform:translate(-50%,-50%) scale(0); opacity:0.85; }
+    100%{ transform:translate(-50%,-50%) scale(1); opacity:0; }
+  }
+
+  /* ---------- RIGHT COLUMN: THE BAR ---------- */
+  .stage{
+    position:relative;
+    z-index:1;
+    display:flex;
+    justify-content:flex-end;
+    align-items:center;
+  }
+  .billet{
+    position:relative;
+    width:min(100%,560px);
+    will-change:transform,opacity;
+    opacity:0;
+    transform:translateY(38px);
+  }
+  .billet.in{
+    animation:billetArrive 1.05s var(--ease-out) forwards;
+  }
+  @keyframes billetArrive{
+    0%{ opacity:0; transform:translateY(38px); }
+    70%{ opacity:1; transform:translateY(-3px); }
+    100%{ opacity:1; transform:translateY(0); }
+  }
+  .billet svg{ display:block; width:100%; height:auto; overflow:visible; }
+
+  /* specular readiness edge sharpening */
+  .spec-edge{
+    opacity:0.4;
+    filter:blur(2px);
+    transition:opacity .9s var(--ease-out), filter .9s var(--ease-out);
+  }
+  .billet.in .spec-edge{
+    opacity:1;
+    filter:blur(0px);
+  }
+
+  /* sub-threshold anneal drift on the white-hot zone */
+  .hot-zone{ transform-box:fill-box; transform-origin:center; }
+  .billet.in .hot-zone{
+    animation:anneal 9s var(--ease-in-out) infinite alternate;
+  }
+  @keyframes anneal{
+    0%{ opacity:0.96; }
+    100%{ opacity:0.88; }
+  }
+
+  /* spark */
+  .spark{
+    position:absolute;
+    width:3.5px;height:3.5px;border-radius:50%;
+    background:radial-gradient(circle, var(--white-hot), var(--accent-bright) 60%, transparent 75%);
+    pointer-events:none;
+    opacity:0;
+    box-shadow:0 0 5px oklch(0.85 0.12 70 / 0.6);
+    will-change:transform,opacity;
+  }
+  @keyframes sparkArc{
+    0%{ transform:translate(0,0) scale(1); opacity:0; }
+    12%{ opacity:1; }
+    100%{ transform:translate(var(--dx),var(--dy)) scale(0.4); opacity:0; }
+  }
+
+  .stamp-note{
+    margin-top:1.1rem;
+    text-align:right;
+    font-size:0.72rem;
+    letter-spacing:0.04em;
+    color:var(--muted);
+    font-style:italic;
+  }
+
+  /* ---------- CAPTION ---------- */
+  .caption{
+    position:fixed;
+    left:50%;bottom:16px;transform:translateX(-50%);
+    z-index:40;
+    font-size:0.7rem;
+    letter-spacing:0.1em;
+    color:var(--muted);
+    text-transform:uppercase;
+  }
+
+  /* ---------- RESPONSIVE ---------- */
+  @media (max-width:920px){
+    .hero{
+      grid-template-columns:1fr;
+      gap:2.6rem;
+      padding-top:6rem;
+    }
+    .copy{ max-width:none; }
+    .stage{ justify-content:flex-start; }
+    .billet{ width:100%; }
+    .stamp-note{ text-align:left; }
+  }
+  @media (max-width:440px){
+    .hero{ padding:5.5rem 1.25rem 4rem; }
+    h1{ font-size:2.35rem; }
+    .actions{ flex-direction:column; align-items:stretch; }
+    .btn{ text-align:center; }
+  }
+
+  /* ---------- REDUCED MOTION ---------- */
+  @media (prefers-reduced-motion:reduce){
+    .billet{ opacity:1; transform:none; animation:none; }
+    .billet.in{ animation:none; }
+    .spec-edge{ opacity:1; filter:none; transition:none; }
+    .billet.in .hot-zone{ animation:none; opacity:0.92; }
+    .btn{ transition:background-color .2s, border-color .2s, color .2s; }
+    .spark{ display:none; }
+    .theme-toggle{ transition:none; }
+  }
+</style>
+</head>
+<body>
+
+<button class="theme-toggle" id="themeToggle" aria-label="Toggle color theme">
+  <span class="moon">&#9790;</span>
+  <span class="sun">&#9728;</span>
+</button>
+
+<main class="hero">
+  <section class="copy">
+    <p class="eyebrow">AI Cert Practice · Forged From CompTIA Blueprints</p>
+    <h1><span class="forge">Forge</span> your way through every CompTIA cert.</h1>
+    <p class="subhead">Fresh exam questions every session, validated seven ways, scored to the real blueprint. <b>Walk in knowing, not hoping.</b></p>
+    <div class="actions">
+      <button class="btn btn-primary" id="primaryCta">Start the baseline diagnostic &rarr;</button>
+      <button class="btn btn-ghost">See how it works</button>
+    </div>
+  </section>
+
+  <section class="stage">
+    <div class="billet" id="billet">
+      <svg viewBox="0 0 560 188" role="img" aria-label="A cooling forged bronze billet stamped with the proof 767 of 900, N10-009, passed.">
+        <defs>
+          <!-- heat gradient: white-hot working edge (right) -> forged body -> cool tail (left) -->
+          <linearGradient id="heat" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0"    stop-color="var(--bar-tail)"/>
+            <stop offset="0.30" stop-color="var(--accent-deep)"/>
+            <stop offset="0.62" stop-color="var(--accent)"/>
+            <stop offset="0.86" stop-color="var(--accent-bright)"/>
+            <stop offset="1"    stop-color="var(--white-hot)"/>
+          </linearGradient>
+
+          <!-- top-to-bottom shading to round the bar -->
+          <linearGradient id="round" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0"   stop-color="oklch(1 0 0 / 0.22)"/>
+            <stop offset="0.18" stop-color="oklch(1 0 0 / 0.04)"/>
+            <stop offset="0.55" stop-color="oklch(0 0 0 / 0)"/>
+            <stop offset="1"   stop-color="oklch(0 0 0 / 0.30)"/>
+          </linearGradient>
+
+          <!-- modest glow at the working edge -->
+          <radialGradient id="edgeGlow" cx="0.96" cy="0.5" r="0.5">
+            <stop offset="0"   stop-color="var(--white-hot)" stop-opacity="0.55"/>
+            <stop offset="0.5" stop-color="var(--accent-bright)" stop-opacity="0.18"/>
+            <stop offset="1"   stop-color="var(--accent-bright)" stop-opacity="0"/>
+          </radialGradient>
+
+          <linearGradient id="specGrad" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0"    stop-color="oklch(1 0 0 / 0.0)"/>
+            <stop offset="0.25" stop-color="oklch(1 0 0 / 0.55)"/>
+            <stop offset="0.80" stop-color="oklch(1 0 0 / 0.9)"/>
+            <stop offset="1"    stop-color="var(--white-hot)"/>
+          </linearGradient>
+
+          <clipPath id="barClip">
+            <rect x="14" y="40" width="532" height="108" rx="20"/>
+          </clipPath>
+
+          <filter id="glowBlur" x="-30%" y="-60%" width="160%" height="220%">
+            <feGaussianBlur stdDeviation="9"/>
+          </filter>
+        </defs>
+
+        <!-- ambient bloom behind working edge (modest) -->
+        <ellipse class="hot-zone" cx="520" cy="94" rx="120" ry="70" fill="url(#edgeGlow)" filter="url(#glowBlur)"/>
+
+        <!-- soft cast shadow under the bar -->
+        <ellipse cx="285" cy="160" rx="250" ry="16" fill="oklch(0 0 0 / 0.18)" filter="url(#glowBlur)"/>
+
+        <!-- the billet body -->
+        <g clip-path="url(#barClip)">
+          <rect x="14" y="40" width="532" height="108" fill="url(#heat)"/>
+          <rect x="14" y="40" width="532" height="108" fill="url(#round)"/>
+
+          <!-- debossed maker's mark stamp -->
+          <g class="stamp">
+            <!-- deboss recess: dark inner top-left, light bronze edge bottom-right -->
+            <rect x="44" y="70" width="232" height="48" rx="9"
+                  fill="oklch(0 0 0 / 0.16)"
+                  stroke="var(--stamp-deboss-dark)" stroke-width="1.4"/>
+            <rect x="44" y="71.4" width="232" height="46" rx="9"
+                  fill="none"
+                  stroke="var(--stamp-deboss-light)" stroke-width="1"/>
+            <text x="160" y="91" text-anchor="middle"
+                  font-family="Inter, sans-serif" font-weight="700"
+                  font-size="16.5" letter-spacing="1.2"
+                  fill="var(--stamp-ink)" style="paint-order:stroke;">767 / 900</text>
+            <text x="160" y="109" text-anchor="middle"
+                  font-family="Inter, sans-serif" font-weight="600"
+                  font-size="10.5" letter-spacing="2.4"
+                  fill="var(--stamp-ink)" opacity="0.92">N10-009 · PASSED</text>
+          </g>
+        </g>
+
+        <!-- bar outline / cool edge-line for contrast -->
+        <rect x="14" y="40" width="532" height="108" rx="20"
+              fill="none" stroke="var(--edge-line)" stroke-width="1" opacity="0.55"/>
+
+        <!-- THE READINESS EDGE: ultra-sharp 1px specular highlight on top -->
+        <path class="spec-edge" d="M 34 41.5 L 526 41.5"
+              stroke="url(#specGrad)" stroke-width="1.4" stroke-linecap="round" fill="none"/>
+      </svg>
+      <p class="stamp-note">Built and passed with this tool.</p>
+    </div>
+  </section>
+</main>
+
+<div class="caption">Concept 04 · Cooling Anvil</div>
+
+<script>
+(function(){
+  var root = document.documentElement;
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* theme toggle */
+  document.getElementById('themeToggle').addEventListener('click', function(){
+    root.setAttribute('data-theme',
+      root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+  });
+
+  /* trigger bar entrance */
+  var billet = document.getElementById('billet');
+  requestAnimationFrame(function(){
+    requestAnimationFrame(function(){ billet.classList.add('in'); });
+  });
+
+  if(reduce) return; /* no sparks / bloom under reduced motion */
+
+  /* ---- spark: one ember detaches from the working edge ---- */
+  var lastSpark = 0;
+  function emitSpark(){
+    var now = Date.now();
+    if(now - lastSpark < 420) return; /* sparse */
+    lastSpark = now;
+    var rect = billet.getBoundingClientRect();
+    var s = document.createElement('span');
+    s.className = 'spark';
+    /* working edge = right side of the bar, vertical mid */
+    var ox = rect.width * 0.92;
+    var oy = rect.height * (0.42 + Math.random()*0.18);
+    s.style.left = ox + 'px';
+    s.style.top  = oy + 'px';
+    var dx = (12 + Math.random()*22);          /* drift right/up */
+    var dy = -(34 + Math.random()*30);         /* rise */
+    s.style.setProperty('--dx', dx + 'px');
+    s.style.setProperty('--dy', dy + 'px');
+    s.style.animation = 'sparkArc .62s cubic-bezier(0.23,1,0.32,1) forwards';
+    billet.appendChild(s);
+    setTimeout(function(){ s.remove(); }, 700);
+  }
+
+  var hoverable = window.matchMedia('(hover:hover) and (pointer:fine)').matches;
+  if(hoverable){
+    billet.addEventListener('mouseenter', emitSpark);
+    billet.addEventListener('mousemove', emitSpark);
+    var cta = document.getElementById('primaryCta');
+    cta.addEventListener('mouseenter', emitSpark);
+  }
+
+  /* ---- heat-bloom on CTA click ---- */
+  document.getElementById('primaryCta').addEventListener('pointerdown', function(e){
+    var b = document.createElement('span');
+    b.className = 'bloom';
+    var r = this.getBoundingClientRect();
+    var size = Math.max(r.width, r.height) * 1.4;
+    b.style.width = size + 'px';
+    b.style.height = size + 'px';
+    b.style.left = (e.clientX - r.left) + 'px';
+    b.style.top  = (e.clientY - r.top) + 'px';
+    b.style.animation = 'bloomOut .55s cubic-bezier(0.23,1,0.32,1) forwards';
+    this.appendChild(b);
+    setTimeout(function(){ b.remove(); }, 600);
+  });
+})();
+</script>
+</body>
+</html>

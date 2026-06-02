@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CertAnvil — Hero variant</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:oklch(0.975 0.007 85); --bg-deep:oklch(0.955 0.012 82);
+    --surface:oklch(0.992 0.004 85); --surface-2:oklch(0.965 0.010 84);
+    --ink:oklch(0.22 0.015 280); --ink-soft:oklch(0.36 0.014 280); --muted:oklch(0.50 0.013 280);
+    --border:oklch(0.86 0.008 85); --border-soft:oklch(0.91 0.006 85);
+    --accent:oklch(0.50 0.155 55); --accent-bright:oklch(0.80 0.155 64); --accent-deep:oklch(0.42 0.150 52);
+    --on-accent:oklch(0.985 0.010 85);
+    --tile-top:#FFFDF8; --tile-bot:#FFF7EC;
+    --shadow-soft:0 1px 0 rgba(255,255,255,.55),0 18px 38px -18px oklch(0.22 0.015 280 / .20);
+    --shadow-tile:0 2px 4px oklch(0.22 0.015 280 / .05),0 22px 44px -20px oklch(0.22 0.015 280 / .24);
+    --ease-out:cubic-bezier(0.23,1,0.32,1);
+    --ease-in-out:cubic-bezier(0.77,0,0.175,1);
+    --ease-drawer:cubic-bezier(0.32,0.72,0,1);
+  }
+  [data-theme="dark"]{
+    --bg:oklch(0.16 0.009 275); --bg-deep:oklch(0.185 0.012 275);
+    --surface:oklch(0.205 0.009 275); --surface-2:oklch(0.185 0.009 275);
+    --ink:oklch(0.96 0.006 275); --ink-soft:oklch(0.78 0.010 275); --muted:oklch(0.60 0.013 275);
+    --border:oklch(0.30 0.008 275); --border-soft:oklch(0.26 0.008 275);
+    --accent:oklch(0.80 0.155 64); --accent-bright:oklch(0.86 0.140 70); --accent-deep:oklch(0.70 0.150 62);
+    --on-accent:oklch(0.18 0.020 275);
+    --shadow-soft:0 1px 0 rgba(255,255,255,.04),0 20px 40px -18px rgba(0,0,0,.55);
+    --shadow-tile:0 2px 4px rgba(0,0,0,.3),0 24px 46px -20px rgba(0,0,0,.6);
+  }
+  *{box-sizing:border-box;margin:0}
+  html,body{height:100%}
+  body{background:var(--bg);color:var(--ink);font-family:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif;-webkit-font-smoothing:antialiased}
+
+  .hero{min-height:100vh;display:flex;align-items:center;padding:clamp(28px,5vw,72px);overflow:hidden}
+  .hero-grid{width:100%;max-width:1180px;margin:0 auto;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(32px,5vw,72px);align-items:center}
+
+  /* ── left copy (IDENTICAL across all variants) ───────────────── */
+  .hero-copy{max-width:560px}
+  .eyebrow{display:inline-flex;align-items:center;gap:10px;font-size:12px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+  .eyebrow svg{width:15px;height:15px;display:block}
+  .title{font-family:'Fraunces',Georgia,serif;font-weight:600;font-size:clamp(34px,4.6vw,58px);line-height:1.02;letter-spacing:-.022em;color:var(--ink);margin:18px 0 0}
+  .title>span{display:block}
+  .title .forge{font-style:italic;font-weight:600;color:var(--accent)}
+  .sub{margin:20px 0 0;font-size:clamp(14px,1.05vw,15.5px);line-height:1.62;color:var(--ink-soft);max-width:46ch}
+  .proof{display:flex;align-items:center;gap:16px;margin:26px 0 0}
+  .proof-score{font-family:'Fraunces',Georgia,serif;font-weight:600;font-size:30px;letter-spacing:-.01em;color:var(--ink);font-variant-numeric:tabular-nums}
+  .proof-score s{color:var(--muted);text-decoration:none;font-weight:600;font-size:.62em}
+  .proof-div{width:1px;align-self:stretch;background:var(--border)}
+  .proof-text{font-size:13px;line-height:1.45;color:var(--ink-soft)}
+  .proof-text .live{display:inline-flex;align-items:center;gap:6px;font-weight:600;color:var(--accent)}
+  .proof-text .dot{width:7px;height:7px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 3px color-mix(in oklab,var(--accent) 20%,transparent)}
+  .proof-text small{color:var(--muted);font-size:12.5px}
+  .ctas{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:28px 0 0}
+  .cta-primary{position:relative;display:flex;flex-direction:column;gap:3px;background:var(--accent);color:var(--on-accent);padding:13px 22px;border-radius:13px;text-decoration:none;box-shadow:var(--shadow-soft);transition:transform 140ms var(--ease-out),background 200ms var(--ease-out)}
+  .cta-primary .cta-row{display:flex;align-items:center;gap:10px;font-size:15px;font-weight:600}
+  .cta-primary .cta-row svg{width:17px;height:17px;transition:transform 220ms var(--ease-out)}
+  .cta-primary .cta-meta{font-size:11px;font-weight:500;letter-spacing:.03em;text-transform:uppercase;color:color-mix(in oklab,var(--on-accent) 74%,transparent)}
+  @media (hover:hover){.cta-primary:hover{background:var(--accent-deep)}.cta-primary:hover .cta-row svg{transform:translateX(4px)}}
+  .cta-primary:active{transform:scale(0.975)}
+  .cta-secondary{display:inline-flex;align-items:center;gap:7px;font-size:14px;font-weight:600;color:var(--ink-soft);text-decoration:none;padding:12px 6px;transition:color 180ms var(--ease-out)}
+  .cta-secondary svg{width:15px;height:15px}
+  @media (hover:hover){.cta-secondary:hover{color:var(--accent)}}
+  .trust{display:flex;flex-wrap:wrap;gap:7px 18px;margin:26px 0 0;font-size:12.5px;color:var(--muted)}
+  .trust b{color:var(--ink-soft);font-weight:650}
+
+  /* ── right visual anchor ─────────────────────────────────────── */
+  .hero-art{position:relative;aspect-ratio:1/1;width:100%;max-width:540px;margin-left:auto}
+
+  /* entrance for left copy (Emil: ease-out, stagger, reduced-motion safe) */
+  .reveal{opacity:0;transform:translateY(14px);transition:opacity 560ms var(--ease-out),transform 560ms var(--ease-out)}
+  .ready .reveal{opacity:1;transform:none}
+  .ready .reveal[data-d="1"]{transition-delay:40ms}
+  .ready .reveal[data-d="2"]{transition-delay:110ms}
+  .ready .reveal[data-d="3"]{transition-delay:180ms}
+  .ready .reveal[data-d="4"]{transition-delay:250ms}
+  .ready .reveal[data-d="5"]{transition-delay:320ms}
+  .ready .reveal[data-d="6"]{transition-delay:390ms}
+
+  /* chrome */
+  .theme-toggle{position:fixed;top:18px;right:18px;z-index:50;width:40px;height:40px;border-radius:999px;border:1px solid var(--border);background:var(--surface);color:var(--ink);font-size:16px;cursor:pointer;display:grid;place-items:center;transition:transform 140ms var(--ease-out),border-color 200ms var(--ease-out)}
+  .theme-toggle:active{transform:scale(0.94)}
+  .caption{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);z-index:50;font-size:12px;color:var(--muted);letter-spacing:.02em}
+
+  @media (max-width:900px){
+    .hero-grid{grid-template-columns:1fr;gap:44px}
+    .hero-copy{max-width:none}
+    .hero-art{margin:0 auto;max-width:440px}
+  }
+  @media (prefers-reduced-motion:reduce){
+    .reveal{transition:opacity 240ms ease!important;transform:none!important}
+    .ready .reveal{transform:none!important}
+  }
+
+  /* ===== RIGHT-VISUAL CSS — inject below this line ===== */
+
+  /* ===== /RIGHT-VISUAL CSS ===== */
+</style>
+</head>
+<body>
+  <button class="theme-toggle" id="theme-toggle" aria-label="Toggle theme">☾</button>
+  <div class="caption" id="caption">Variant</div>
+
+  <main class="hero" id="hero">
+    <div class="hero-grid">
+      <div class="hero-copy">
+        <span class="eyebrow reveal" data-d="1">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4l6 6-9 9H5v-6z"/><path d="M12 6l6 6"/></svg>
+          AI cert practice, forged from CompTIA blueprints
+        </span>
+        <h1 class="title reveal" data-d="2">
+          <span><span class="forge">Forge</span> your way</span>
+          <span>through every</span>
+          <span>CompTIA cert.</span>
+        </h1>
+        <p class="sub reveal" data-d="3">
+          Questions written from the real exam objectives and checked by a
+          seven-layer AI engine. You drill what you keep getting wrong, until
+          the score sticks.
+        </p>
+        <div class="proof reveal" data-d="4">
+          <span class="proof-score">767<s>&thinsp;/&thinsp;900</s></span>
+          <span class="proof-div"></span>
+          <span class="proof-text">
+            <span class="live"><span class="dot"></span>Network+ N10-009 · passed</span><br>
+            <small>Built and passed with this tool on 2026-05-05.</small>
+          </span>
+        </div>
+        <div class="ctas reveal" data-d="5">
+          <a class="cta-primary" href="#">
+            <span class="cta-row">Take the baseline diagnostic
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+            </span>
+            <span class="cta-meta">About 20 minutes · Free · No account</span>
+          </a>
+          <a class="cta-secondary" href="#">Or pick a cert
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+          </a>
+        </div>
+        <div class="trust reveal" data-d="6">
+          <span><b>5</b>&nbsp;N10-009 domains</span>
+          <span><b>7-layer</b>&nbsp;AI validation</span>
+          <span><b>No</b>&nbsp;repeated questions</span>
+        </div>
+      </div>
+
+      <div class="hero-art" id="hero-art" aria-hidden="true">
+        <!-- ===== RIGHT-VISUAL MARKUP — inject inside #hero-art ===== -->
+
+        <!-- ===== /RIGHT-VISUAL MARKUP ===== -->
+      </div>
+    </div>
+  </main>
+
+  <script>
+    /* left-copy entrance trigger */
+    requestAnimationFrame(function(){requestAnimationFrame(function(){document.getElementById('hero').classList.add('ready');});});
+    /* theme toggle */
+    (function(){var t=document.getElementById('theme-toggle');t.addEventListener('click',function(){var d=document.documentElement.getAttribute('data-theme')==='dark';document.documentElement.setAttribute('data-theme',d?'light':'dark');t.textContent=d?'☾':'☀';});})();
+
+    /* ===== RIGHT-VISUAL JS — inject below this line ===== */
+
+    /* ===== /RIGHT-VISUAL JS ===== */
+  </script>
+</body>
+</html>

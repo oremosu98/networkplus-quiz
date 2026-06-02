@@ -1,0 +1,450 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CertAnvil — The Mastery Spectrum</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:oklch(0.975 0.007 85); --bg-deep:oklch(0.955 0.012 82);
+    --surface:oklch(0.992 0.004 85); --surface-2:oklch(0.965 0.010 84);
+    --ink:oklch(0.22 0.015 280); --ink-soft:oklch(0.36 0.014 280); --muted:oklch(0.50 0.013 280);
+    --border:oklch(0.86 0.008 85); --border-soft:oklch(0.91 0.006 85);
+    --accent:oklch(0.50 0.155 55); --accent-bright:oklch(0.80 0.155 64); --accent-deep:oklch(0.42 0.150 52);
+    --on-accent:oklch(0.985 0.010 85);
+    --tile-top:#FFFDF8; --tile-bot:#FFF7EC;
+    --shadow-soft:0 1px 0 rgba(255,255,255,.55),0 18px 38px -18px oklch(0.22 0.015 280 / .20);
+    --shadow-tile:0 2px 4px oklch(0.22 0.015 280 / .05),0 22px 44px -20px oklch(0.22 0.015 280 / .24);
+    --ease-out:cubic-bezier(0.23,1,0.32,1);
+    --ease-in-out:cubic-bezier(0.77,0,0.175,1);
+    --ease-drawer:cubic-bezier(0.32,0.72,0,1);
+  }
+  [data-theme="dark"]{
+    --bg:oklch(0.16 0.009 275); --bg-deep:oklch(0.185 0.012 275);
+    --surface:oklch(0.205 0.009 275); --surface-2:oklch(0.185 0.009 275);
+    --ink:oklch(0.96 0.006 275); --ink-soft:oklch(0.78 0.010 275); --muted:oklch(0.60 0.013 275);
+    --border:oklch(0.30 0.008 275); --border-soft:oklch(0.26 0.008 275);
+    --accent:oklch(0.80 0.155 64); --accent-bright:oklch(0.86 0.140 70); --accent-deep:oklch(0.70 0.150 62);
+    --on-accent:oklch(0.18 0.020 275);
+    --shadow-soft:0 1px 0 rgba(255,255,255,.04),0 20px 40px -18px rgba(0,0,0,.55);
+    --shadow-tile:0 2px 4px rgba(0,0,0,.3),0 24px 46px -20px rgba(0,0,0,.6);
+  }
+  *{box-sizing:border-box;margin:0}
+  html,body{height:100%}
+  body{background:var(--bg);color:var(--ink);font-family:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif;-webkit-font-smoothing:antialiased}
+
+  .hero{min-height:100vh;display:flex;align-items:center;padding:clamp(28px,5vw,72px);overflow:hidden}
+  .hero-grid{width:100%;max-width:1180px;margin:0 auto;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(32px,5vw,72px);align-items:center}
+
+  /* ── left copy (IDENTICAL across all variants) ───────────────── */
+  .hero-copy{max-width:560px}
+  .eyebrow{display:inline-flex;align-items:center;gap:10px;font-size:12px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+  .eyebrow svg{width:15px;height:15px;display:block}
+  .title{font-family:'Fraunces',Georgia,serif;font-weight:600;font-size:clamp(34px,4.6vw,58px);line-height:1.02;letter-spacing:-.022em;color:var(--ink);margin:18px 0 0}
+  .title>span{display:block}
+  .title .forge{font-style:italic;font-weight:600;color:var(--accent)}
+  .sub{margin:20px 0 0;font-size:clamp(14px,1.05vw,15.5px);line-height:1.62;color:var(--ink-soft);max-width:46ch}
+  .proof{display:flex;align-items:center;gap:16px;margin:26px 0 0}
+  .proof-score{font-family:'Fraunces',Georgia,serif;font-weight:600;font-size:30px;letter-spacing:-.01em;color:var(--ink);font-variant-numeric:tabular-nums}
+  .proof-score s{color:var(--muted);text-decoration:none;font-weight:600;font-size:.62em}
+  .proof-div{width:1px;align-self:stretch;background:var(--border)}
+  .proof-text{font-size:13px;line-height:1.45;color:var(--ink-soft)}
+  .proof-text .live{display:inline-flex;align-items:center;gap:6px;font-weight:600;color:var(--accent)}
+  .proof-text .dot{width:7px;height:7px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 3px color-mix(in oklab,var(--accent) 20%,transparent)}
+  .proof-text small{color:var(--muted);font-size:12.5px}
+  .ctas{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:28px 0 0}
+  .cta-primary{position:relative;display:flex;flex-direction:column;gap:3px;background:var(--accent);color:var(--on-accent);padding:13px 22px;border-radius:13px;text-decoration:none;box-shadow:var(--shadow-soft);transition:transform 140ms var(--ease-out),background 200ms var(--ease-out)}
+  .cta-primary .cta-row{display:flex;align-items:center;gap:10px;font-size:15px;font-weight:600}
+  .cta-primary .cta-row svg{width:17px;height:17px;transition:transform 220ms var(--ease-out)}
+  .cta-primary .cta-meta{font-size:11px;font-weight:500;letter-spacing:.03em;text-transform:uppercase;color:color-mix(in oklab,var(--on-accent) 74%,transparent)}
+  @media (hover:hover){.cta-primary:hover{background:var(--accent-deep)}.cta-primary:hover .cta-row svg{transform:translateX(4px)}}
+  .cta-primary:active{transform:scale(0.975)}
+  .cta-secondary{display:inline-flex;align-items:center;gap:7px;font-size:14px;font-weight:600;color:var(--ink-soft);text-decoration:none;padding:12px 6px;transition:color 180ms var(--ease-out)}
+  .cta-secondary svg{width:15px;height:15px}
+  @media (hover:hover){.cta-secondary:hover{color:var(--accent)}}
+  .trust{display:flex;flex-wrap:wrap;gap:7px 18px;margin:26px 0 0;font-size:12.5px;color:var(--muted)}
+  .trust b{color:var(--ink-soft);font-weight:650}
+
+  /* ── right visual anchor ─────────────────────────────────────── */
+  .hero-art{position:relative;aspect-ratio:1/1;width:100%;max-width:540px;margin-left:auto}
+
+  /* entrance for left copy (Emil: ease-out, stagger, reduced-motion safe) */
+  .reveal{opacity:0;transform:translateY(14px);transition:opacity 560ms var(--ease-out),transform 560ms var(--ease-out)}
+  .ready .reveal{opacity:1;transform:none}
+  .ready .reveal[data-d="1"]{transition-delay:40ms}
+  .ready .reveal[data-d="2"]{transition-delay:110ms}
+  .ready .reveal[data-d="3"]{transition-delay:180ms}
+  .ready .reveal[data-d="4"]{transition-delay:250ms}
+  .ready .reveal[data-d="5"]{transition-delay:320ms}
+  .ready .reveal[data-d="6"]{transition-delay:390ms}
+
+  /* chrome */
+  .theme-toggle{position:fixed;top:18px;right:18px;z-index:50;width:40px;height:40px;border-radius:999px;border:1px solid var(--border);background:var(--surface);color:var(--ink);font-size:16px;cursor:pointer;display:grid;place-items:center;transition:transform 140ms var(--ease-out),border-color 200ms var(--ease-out)}
+  .theme-toggle:active{transform:scale(0.94)}
+  .caption{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);z-index:50;font-size:12px;color:var(--muted);letter-spacing:.02em}
+
+  @media (max-width:900px){
+    .hero-grid{grid-template-columns:1fr;gap:44px}
+    .hero-copy{max-width:none}
+    .hero-art{margin:0 auto;max-width:440px}
+  }
+  @media (prefers-reduced-motion:reduce){
+    .reveal{transition:opacity 240ms ease!important;transform:none!important}
+    .ready .reveal{transform:none!important}
+  }
+
+  /* ===== RIGHT-VISUAL CSS — inject below this line ===== */
+  .spec{position:absolute;inset:0;display:flex;flex-direction:column}
+  .spec-frame{
+    position:relative;flex:1;display:flex;flex-direction:column;
+    background:linear-gradient(180deg,var(--surface),var(--surface-2));
+    border:1px solid var(--border);border-radius:20px;
+    box-shadow:var(--shadow-tile);
+    padding:clamp(20px,4.2vw,30px) clamp(20px,4vw,30px) clamp(16px,3vw,22px);
+    overflow:hidden;
+  }
+  /* faint vertical lab gridlines */
+  .spec-frame::before{
+    content:"";position:absolute;inset:0;pointer-events:none;opacity:.5;
+    background-image:repeating-linear-gradient(90deg,transparent 0,transparent calc(20% - 1px),var(--border-soft) calc(20% - 1px),var(--border-soft) 20%);
+    -webkit-mask-image:linear-gradient(180deg,transparent 8%,#000 22%,#000 86%,transparent 100%);
+    mask-image:linear-gradient(180deg,transparent 8%,#000 22%,#000 86%,transparent 100%);
+  }
+  .spec-head{position:relative;display:flex;flex-direction:column;gap:3px;margin-bottom:auto}
+  .spec-title{font-family:'Fraunces',Georgia,serif;font-weight:600;font-size:clamp(15px,1.5vw,18px);letter-spacing:-.01em;color:var(--ink)}
+  .spec-sub{font-size:11px;letter-spacing:.02em;color:var(--muted)}
+
+  .spec-stage{position:relative;flex:0 0 auto;height:clamp(232px,40vw,288px);margin-top:18px}
+
+  /* left scale ticks */
+  .spec-scale{position:absolute;left:-2px;top:0;bottom:22px;width:64px;font-size:9.5px;letter-spacing:.02em;color:var(--muted);pointer-events:none}
+  .spec-scale span{position:absolute;left:0;transform:translateY(50%);white-space:nowrap}
+
+  /* etched baseline */
+  .spec-base{position:absolute;left:0;right:0;bottom:22px;height:2px;border-radius:2px;
+    background:linear-gradient(90deg,transparent,var(--border),var(--accent),var(--border),transparent);
+    opacity:.8}
+  .spec-base::after{content:"";position:absolute;left:0;right:0;top:2px;height:6px;
+    background:linear-gradient(180deg,color-mix(in oklab,var(--ink) 8%,transparent),transparent)}
+
+  /* readiness reference line */
+  .spec-ref{position:absolute;left:64px;right:6px;height:0;z-index:3;
+    transform:scaleX(.04);transform-origin:left center}
+  .spec-ref-line{position:absolute;left:0;right:0;top:-1px;height:0;
+    border-top:1.5px dashed color-mix(in oklab,var(--accent) 72%,transparent)}
+  .spec-ref-tag{position:absolute;right:0;bottom:4px;font-size:10px;color:var(--muted);
+    white-space:nowrap;opacity:0;transition:opacity 280ms var(--ease-out)}
+  .spec-ref-tag b{font-family:'Fraunces',Georgia,serif;font-weight:600;font-size:12px;color:var(--accent);font-variant-numeric:tabular-nums}
+
+  /* bars row */
+  .spec-bars{position:absolute;left:64px;right:6px;top:0;bottom:0;display:flex;justify-content:space-between;align-items:flex-end}
+  .bar{position:relative;flex:0 0 auto;width:13%;height:100%;display:flex;justify-content:center}
+
+  /* numeral floating above the cap */
+  .bar-num{position:absolute;left:50%;transform:translateX(-50%);
+    bottom:calc(22px + (100% - 44px) * var(--lvl) / 100);margin-bottom:9px;
+    font-family:'Fraunces',Georgia,serif;font-weight:600;font-size:clamp(15px,1.7vw,19px);
+    letter-spacing:-.01em;color:var(--ink);font-variant-numeric:tabular-nums;
+    opacity:0;transition:opacity 200ms var(--ease-out)}
+
+  /* track = full column from baseline; fill = scaled element anchored at baseline */
+  .bar-track{position:absolute;left:50%;transform:translateX(-50%);bottom:22px;width:clamp(11px,1.7vw,15px);
+    height:calc((100% - 44px) * var(--lvl) / 100)}
+  .bar-fill{position:absolute;left:0;right:0;bottom:0;height:100%;transform-origin:bottom center;
+    transform:scaleY(.04);
+    border-radius:3px 3px 0 0;
+    background:linear-gradient(180deg,
+      var(--accent-bright) 0%,
+      var(--accent) 38%,
+      var(--accent-deep) 100%);
+    box-shadow:inset 0 0 0 1px color-mix(in oklab,var(--accent-deep) 40%,transparent),
+      0 6px 14px -8px color-mix(in oklab,var(--accent-deep) 70%,transparent)}
+  /* fine forged sheen */
+  .bar-fill::before{content:"";position:absolute;left:1.5px;top:0;bottom:0;width:2px;border-radius:2px;
+    background:linear-gradient(180deg,color-mix(in oklab,#fff 55%,transparent),transparent 40%);opacity:.55}
+
+  /* forged cap — sits at the top of the track; rides the rise via translateY (no stretch) */
+  .bar-cap{position:absolute;left:-2px;right:-2px;top:-3px;height:7px;border-radius:4px 4px 1px 1px;
+    background:linear-gradient(180deg,var(--accent-bright),var(--accent));
+    box-shadow:0 1px 0 color-mix(in oklab,#fff 35%,transparent) inset,
+      0 4px 8px -4px color-mix(in oklab,var(--accent-deep) 80%,transparent)}
+
+  /* weak spot — slightly cooler tint + breathe */
+  .bar-weak .bar-fill{background:linear-gradient(180deg,
+      color-mix(in oklab,var(--accent-bright) 78%,var(--muted)) 0%,
+      color-mix(in oklab,var(--accent) 80%,var(--muted)) 42%,
+      color-mix(in oklab,var(--accent-deep) 82%,var(--muted)) 100%)}
+  .bar-weak .bar-cap{background:linear-gradient(180deg,
+      color-mix(in oklab,var(--accent-bright) 80%,var(--muted)),
+      color-mix(in oklab,var(--accent) 82%,var(--muted)));--cool:1}
+  .bar-flag{position:absolute;left:50%;transform:translateX(-50%);
+    bottom:calc(22px + (100% - 44px) * var(--lvl) / 100);margin-bottom:30px;
+    font-size:9px;font-weight:600;letter-spacing:.01em;line-height:1.25;text-align:center;
+    color:color-mix(in oklab,var(--accent) 80%,var(--muted));white-space:nowrap;
+    opacity:0;transition:opacity 260ms var(--ease-out)}
+
+  /* domain labels below baseline */
+  .bar-label{position:absolute;left:50%;transform:translateX(-50%);bottom:0;
+    font-size:9.5px;line-height:1.18;text-align:center;color:var(--ink-soft);width:78px}
+
+  .spec-replay{align-self:flex-end;margin-top:12px;background:none;border:0;cursor:pointer;
+    font:inherit;font-size:11px;color:var(--muted);padding:4px 2px;letter-spacing:.02em;
+    transition:color 160ms var(--ease-out)}
+  @media (hover:hover) and (pointer:fine){.spec-replay:hover{color:var(--accent)}}
+
+  /* ---- run state: spring rise (settle once with small overshoot) ---- */
+  /* pre-run: hold fill collapsed + cap dropped to baseline so there is no flash */
+  .spec.armed .bar-cap{transform:translateY(calc(var(--capdist,180px) * 0.96))}
+  .spec.run .bar-fill{animation:barRise 780ms var(--ease-out) both;animation-delay:var(--d,0ms)}
+  .spec.run .bar-cap{animation:capRise 780ms var(--ease-out) both;animation-delay:var(--d,0ms)}
+  .spec.run .bar-num{opacity:1;transition-delay:calc(var(--d,0ms) + 380ms)}
+  .spec.run .bar-flag{opacity:1;transition-delay:1080ms}
+  .spec.run .spec-ref{animation:refDraw 640ms var(--ease-out) both;animation-delay:880ms}
+  .spec.run .spec-ref-tag{opacity:1;transition-delay:1360ms}
+  /* weak-spot breathes ONCE after it settles, then stills */
+  .spec.run .bar-weak .bar-fill{animation:barRise 780ms var(--ease-out) both,breathe 2200ms var(--ease-in-out) 1440ms 1 both}
+  .spec.run .bar-weak .bar-cap{animation:capRise 780ms var(--ease-out) both,capBreathe 2200ms var(--ease-in-out) 1440ms 1 both}
+
+  @keyframes barRise{
+    0%{transform:scaleY(.04)}
+    68%{transform:scaleY(1.05)}
+    100%{transform:scaleY(1)}
+  }
+  /* cap rides the fill's top edge: starts at baseline, overshoots once, settles */
+  @keyframes capRise{
+    0%{transform:translateY(calc(var(--capdist,180px) * 0.96))}
+    68%{transform:translateY(calc(var(--capdist,180px) * -0.05))}
+    100%{transform:translateY(0)}
+  }
+  @keyframes refDraw{from{transform:scaleX(.04)}to{transform:scaleX(1)}}
+  @keyframes breathe{
+    0%,100%{transform:scaleY(1)}
+    50%{transform:scaleY(1.03)}
+  }
+  @keyframes capBreathe{
+    0%,100%{transform:translateY(0)}
+    50%{transform:translateY(calc(var(--capdist,180px) * -0.03))}
+  }
+
+  @media (prefers-reduced-motion:reduce){
+    .spec.armed .bar-cap{transform:none}
+    .bar-fill{transform:scaleY(1)!important;animation:none!important}
+    .bar-cap{transform:translateY(0)!important;animation:none!important}
+    .bar-num,.bar-flag,.spec-ref-tag{opacity:1!important;transition:none!important}
+    .spec-ref{transform:scaleX(1)!important;animation:none!important}
+  }
+  /* ===== /RIGHT-VISUAL CSS ===== */
+</style>
+</head>
+<body>
+  <button class="theme-toggle" id="theme-toggle" aria-label="Toggle theme">☾</button>
+  <div class="caption" id="caption">Variant 3 · The Mastery Spectrum</div>
+
+  <main class="hero" id="hero">
+    <div class="hero-grid">
+      <div class="hero-copy">
+        <span class="eyebrow reveal" data-d="1">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4l6 6-9 9H5v-6z"/><path d="M12 6l6 6"/></svg>
+          AI cert practice, forged from CompTIA blueprints
+        </span>
+        <h1 class="title reveal" data-d="2">
+          <span><span class="forge">Forge</span> your way</span>
+          <span>through every</span>
+          <span>CompTIA cert.</span>
+        </h1>
+        <p class="sub reveal" data-d="3">
+          Questions written from the real exam objectives and checked by a
+          seven-layer AI engine. You drill what you keep getting wrong, until
+          the score sticks.
+        </p>
+        <div class="proof reveal" data-d="4">
+          <span class="proof-score">767<s>&thinsp;/&thinsp;900</s></span>
+          <span class="proof-div"></span>
+          <span class="proof-text">
+            <span class="live"><span class="dot"></span>Network+ N10-009 · passed</span><br>
+            <small>Built and passed with this tool on 2026-05-05.</small>
+          </span>
+        </div>
+        <div class="ctas reveal" data-d="5">
+          <a class="cta-primary" href="#">
+            <span class="cta-row">Take the baseline diagnostic
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+            </span>
+            <span class="cta-meta">About 20 minutes · Free · No account</span>
+          </a>
+          <a class="cta-secondary" href="#">Or pick a cert
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+          </a>
+        </div>
+        <div class="trust reveal" data-d="6">
+          <span><b>5</b>&nbsp;N10-009 domains</span>
+          <span><b>7-layer</b>&nbsp;AI validation</span>
+          <span><b>No</b>&nbsp;repeated questions</span>
+        </div>
+      </div>
+
+      <div class="hero-art" id="hero-art" aria-hidden="true">
+        <!-- ===== RIGHT-VISUAL MARKUP — inject inside #hero-art ===== -->
+        <div class="spec" id="spec">
+          <div class="spec-frame">
+            <div class="spec-head">
+              <span class="spec-title">Mastery spectrum</span>
+              <span class="spec-sub">per N10-009 domain · blueprint-weighted</span>
+            </div>
+
+            <div class="spec-stage">
+              <!-- scale ticks (left) -->
+              <div class="spec-scale" aria-hidden="true">
+                <span style="bottom:88%">100</span>
+                <span style="bottom:67%">767 cleared</span>
+                <span style="bottom:44%">50</span>
+                <span style="bottom:0%">0</span>
+              </div>
+
+              <!-- readiness reference line @ ~78 -->
+              <div class="spec-ref" id="spec-ref" style="bottom:69%">
+                <span class="spec-ref-line"></span>
+                <span class="spec-ref-tag"><b>78%</b> ready · blueprint-weighted</span>
+              </div>
+
+              <!-- bars -->
+              <div class="spec-bars">
+                <div class="bar" data-i="0" style="--lvl:88">
+                  <span class="bar-num">88</span>
+                  <span class="bar-track"><span class="bar-fill"></span><span class="bar-cap"></span></span>
+                  <span class="bar-label">Networking<br>Concepts</span>
+                </div>
+                <div class="bar" data-i="1" style="--lvl:80">
+                  <span class="bar-num">80</span>
+                  <span class="bar-track"><span class="bar-fill"></span><span class="bar-cap"></span></span>
+                  <span class="bar-label">Network<br>Implementation</span>
+                </div>
+                <div class="bar" data-i="2" style="--lvl:72">
+                  <span class="bar-num">72</span>
+                  <span class="bar-track"><span class="bar-fill"></span><span class="bar-cap"></span></span>
+                  <span class="bar-label">Network<br>Operations</span>
+                </div>
+                <div class="bar bar-weak" data-i="3" style="--lvl:46">
+                  <span class="bar-num">46</span>
+                  <span class="bar-track"><span class="bar-fill"></span><span class="bar-cap"></span></span>
+                  <span class="bar-label">Network<br>Security</span>
+                  <span class="bar-flag">weak spot → routed next</span>
+                </div>
+                <div class="bar" data-i="4" style="--lvl:76">
+                  <span class="bar-num">76</span>
+                  <span class="bar-track"><span class="bar-fill"></span><span class="bar-cap"></span></span>
+                  <span class="bar-label">Network<br>Troubleshooting</span>
+                </div>
+              </div>
+
+              <!-- etched baseline -->
+              <span class="spec-base" aria-hidden="true"></span>
+            </div>
+          </div>
+
+          <button class="spec-replay" id="spec-replay" type="button">↻ replay</button>
+        </div>
+        <!-- ===== /RIGHT-VISUAL MARKUP ===== -->
+      </div>
+    </div>
+  </main>
+
+  <script>
+    /* left-copy entrance trigger */
+    requestAnimationFrame(function(){requestAnimationFrame(function(){document.getElementById('hero').classList.add('ready');});});
+    /* theme toggle */
+    (function(){var t=document.getElementById('theme-toggle');t.addEventListener('click',function(){var d=document.documentElement.getAttribute('data-theme')==='dark';document.documentElement.setAttribute('data-theme',d?'light':'dark');t.textContent=d?'☾':'☀';});})();
+
+    /* ===== RIGHT-VISUAL JS — inject below this line ===== */
+    (function(){
+      var spec=document.getElementById('spec');
+      if(!spec)return;
+      var bars=[].slice.call(spec.querySelectorAll('.bar'));
+      var replay=document.getElementById('spec-replay');
+      var reduce=window.matchMedia('(prefers-reduced-motion:reduce)');
+      var STAGGER=60, RISE=780; // ms, matches CSS
+      var counters=[]; // active rAF count-up handles
+
+      function finalLevel(bar){return parseInt(bar.style.getPropertyValue('--lvl'),10)||0;}
+
+      // measure each track's pixel height -> drives cap travel distance
+      function measure(){
+        bars.forEach(function(bar){
+          var track=bar.querySelector('.bar-track');
+          bar.style.setProperty('--capdist', Math.round(track.getBoundingClientRect().height)+'px');
+        });
+      }
+
+      function clearCounters(){counters.forEach(function(c){cancelAnimationFrame(c);});counters=[];}
+
+      function setFinalNumbers(){
+        bars.forEach(function(bar){bar.querySelector('.bar-num').textContent=finalLevel(bar);});
+      }
+
+      // count a numeral up to its level with a tiny ~2pt overshoot, synced to its bar's rise
+      function countUp(bar){
+        var el=bar.querySelector('.bar-num');
+        var target=finalLevel(bar);
+        var over=Math.min(100,target+2);
+        var delay=parseInt(bar.dataset.i,10)*STAGGER;
+        var start=null, dur=RISE;
+        function frame(t){
+          if(start===null)start=t;
+          var e=(t-start-delay);
+          if(e<0){el.textContent='0';counters.push(requestAnimationFrame(frame));return;}
+          var p=Math.min(1,e/dur);
+          // ease-out curve to match the spring's visual arrival
+          var eased=1-Math.pow(1-p,3);
+          var val;
+          if(p<0.78){val=Math.round(eased/0.92*over);}      // climb toward overshoot
+          else{var k=(p-0.78)/0.22;val=Math.round(over+(target-over)*k);} // settle back to target
+          if(val>over)val=over;
+          el.textContent=val;
+          if(p<1){counters.push(requestAnimationFrame(frame));}
+          else{el.textContent=target;}
+        }
+        counters.push(requestAnimationFrame(frame));
+      }
+
+      function play(){
+        clearCounters();
+        measure();
+        if(reduce.matches){
+          spec.classList.remove('run','armed');
+          setFinalNumbers();
+          spec.classList.add('armed'); // armed (reduced) just neutralises cap transform
+          return;
+        }
+        // reset
+        spec.classList.remove('run');
+        bars.forEach(function(bar){
+          bar.style.setProperty('--d', (parseInt(bar.dataset.i,10)*STAGGER)+'ms');
+          bar.querySelector('.bar-num').textContent='0';
+        });
+        spec.classList.add('armed');
+        // force reflow so the reset state commits before we add .run
+        void spec.offsetWidth;
+        requestAnimationFrame(function(){
+          spec.classList.add('run');
+          bars.forEach(countUp);
+        });
+      }
+
+      // re-measure capdist on resize (debounced) so cap travel stays correct
+      var rt;
+      window.addEventListener('resize',function(){clearTimeout(rt);rt=setTimeout(function(){
+        if(spec.classList.contains('run'))measure();
+      },160);});
+
+      if(replay)replay.addEventListener('click',play);
+
+      // initial play once the left copy has begun its entrance
+      requestAnimationFrame(function(){requestAnimationFrame(play);});
+    })();
+    /* ===== /RIGHT-VISUAL JS ===== */
+  </script>
+</body>
+</html>

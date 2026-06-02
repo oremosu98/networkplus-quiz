@@ -1,0 +1,588 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CertAnvil — Hero · Readiness Meridian</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:oklch(0.975 0.007 85); --bg-deep:oklch(0.955 0.012 82);
+    --surface:oklch(0.992 0.004 85); --surface-2:oklch(0.965 0.010 84);
+    --ink:oklch(0.22 0.015 280); --ink-soft:oklch(0.36 0.014 280); --muted:oklch(0.50 0.013 280);
+    --border:oklch(0.86 0.008 85); --border-soft:oklch(0.91 0.006 85);
+    --accent:oklch(0.50 0.155 55); --accent-bright:oklch(0.80 0.155 64); --accent-deep:oklch(0.42 0.150 52);
+    --on-accent:oklch(0.985 0.010 85);
+    --tile-top:#FFFDF8; --tile-bot:#FFF7EC;
+    --shadow-soft:0 1px 0 rgba(255,255,255,.55),0 18px 38px -18px oklch(0.22 0.015 280 / .20);
+    --shadow-tile:0 2px 4px oklch(0.22 0.015 280 / .05),0 22px 44px -20px oklch(0.22 0.015 280 / .24);
+    --ease-out:cubic-bezier(0.23,1,0.32,1);
+    --ease-in-out:cubic-bezier(0.77,0,0.175,1);
+    --ease-drawer:cubic-bezier(0.32,0.72,0,1);
+  }
+  [data-theme="dark"]{
+    --bg:oklch(0.16 0.009 275); --bg-deep:oklch(0.185 0.012 275);
+    --surface:oklch(0.205 0.009 275); --surface-2:oklch(0.185 0.009 275);
+    --ink:oklch(0.96 0.006 275); --ink-soft:oklch(0.78 0.010 275); --muted:oklch(0.60 0.013 275);
+    --border:oklch(0.30 0.008 275); --border-soft:oklch(0.26 0.008 275);
+    --accent:oklch(0.80 0.155 64); --accent-bright:oklch(0.86 0.140 70); --accent-deep:oklch(0.70 0.150 62);
+    --on-accent:oklch(0.18 0.020 275);
+    --shadow-soft:0 1px 0 rgba(255,255,255,.04),0 20px 40px -18px rgba(0,0,0,.55);
+    --shadow-tile:0 2px 4px rgba(0,0,0,.3),0 24px 46px -20px rgba(0,0,0,.6);
+  }
+  *{box-sizing:border-box;margin:0}
+  html,body{height:100%}
+  body{background:var(--bg);color:var(--ink);font-family:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif;-webkit-font-smoothing:antialiased}
+
+  .hero{min-height:100vh;display:flex;align-items:center;padding:clamp(28px,5vw,72px);overflow:hidden}
+  .hero-grid{width:100%;max-width:1260px;margin:0 auto;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:clamp(24px,3.5vw,52px);align-items:center}
+
+  /* ── left copy (IDENTICAL across all variants) ───────────────── */
+  .hero-copy{max-width:560px}
+  .eyebrow{display:inline-flex;align-items:center;gap:10px;font-size:12px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+  .eyebrow svg{width:15px;height:15px;display:block}
+  .title{font-family:'Fraunces',Georgia,serif;font-weight:600;font-size:clamp(34px,4.6vw,58px);line-height:1.02;letter-spacing:-.022em;color:var(--ink);margin:18px 0 0}
+  .title>span{display:block}
+  .title .forge{font-style:italic;font-weight:600;color:var(--accent)}
+  .sub{margin:20px 0 0;font-size:clamp(14px,1.05vw,15.5px);line-height:1.62;color:var(--ink-soft);max-width:46ch}
+  .proof{display:flex;align-items:center;gap:16px;margin:26px 0 0}
+  .proof-score{font-family:'Fraunces',Georgia,serif;font-weight:600;font-size:30px;letter-spacing:-.01em;color:var(--ink);font-variant-numeric:tabular-nums}
+  .proof-score s{color:var(--muted);text-decoration:none;font-weight:600;font-size:.62em}
+  .proof-div{width:1px;align-self:stretch;background:var(--border)}
+  .proof-text{font-size:13px;line-height:1.45;color:var(--ink-soft)}
+  .proof-text .live{display:inline-flex;align-items:center;gap:6px;font-weight:600;color:var(--accent)}
+  .proof-text .dot{width:7px;height:7px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 3px color-mix(in oklab,var(--accent) 20%,transparent)}
+  .proof-text small{color:var(--muted);font-size:12.5px}
+  .ctas{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:28px 0 0}
+  .cta-primary{position:relative;display:flex;flex-direction:column;gap:3px;background:var(--accent);color:var(--on-accent);padding:13px 22px;border-radius:13px;text-decoration:none;box-shadow:var(--shadow-soft);transition:transform 140ms var(--ease-out),background 200ms var(--ease-out)}
+  .cta-primary .cta-row{display:flex;align-items:center;gap:10px;font-size:15px;font-weight:600}
+  .cta-primary .cta-row svg{width:17px;height:17px;transition:transform 220ms var(--ease-out)}
+  .cta-primary .cta-meta{font-size:11px;font-weight:500;letter-spacing:.03em;text-transform:uppercase;color:color-mix(in oklab,var(--on-accent) 74%,transparent)}
+  @media (hover:hover){.cta-primary:hover{background:var(--accent-deep)}.cta-primary:hover .cta-row svg{transform:translateX(4px)}}
+  .cta-primary:active{transform:scale(0.975)}
+  .cta-secondary{display:inline-flex;align-items:center;gap:7px;font-size:14px;font-weight:600;color:var(--ink-soft);text-decoration:none;padding:12px 6px;transition:color 180ms var(--ease-out)}
+  .cta-secondary svg{width:15px;height:15px}
+  @media (hover:hover){.cta-secondary:hover{color:var(--accent)}}
+  .trust{display:flex;flex-wrap:wrap;gap:7px 18px;margin:26px 0 0;font-size:12.5px;color:var(--muted)}
+  .trust b{color:var(--ink-soft);font-weight:650}
+
+  /* ── right visual anchor ─────────────────────────────────────── */
+  .hero-art{position:relative;aspect-ratio:1/1;width:100%;max-width:660px;margin-left:auto}
+
+  /* entrance for left copy (Emil: ease-out, stagger, reduced-motion safe) */
+  .reveal{opacity:0;transform:translateY(14px);transition:opacity 560ms var(--ease-out),transform 560ms var(--ease-out)}
+  .ready .reveal{opacity:1;transform:none}
+  .ready .reveal[data-d="1"]{transition-delay:40ms}
+  .ready .reveal[data-d="2"]{transition-delay:110ms}
+  .ready .reveal[data-d="3"]{transition-delay:180ms}
+  .ready .reveal[data-d="4"]{transition-delay:250ms}
+  .ready .reveal[data-d="5"]{transition-delay:320ms}
+  .ready .reveal[data-d="6"]{transition-delay:390ms}
+
+  /* chrome */
+  .theme-toggle{position:fixed;top:18px;right:18px;z-index:50;width:40px;height:40px;border-radius:999px;border:1px solid var(--border);background:var(--surface);color:var(--ink);font-size:16px;cursor:pointer;display:grid;place-items:center;transition:transform 140ms var(--ease-out),border-color 200ms var(--ease-out)}
+  .theme-toggle:active{transform:scale(0.94)}
+  .caption{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);z-index:50;font-size:12px;color:var(--muted);letter-spacing:.02em}
+
+  @media (max-width:900px){
+    .hero-grid{grid-template-columns:1fr;gap:44px}
+    .hero-copy{max-width:none}
+    .hero-art{margin:0 auto;max-width:520px}
+  }
+  @media (prefers-reduced-motion:reduce){
+    .reveal{transition:opacity 240ms ease!important;transform:none!important}
+    .ready .reveal{transform:none!important}
+  }
+
+  /* ===== RIGHT-VISUAL CSS — inject below this line ===== */
+  #hero-art{display:flex;align-items:center;justify-content:center}
+  .mer-instrument{
+    position:relative;
+    width:100%;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:2px;
+  }
+  /* SVG is wider than tall (680/440); cap its width so the whole arc + engraved
+     labels fit the square slot without overflow */
+  .mer-gauge-svg{
+    width:100%;max-width:660px;
+    aspect-ratio:680/440;
+    overflow:visible;display:block;
+  }
+  .mer-engraved{font-family:'Inter',system-ui,sans-serif;fill:var(--muted)}
+  .mer-tick{stroke:var(--accent)}
+  .mer-arc-base{fill:none;stroke:var(--accent);opacity:0.85}
+
+  /* center readout overlay — sits over the lower-center of the arc band.
+     The SVG band ends ~ 68% down its own box, so anchor the readout there
+     relative to the SVG, not the full column */
+  .mer-readout{
+    position:absolute;left:50%;top:calc(50% + 10px);
+    transform:translate(-50%,-50%);
+    text-align:center;pointer-events:none;
+  }
+  .mer-num{
+    font-family:'Fraunces',Georgia,serif;font-style:italic;font-weight:600;
+    font-size:clamp(40px,5.4vw,78px);line-height:0.9;
+    color:var(--accent);letter-spacing:-0.01em;
+    font-variant-numeric:tabular-nums;
+  }
+  [data-theme="dark"] .mer-num{
+    text-shadow:0 0 22px color-mix(in oklab, var(--accent-bright) 40%, transparent);
+  }
+  .mer-cap{
+    margin-top:6px;font-size:11px;letter-spacing:0.1em;
+    color:var(--muted);font-weight:500;text-transform:lowercase;
+  }
+  .mer-verdict{
+    margin-top:9px;font-size:11px;letter-spacing:0.22em;text-transform:uppercase;
+    font-weight:600;color:var(--accent);
+    transition:opacity 0.5s var(--ease-out);
+  }
+  .mer-replay{
+    margin-top:4px;
+    display:inline-flex;align-items:center;gap:7px;
+    font-size:11.5px;font-weight:500;letter-spacing:0.04em;
+    color:var(--muted);background:transparent;border:none;cursor:pointer;
+    padding:6px 10px;border-radius:8px;
+    transition:color 0.3s var(--ease-in-out), background 0.3s var(--ease-in-out);
+  }
+  .mer-replay svg{width:13px;height:13px;transition:transform 0.6s var(--ease-out)}
+  @media (hover:hover) and (pointer:fine){
+    .mer-replay:hover{color:var(--accent);background:color-mix(in oklab, var(--accent) 8%, transparent)}
+    .mer-replay:hover svg{transform:rotate(-180deg)}
+  }
+
+  /* weak-spot dot pulse — single accent breathe */
+  @keyframes merBreathe{
+    0%,100%{opacity:0.55;transform:scale(1)}
+    50%{opacity:1;transform:scale(1.35)}
+  }
+  .mer-weakdot{transform-box:fill-box;transform-origin:center}
+  .mer-weakdot.pulse{animation:merBreathe 2.6s var(--ease-in-out) infinite}
+
+  @media (max-width:900px){
+    .mer-gauge-svg{max-width:520px}
+  }
+  @media (prefers-reduced-motion:reduce){
+    .mer-weakdot.pulse{animation:none}
+  }
+  /* ===== /RIGHT-VISUAL CSS ===== */
+</style>
+</head>
+<body>
+  <button class="theme-toggle" id="theme-toggle" aria-label="Toggle theme">☾</button>
+  <div class="caption" id="caption">Hero · Readiness Meridian</div>
+
+  <main class="hero" id="hero">
+    <div class="hero-grid">
+      <div class="hero-copy">
+        <span class="eyebrow reveal" data-d="1">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4l6 6-9 9H5v-6z"/><path d="M12 6l6 6"/></svg>
+          AI cert practice, forged from CompTIA blueprints
+        </span>
+        <h1 class="title reveal" data-d="2">
+          <span><span class="forge">Forge</span> your way</span>
+          <span>through every</span>
+          <span>CompTIA cert.</span>
+        </h1>
+        <p class="sub reveal" data-d="3">
+          Questions written from the real exam objectives and checked by a
+          seven-layer AI engine. You drill what you keep getting wrong, until
+          the score sticks.
+        </p>
+        <div class="proof reveal" data-d="4">
+          <span class="proof-score">767<s>&thinsp;/&thinsp;900</s></span>
+          <span class="proof-div"></span>
+          <span class="proof-text">
+            <span class="live"><span class="dot"></span>Network+ N10-009 · passed</span><br>
+            <small>Built and passed with this tool on 2026-05-05.</small>
+          </span>
+        </div>
+        <div class="ctas reveal" data-d="5">
+          <a class="cta-primary" href="#">
+            <span class="cta-row">Take the baseline diagnostic
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+            </span>
+            <span class="cta-meta">About 20 minutes · Free · No account</span>
+          </a>
+          <a class="cta-secondary" href="#">Or pick a cert
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+          </a>
+        </div>
+        <div class="trust reveal" data-d="6">
+          <span><b>5</b>&nbsp;N10-009 domains</span>
+          <span><b>7-layer</b>&nbsp;AI validation</span>
+          <span><b>No</b>&nbsp;repeated questions</span>
+        </div>
+      </div>
+
+      <div class="hero-art" id="hero-art" aria-hidden="true">
+        <!-- ===== RIGHT-VISUAL MARKUP — inject inside #hero-art ===== -->
+        <div class="mer-instrument">
+          <svg class="mer-gauge-svg" viewBox="0 0 680 440" id="mer-gauge" aria-label="Readiness meridian gauge">
+            <defs>
+              <radialGradient id="merGlowSeg" cx="50%" cy="100%" r="80%">
+                <stop offset="0%" stop-color="var(--accent-bright)" stop-opacity="0.55"/>
+                <stop offset="100%" stop-color="var(--accent)" stop-opacity="0.05"/>
+              </radialGradient>
+              <linearGradient id="merNeedleGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="var(--accent-bright)"/>
+                <stop offset="100%" stop-color="var(--accent-deep)"/>
+              </linearGradient>
+              <filter id="merSegGlow" x="-40%" y="-40%" width="180%" height="180%">
+                <feGaussianBlur stdDeviation="3.2" result="b"/>
+                <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+              </filter>
+            </defs>
+            <g id="mer-segGroup"></g>
+            <g id="mer-tickGroup"></g>
+            <path id="mer-mainArc" class="mer-arc-base" stroke-width="1.6"/>
+            <g id="mer-labelGroup"></g>
+            <g id="mer-benchGroup"></g>
+            <g id="mer-needleGroup"></g>
+          </svg>
+
+          <div class="mer-readout">
+            <div class="mer-num" id="mer-readNum">0%</div>
+            <div class="mer-cap">ready · blueprint-weighted</div>
+            <div class="mer-verdict" id="mer-verdict">Calibrating…</div>
+          </div>
+
+          <button class="mer-replay" id="mer-replay" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/>
+            </svg>
+            replay
+          </button>
+        </div>
+        <!-- ===== /RIGHT-VISUAL MARKUP ===== -->
+      </div>
+    </div>
+  </main>
+
+  <script>
+    /* left-copy entrance trigger */
+    requestAnimationFrame(function(){requestAnimationFrame(function(){document.getElementById('hero').classList.add('ready');});});
+    /* theme toggle */
+    (function(){var t=document.getElementById('theme-toggle');t.addEventListener('click',function(){var d=document.documentElement.getAttribute('data-theme')==='dark';document.documentElement.setAttribute('data-theme',d?'light':'dark');t.textContent=d?'☾':'☀';});})();
+
+    /* ===== RIGHT-VISUAL JS — inject below this line ===== */
+    (function(){
+      "use strict";
+      const root = document.getElementById("hero-art");
+      if(!root) return;
+      const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+      /* ---------- gauge geometry ---------- */
+      const CX = 340, CY = 360;
+      const R  = 270;
+      const START = 200, END = 340;
+      const SPAN = END - START;
+
+      function rad(d){ return d * Math.PI/180; }
+      function ptAt(frac, r){
+        const a = rad(START + SPAN*frac);
+        return { x: CX + r*Math.cos(a), y: CY + r*Math.sin(a) };
+      }
+      function arcPath(r, f0, f1){
+        const p0 = ptAt(f0, r), p1 = ptAt(f1, r);
+        const large = (SPAN*(f1-f0)) > 180 ? 1 : 0;
+        return `M ${p0.x.toFixed(2)} ${p0.y.toFixed(2)} A ${r} ${r} 0 ${large} 1 ${p1.x.toFixed(2)} ${p1.y.toFixed(2)}`;
+      }
+
+      const NS = "http://www.w3.org/2000/svg";
+      const q = id => root.querySelector("#" + id);
+      const mainArc   = q("mer-mainArc");
+      const tickGroup = q("mer-tickGroup");
+      const segGroup  = q("mer-segGroup");
+      const labelGrp  = q("mer-labelGroup");
+      const benchGrp  = q("mer-benchGroup");
+      const needleGrp = q("mer-needleGroup");
+      const readNum   = q("mer-readNum");
+      const verdict   = q("mer-verdict");
+      if(!mainArc) return;
+
+      /* ---------- domains (uneven, honest mastery) ---------- */
+      const domains = [
+        { name:"Networking\nConcepts",      val:0.88, weak:false },
+        { name:"Network\nImplementation",   val:0.81, weak:false },
+        { name:"Network\nOperations",       val:0.70, weak:false },
+        { name:"Network\nSecurity",         val:0.46, weak:true  },
+        { name:"Trouble-\nshooting",        val:0.74, weak:false }
+      ];
+      const AGG = 78;
+      const segR = R - 30;
+      const gap = 0.012;
+
+      /* ---------- build main arc ---------- */
+      mainArc.setAttribute("d", arcPath(R, 0, 1));
+      const arcLen = mainArc.getTotalLength();
+      mainArc.style.strokeDasharray = arcLen;
+      mainArc.style.strokeDashoffset = reduce ? 0 : arcLen;
+
+      /* ---------- ticks ---------- */
+      const TICKS = 57;
+      for(let i=0;i<TICKS;i++){
+        const f = i/(TICKS-1);
+        const major = (i % 7 === 0);
+        const tlen = major ? 15 : 7;
+        const o = ptAt(f, R - 2);
+        const inr = ptAt(f, R - 2 - tlen);
+        const t = document.createElementNS(NS,"line");
+        t.setAttribute("x1", o.x.toFixed(2)); t.setAttribute("y1", o.y.toFixed(2));
+        t.setAttribute("x2", inr.x.toFixed(2)); t.setAttribute("y2", inr.y.toFixed(2));
+        t.setAttribute("class","mer-tick");
+        t.setAttribute("stroke-width", major ? 1.5 : 1);
+        t.setAttribute("opacity", major ? 0.8 : 0.42);
+        tickGroup.appendChild(t);
+
+        if(major){
+          const lab = document.createElementNS(NS,"text");
+          const lp = ptAt(f, R + 16);
+          lab.setAttribute("x", lp.x.toFixed(2)); lab.setAttribute("y", lp.y.toFixed(2));
+          lab.setAttribute("text-anchor","middle");
+          lab.setAttribute("dominant-baseline","middle");
+          lab.setAttribute("class","mer-engraved");
+          lab.setAttribute("font-size","10.5");
+          lab.setAttribute("opacity","0.6");
+          lab.setAttribute("letter-spacing","0.04em");
+          lab.textContent = Math.round(f*100);
+          tickGroup.appendChild(lab);
+        }
+      }
+
+      /* ---------- benchmark notch "767 cleared" ---------- */
+      (function(){
+        const f = 767/900;
+        const o = ptAt(f, R - 2);
+        const inr = ptAt(f, R - 24);
+        const ln = document.createElementNS(NS,"line");
+        ln.setAttribute("x1",o.x.toFixed(2)); ln.setAttribute("y1",o.y.toFixed(2));
+        ln.setAttribute("x2",inr.x.toFixed(2)); ln.setAttribute("y2",inr.y.toFixed(2));
+        ln.setAttribute("stroke","var(--accent)");
+        ln.setAttribute("stroke-width","2.2");
+        ln.setAttribute("opacity","0.9");
+        benchGrp.appendChild(ln);
+
+        const dot = document.createElementNS(NS,"circle");
+        dot.setAttribute("cx",o.x.toFixed(2)); dot.setAttribute("cy",o.y.toFixed(2));
+        dot.setAttribute("r","2.6"); dot.setAttribute("fill","var(--accent)");
+        benchGrp.appendChild(dot);
+
+        const lp = ptAt(f, R + 40);
+        const tx = document.createElementNS(NS,"text");
+        tx.setAttribute("x", lp.x.toFixed(2)); tx.setAttribute("y", lp.y.toFixed(2));
+        tx.setAttribute("text-anchor","middle");
+        tx.setAttribute("class","mer-engraved");
+        tx.setAttribute("font-size","10");
+        tx.setAttribute("font-weight","600");
+        tx.setAttribute("fill","var(--accent)");
+        tx.setAttribute("letter-spacing","0.08em");
+        tx.textContent = "767 CLEARED";
+        benchGrp.appendChild(tx);
+      })();
+
+      /* ---------- domain segments ---------- */
+      const segObjs = [];
+      const segWidth = (1 - gap*(domains.length+1)) / domains.length;
+      domains.forEach((d, i)=>{
+        const f0 = gap + i*(segWidth+gap);
+        const f1 = f0 + segWidth;
+        const mid = (f0+f1)/2;
+
+        const track = document.createElementNS(NS,"path");
+        track.setAttribute("d", arcPath(segR, f0, f1));
+        track.setAttribute("fill","none");
+        track.setAttribute("stroke","var(--border)");
+        track.setAttribute("stroke-width","8");
+        track.setAttribute("stroke-linecap","round");
+        track.setAttribute("opacity","0.55");
+        segGroup.appendChild(track);
+
+        const fill = document.createElementNS(NS,"path");
+        fill.setAttribute("d", arcPath(segR, f0, f1));
+        fill.setAttribute("fill","none");
+        fill.setAttribute("stroke", "var(--accent)");
+        fill.setAttribute("stroke-width","8");
+        fill.setAttribute("stroke-linecap","round");
+        fill.setAttribute("filter","url(#merSegGlow)");
+        fill.setAttribute("opacity", d.weak ? "0.92" : "1");
+        segGroup.appendChild(fill);
+
+        const segL = fill.getTotalLength();
+        fill.style.strokeDasharray = segL;
+        fill.style.strokeDashoffset = reduce ? (segL*(1-d.val)) : segL;
+        segObjs.push({ fill, segL, val:d.val });
+
+        const lp = ptAt(mid, segR - 26);
+        const lines = d.name.split("\n");
+        const lab = document.createElementNS(NS,"text");
+        lab.setAttribute("x", lp.x.toFixed(2)); lab.setAttribute("y", lp.y.toFixed(2));
+        lab.setAttribute("text-anchor","middle");
+        lab.setAttribute("class","mer-engraved");
+        lab.setAttribute("font-size","9.5");
+        lab.setAttribute("font-weight","500");
+        lab.setAttribute("opacity","0.78");
+        lab.setAttribute("letter-spacing","0.02em");
+        lines.forEach((ln,li)=>{
+          const ts = document.createElementNS(NS,"tspan");
+          ts.setAttribute("x", lp.x.toFixed(2));
+          ts.setAttribute("dy", li===0 ? "0" : "11");
+          ts.textContent = ln;
+          lab.appendChild(ts);
+        });
+        labelGrp.appendChild(lab);
+
+        if(d.weak){
+          const dp = ptAt(mid, segR + 16);
+          const wd = document.createElementNS(NS,"circle");
+          wd.setAttribute("cx", dp.x.toFixed(2)); wd.setAttribute("cy", dp.y.toFixed(2));
+          wd.setAttribute("r","4");
+          wd.setAttribute("fill","var(--accent-bright)");
+          wd.setAttribute("class","mer-weakdot");
+          wd.setAttribute("id","mer-weakdot");
+          segGroup.appendChild(wd);
+
+          const wl = ptAt(mid, segR + 44);
+          const wt = document.createElementNS(NS,"text");
+          wt.setAttribute("x", wl.x.toFixed(2)); wt.setAttribute("y", wl.y.toFixed(2));
+          wt.setAttribute("text-anchor","middle");
+          wt.setAttribute("class","mer-engraved");
+          wt.setAttribute("font-size","9");
+          wt.setAttribute("font-weight","600");
+          wt.setAttribute("fill","var(--accent)");
+          wt.setAttribute("letter-spacing","0.06em");
+          wt.textContent = "weak spot → routed next";
+          segGroup.appendChild(wt);
+        }
+      });
+
+      /* ---------- needle ---------- */
+      const needle = document.createElementNS(NS,"g");
+      const nLine = document.createElementNS(NS,"line");
+      nLine.setAttribute("x1", CX); nLine.setAttribute("y1", CY);
+      const nTip = ptAt(0, R - 46);
+      nLine.setAttribute("x2", nTip.x.toFixed(2)); nLine.setAttribute("y2", nTip.y.toFixed(2));
+      nLine.setAttribute("stroke","url(#merNeedleGrad)");
+      nLine.setAttribute("stroke-width","3");
+      nLine.setAttribute("stroke-linecap","round");
+      needle.appendChild(nLine);
+
+      const hub = document.createElementNS(NS,"circle");
+      hub.setAttribute("cx", CX); hub.setAttribute("cy", CY);
+      hub.setAttribute("r","9");
+      hub.setAttribute("fill","var(--surface)");
+      hub.setAttribute("stroke","var(--accent)");
+      hub.setAttribute("stroke-width","2");
+      const hubDot = document.createElementNS(NS,"circle");
+      hubDot.setAttribute("cx", CX); hubDot.setAttribute("cy", CY);
+      hubDot.setAttribute("r","3"); hubDot.setAttribute("fill","var(--accent)");
+      needleGrp.appendChild(needle);
+      needleGrp.appendChild(hub);
+      needleGrp.appendChild(hubDot);
+
+      function setNeedle(frac){
+        const tip = ptAt(frac, R - 46);
+        nLine.setAttribute("x2", tip.x.toFixed(2));
+        nLine.setAttribute("y2", tip.y.toFixed(2));
+      }
+
+      /* ---------- easing / spring helpers ---------- */
+      function springEase(t){
+        if(t>=1) return 1;
+        const decay = Math.exp(-6.5*t);
+        return 1 - decay*Math.cos(7.2*t);
+      }
+
+      let rafs = [];
+      let timers = [];
+      function clearRafs(){ rafs.forEach(id=>cancelAnimationFrame(id)); rafs=[]; timers.forEach(id=>clearTimeout(id)); timers=[]; }
+
+      function animate(dur, fn, ease, onDone){
+        const t0 = performance.now();
+        function frame(now){
+          let p = Math.min(1,(now-t0)/dur);
+          fn(ease?ease(p):p, p);
+          if(p<1){ rafs.push(requestAnimationFrame(frame)); }
+          else if(onDone) onDone();
+        }
+        rafs.push(requestAnimationFrame(frame));
+      }
+
+      /* ---------- the signature sequence ---------- */
+      const weakdot = ()=> root.querySelector("#mer-weakdot");
+
+      function runFinalState(){
+        mainArc.style.strokeDashoffset = 0;
+        segObjs.forEach(s=> s.fill.style.strokeDashoffset = s.segL*(1-s.val));
+        setNeedle(AGG/100);
+        readNum.textContent = AGG + "%";
+        verdict.textContent = "ready";
+        verdict.style.opacity = 1;
+        const wd = weakdot(); if(wd) wd.classList.add("pulse");
+      }
+
+      function play(){
+        clearRafs();
+        if(reduce){ runFinalState(); return; }
+
+        mainArc.style.strokeDashoffset = arcLen;
+        segObjs.forEach(s=> s.fill.style.strokeDashoffset = s.segL);
+        setNeedle(0);
+        readNum.textContent = "0%";
+        verdict.textContent = "Calibrating…";
+        verdict.style.opacity = 0.7;
+        const wd0 = weakdot(); if(wd0) wd0.classList.remove("pulse");
+
+        animate(620, (e)=>{ mainArc.style.strokeDashoffset = arcLen*(1-e); }, t=>t<1?1-Math.pow(1-t,3):1);
+
+        segObjs.forEach((s, i)=>{
+          const delay = 360 + i*60;
+          timers.push(setTimeout(()=>{
+            animate(720, (e)=>{
+              let v = s.val * e;
+              if(v > s.val) v = s.val + (v-s.val)*0.5;
+              v = Math.min(v, 1);
+              s.fill.style.strokeDashoffset = s.segL*(1 - v);
+            }, springEase);
+          }, delay));
+        });
+
+        const needleDelay = 760;
+        timers.push(setTimeout(()=>{
+          animate(1100, (e)=>{
+            let frac = (AGG/100) * e;
+            setNeedle(frac);
+            let n = AGG * e;
+            if(n > AGG) n = AGG + Math.min(n-AGG, 2);
+            readNum.textContent = Math.round(n) + "%";
+          }, springEase, ()=>{
+            setNeedle(AGG/100);
+            readNum.textContent = AGG + "%";
+          });
+        }, needleDelay));
+
+        timers.push(setTimeout(()=>{ const wd=weakdot(); if(wd) wd.classList.add("pulse"); }, 1900));
+
+        timers.push(setTimeout(()=>{
+          verdict.style.opacity = 0;
+          timers.push(setTimeout(()=>{ verdict.textContent = "ready"; verdict.style.opacity = 1; }, 280));
+        }, 2000));
+      }
+
+      const replayBtn = q("mer-replay");
+      if(replayBtn) replayBtn.addEventListener("click", play);
+
+      if(reduce){ runFinalState(); }
+      else {
+        if(document.readyState === "complete") requestAnimationFrame(play);
+        else window.addEventListener("load", ()=> requestAnimationFrame(play));
+      }
+    })();
+    /* ===== /RIGHT-VISUAL JS ===== */
+  </script>
+</body>
+</html>

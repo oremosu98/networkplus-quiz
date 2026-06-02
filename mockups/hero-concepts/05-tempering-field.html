@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CertAnvil — Tempering Field</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:oklch(0.975 0.007 85);
+  --bg-deep:oklch(0.955 0.012 82);
+  --surface:oklch(0.992 0.004 85);
+  --surface-2:oklch(0.965 0.010 84);
+  --ink:oklch(0.22 0.015 280);
+  --ink-soft:oklch(0.36 0.014 280);
+  --muted:oklch(0.50 0.013 280);
+  --border:oklch(0.86 0.008 85);
+  --border-soft:oklch(0.91 0.006 85);
+  --accent:oklch(0.50 0.155 55);
+  --accent-bright:oklch(0.80 0.155 64);
+  --accent-deep:oklch(0.42 0.150 52);
+  --on-accent:oklch(0.985 0.010 85);
+
+  /* temper sweep stops */
+  --straw:oklch(0.85 0.10 95);
+
+  /* light: heat reads as a warm STAIN -> darken/multiply blend */
+  --band-blend:multiply;
+  --band-opacity:0.92;
+  --plane-tex-contrast:0.030;
+  --glint-opacity:0.05;
+  --scrim-strength:0.55;
+
+  --ease-out:cubic-bezier(0.23,1,0.32,1);
+  --ease-in-out:cubic-bezier(0.77,0,0.175,1);
+
+  /* prototype timing */
+  --pass-dur:16s;
+}
+
+[data-theme="dark"]{
+  --bg:oklch(0.16 0.009 275);
+  --bg-deep:oklch(0.185 0.012 275);
+  --surface:oklch(0.205 0.009 275);
+  --surface-2:oklch(0.185 0.009 275);
+  --ink:oklch(0.96 0.006 275);
+  --ink-soft:oklch(0.78 0.010 275);
+  --muted:oklch(0.60 0.013 275);
+  --border:oklch(0.30 0.008 275);
+  --border-soft:oklch(0.26 0.008 275);
+  --accent:oklch(0.80 0.155 64);
+  --accent-bright:oklch(0.86 0.140 70);
+  --accent-deep:oklch(0.70 0.150 62);
+  --on-accent:oklch(0.18 0.020 275);
+
+  --straw:oklch(0.86 0.11 96);
+
+  /* dark: heat is EMISSIVE -> screen/lighten blend */
+  --band-blend:screen;
+  --band-opacity:0.85;
+  --plane-tex-contrast:0.055;
+  --glint-opacity:0.10;
+  --scrim-strength:0.65;
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  font-family:Inter,system-ui,sans-serif;
+  background:var(--bg);
+  color:var(--ink);
+  -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+  overflow-x:hidden;
+}
+
+/* ============ HERO SHELL ============ */
+.hero{
+  position:relative;
+  min-height:100svh;
+  isolation:isolate;
+  overflow:hidden;
+  display:grid;
+  grid-template-columns:minmax(0,1fr);
+  align-items:center;
+}
+
+/* ---- the forged-steel plane (base) ---- */
+.plane{
+  position:absolute;
+  inset:0;
+  z-index:0;
+  background:
+    radial-gradient(140% 120% at 18% 12%, var(--bg-deep) 0%, transparent 55%),
+    radial-gradient(120% 130% at 88% 96%, color-mix(in oklab, var(--bg-deep) 70%, var(--ink) 6%) 0%, transparent 60%),
+    linear-gradient(180deg, var(--surface-2) 0%, var(--bg) 48%, var(--bg-deep) 100%);
+}
+/* brushed/hammered micro-texture, theme-recolorable via currentColor in svg + contrast var */
+.plane::before{
+  content:"";
+  position:absolute;
+  inset:-2%;
+  background-image:var(--tex-url);
+  background-size:340px 340px;
+  opacity:var(--plane-tex-contrast);
+  mix-blend-mode:soft-light;
+  pointer-events:none;
+}
+/* anisotropic brushed-metal streaks (raking direction) */
+.plane::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:repeating-linear-gradient(
+    62deg,
+    transparent 0px,
+    color-mix(in oklab, var(--ink) 40%, transparent) 0.5px,
+    transparent 2.5px,
+    transparent 6px
+  );
+  opacity:calc(var(--plane-tex-contrast) * 0.9);
+  mix-blend-mode:overlay;
+  pointer-events:none;
+}
+
+/* ---- the temper BAND (one wide soft diagonal gradient translated across) ---- */
+.band-layer{
+  position:absolute;
+  inset:0;
+  z-index:1;
+  pointer-events:none;
+  mix-blend-mode:var(--band-blend);
+  contain:strict;
+}
+.band{
+  position:absolute;
+  top:-30%;
+  left:0;
+  width:62%;
+  height:160%;
+  /* diagonal warm sweep: straw leading -> forged bronze peak -> cool back */
+  background:linear-gradient(
+    105deg,
+    transparent 0%,
+    color-mix(in oklab, var(--straw) 70%, transparent) 16%,
+    color-mix(in oklab, var(--accent-bright) 85%, var(--straw)) 42%,
+    var(--accent-bright) 50%,
+    color-mix(in oklab, var(--accent) 80%, transparent) 64%,
+    transparent 100%
+  );
+  filter:blur(26px);
+  opacity:var(--band-opacity);
+  transform:translate3d(-95%,0,0) rotate(0deg);
+  will-change:transform,opacity;
+  /* default static park position (used by reduced-motion + pre-animation) */
+}
+/* micro-glints that live INSIDE the band only */
+.band .glints{
+  position:absolute;
+  inset:0;
+  background-image:
+    radial-gradient(2px 10px at 30% 22%, var(--straw), transparent 70%),
+    radial-gradient(1.5px 8px at 52% 60%, var(--accent-bright), transparent 70%),
+    radial-gradient(2px 12px at 68% 38%, var(--straw), transparent 70%),
+    radial-gradient(1.5px 9px at 44% 80%, var(--accent-bright), transparent 70%);
+  background-size:auto;
+  transform:rotate(62deg) scale(1.4);
+  opacity:var(--glint-opacity);
+  mix-blend-mode:screen;
+}
+
+/* JS-driven pass: translate the band fully across, ease like raking light */
+.band.is-sweeping{
+  animation:rake var(--pass-dur) var(--ease-in-out) forwards;
+}
+@keyframes rake{
+  0%   { transform:translate3d(-95%,0,0); opacity:0; }
+  10%  { opacity:var(--band-opacity); }
+  50%  { opacity:var(--band-opacity); }
+  90%  { opacity:var(--band-opacity); }
+  100% { transform:translate3d(265%,0,0); opacity:0; }
+}
+
+/* ---- permanent legibility scrim under the text column ONLY ---- */
+.scrim{
+  position:absolute;
+  inset:0;
+  z-index:2;
+  pointer-events:none;
+  background:linear-gradient(
+    100deg,
+    color-mix(in oklab, var(--surface) calc(var(--scrim-strength) * 22%), transparent) 0%,
+    color-mix(in oklab, var(--surface) calc(var(--scrim-strength) * 14%), transparent) 34%,
+    transparent 62%
+  );
+}
+
+/* ============ CONTENT (fixed left column) ============ */
+.wrap{
+  position:relative;
+  z-index:3;
+  width:100%;
+  max-width:1280px;
+  margin:0 auto;
+  padding:clamp(2rem,6vw,7rem) clamp(1.5rem,6vw,5.5rem);
+}
+.col{
+  max-width:36rem;
+}
+
+.eyebrow{
+  font-family:Inter,sans-serif;
+  font-weight:600;
+  font-size:0.72rem;
+  letter-spacing:0.16em;
+  text-transform:uppercase;
+  color:var(--accent);
+  display:inline-flex;
+  align-items:center;
+  gap:0.6em;
+  margin-bottom:1.6rem;
+}
+.eyebrow::before{
+  content:"";
+  width:1.6rem;
+  height:1px;
+  background:linear-gradient(90deg, var(--accent), transparent);
+}
+
+h1{
+  font-family:Fraunces,serif;
+  font-weight:600;
+  font-size:clamp(2.6rem,6.2vw,4.6rem);
+  line-height:1.02;
+  letter-spacing:-0.02em;
+  color:var(--ink);
+  margin-bottom:1.4rem;
+  text-wrap:balance;
+}
+h1 .knowing{
+  font-style:italic;
+  font-weight:600;
+  color:var(--accent);
+}
+
+.subhead{
+  font-size:clamp(1.02rem,1.6vw,1.22rem);
+  line-height:1.55;
+  color:var(--ink-soft);
+  max-width:30rem;
+  margin-bottom:2.4rem;
+}
+
+.cta-row{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  gap:0.9rem;
+  margin-bottom:3.4rem;
+}
+.btn{
+  font-family:Inter,sans-serif;
+  font-weight:600;
+  font-size:0.98rem;
+  border:1px solid transparent;
+  border-radius:0.65rem;
+  padding:0.85rem 1.4rem;
+  cursor:pointer;
+  text-decoration:none;
+  display:inline-flex;
+  align-items:center;
+  gap:0.5em;
+  transition:transform .45s var(--ease-out),
+             background-color .45s var(--ease-out),
+             border-color .45s var(--ease-out),
+             box-shadow .45s var(--ease-out);
+  transform:translateZ(0);
+}
+.btn:active{transform:scale(0.97)}
+.btn-primary{
+  background:var(--accent);
+  color:var(--on-accent);
+  box-shadow:0 1px 0 color-mix(in oklab,var(--accent-bright) 50%, transparent) inset,
+             0 8px 24px -10px color-mix(in oklab,var(--accent) 70%, transparent);
+}
+.btn-ghost{
+  background:transparent;
+  color:var(--ink-soft);
+  border-color:var(--border);
+}
+@media (hover:hover) and (pointer:fine){
+  .btn-primary:hover{
+    background:var(--accent-deep);
+    box-shadow:0 1px 0 color-mix(in oklab,var(--accent-bright) 65%, transparent) inset,
+               0 12px 30px -10px color-mix(in oklab,var(--accent) 80%, transparent);
+  }
+  .btn-ghost:hover{
+    border-color:var(--accent);
+    color:var(--ink);
+  }
+}
+
+/* ---- maker's mark: 767/900 debossed ---- */
+.mark{
+  display:inline-block;
+  border-top:1px solid var(--border-soft);
+  padding-top:1.2rem;
+}
+.mark .score{
+  font-family:Fraunces,serif;
+  font-weight:600;
+  font-size:clamp(1.7rem,3vw,2.2rem);
+  letter-spacing:0.01em;
+  line-height:1;
+  /* debossed / struck-into-plate effect */
+  color:color-mix(in oklab, var(--ink) 62%, var(--bg) 38%);
+  text-shadow:
+    0 1px 0 color-mix(in oklab, var(--surface) 90%, transparent),
+    0 -1px 1px color-mix(in oklab, var(--ink) 30%, transparent);
+}
+.mark .score .slash{color:var(--muted);font-style:italic;font-weight:400;}
+.mark .label{
+  font-family:Inter,sans-serif;
+  font-weight:500;
+  font-size:0.74rem;
+  letter-spacing:0.13em;
+  text-transform:uppercase;
+  color:var(--muted);
+  margin-top:0.55rem;
+}
+.mark .label b{color:var(--accent);font-weight:600;}
+
+/* ============ FIXED CHROME ============ */
+.toggle, .sweep-btn{
+  position:fixed;
+  z-index:20;
+  font-family:Inter,sans-serif;
+  border:1px solid var(--border);
+  background:color-mix(in oklab, var(--surface) 80%, transparent);
+  backdrop-filter:blur(10px);
+  -webkit-backdrop-filter:blur(10px);
+  color:var(--ink-soft);
+  cursor:pointer;
+  border-radius:0.6rem;
+  transition:transform .4s var(--ease-out), border-color .4s var(--ease-out), color .4s var(--ease-out);
+}
+.toggle{
+  top:1.1rem; right:1.1rem;
+  width:2.5rem; height:2.5rem;
+  font-size:1.05rem;
+  display:grid; place-items:center;
+}
+.sweep-btn{
+  top:1.1rem; right:4rem;
+  height:2.5rem;
+  padding:0 0.95rem;
+  font-size:0.8rem;
+  font-weight:500;
+  letter-spacing:0.02em;
+}
+.toggle:active,.sweep-btn:active{transform:scale(0.97)}
+@media (hover:hover) and (pointer:fine){
+  .toggle:hover,.sweep-btn:hover{border-color:var(--accent);color:var(--ink)}
+}
+
+.caption{
+  position:fixed;
+  z-index:20;
+  bottom:0.9rem;
+  left:50%;
+  transform:translateX(-50%);
+  font-family:Inter,sans-serif;
+  font-size:0.7rem;
+  letter-spacing:0.1em;
+  color:var(--muted);
+  pointer-events:none;
+  white-space:nowrap;
+}
+
+/* ============ RESPONSIVE ============ */
+@media (max-width:560px){
+  .col{max-width:none}
+  .sweep-btn{right:auto; left:1.1rem; top:auto; bottom:2.4rem;}
+  .band{width:90%}
+  .scrim{
+    background:linear-gradient(
+      180deg,
+      color-mix(in oklab, var(--surface) calc(var(--scrim-strength) * 26%), transparent) 0%,
+      color-mix(in oklab, var(--surface) calc(var(--scrim-strength) * 14%), transparent) 46%,
+      transparent 78%
+    );
+  }
+}
+
+/* ============ REDUCED MOTION: park band at a static warm diagonal rake ============ */
+@media (prefers-reduced-motion:reduce){
+  .band{
+    animation:none !important;
+    transform:translate3d(58%,0,0) !important;
+    opacity:var(--band-opacity) !important;
+    transition:none !important;
+  }
+  .band.is-sweeping{animation:none !important;}
+  .btn{transition:background-color .2s linear, border-color .2s linear;}
+}
+</style>
+</head>
+<body>
+<button class="toggle" id="themeToggle" aria-label="Toggle theme">☾</button>
+<button class="sweep-btn" id="sweepNow" aria-label="Trigger temper sweep">▶ sweep now</button>
+
+<main class="hero">
+  <div class="plane" aria-hidden="true"></div>
+
+  <div class="band-layer" aria-hidden="true">
+    <div class="band" id="band"><div class="glints"></div></div>
+  </div>
+
+  <div class="scrim" aria-hidden="true"></div>
+
+  <div class="wrap">
+    <div class="col">
+      <span class="eyebrow">AI Cert Practice · Forged from CompTIA Blueprints</span>
+      <h1>Walk in <span class="knowing">knowing</span>, not hoping.</h1>
+      <p class="subhead">Fresh exam questions every session, validated seven ways, scored to the real blueprint.</p>
+      <div class="cta-row">
+        <a href="#" class="btn btn-primary">Start the baseline diagnostic →</a>
+        <a href="#" class="btn btn-ghost">See how it works</a>
+      </div>
+      <div class="mark">
+        <div class="score">767 <span class="slash">/</span> 900</div>
+        <div class="label">Network+ N10-009 · <b>passed</b></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<div class="caption">Concept 05 · Tempering Field</div>
+
+<!-- inline SVG turbulence texture, recolored via currentColor, injected as data-uri -->
+<script>
+(function(){
+  /* ---- build the hammered/brushed turbulence texture as a recolorable data-uri ---- */
+  function buildTexture(){
+    var ink = getComputedStyle(document.documentElement).getPropertyValue('--ink').trim();
+    var svg =
+      '<svg xmlns="http://www.w3.org/2000/svg" width="340" height="340">'+
+      '<filter id="t"><feTurbulence type="fractalNoise" baseFrequency="0.012 0.9" numOctaves="2" seed="7" stitchTiles="stitch"/>'+
+      '<feColorMatrix type="saturate" values="0"/></filter>'+
+      '<rect width="340" height="340" filter="url(#t)" opacity="0.5"/>'+
+      '</svg>';
+    var url = 'url("data:image/svg+xml;utf8,'+encodeURIComponent(svg)+'")';
+    document.documentElement.style.setProperty('--tex-url', url);
+  }
+  buildTexture();
+
+  var root = document.documentElement;
+  var band = document.getElementById('band');
+  var reduce = window.matchMedia('(prefers-reduced-motion:reduce)');
+
+  /* ---- theme toggle ---- */
+  var toggle = document.getElementById('themeToggle');
+  function syncIcon(){
+    toggle.textContent = root.getAttribute('data-theme')==='dark' ? '☀' : '☾';
+  }
+  syncIcon();
+  toggle.addEventListener('click', function(){
+    root.setAttribute('data-theme', root.getAttribute('data-theme')==='dark' ? 'light' : 'dark');
+    syncIcon();
+    buildTexture(); /* keep texture tuned to theme */
+  });
+
+  /* ---- the sweep: a slow EVENT with long pauses ---- */
+  var PASS_MS = 16000;     /* matches --pass-dur */
+  var PAUSE_MS = 7000;     /* near-still pause between passes */
+  var cycleTimer = null;
+  var sweeping = false;
+
+  function doPass(){
+    if (reduce.matches) return;          /* parked diagonal, no travel */
+    if (sweeping) return;
+    sweeping = true;
+    band.classList.remove('is-sweeping');
+    /* force reflow so re-adding the class restarts the animation cleanly */
+    void band.offsetWidth;
+    band.classList.add('is-sweeping');
+  }
+  band.addEventListener('animationend', function(){
+    band.classList.remove('is-sweeping');
+    sweeping = false;
+  });
+
+  function startCycle(){
+    if (reduce.matches) return;
+    clearTimeout(cycleTimer);
+    function loop(){
+      doPass();
+      cycleTimer = setTimeout(loop, PASS_MS + PAUSE_MS);
+    }
+    /* first pass begins ~1.2s after load */
+    cycleTimer = setTimeout(loop, 1200);
+  }
+
+  /* on-demand sweep button — interrupts the wait, fires immediately */
+  document.getElementById('sweepNow').addEventListener('click', function(){
+    if (reduce.matches){
+      /* brief courtesy nudge even under reduced-motion preference is skipped;
+         keep it honest: do nothing destructive, just no-op the travel */
+      return;
+    }
+    sweeping = false;
+    doPass();
+    /* reschedule the ambient cycle around this manual pass */
+    clearTimeout(cycleTimer);
+    cycleTimer = setTimeout(function reflow(){
+      doPass();
+      cycleTimer = setTimeout(arguments.callee, PASS_MS + PAUSE_MS);
+    }, PASS_MS + PAUSE_MS);
+  });
+
+  startCycle();
+  reduce.addEventListener('change', function(){
+    clearTimeout(cycleTimer);
+    if (!reduce.matches) startCycle();
+  });
+
+  /* ---- optional scroll tie-in: scrolling down nudges + dims the band ("metal cooling") ---- */
+  var ticking = false;
+  var bandLayer = document.querySelector('.band-layer');
+  window.addEventListener('scroll', function(){
+    if (reduce.matches) return;
+    if (!ticking){
+      requestAnimationFrame(function(){
+        var y = window.scrollY || 0;
+        var dim = Math.max(0, 1 - y / 700);          /* fade as you scroll */
+        bandLayer.style.opacity = (0.35 + 0.65 * dim).toFixed(3);
+        bandLayer.style.transform = 'translate3d(0,'+ (y * 0.06).toFixed(1) +'px,0)';
+        ticking = false;
+      });
+      ticking = true;
+    }
+  }, {passive:true});
+})();
+</script>
+</body>
+</html>

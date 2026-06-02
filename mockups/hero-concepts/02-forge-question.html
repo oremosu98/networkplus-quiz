@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CertAnvil — Concept 02 · Forge Question</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: oklch(0.975 0.007 85);
+    --bg-deep: oklch(0.955 0.012 82);
+    --surface: oklch(0.992 0.004 85);
+    --surface-2: oklch(0.965 0.010 84);
+    --ink: oklch(0.22 0.015 280);
+    --ink-soft: oklch(0.36 0.014 280);
+    --muted: oklch(0.50 0.013 280);
+    --border: oklch(0.86 0.008 85);
+    --border-soft: oklch(0.91 0.006 85);
+    --accent: oklch(0.50 0.155 55);
+    --accent-bright: oklch(0.80 0.155 64);
+    --accent-deep: oklch(0.42 0.150 52);
+    --on-accent: oklch(0.985 0.010 85);
+
+    --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+    --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+    --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+
+    --shadow-card:
+      0 1px 2px oklch(0.22 0.015 280 / 0.04),
+      0 8px 24px oklch(0.22 0.015 280 / 0.07),
+      0 32px 64px oklch(0.22 0.015 280 / 0.06);
+  }
+
+  [data-theme="dark"] {
+    --bg: oklch(0.16 0.009 275);
+    --bg-deep: oklch(0.185 0.012 275);
+    --surface: oklch(0.205 0.009 275);
+    --surface-2: oklch(0.185 0.009 275);
+    --ink: oklch(0.96 0.006 275);
+    --ink-soft: oklch(0.78 0.010 275);
+    --muted: oklch(0.60 0.013 275);
+    --border: oklch(0.30 0.008 275);
+    --border-soft: oklch(0.26 0.008 275);
+    --accent: oklch(0.80 0.155 64);
+    --accent-bright: oklch(0.86 0.140 70);
+    --accent-deep: oklch(0.70 0.150 62);
+    --on-accent: oklch(0.18 0.020 275);
+
+    --shadow-card:
+      0 1px 2px oklch(0 0 0 / 0.30),
+      0 8px 28px oklch(0 0 0 / 0.40),
+      0 40px 80px oklch(0 0 0 / 0.35);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body { height: 100%; }
+
+  body {
+    background-color: var(--bg);
+    background-image:
+      radial-gradient(120% 90% at 88% 8%, oklch(0.80 0.155 64 / 0.07), transparent 60%),
+      radial-gradient(100% 80% at 5% 95%, var(--bg-deep), transparent 55%);
+    color: var(--ink);
+    font-family: 'Inter', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    min-height: 100vh;
+    transition: background-color 0.5s var(--ease-out), color 0.5s var(--ease-out);
+    overflow-x: hidden;
+  }
+
+  /* subtle paper grain */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.5;
+    mix-blend-mode: soft-light;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.4'/%3E%3C/svg%3E");
+  }
+
+  /* ---------- Theme toggle ---------- */
+  .theme-toggle {
+    position: fixed;
+    top: 22px;
+    right: 22px;
+    z-index: 50;
+    width: 42px;
+    height: 42px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--ink-soft);
+    font-size: 17px;
+    line-height: 1;
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+    box-shadow: 0 2px 10px oklch(0.22 0.015 280 / 0.08);
+    transition: transform 0.18s var(--ease-out), border-color 0.3s var(--ease-out), background 0.3s var(--ease-out);
+  }
+  .theme-toggle:active { transform: scale(0.94); }
+  @media (hover: hover) and (pointer: fine) {
+    .theme-toggle:hover { border-color: var(--accent); color: var(--accent); }
+  }
+
+  /* ---------- Caption ---------- */
+  .caption {
+    position: fixed;
+    bottom: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 50;
+    font-size: 11.5px;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+    font-weight: 500;
+  }
+
+  /* ---------- Layout ---------- */
+  .hero {
+    position: relative;
+    z-index: 1;
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: clamp(40px, 7vh, 96px) clamp(24px, 5vw, 72px);
+    min-height: 100vh;
+    display: grid;
+    grid-template-columns: minmax(300px, 0.92fr) minmax(0, 1.55fr);
+    gap: clamp(40px, 5vw, 80px);
+    align-items: center;
+  }
+
+  /* ---------- Left column ---------- */
+  .lede { max-width: 30rem; }
+
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11.5px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+  .eyebrow::before {
+    content: "";
+    width: 18px;
+    height: 1px;
+    background: var(--accent);
+    opacity: 0.6;
+  }
+
+  .headline {
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    font-size: clamp(2.6rem, 4.6vw, 4rem);
+    line-height: 1.04;
+    letter-spacing: -0.018em;
+    margin-top: 22px;
+    color: var(--ink);
+  }
+  .headline em {
+    font-style: italic;
+    font-weight: 600;
+    color: var(--accent);
+  }
+
+  .subhead {
+    margin-top: 22px;
+    font-size: clamp(1rem, 1.15vw, 1.12rem);
+    line-height: 1.6;
+    color: var(--ink-soft);
+    max-width: 27rem;
+  }
+
+  .cta-row {
+    margin-top: 34px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .btn {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 600;
+    border-radius: 12px;
+    padding: 13px 20px;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: transform 0.14s var(--ease-out), background 0.3s var(--ease-out), border-color 0.3s var(--ease-out), color 0.3s var(--ease-out), box-shadow 0.3s var(--ease-out);
+  }
+  .btn:active { transform: scale(0.97); }
+
+  .btn-primary {
+    background: linear-gradient(180deg, var(--accent-bright), var(--accent));
+    color: var(--on-accent);
+    box-shadow: 0 4px 16px oklch(0.50 0.155 55 / 0.28), inset 0 1px 0 oklch(1 0 0 / 0.18);
+  }
+  [data-theme="dark"] .btn-primary {
+    box-shadow: 0 4px 18px oklch(0.80 0.155 64 / 0.22), inset 0 1px 0 oklch(1 0 0 / 0.16);
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .btn-primary:hover { box-shadow: 0 6px 22px oklch(0.50 0.155 55 / 0.36), inset 0 1px 0 oklch(1 0 0 / 0.22); }
+    [data-theme="dark"] .btn-primary:hover { box-shadow: 0 6px 26px oklch(0.80 0.155 64 / 0.30), inset 0 1px 0 oklch(1 0 0 / 0.18); }
+  }
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--ink-soft);
+    border-color: var(--border);
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+  }
+
+  /* ---------- Proof chip ---------- */
+  .proof {
+    margin-top: 34px;
+    display: inline-flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 14px 18px;
+    border-radius: 14px;
+    background: var(--surface);
+    border: 1px solid var(--border-soft);
+    box-shadow: 0 2px 10px oklch(0.22 0.015 280 / 0.05);
+  }
+  .proof-line {
+    display: flex;
+    align-items: baseline;
+    gap: 9px;
+    font-size: 0.92rem;
+    color: var(--ink);
+  }
+  .proof-score {
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    font-size: 1.18rem;
+    letter-spacing: -0.01em;
+    color: var(--accent);
+  }
+  .proof-meta { color: var(--ink-soft); font-weight: 500; }
+  .proof-pass {
+    color: var(--accent);
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    border: 1px solid color-mix(in oklab, var(--accent) 35%, transparent);
+    border-radius: 999px;
+    padding: 2px 9px;
+  }
+  .proof-sub {
+    font-size: 0.8rem;
+    color: var(--muted);
+  }
+
+  /* ---------- Question card ---------- */
+  .card-wrap { perspective: 1400px; }
+
+  .card {
+    position: relative;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 22px;
+    padding: clamp(26px, 2.6vw, 40px);
+    box-shadow: var(--shadow-card);
+    overflow: hidden;
+  }
+  /* hairline bronze top edge */
+  .card::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    opacity: 0.55;
+  }
+
+  .card-top {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .live-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--accent) 50%, transparent);
+    animation: breathe 4s var(--ease-in-out) infinite;
+    flex: none;
+  }
+  @keyframes breathe {
+    0%, 100% { opacity: 0.4; box-shadow: 0 0 0 0 color-mix(in oklab, var(--accent) 0%, transparent); }
+    50% { opacity: 1; box-shadow: 0 0 0 4px color-mix(in oklab, var(--accent) 18%, transparent); }
+  }
+
+  .stem {
+    font-family: 'Fraunces', serif;
+    font-weight: 400;
+    font-size: clamp(1.35rem, 2.1vw, 1.85rem);
+    line-height: 1.32;
+    letter-spacing: -0.008em;
+    color: var(--ink);
+    margin-top: 22px;
+    margin-bottom: 8px;
+  }
+
+  .answers {
+    margin-top: 14px;
+    border-top: 1px solid var(--border-soft);
+  }
+
+  .answer {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 17px 14px 17px 18px;
+    border-bottom: 1px solid var(--border-soft);
+    cursor: pointer;
+    transition:
+      transform 0.4s var(--ease-out),
+      opacity 0.5s var(--ease-out),
+      background 0.3s var(--ease-out);
+    will-change: transform, opacity;
+  }
+  /* left rule that draws in on correct */
+  .answer::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 12%;
+    bottom: 12%;
+    width: 3px;
+    border-radius: 3px;
+    background: var(--accent);
+    transform: scaleY(0);
+    transform-origin: center;
+    opacity: 0;
+    transition: transform 0.12s var(--ease-out), opacity 0.12s var(--ease-out);
+  }
+  /* hover tick */
+  .answer .tick {
+    position: absolute;
+    left: 2px;
+    top: 50%;
+    width: 2px;
+    height: 0;
+    background: var(--accent);
+    transform: translateY(-50%);
+    border-radius: 2px;
+    transition: height 0.28s var(--ease-out), opacity 0.28s var(--ease-out);
+    opacity: 0;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .answers:not(.revealed) .answer:hover {
+      transform: translateX(2px);
+      background: color-mix(in oklab, var(--accent) 5%, transparent);
+    }
+    .answers:not(.revealed) .answer:hover .tick {
+      height: 56%;
+      opacity: 0.8;
+    }
+  }
+
+  .answer-key {
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: var(--muted);
+    width: 1.4em;
+    flex: none;
+    transition: color 0.4s var(--ease-out);
+  }
+  .answer-text {
+    font-size: 1.02rem;
+    color: var(--ink-soft);
+    line-height: 1.4;
+    transition: color 0.4s var(--ease-out);
+  }
+
+  /* check svg */
+  .answer-check {
+    margin-left: auto;
+    width: 24px;
+    height: 24px;
+    flex: none;
+    opacity: 0;
+    transform: scale(0.6);
+    color: var(--accent);
+  }
+  .answer-check path {
+    stroke: currentColor;
+    stroke-width: 2.4;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    fill: none;
+    stroke-dasharray: 30;
+    stroke-dashoffset: 30;
+  }
+
+  /* ----- revealed states ----- */
+  .answers.revealed .answer.wrong {
+    opacity: 0.42;
+    transform: scale(0.98);
+  }
+  .answers.revealed .answer.correct {
+    background: color-mix(in oklab, var(--accent) 8%, transparent);
+  }
+  .answers.revealed .answer.correct::before {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+  .answers.revealed .answer.correct .answer-key { color: var(--accent); }
+  .answers.revealed .answer.correct .answer-text {
+    color: var(--ink);
+    font-weight: 500;
+  }
+  .answers.revealed .answer.correct .answer-check {
+    opacity: 1;
+    transform: scale(1);
+    transition: opacity 0.3s var(--ease-out) 0.12s, transform 0.5s var(--ease-out) 0.12s;
+  }
+  .answers.revealed .answer.correct .answer-check path {
+    stroke-dashoffset: 0;
+    transition: stroke-dashoffset 0.4s var(--ease-out) 0.18s;
+  }
+
+  /* ----- explanation height-spring ----- */
+  .explain {
+    overflow: hidden;
+    height: 0;
+    opacity: 0;
+    transition:
+      height 0.5s var(--ease-drawer),
+      opacity 0.4s var(--ease-out);
+  }
+  .explain-inner {
+    padding: 16px 18px 6px 18px;
+    border-left: 3px solid color-mix(in oklab, var(--accent) 55%, transparent);
+    margin-left: 0;
+  }
+  .explain-label {
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 7px;
+  }
+  .explain-text {
+    font-size: 0.95rem;
+    line-height: 1.58;
+    color: var(--ink-soft);
+  }
+
+  /* ---------- card footer ---------- */
+  .card-foot {
+    margin-top: 22px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .reveal-btn {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--accent);
+    background: transparent;
+    border: 1px solid color-mix(in oklab, var(--accent) 45%, transparent);
+    border-radius: 999px;
+    padding: 10px 20px;
+    cursor: pointer;
+    transition: transform 0.14s var(--ease-out), background 0.3s var(--ease-out), border-color 0.3s var(--ease-out);
+  }
+  .reveal-btn:active { transform: scale(0.97); }
+  @media (hover: hover) and (pointer: fine) {
+    .reveal-btn:hover {
+      background: color-mix(in oklab, var(--accent) 10%, transparent);
+      border-color: var(--accent);
+    }
+  }
+  .reset-btn {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.84rem;
+    font-weight: 500;
+    color: var(--muted);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 8px 6px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.35s var(--ease-out), color 0.3s var(--ease-out);
+  }
+  .reset-btn.show { opacity: 1; pointer-events: auto; }
+  @media (hover: hover) and (pointer: fine) {
+    .reset-btn:hover { color: var(--accent); }
+  }
+  .reset-btn:active { transform: scale(0.97); }
+
+  /* ---------- Entrance animation ---------- */
+  .anim {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  .ready .anim {
+    opacity: 1;
+    transform: translateY(0);
+    transition:
+      transform 0.62s var(--ease-out) var(--d, 0s),
+      opacity 0.62s var(--ease-out) var(--d, 0s);
+  }
+
+  /* ---------- Responsive ---------- */
+  @media (max-width: 900px) {
+    .hero {
+      grid-template-columns: 1fr;
+      gap: 34px;
+      align-items: start;
+      padding-top: clamp(72px, 10vh, 110px);
+    }
+    .lede { max-width: 100%; }
+    .headline { font-size: clamp(2.3rem, 9vw, 3rem); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+    }
+    .anim { opacity: 1; transform: none; transition: opacity 0.4s ease; }
+    .live-dot { opacity: 0.85; }
+    .answer,
+    .answers.revealed .answer.wrong,
+    .answers.revealed .answer.correct .answer-check { transform: none !important; }
+    .answer-check path { stroke-dashoffset: 0 !important; }
+    .explain { transition: opacity 0.4s ease, height 0.001ms; }
+  }
+</style>
+</head>
+<body>
+  <button class="theme-toggle" id="themeToggle" aria-label="Toggle color theme">☾</button>
+
+  <main class="hero" id="hero">
+    <!-- LEFT: copy -->
+    <section class="lede">
+      <span class="eyebrow anim" style="--d:.04s">AI Cert Practice · Forged from CompTIA Blueprints</span>
+      <h1 class="headline anim" style="--d:.10s">Walk in <em>knowing</em>, not hoping.</h1>
+      <p class="subhead anim" style="--d:.16s">Fresh exam questions every session, validated seven ways, scored to the real blueprint.</p>
+      <div class="cta-row anim" style="--d:.22s">
+        <button class="btn btn-primary">Generate your first question →</button>
+        <button class="btn btn-ghost">See how it works</button>
+      </div>
+      <div class="proof anim" style="--d:.28s">
+        <div class="proof-line">
+          <span class="proof-score">767 / 900</span>
+          <span class="proof-meta">Network+ N10-009</span>
+          <span class="proof-pass">passed</span>
+        </div>
+        <span class="proof-sub">Built and passed with this tool.</span>
+      </div>
+    </section>
+
+    <!-- RIGHT: question card -->
+    <section class="card-wrap">
+      <article class="card anim" style="--d:.18s">
+        <div class="card-top">
+          <span class="live-dot"></span>
+          CompTIA Network+ · N10-009 · generated this session
+        </div>
+
+        <p class="stem">A technician needs to segment broadcast domains across two switches without adding a router. Which feature accomplishes this?</p>
+
+        <div class="answers" id="answers">
+          <div class="answer anim wrong" data-key="A" style="--d:.30s">
+            <span class="tick"></span>
+            <span class="answer-key">A</span>
+            <span class="answer-text">Port mirroring</span>
+            <svg class="answer-check" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>
+          </div>
+          <div class="answer anim correct" data-key="B" style="--d:.34s">
+            <span class="tick"></span>
+            <span class="answer-key">B</span>
+            <span class="answer-text">A VLAN</span>
+            <svg class="answer-check" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>
+          </div>
+          <div class="answer anim wrong" data-key="C" style="--d:.38s">
+            <span class="tick"></span>
+            <span class="answer-key">C</span>
+            <span class="answer-text">Spanning Tree Protocol</span>
+            <svg class="answer-check" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>
+          </div>
+          <div class="answer anim wrong" data-key="D" style="--d:.42s">
+            <span class="tick"></span>
+            <span class="answer-key">D</span>
+            <span class="answer-text">Link aggregation</span>
+            <svg class="answer-check" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>
+          </div>
+        </div>
+
+        <!-- explanation drawer (lives under the correct answer block) -->
+        <div class="explain" id="explain">
+          <div class="explain-inner">
+            <div class="explain-label">Why B is correct</div>
+            <p class="explain-text">A VLAN segments broadcast domains in software, so two switches can carry separate domains over the same hardware — no router required. Routing only matters when those VLANs need to talk.</p>
+          </div>
+        </div>
+
+        <div class="card-foot anim" style="--d:.46s">
+          <button class="reveal-btn" id="revealBtn">Reveal answer</button>
+          <button class="reset-btn" id="resetBtn">Reset</button>
+        </div>
+      </article>
+    </section>
+  </main>
+
+  <span class="caption">Concept 02 · Forge Question</span>
+
+<script>
+  // ---- entrance ----
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => document.body.classList.add('ready'));
+  });
+
+  // ---- theme toggle ----
+  const html = document.documentElement;
+  const toggle = document.getElementById('themeToggle');
+  const setIcon = () => { toggle.textContent = html.getAttribute('data-theme') === 'dark' ? '☀' : '☾'; };
+  setIcon();
+  toggle.addEventListener('click', () => {
+    html.setAttribute('data-theme', html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+    setIcon();
+  });
+
+  // ---- reveal interaction ----
+  const answers = document.getElementById('answers');
+  const explain = document.getElementById('explain');
+  const explainInner = explain.querySelector('.explain-inner');
+  const revealBtn = document.getElementById('revealBtn');
+  const resetBtn = document.getElementById('resetBtn');
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function reveal() {
+    if (answers.classList.contains('revealed')) return;
+    answers.classList.add('revealed');
+
+    if (reduce) {
+      // crossfade only: show full height immediately, no spring
+      explain.style.transition = 'opacity 0.4s ease';
+      explain.style.height = 'auto';
+      explain.style.opacity = '1';
+    } else {
+      // measured-height spring: measure the natural height, then animate 0 -> px.
+      const target = explainInner.offsetHeight;
+      explain.style.height = target + 'px';
+      explain.style.opacity = '1';
+      // after the drawer settles, release to auto so it stays correct on resize/theme change
+      explain.addEventListener('transitionend', function onEnd(e) {
+        if (e.propertyName === 'height') {
+          explain.style.height = 'auto';
+          explain.removeEventListener('transitionend', onEnd);
+        }
+      });
+    }
+
+    revealBtn.style.display = 'none';
+    resetBtn.classList.add('show');
+  }
+
+  function reset() {
+    answers.classList.remove('revealed');
+    explain.style.transition = 'none';
+    explain.style.height = '0px';
+    explain.style.opacity = '0';
+    // force reflow so the next reveal animates from 0 again
+    void explain.offsetHeight;
+    explain.style.transition = '';
+    revealBtn.style.display = '';
+    resetBtn.classList.remove('show');
+  }
+
+  revealBtn.addEventListener('click', reveal);
+  resetBtn.addEventListener('click', reset);
+
+  // Auto-play the signature once shortly after load so the reviewer always sees it,
+  // then reset so it can be replayed manually.
+  if (!reduce) {
+    setTimeout(reveal, 1500);
+    setTimeout(reset, 4200);
+  }
+</script>
+</body>
+</html>

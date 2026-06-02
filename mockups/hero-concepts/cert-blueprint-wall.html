@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CertAnvil — Cert Blueprint Wall</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:oklch(0.975 0.007 85); --bg-deep:oklch(0.955 0.012 82);
+    --surface:oklch(0.992 0.004 85); --surface-2:oklch(0.965 0.010 84);
+    --ink:oklch(0.22 0.015 280); --ink-soft:oklch(0.36 0.014 280); --muted:oklch(0.50 0.013 280);
+    --border:oklch(0.86 0.008 85); --border-soft:oklch(0.91 0.006 85);
+    --accent:oklch(0.50 0.155 55); --accent-bright:oklch(0.80 0.155 64); --accent-deep:oklch(0.42 0.150 52);
+    --on-accent:oklch(0.985 0.010 85);
+    --shadow-plate:0 1px 0 rgba(255,255,255,.5),0 20px 44px -26px oklch(0.22 0.015 280 / .26);
+    --ease-out:cubic-bezier(0.23,1,0.32,1);
+    --ease-in-out:cubic-bezier(0.77,0,0.175,1);
+  }
+  [data-theme="dark"]{
+    --bg:oklch(0.16 0.009 275); --bg-deep:oklch(0.185 0.012 275);
+    --surface:oklch(0.205 0.009 275); --surface-2:oklch(0.185 0.009 275);
+    --ink:oklch(0.96 0.006 275); --ink-soft:oklch(0.78 0.010 275); --muted:oklch(0.60 0.013 275);
+    --border:oklch(0.30 0.008 275); --border-soft:oklch(0.26 0.008 275);
+    --accent:oklch(0.80 0.155 64); --accent-bright:oklch(0.86 0.140 70); --accent-deep:oklch(0.70 0.150 62);
+    --on-accent:oklch(0.18 0.020 275);
+    --shadow-plate:0 1px 0 rgba(255,255,255,.04),0 24px 50px -26px rgba(0,0,0,.6);
+  }
+  *{box-sizing:border-box;margin:0}
+  body{background:var(--bg);color:var(--ink);font-family:'Inter',system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased}
+
+  .sec{max-width:1160px;margin:0 auto;padding:clamp(40px,7vw,96px) clamp(20px,5vw,48px)}
+  .eyebrow{display:inline-flex;align-items:center;gap:10px;font-size:12px;font-weight:600;letter-spacing:.15em;text-transform:uppercase;color:var(--accent)}
+  .eyebrow::after{content:"";width:32px;height:1px;background:linear-gradient(90deg,var(--accent),transparent)}
+  h1{font-family:'Fraunces',Georgia,serif;font-weight:600;font-size:clamp(30px,4.2vw,50px);line-height:1.05;letter-spacing:-.02em;margin:16px 0 0;max-width:18ch}
+  h1 em{font-style:italic;color:var(--accent)}
+  .lede{margin:18px 0 0;font-size:clamp(14px,1.05vw,15.5px);line-height:1.62;color:var(--ink-soft);max-width:62ch}
+  .toolbar{margin:26px 0 0;display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+  .replay{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600;color:var(--muted);background:none;border:1px solid var(--border);border-radius:999px;padding:8px 14px;cursor:pointer;transition:color 180ms var(--ease-out),border-color 180ms var(--ease-out),transform 140ms var(--ease-out)}
+  @media (hover:hover){.replay:hover{color:var(--accent);border-color:color-mix(in oklab,var(--accent) 40%,var(--border))}}
+  .replay:active{transform:scale(0.96)}
+
+  .wall{margin:34px 0 0;display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(16px,1.8vw,22px)}
+  @media (max-width:980px){.wall{grid-template-columns:repeat(2,1fr)}}
+  @media (max-width:620px){.wall{grid-template-columns:1fr}}
+
+  .plate{display:block;text-decoration:none;color:inherit;position:relative;background:linear-gradient(180deg,var(--surface),var(--surface-2));border:1px solid var(--border);border-radius:18px;padding:8px;box-shadow:var(--shadow-plate);transition:transform 240ms var(--ease-out),box-shadow 240ms var(--ease-out),border-color 240ms var(--ease-out)}
+  .pl-go{fill:var(--accent);font:600 8.4px Inter,sans-serif;letter-spacing:.01em;opacity:0;transform:translateX(-4px);transform-box:fill-box;transition:opacity 200ms var(--ease-out),transform 200ms var(--ease-out)}
+  @media (hover:hover){.plate:hover .pl-go{opacity:1;transform:none}.plate.drawn:hover .pl-sub{opacity:0;transition:opacity 160ms var(--ease-out)}}
+  @media (hover:hover){.plate:hover{transform:translateY(-4px);border-color:color-mix(in oklab,var(--accent) 38%,var(--border));box-shadow:0 1px 0 rgba(255,255,255,.05),0 30px 56px -28px rgba(0,0,0,.4)}}
+  .plate svg{display:block;width:100%;height:auto}
+
+  /* blueprint draftsman strokes */
+  .pl-frame{fill:none;stroke:var(--border-soft);stroke-width:1}
+  .pl-tick{stroke:var(--accent);stroke-width:1.2;opacity:.6}
+  .pl-divider{stroke:var(--border);stroke-width:1}
+  .pl-title{fill:var(--muted);font:600 7.5px Inter,sans-serif;letter-spacing:.18em}
+  .pl-vendor{fill:var(--accent);font:700 7.5px Inter,sans-serif;letter-spacing:.1em}
+  .pl-seal{fill:var(--surface-2);stroke:var(--accent);stroke-width:1.3}
+  [data-theme="dark"] .pl-seal{fill:color-mix(in oklab,var(--accent) 8%,var(--surface-2))}
+  .pl-mark{font-family:'Fraunces',Georgia,serif;font-weight:600;font-size:30px;letter-spacing:-.02em}
+  .pl-mark .m{fill:var(--ink)}
+  .pl-mark .a{fill:var(--accent)}
+  .pl-mark .s{fill:var(--accent);font-size:16px;font-weight:700}
+  .pl-code{fill:var(--muted);font:600 8px Inter,sans-serif;letter-spacing:.06em}
+  .pl-branch{fill:none;stroke:var(--accent);stroke-width:1.1;opacity:.7}
+  .pl-node{fill:var(--accent)}
+  .pl-dom{fill:var(--ink-soft);font:500 8.6px Inter,sans-serif}
+  .pl-bar{fill:var(--accent);opacity:.32;rx:.8}
+  .pl-wt{fill:var(--accent);font-family:'Fraunces',Georgia,serif;font-weight:600;font-size:10.5px;font-variant-numeric:tabular-nums}
+  .pl-name{fill:var(--ink);font-family:'Fraunces',Georgia,serif;font-weight:600;font-size:15px;letter-spacing:-.01em}
+  .pl-sub{fill:var(--muted);font:500 8.4px Inter,sans-serif;letter-spacing:.03em}
+  .pl-scale{fill:var(--muted);font:600 6.6px Inter,sans-serif;letter-spacing:.14em}
+
+  /* ── Emil draw-on (transform/opacity/dashoffset only) ── */
+  .draw{stroke-dasharray:1;stroke-dashoffset:1;transition:stroke-dashoffset 640ms var(--ease-out)}
+  .plate.drawn .draw{stroke-dashoffset:0;transition-delay:calc(var(--d,0)*1ms)}
+  .pop{opacity:0;transform:scale(.9);transform-box:fill-box;transform-origin:center;transition:opacity 320ms var(--ease-out),transform 320ms var(--ease-out)}
+  .plate.drawn .pop{opacity:1;transform:none;transition-delay:calc(var(--d,0)*1ms)}
+  .fade{opacity:0;transform:translateY(4px);transform-box:fill-box;transition:opacity 380ms var(--ease-out),transform 380ms var(--ease-out)}
+  .plate.drawn .fade{opacity:1;transform:none;transition-delay:calc(var(--d,0)*1ms)}
+
+  .theme-toggle{position:fixed;top:18px;right:18px;z-index:50;width:40px;height:40px;border-radius:999px;border:1px solid var(--border);background:var(--surface);color:var(--ink);font-size:16px;cursor:pointer;display:grid;place-items:center;transition:transform 140ms var(--ease-out)}
+  .theme-toggle:active{transform:scale(0.94)}
+  .caption{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);z-index:50;font-size:12px;color:var(--muted)}
+
+  @media (prefers-reduced-motion:reduce){
+    .draw{stroke-dashoffset:0!important;transition:none!important}
+    .pop,.fade{opacity:1!important;transform:none!important;transition:none!important}
+  }
+</style>
+</head>
+<body>
+  <button class="theme-toggle" id="theme-toggle" aria-label="Toggle theme">☾</button>
+  <div class="caption">Cert Blueprint Wall · 6 flagship certs</div>
+
+  <section class="sec">
+    <span class="eyebrow">One engine · every cert</span>
+    <h1>Every cert, mapped to its <em>real</em> blueprint.</h1>
+    <p class="lede">The same seven-layer engine sits behind all of them. Each cert drills against its actual published exam objectives, weighted the way the real test weights them — so a high score here means you're ready for that exam room, not just good at one question bank.</p>
+    <div class="toolbar">
+      <button class="replay" id="replay">↻ <span>Replay the draw</span></button>
+    </div>
+    <div class="wall" id="wall"></div>
+  </section>
+
+  <script>
+  /* ── 6 flagship certs · real exam blueprints (domains + % weights) ── */
+  var CERTS = [
+    { name:'Network+', code:'N10-009', vendor:'CompTIA', mark:{m:'N',a:'+'}, href:'https://networkplus.certanvil.com/',
+      domains:[['Networking Concepts',23],['Network Implementation',20],['Network Operations',19],['Network Security',19],['Troubleshooting',22]] },
+    { name:'Security+', code:'SY0-701', vendor:'CompTIA', mark:{m:'S',a:'+'}, href:'https://secplus.certanvil.com/',
+      domains:[['General Security Concepts',12],['Threats & Vulnerabilities',22],['Security Architecture',18],['Security Operations',28],['Program Management',20]] },
+    { name:'CompTIA A+ Core 1', code:'220-1201', vendor:'CompTIA', mark:{m:'A',a:'+',s:'1'}, href:'https://aplus.certanvil.com/?exam=core1',
+      domains:[['Mobile Devices',15],['Networking',20],['Hardware',25],['Virtualization & Cloud',11],['Troubleshooting',29]] },
+    { name:'Azure Fundamentals', code:'AZ-900', vendor:'Microsoft', mark:{m:'A',a:'Z'}, href:'https://azure.certanvil.com/',
+      domains:[['Cloud Concepts',28],['Azure Architecture & Services',37],['Management & Governance',35]] },
+    { name:'Azure AI Fundamentals', code:'AI-900', vendor:'Microsoft', mark:{m:'A',a:'I'}, href:'https://ai.certanvil.com/',
+      domains:[['AI Workloads',18],['ML Principles',22],['Computer Vision',18],['Natural Language Processing',20],['Generative AI',22]] },
+    { name:'AWS Cloud Practitioner', code:'CLF-C02', vendor:'AWS', mark:{m:'AW',a:'S'}, href:'https://clfc02.certanvil.com/',
+      domains:[['Cloud Concepts',24],['Security & Compliance',30],['Cloud Technology & Services',34],['Billing & Support',12]] }
+  ];
+
+  var NS='http://www.w3.org/2000/svg';
+  function el(tag,attrs,txt){var e=document.createElementNS(NS,tag);for(var k in attrs)e.setAttribute(k,attrs[k]);if(txt!=null)e.textContent=txt;return e;}
+  function trunc(s,n){return s.length>n? s.slice(0,n-1)+'…':s;}
+
+  function buildPlate(cert){
+    var W=360,H=214;
+    var svg=el('svg',{viewBox:'0 0 '+W+' '+H,role:'img'});
+    // frame + corner ticks
+    svg.appendChild(el('rect',{class:'pl-frame',x:6,y:6,width:W-12,height:H-12,rx:10}));
+    var corners=[[10,10,1,1],[W-10,10,-1,1],[10,H-10,1,-1],[W-10,H-10,-1,-1]];
+    corners.forEach(function(c){
+      svg.appendChild(el('path',{class:'pl-tick fade',d:'M'+c[0]+' '+c[1]+'h'+(7*c[2]),style:'--d:60'}));
+      svg.appendChild(el('path',{class:'pl-tick fade',d:'M'+c[0]+' '+c[1]+'v'+(7*c[3]),style:'--d:60'}));
+    });
+    // title block
+    svg.appendChild(el('text',{class:'pl-title fade',x:18,y:24,style:'--d:80'},'EXAM BLUEPRINT'));
+    svg.appendChild(el('text',{class:'pl-vendor fade','text-anchor':'end',x:W-18,y:24,style:'--d:80'},cert.vendor.toUpperCase()));
+    svg.appendChild(el('line',{class:'pl-divider draw',x1:18,y1:32,x2:W-18,y2:32,pathLength:1,style:'--d:120'}));
+
+    // seal + lettermark
+    svg.appendChild(el('rect',{class:'pl-seal draw',x:18,y:46,width:74,height:74,rx:15,pathLength:1,style:'--d:200'}));
+    var mk=el('text',{class:'pl-mark pop','text-anchor':'middle',x:55,y:95,style:'--d:420'});
+    mk.appendChild(el('tspan',{class:'m'},cert.mark.m));
+    mk.appendChild(el('tspan',{class:'a'},cert.mark.a));
+    if(cert.mark.s){var sup=el('tspan',{class:'s','baseline-shift':'super'},cert.mark.s);mk.appendChild(sup);}
+    svg.appendChild(mk);
+    svg.appendChild(el('text',{class:'pl-code fade','text-anchor':'middle',x:55,y:135,style:'--d:520'},cert.code));
+
+    // domain branches
+    var doms=cert.domains, N=doms.length;
+    var top=52, bot=140, sx=92, sy=83;
+    doms.forEach(function(d,i){
+      var y= N===1? (top+bot)/2 : top + i*(bot-top)/(N-1);
+      var base=240+i*70;
+      // connector
+      svg.appendChild(el('path',{class:'pl-branch draw',d:'M'+sx+' '+sy+' C'+(sx+12)+' '+sy+' '+(sx+6)+' '+y+' '+(sx+18)+' '+y,pathLength:1,style:'--d:'+base}));
+      // node
+      svg.appendChild(el('circle',{class:'pl-node pop',cx:sx+18,cy:y,r:2.3,style:'--d:'+(base+180)}));
+      // name
+      svg.appendChild(el('text',{class:'pl-dom fade',x:sx+27,y:y+3,style:'--d:'+(base+240)},trunc(d[0],27)));
+      // weight bar
+      svg.appendChild(el('rect',{class:'pl-bar fade',x:sx+27,y:y+6,width:Math.max(6,d[1]*1.35),height:2,rx:1,style:'--d:'+(base+260)}));
+      // weight %
+      svg.appendChild(el('text',{class:'pl-wt fade','text-anchor':'end',x:W-18,y:y+3.5,style:'--d:'+(base+240)},d[1]+'%'));
+    });
+    // footer
+    svg.appendChild(el('line',{class:'pl-divider draw',x1:18,y1:166,x2:W-18,y2:166,pathLength:1,style:'--d:760'}));
+    svg.appendChild(el('text',{class:'pl-name fade',x:18,y:188,style:'--d:820'},cert.name));
+    svg.appendChild(el('text',{class:'pl-sub fade',x:18,y:204,style:'--d:880'},cert.code+'  ·  '+N+' domains  ·  blueprint-weighted'));
+    // hover "start studying →" affordance
+    var go=el('text',{class:'pl-go','text-anchor':'end',x:W-18,y:204},'Start studying →');
+    svg.appendChild(go);
+
+    var wrap=document.createElement('a');
+    wrap.className='plate';
+    wrap.setAttribute('href',cert.href);
+    wrap.setAttribute('aria-label',cert.name+' '+cert.code+' — start studying');
+    wrap.appendChild(svg);
+    return wrap;
+  }
+
+  var wall=document.getElementById('wall');
+  var fine=window.matchMedia&&window.matchMedia('(hover:hover) and (pointer:fine)').matches;
+  var reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var plates=CERTS.map(function(c){
+    var p=buildPlate(c);
+    // hover-to-redraw a single plate (desktop, not reduced-motion); debounced so
+    // re-entering mid-draw doesn't stack.
+    if(fine&&!reduce){
+      var busy=false;
+      p.addEventListener('mouseenter',function(){
+        if(busy||!p.classList.contains('drawn'))return;
+        busy=true;
+        p.classList.remove('drawn'); void p.offsetWidth; p.classList.add('drawn');
+        setTimeout(function(){busy=false;},1400);
+      });
+    }
+    wall.appendChild(p);
+    return p;
+  });
+
+  // draw-on when each plate scrolls into view (once), with a gentle cross-plate cascade
+  var io=new IntersectionObserver(function(entries){
+    entries.forEach(function(en){
+      if(en.isIntersecting){
+        var idx=plates.indexOf(en.target);
+        setTimeout(function(){en.target.classList.add('drawn');}, (idx%3)*120);
+        io.unobserve(en.target);
+      }
+    });
+  },{threshold:0.32});
+  plates.forEach(function(p){io.observe(p);});
+
+  // replay
+  document.getElementById('replay').addEventListener('click',function(){
+    plates.forEach(function(p){p.classList.remove('drawn');});
+    void wall.offsetWidth; // reflow
+    plates.forEach(function(p,i){
+      var r=p.getBoundingClientRect();
+      if(r.top<window.innerHeight&&r.bottom>0) setTimeout(function(){p.classList.add('drawn');},(i%3)*120);
+    });
+  });
+
+  // theme toggle
+  (function(){var t=document.getElementById('theme-toggle');t.addEventListener('click',function(){var d=document.documentElement.getAttribute('data-theme')==='dark';document.documentElement.setAttribute('data-theme',d?'light':'dark');t.textContent=d?'☾':'☀';});})();
+  </script>
+</body>
+</html>

@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CertAnvil · Hero right-side visuals</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:oklch(0.975 0.007 85);--surface:oklch(0.992 0.004 85);--surface-2:oklch(0.965 0.010 84);
+    --ink:oklch(0.22 0.015 280);--ink-soft:oklch(0.36 0.014 280);--muted:oklch(0.50 0.013 280);
+    --border:oklch(0.86 0.008 85);--accent:oklch(0.50 0.155 55);--accent-bright:oklch(0.80 0.155 64);--on-accent:oklch(0.985 0.010 85);
+    --ease-out:cubic-bezier(0.23,1,0.32,1);
+  }
+  [data-theme="dark"]{
+    --bg:oklch(0.16 0.009 275);--surface:oklch(0.205 0.009 275);--surface-2:oklch(0.185 0.009 275);
+    --ink:oklch(0.96 0.006 275);--ink-soft:oklch(0.78 0.010 275);--muted:oklch(0.60 0.013 275);
+    --border:oklch(0.30 0.008 275);--accent:oklch(0.80 0.155 64);--accent-bright:oklch(0.86 0.140 70);--on-accent:oklch(0.18 0.020 275);
+  }
+  *{box-sizing:border-box;margin:0}
+  body{background:var(--bg);color:var(--ink);font-family:'Inter',system-ui,sans-serif;-webkit-font-smoothing:antialiased;min-height:100vh;padding:clamp(28px,6vw,72px)}
+  .wrap{max-width:1100px;margin:0 auto}
+  .eyebrow{font-size:12px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);display:inline-flex;align-items:center;gap:10px}
+  .eyebrow::after{content:"";width:30px;height:1px;background:linear-gradient(90deg,var(--accent),transparent)}
+  h1{font-family:'Fraunces',Georgia,serif;font-weight:600;font-size:clamp(30px,5vw,52px);line-height:1.04;letter-spacing:-.02em;margin:14px 0 6px}
+  h1 em{font-style:italic;color:var(--accent)}
+  .lede{color:var(--ink-soft);font-size:15px;line-height:1.6;max-width:64ch;margin-bottom:8px}
+  .lede b{color:var(--ink)}
+  .sectlabel{margin:36px 0 14px;font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:18px}
+  a.card{display:block;text-decoration:none;color:inherit;background:linear-gradient(180deg,var(--surface),var(--surface-2));
+    border:1px solid var(--border);border-radius:18px;padding:22px;
+    box-shadow:0 1px 0 rgba(255,255,255,.04),0 18px 40px -22px rgba(0,0,0,.28);
+    transition:transform 200ms var(--ease-out),box-shadow 200ms var(--ease-out),border-color 200ms var(--ease-out)}
+  @media (hover:hover){a.card:hover{transform:translateY(-3px);border-color:color-mix(in oklab,var(--accent) 42%,var(--border));box-shadow:0 1px 0 rgba(255,255,255,.05),0 26px 50px -24px rgba(0,0,0,.4)}}
+  a.card:active{transform:translateY(-1px) scale(0.99)}
+  a.card.ref{border-color:color-mix(in oklab,var(--accent) 50%,var(--border));background:linear-gradient(180deg,color-mix(in oklab,var(--accent) 6%,var(--surface)),var(--surface-2))}
+  .num{font-family:'Fraunces',Georgia,serif;font-weight:600;font-size:18px;color:var(--accent);font-variant-numeric:tabular-nums}
+  .cname{font-family:'Fraunces',Georgia,serif;font-weight:600;font-size:20px;letter-spacing:-.01em;margin:10px 0 7px}
+  .cone{font-size:13px;line-height:1.55;color:var(--ink-soft)}
+  .tag{display:inline-block;margin-top:13px;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);border:1px solid var(--border);border-radius:999px;padding:4px 10px}
+  .open{margin-top:14px;font-size:13px;font-weight:600;color:var(--accent)}
+  .toggle{position:fixed;top:18px;right:18px;width:40px;height:40px;border-radius:999px;border:1px solid var(--border);background:var(--surface);color:var(--ink);font-size:16px;cursor:pointer;display:grid;place-items:center;transition:transform 140ms var(--ease-out)}
+  .toggle:active{transform:scale(0.94)}
+  .note{margin-top:30px;font-size:12.5px;color:var(--muted);line-height:1.6}
+  .small{margin-top:10px;font-size:12px}
+  .small a{color:var(--muted)}
+</style>
+</head>
+<body>
+  <button class="toggle" id="toggle" aria-label="Toggle theme">☾</button>
+  <div class="wrap">
+    <span class="eyebrow">CertAnvil · hero right-side visual</span>
+    <h1>Five animated visuals for the <em>right</em> side.</h1>
+    <p class="lede">Your existing hero copy stays <b>exactly as it is</b> on the left — eyebrow, “Forge your way…”, the 767/900 proof, the CTA. These five swap only the <b>animated visual on the right</b>, in the spirit of the Readiness Meridian you liked. Each is theme-aware (flip ☾, plus each demo has its own toggle) and reduced-motion-safe.</p>
+
+    <div class="sectlabel">◆ The direction — the new page, two pieces</div>
+    <div class="grid">
+      <a class="card ref" href="cert-picker-blueprint.html" target="_blank" rel="noopener">
+        <span class="num">▦</span>
+        <div class="cname">“Pick your cert” → Blueprint Wall</div>
+        <div class="cone">The full replacement for the cert picker: 8 live certs as forged, clickable plates + an “On the anvil” row where the 3 coming-soon certs are un-forged (hollow seal, dashed, “coming soon · notify me”).</div>
+        <span class="tag">8 live + 3 on the anvil</span>
+        <div class="open">Open demo →</div>
+      </a>
+      <a class="card ref" href="03-readiness-meridian.html" target="_blank" rel="noopener">
+        <span class="num">★</span>
+        <div class="cname">Hero → Readiness Meridian</div>
+        <div class="cone">The hero’s right-side visual becomes the engraved readiness gauge you loved (shown here in its own demo; would pair with the real hero copy).</div>
+        <span class="tag">Hero right-side</span>
+        <div class="open">Open demo →</div>
+      </a>
+    </div>
+
+    <div class="sectlabel">Earlier blueprint-wall layout studies (3)</div>
+    <div class="grid">
+      <a class="card ref" href="cert-blueprint-wall.html" target="_blank" rel="noopener">
+        <span class="num">▦</span>
+        <div class="cname">Blueprint Wall · 3×2</div>
+        <div class="cone">The base — 6 flagship certs, each a self-drawing blueprint plate with its real exam domains + weights. Plates are clickable, draw on scroll, swap to “Start studying →” on hover.</div>
+        <span class="tag">6 certs · 3×2 grid</span>
+        <div class="open">Open demo →</div>
+      </a>
+      <a class="card ref" href="cert-wall-featured.html" target="_blank" rel="noopener">
+        <span class="num">◧</span>
+        <div class="cname">Blueprint Wall · Featured</div>
+        <div class="cone">One large Network+ hero plate (with a FREE pill + “767 cleared” note) beside the other 5 in a grid. Asymmetric, editorial.</div>
+        <span class="tag">Featured + grid</span>
+        <div class="open">Open demo →</div>
+      </a>
+      <a class="card ref" href="cert-wall-all8.html" target="_blank" rel="noopener">
+        <span class="num">▤</span>
+        <div class="cname">Blueprint Wall · All 8</div>
+        <div class="cone">Every live cert (adds A+ Core 2 + SC-900) in a dense 4×2 grid that reflows 4→3→2→1. The fullest showcase.</div>
+        <span class="tag">8 certs · 4×2 grid</span>
+        <div class="open">Open demo →</div>
+      </a>
+    </div>
+
+    <div class="sectlabel">Right-side hero visual · the one you loved (reference)</div>
+    <div class="grid">
+      <a class="card ref" href="03-readiness-meridian.html" target="_blank" rel="noopener">
+        <span class="num">★</span>
+        <div class="cname">The Readiness Meridian</div>
+        <div class="cone">The engraved sextant arc that started this — needle settles, domains fill to honest readiness. Your reference bar.</div>
+        <span class="tag">Reference</span>
+        <div class="open">Open demo →</div>
+      </a>
+    </div>
+
+    <div class="sectlabel">Five new variants</div>
+    <div class="grid">
+      <a class="card" href="v1-forged-seal.html" target="_blank" rel="noopener">
+        <span class="num">01</span>
+        <div class="cname">The Forged Seal</div>
+        <div class="cone">A circular readiness medallion forges closed — outer ring strikes shut, domains fan out as a sunburst, 78% stamped in the center like a wax seal.</div>
+        <span class="tag">Radial · medallion</span>
+        <div class="open">Open demo →</div>
+      </a>
+      <a class="card" href="v2-validation-line.html" target="_blank" rel="noopener">
+        <span class="num">02</span>
+        <div class="cname">The Validation Line</div>
+        <div class="cone">A question glides through the 7-layer engine — each checkpoint lights as it passes, ends “verified · wrong answers never ship,” loops calmly.</div>
+        <span class="tag">Process · the 7 checks</span>
+        <div class="open">Open demo →</div>
+      </a>
+      <a class="card" href="v3-mastery-spectrum.html" target="_blank" rel="noopener">
+        <span class="num">03</span>
+        <div class="cname">The Mastery Spectrum</div>
+        <div class="cone">The five domains as elegant forged “organ pipes” that spring to uneven heights; the weak spot stays short and pulses. A readiness line crosses at 78%.</div>
+        <span class="tag">Vertical bars</span>
+        <div class="open">Open demo →</div>
+      </a>
+      <a class="card" href="v4-tempering-gauge.html" target="_blank" rel="noopener">
+        <span class="num">04</span>
+        <div class="cname">The Tempering Gauge</div>
+        <div class="cone">A forged bar that visibly heats — cold → straw → bronze — as the fill sweeps to 78% and crosses the READY notch. Forge heat fused with readiness.</div>
+        <span class="tag">Horizontal · heat meter</span>
+        <div class="open">Open demo →</div>
+      </a>
+      <a class="card" href="v5-blueprint-draw.html" target="_blank" rel="noopener">
+        <span class="num">05</span>
+        <div class="cname">The Blueprint Draw</div>
+        <div class="cone">The exam blueprint draws itself — a draftsman’s plate where five domains branch out with real exam weights, ending “blueprint mapped · 78% forged.”</div>
+        <span class="tag">Self-drawing schematic</span>
+        <div class="open">Open demo →</div>
+      </a>
+    </div>
+
+    <p class="note">All five keep the live left copy verbatim and only differ on the right. Pick a favourite (or two) and I’ll do the real polish pass and wire it into the hero. Nothing here touches the live site.</p>
+    <p class="small note"><a href="01-struck.html" target="_blank">↗ earlier full-hero explorations</a> (Struck · Forge Question · Cooling Anvil · Tempering Field) — kept for reference, not the current direction.</p>
+  </div>
+<script>
+  var t=document.getElementById('toggle');
+  t.addEventListener('click',function(){var d=document.documentElement.getAttribute('data-theme')==='dark';document.documentElement.setAttribute('data-theme',d?'light':'dark');t.textContent=d?'☾':'☀';});
+</script>
+</body>
+</html>

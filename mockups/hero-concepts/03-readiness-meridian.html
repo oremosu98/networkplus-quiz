@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CertAnvil — Readiness Meridian</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:oklch(0.975 0.007 85);
+  --bg-deep:oklch(0.955 0.012 82);
+  --surface:oklch(0.992 0.004 85);
+  --surface-2:oklch(0.965 0.010 84);
+  --ink:oklch(0.22 0.015 280);
+  --ink-soft:oklch(0.36 0.014 280);
+  --muted:oklch(0.50 0.013 280);
+  --border:oklch(0.86 0.008 85);
+  --border-soft:oklch(0.91 0.006 85);
+  --accent:oklch(0.50 0.155 55);
+  --accent-bright:oklch(0.80 0.155 64);
+  --accent-deep:oklch(0.42 0.150 52);
+  --on-accent:oklch(0.985 0.010 85);
+
+  --ease-out:cubic-bezier(0.23,1,0.32,1);
+  --ease-in-out:cubic-bezier(0.77,0,0.175,1);
+
+  --font-serif:"Fraunces",Georgia,serif;
+  --font-sans:"Inter",system-ui,sans-serif;
+}
+[data-theme="dark"]{
+  --bg:oklch(0.16 0.009 275);
+  --bg-deep:oklch(0.185 0.012 275);
+  --surface:oklch(0.205 0.009 275);
+  --surface-2:oklch(0.185 0.009 275);
+  --ink:oklch(0.96 0.006 275);
+  --ink-soft:oklch(0.78 0.010 275);
+  --muted:oklch(0.60 0.013 275);
+  --border:oklch(0.30 0.008 275);
+  --border-soft:oklch(0.26 0.008 275);
+  --accent:oklch(0.80 0.155 64);
+  --accent-bright:oklch(0.86 0.140 70);
+  --accent-deep:oklch(0.70 0.150 62);
+  --on-accent:oklch(0.18 0.020 275);
+}
+
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;}
+body{
+  font-family:var(--font-sans);
+  background:
+    radial-gradient(120% 90% at 78% 18%, color-mix(in oklab, var(--accent-bright) 9%, transparent), transparent 60%),
+    linear-gradient(180deg, var(--bg) 0%, var(--bg-deep) 100%);
+  color:var(--ink);
+  min-height:100vh;
+  -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+  overflow-x:hidden;
+  transition:background 0.6s var(--ease-in-out), color 0.6s var(--ease-in-out);
+}
+
+/* ---------- theme toggle ---------- */
+.theme-toggle{
+  position:fixed; top:18px; right:18px; z-index:50;
+  width:42px; height:42px; border-radius:999px;
+  display:grid; place-items:center;
+  background:var(--surface);
+  border:1px solid var(--border);
+  color:var(--ink-soft);
+  font-size:17px; cursor:pointer;
+  box-shadow:0 2px 10px -4px oklch(0 0 0 / 0.25);
+  transition:transform 0.4s var(--ease-out), background 0.4s var(--ease-in-out), border-color 0.4s var(--ease-in-out);
+}
+.theme-toggle:active{transform:scale(0.97);}
+@media (hover:hover) and (pointer:fine){
+  .theme-toggle:hover{border-color:var(--accent); color:var(--accent);}
+}
+
+/* ---------- caption ---------- */
+.caption{
+  position:fixed; bottom:14px; left:50%; transform:translateX(-50%);
+  z-index:40; font-size:11px; letter-spacing:0.08em;
+  color:var(--muted); font-weight:500;
+  pointer-events:none; white-space:nowrap;
+}
+
+/* ---------- layout ---------- */
+.hero{
+  max-width:1280px; margin:0 auto;
+  min-height:100vh;
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(0,1.85fr);
+  align-items:center;
+  gap:48px;
+  padding:88px 56px 72px;
+}
+
+/* ---------- copy column ---------- */
+.copy{max-width:430px; opacity:0; transform:translateY(14px); animation:rise 0.8s var(--ease-out) 0.1s forwards;}
+.eyebrow{
+  display:inline-flex; align-items:center; gap:9px;
+  font-size:11px; font-weight:600; letter-spacing:0.16em;
+  text-transform:uppercase; color:var(--accent);
+  margin-bottom:24px;
+}
+.eyebrow::before{
+  content:""; width:18px; height:1px; background:var(--accent); display:inline-block;
+}
+h1{
+  font-family:var(--font-serif);
+  font-weight:600;
+  font-size:clamp(38px, 4.6vw, 60px);
+  line-height:1.02;
+  letter-spacing:-0.02em;
+  color:var(--ink);
+  margin-bottom:22px;
+}
+h1 em{font-style:italic; color:var(--accent); font-weight:600;}
+.subhead{
+  font-size:17px; line-height:1.55; color:var(--ink-soft);
+  margin-bottom:34px; max-width:400px;
+}
+.cta-row{display:flex; flex-wrap:wrap; gap:14px; align-items:center; margin-bottom:30px;}
+.btn{
+  font-family:var(--font-sans); font-size:15px; font-weight:600;
+  border-radius:11px; cursor:pointer; border:1px solid transparent;
+  padding:14px 22px; line-height:1;
+  transition:transform 0.4s var(--ease-out), background 0.4s var(--ease-in-out), border-color 0.4s var(--ease-in-out), color 0.4s var(--ease-in-out), box-shadow 0.4s var(--ease-in-out);
+}
+.btn:active{transform:scale(0.97);}
+.btn-primary{
+  background:linear-gradient(180deg, var(--accent) 0%, var(--accent-deep) 100%);
+  color:var(--on-accent);
+  box-shadow:0 8px 22px -10px color-mix(in oklab, var(--accent) 70%, transparent);
+}
+.btn-ghost{
+  background:transparent; color:var(--ink-soft); border-color:var(--border);
+}
+@media (hover:hover) and (pointer:fine){
+  .btn-primary:hover{box-shadow:0 12px 28px -10px color-mix(in oklab, var(--accent) 80%, transparent); filter:brightness(1.04);}
+  .btn-ghost:hover{border-color:var(--accent); color:var(--accent);}
+}
+.proof{
+  display:flex; align-items:center; gap:11px;
+  font-size:13.5px; color:var(--muted);
+}
+.proof .seal{
+  width:30px; height:30px; flex:0 0 auto; border-radius:50%;
+  border:1px solid color-mix(in oklab, var(--accent) 45%, var(--border));
+  display:grid; place-items:center;
+  font-family:var(--font-serif); font-size:12px; font-weight:600;
+  font-style:italic; color:var(--accent);
+}
+.proof b{color:var(--ink-soft); font-weight:600;}
+
+/* ---------- instrument column ---------- */
+.instrument-wrap{
+  position:relative;
+  display:flex; flex-direction:column; align-items:center;
+  opacity:0; transform:translateY(16px);
+  animation:rise 0.9s var(--ease-out) 0.25s forwards;
+}
+.instrument{
+  width:100%; max-width:680px;
+  aspect-ratio:680/440;
+}
+.gauge-svg{width:100%; height:100%; overflow:visible; display:block;}
+
+/* engraved plate text */
+.engraved{font-family:var(--font-sans); fill:var(--muted);}
+.tick{stroke:var(--accent); }
+.arc-base{fill:none; stroke:var(--accent); opacity:0.85;}
+
+/* center readout (HTML overlay for crisp Fraunces) */
+.readout{
+  position:absolute; left:50%; top:60%;
+  transform:translate(-50%,-50%);
+  text-align:center; pointer-events:none;
+}
+.readout .num{
+  font-family:var(--font-serif); font-style:italic; font-weight:600;
+  font-size:clamp(58px, 7vw, 86px); line-height:0.9;
+  color:var(--accent);
+  letter-spacing:-0.01em;
+  font-variant-numeric:tabular-nums;
+}
+[data-theme="dark"] .readout .num{
+  text-shadow:0 0 22px color-mix(in oklab, var(--accent-bright) 40%, transparent);
+}
+.readout .cap{
+  margin-top:6px; font-size:11.5px; letter-spacing:0.1em;
+  color:var(--muted); font-weight:500; text-transform:lowercase;
+}
+.readout .verdict{
+  margin-top:9px; font-size:11px; letter-spacing:0.22em; text-transform:uppercase;
+  font-weight:600; color:var(--accent);
+  transition:opacity 0.5s var(--ease-out);
+}
+
+/* replay control */
+.replay{
+  margin-top:6px;
+  display:inline-flex; align-items:center; gap:7px;
+  font-size:11.5px; font-weight:500; letter-spacing:0.04em;
+  color:var(--muted); background:transparent; border:none; cursor:pointer;
+  padding:6px 10px; border-radius:8px;
+  transition:color 0.3s var(--ease-in-out), background 0.3s var(--ease-in-out);
+}
+.replay svg{width:13px; height:13px; transition:transform 0.6s var(--ease-out);}
+@media (hover:hover) and (pointer:fine){
+  .replay:hover{color:var(--accent); background:color-mix(in oklab, var(--accent) 8%, transparent);}
+  .replay:hover svg{transform:rotate(-180deg);}
+}
+
+/* ---------- responsive ---------- */
+@media (max-width:1000px){
+  .hero{
+    grid-template-columns:1fr;
+    gap:36px;
+    padding:96px 28px 80px;
+    align-items:start;
+    text-align:left;
+  }
+  .copy{max-width:560px; margin:0 auto; text-align:left;}
+  .instrument-wrap{order:2;}
+  .instrument{max-width:520px;}
+}
+@media (max-width:430px){
+  .hero{padding:84px 18px 78px; gap:28px;}
+  h1{font-size:clamp(34px,9vw,40px);}
+  .subhead{font-size:15.5px;}
+  .cta-row{flex-direction:column; align-items:stretch;}
+  .btn{text-align:center;}
+  .instrument{max-width:380px;}
+  .readout .num{font-size:54px;}
+}
+
+/* entrances */
+@keyframes rise{to{opacity:1; transform:translateY(0);}}
+
+/* weak-spot dot pulse — single accent breathe */
+@keyframes breathe{
+  0%,100%{opacity:0.55; transform:scale(1);}
+  50%{opacity:1; transform:scale(1.35);}
+}
+.weakdot{transform-box:fill-box; transform-origin:center;}
+.weakdot.pulse{animation:breathe 2.6s var(--ease-in-out) infinite;}
+
+@media (prefers-reduced-motion:reduce){
+  *{animation:none !important;}
+  .copy,.instrument-wrap{opacity:1 !important; transform:none !important;}
+}
+</style>
+</head>
+<body>
+
+<button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">☾</button>
+<div class="caption">Concept 03 · Readiness Meridian</div>
+
+<main class="hero">
+  <!-- COPY -->
+  <section class="copy">
+    <span class="eyebrow">AI Cert Practice · Forged from CompTIA Blueprints</span>
+    <h1>Know when you're <em>truly</em> ready.</h1>
+    <p class="subhead">One honest number, weighted to the real exam blueprint — not a vanity score.</p>
+    <div class="cta-row">
+      <button class="btn btn-primary">Start the baseline diagnostic →</button>
+      <button class="btn btn-ghost">See how it works</button>
+    </div>
+    <div class="proof">
+      <span class="seal">CA</span>
+      <span>Built it, sat N10-009, <b>passed 767/900.</b></span>
+    </div>
+  </section>
+
+  <!-- INSTRUMENT -->
+  <section class="instrument-wrap">
+    <div class="instrument">
+      <svg class="gauge-svg" viewBox="0 0 680 440" id="gauge" aria-label="Readiness meridian gauge">
+        <defs>
+          <radialGradient id="glowSeg" cx="50%" cy="100%" r="80%">
+            <stop offset="0%" stop-color="var(--accent-bright)" stop-opacity="0.55"/>
+            <stop offset="100%" stop-color="var(--accent)" stop-opacity="0.05"/>
+          </radialGradient>
+          <linearGradient id="needleGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="var(--accent-bright)"/>
+            <stop offset="100%" stop-color="var(--accent-deep)"/>
+          </linearGradient>
+          <filter id="segGlow" x="-40%" y="-40%" width="180%" height="180%">
+            <feGaussianBlur stdDeviation="3.2" result="b"/>
+            <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+        </defs>
+
+        <!-- ticks + main arc + segments drawn by JS into these groups -->
+        <g id="segGroup"></g>
+        <g id="tickGroup"></g>
+        <path id="mainArc" class="arc-base" stroke-width="1.6"/>
+        <g id="labelGroup"></g>
+        <g id="benchGroup"></g>
+        <g id="needleGroup"></g>
+      </svg>
+    </div>
+
+    <div class="readout">
+      <div class="num" id="readNum">0%</div>
+      <div class="cap">ready · blueprint-weighted</div>
+      <div class="verdict" id="verdict">Calibrating…</div>
+    </div>
+
+    <button class="replay" id="replay">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/>
+      </svg>
+      replay
+    </button>
+  </section>
+</main>
+
+<script>
+(function(){
+  "use strict";
+  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  /* ---------- theme toggle ---------- */
+  const html = document.documentElement;
+  const tBtn = document.getElementById("themeToggle");
+  function setTheme(t){
+    html.setAttribute("data-theme", t);
+    tBtn.textContent = t === "dark" ? "☀" : "☾";
+  }
+  tBtn.addEventListener("click", ()=>{
+    setTheme(html.getAttribute("data-theme") === "dark" ? "light" : "dark");
+  });
+
+  /* ---------- gauge geometry ---------- */
+  // Arc spans from 200° to 340° (a wide shallow arc opening downward),
+  // measured as a standard sextant-style sweep across the top.
+  const CX = 340, CY = 360;          // center of arc (below the visible band)
+  const R  = 270;                    // main scale radius
+  const START = 200, END = 340;      // degrees (left -> right), sweeping over the top
+  const SPAN = END - START;          // 140°
+
+  function rad(d){ return (d) * Math.PI/180; }
+  // map fraction 0..1 across the arc
+  function ptAt(frac, r){
+    const a = rad(START + SPAN*frac);
+    return { x: CX + r*Math.cos(a), y: CY + r*Math.sin(a) };
+  }
+  function arcPath(r, f0, f1){
+    const p0 = ptAt(f0, r), p1 = ptAt(f1, r);
+    const large = (SPAN*(f1-f0)) > 180 ? 1 : 0;
+    // sweep 1 because angle increases
+    return `M ${p0.x.toFixed(2)} ${p0.y.toFixed(2)} A ${r} ${r} 0 ${large} 1 ${p1.x.toFixed(2)} ${p1.y.toFixed(2)}`;
+  }
+
+  const NS = "http://www.w3.org/2000/svg";
+  const mainArc   = document.getElementById("mainArc");
+  const tickGroup = document.getElementById("tickGroup");
+  const segGroup  = document.getElementById("segGroup");
+  const labelGrp  = document.getElementById("labelGroup");
+  const benchGrp  = document.getElementById("benchGroup");
+  const needleGrp = document.getElementById("needleGroup");
+  const readNum   = document.getElementById("readNum");
+  const verdict   = document.getElementById("verdict");
+
+  /* ---------- domains (uneven, honest mastery) ---------- */
+  // segments arranged left->right along the lower arc band.
+  const domains = [
+    { name:"Networking\nConcepts",      val:0.88, weak:false },
+    { name:"Network\nImplementation",   val:0.81, weak:false },
+    { name:"Network\nOperations",       val:0.70, weak:false },
+    { name:"Network\nSecurity",         val:0.46, weak:true  },
+    { name:"Trouble-\nshooting",        val:0.74, weak:false }
+  ];
+  const AGG = 78;          // weighted aggregate %
+  const segR = R - 30;     // radius for the domain fill band
+  const gap = 0.012;       // gap between segments (fraction)
+
+  /* ---------- build main arc ---------- */
+  mainArc.setAttribute("d", arcPath(R, 0, 1));
+  const arcLen = mainArc.getTotalLength();
+  mainArc.style.strokeDasharray = arcLen;
+  mainArc.style.strokeDashoffset = reduce ? 0 : arcLen;
+
+  /* ---------- ticks ---------- */
+  const TICKS = 57; // fine etching
+  for(let i=0;i<TICKS;i++){
+    const f = i/(TICKS-1);
+    const major = (i % 7 === 0);
+    const tlen = major ? 15 : 7;
+    const o = ptAt(f, R - 2);
+    const inr = ptAt(f, R - 2 - tlen);
+    const t = document.createElementNS(NS,"line");
+    t.setAttribute("x1", o.x.toFixed(2)); t.setAttribute("y1", o.y.toFixed(2));
+    t.setAttribute("x2", inr.x.toFixed(2)); t.setAttribute("y2", inr.y.toFixed(2));
+    t.setAttribute("class","tick");
+    t.setAttribute("stroke-width", major ? 1.5 : 1);
+    t.setAttribute("opacity", major ? 0.8 : 0.42);
+    tickGroup.appendChild(t);
+
+    // numerals at majors (0..100 scale)
+    if(major){
+      const lab = document.createElementNS(NS,"text");
+      const lp = ptAt(f, R + 16);
+      lab.setAttribute("x", lp.x.toFixed(2)); lab.setAttribute("y", lp.y.toFixed(2));
+      lab.setAttribute("text-anchor","middle");
+      lab.setAttribute("dominant-baseline","middle");
+      lab.setAttribute("class","engraved");
+      lab.setAttribute("font-size","10.5");
+      lab.setAttribute("opacity","0.6");
+      lab.setAttribute("letter-spacing","0.04em");
+      lab.textContent = Math.round(f*100);
+      tickGroup.appendChild(lab);
+    }
+  }
+
+  /* ---------- benchmark notch "767 cleared" ---------- */
+  // 767/900 = 85.2% on the scale
+  (function(){
+    const f = 767/900;
+    const o = ptAt(f, R - 2);
+    const inr = ptAt(f, R - 24);
+    const ln = document.createElementNS(NS,"line");
+    ln.setAttribute("x1",o.x.toFixed(2)); ln.setAttribute("y1",o.y.toFixed(2));
+    ln.setAttribute("x2",inr.x.toFixed(2)); ln.setAttribute("y2",inr.y.toFixed(2));
+    ln.setAttribute("stroke","var(--accent)");
+    ln.setAttribute("stroke-width","2.2");
+    ln.setAttribute("opacity","0.9");
+    benchGrp.appendChild(ln);
+
+    const dot = document.createElementNS(NS,"circle");
+    dot.setAttribute("cx",o.x.toFixed(2)); dot.setAttribute("cy",o.y.toFixed(2));
+    dot.setAttribute("r","2.6"); dot.setAttribute("fill","var(--accent)");
+    benchGrp.appendChild(dot);
+
+    const lp = ptAt(f, R + 40);
+    const tx = document.createElementNS(NS,"text");
+    tx.setAttribute("x", lp.x.toFixed(2)); tx.setAttribute("y", lp.y.toFixed(2));
+    tx.setAttribute("text-anchor","middle");
+    tx.setAttribute("class","engraved");
+    tx.setAttribute("font-size","10");
+    tx.setAttribute("font-weight","600");
+    tx.setAttribute("fill","var(--accent)");
+    tx.setAttribute("letter-spacing","0.08em");
+    tx.textContent = "767 CLEARED";
+    benchGrp.appendChild(tx);
+  })();
+
+  /* ---------- domain segments ---------- */
+  // distribute 5 segments across the arc band
+  const segObjs = [];
+  const segWidth = (1 - gap*(domains.length+1)) / domains.length;
+  domains.forEach((d, i)=>{
+    const f0 = gap + i*(segWidth+gap);
+    const f1 = f0 + segWidth;
+    const mid = (f0+f1)/2;
+
+    // faint full track
+    const track = document.createElementNS(NS,"path");
+    track.setAttribute("d", arcPath(segR, f0, f1));
+    track.setAttribute("fill","none");
+    track.setAttribute("stroke","var(--border)");
+    track.setAttribute("stroke-width","8");
+    track.setAttribute("stroke-linecap","round");
+    track.setAttribute("opacity","0.55");
+    segGroup.appendChild(track);
+
+    // fill path (animated width via stroke-dashoffset)
+    const fill = document.createElementNS(NS,"path");
+    fill.setAttribute("d", arcPath(segR, f0, f1));
+    fill.setAttribute("fill","none");
+    fill.setAttribute("stroke", d.weak ? "url(#glowSeg)" : "var(--accent)");
+    fill.setAttribute("stroke", "var(--accent)");
+    fill.setAttribute("stroke-width","8");
+    fill.setAttribute("stroke-linecap","round");
+    fill.setAttribute("filter","url(#segGlow)");
+    fill.setAttribute("opacity", d.weak ? "0.92" : "1");
+    segGroup.appendChild(fill);
+
+    const segL = fill.getTotalLength();
+    // we animate fill proportion d.val using dashoffset 0..segL
+    fill.style.strokeDasharray = segL;
+    fill.style.strokeDashoffset = reduce ? (segL*(1-d.val)) : segL;
+    segObjs.push({ fill, segL, val:d.val });
+
+    // domain label below band
+    const lp = ptAt(mid, segR - 26);
+    const lines = d.name.split("\n");
+    const lab = document.createElementNS(NS,"text");
+    lab.setAttribute("x", lp.x.toFixed(2)); lab.setAttribute("y", lp.y.toFixed(2));
+    lab.setAttribute("text-anchor","middle");
+    lab.setAttribute("class","engraved");
+    lab.setAttribute("font-size","9.5");
+    lab.setAttribute("font-weight","500");
+    lab.setAttribute("opacity","0.78");
+    lab.setAttribute("letter-spacing","0.02em");
+    lines.forEach((ln,li)=>{
+      const ts = document.createElementNS(NS,"tspan");
+      ts.setAttribute("x", lp.x.toFixed(2));
+      ts.setAttribute("dy", li===0 ? "0" : "11");
+      ts.textContent = ln;
+      lab.appendChild(ts);
+    });
+    labelGrp.appendChild(lab);
+
+    // weak-spot tag
+    if(d.weak){
+      const dp = ptAt(mid, segR + 16);
+      const wd = document.createElementNS(NS,"circle");
+      wd.setAttribute("cx", dp.x.toFixed(2)); wd.setAttribute("cy", dp.y.toFixed(2));
+      wd.setAttribute("r","4");
+      wd.setAttribute("fill","var(--accent-bright)");
+      wd.setAttribute("class","weakdot");
+      wd.setAttribute("id","weakdot");
+      segGroup.appendChild(wd);
+
+      const wl = ptAt(mid, segR + 44);
+      const wt = document.createElementNS(NS,"text");
+      wt.setAttribute("x", wl.x.toFixed(2)); wt.setAttribute("y", wl.y.toFixed(2));
+      wt.setAttribute("text-anchor","middle");
+      wt.setAttribute("class","engraved");
+      wt.setAttribute("font-size","9");
+      wt.setAttribute("font-weight","600");
+      wt.setAttribute("fill","var(--accent)");
+      wt.setAttribute("letter-spacing","0.06em");
+      wt.textContent = "weak spot → routed next";
+      segGroup.appendChild(wt);
+    }
+  });
+
+  /* ---------- needle ---------- */
+  const needle = document.createElementNS(NS,"g");
+  const nLine = document.createElementNS(NS,"line");
+  nLine.setAttribute("x1", CX); nLine.setAttribute("y1", CY);
+  const nTip = ptAt(0, R - 46); // initial at left end
+  nLine.setAttribute("x2", nTip.x.toFixed(2)); nLine.setAttribute("y2", nTip.y.toFixed(2));
+  nLine.setAttribute("stroke","url(#needleGrad)");
+  nLine.setAttribute("stroke-width","3");
+  nLine.setAttribute("stroke-linecap","round");
+  needle.appendChild(nLine);
+
+  const hub = document.createElementNS(NS,"circle");
+  hub.setAttribute("cx", CX); hub.setAttribute("cy", CY);
+  hub.setAttribute("r","9");
+  hub.setAttribute("fill","var(--surface)");
+  hub.setAttribute("stroke","var(--accent)");
+  hub.setAttribute("stroke-width","2");
+  const hubDot = document.createElementNS(NS,"circle");
+  hubDot.setAttribute("cx", CX); hubDot.setAttribute("cy", CY);
+  hubDot.setAttribute("r","3"); hubDot.setAttribute("fill","var(--accent)");
+  needleGrp.appendChild(needle);
+  needleGrp.appendChild(hub);
+  needleGrp.appendChild(hubDot);
+
+  function setNeedle(frac){
+    const tip = ptAt(frac, R - 46);
+    nLine.setAttribute("x2", tip.x.toFixed(2));
+    nLine.setAttribute("y2", tip.y.toFixed(2));
+  }
+
+  /* ---------- easing / spring helpers ---------- */
+  function easeOutBack(t){
+    const c1 = 1.70158, c3 = c1 + 1;
+    return 1 + c3*Math.pow(t-1,3) + c1*Math.pow(t-1,2);
+  }
+  // mild spring with one small overshoot then settle
+  function springEase(t){
+    if(t>=1) return 1;
+    const decay = Math.exp(-6.5*t);
+    return 1 - decay*Math.cos(7.2*t);
+  }
+
+  let rafs = [];
+  function clearRafs(){ rafs.forEach(id=>cancelAnimationFrame(id)); rafs=[]; }
+
+  function animate(dur, fn, ease, onDone){
+    const t0 = performance.now();
+    function frame(now){
+      let p = Math.min(1,(now-t0)/dur);
+      fn(ease?ease(p):p, p);
+      if(p<1){ rafs.push(requestAnimationFrame(frame)); }
+      else if(onDone) onDone();
+    }
+    rafs.push(requestAnimationFrame(frame));
+  }
+
+  /* ---------- the signature sequence ---------- */
+  const weakdot = ()=>document.getElementById("weakdot");
+
+  function runFinalState(){
+    mainArc.style.strokeDashoffset = 0;
+    segObjs.forEach(s=> s.fill.style.strokeDashoffset = s.segL*(1-s.val));
+    setNeedle(AGG/100);
+    readNum.textContent = AGG + "%";
+    verdict.textContent = "ready";
+    verdict.style.opacity = 1;
+    const wd = weakdot(); if(wd) wd.classList.add("pulse");
+  }
+
+  function play(){
+    clearRafs();
+    if(reduce){ runFinalState(); return; }
+
+    // reset
+    mainArc.style.strokeDashoffset = arcLen;
+    segObjs.forEach(s=> s.fill.style.strokeDashoffset = s.segL);
+    setNeedle(0);
+    readNum.textContent = "0%";
+    verdict.textContent = "Calibrating…";
+    verdict.style.opacity = 0.7;
+    const wd0 = weakdot(); if(wd0) wd0.classList.remove("pulse");
+
+    // 1. arc draws (~600ms)
+    animate(620, (e)=>{ mainArc.style.strokeDashoffset = arcLen*(1-e); }, t=>t<1?1-Math.pow(1-t,3):1);
+
+    // 2. segments fill, 60ms stagger, spring overshoot each
+    segObjs.forEach((s, i)=>{
+      const delay = 360 + i*60;
+      setTimeout(()=>{
+        animate(720, (e)=>{
+          // overshoot capped: spring can exceed val slightly, clamp visually
+          let v = s.val * e;
+          if(v > s.val) v = s.val + (v-s.val)*0.5; // soften overshoot
+          v = Math.min(v, 1);
+          s.fill.style.strokeDashoffset = s.segL*(1 - v);
+        }, springEase);
+      }, delay);
+    });
+
+    // 3 & 4. needle swing + count-up arrive together (after segments begin)
+    const needleDelay = 760;
+    setTimeout(()=>{
+      animate(1100, (e)=>{
+        // spring tip frac to AGG with tiny overshoot baked into springEase
+        let frac = (AGG/100) * e;
+        setNeedle(frac);
+        // count-up uses easeOutBack feel but capped overshoot
+        let n = AGG * e;
+        // cap visible overshoot to ~1-2 pts
+        if(n > AGG) n = AGG + Math.min(n-AGG, 2);
+        readNum.textContent = Math.round(n) + "%";
+      }, springEase, ()=>{
+        setNeedle(AGG/100);
+        readNum.textContent = AGG + "%";
+      });
+    }, needleDelay);
+
+    // 5. weak-spot single pulse-in then persistent gentle breathe
+    setTimeout(()=>{ const wd=weakdot(); if(wd) wd.classList.add("pulse"); }, 1900);
+
+    // 6. verdict fade to ready at end
+    setTimeout(()=>{
+      verdict.style.opacity = 0;
+      setTimeout(()=>{ verdict.textContent = "ready"; verdict.style.opacity = 1; }, 280);
+    }, 2000);
+  }
+
+  /* ---------- kick off ---------- */
+  document.getElementById("replay").addEventListener("click", play);
+
+  if(reduce){ runFinalState(); }
+  else {
+    // trigger on load
+    if(document.readyState === "complete") requestAnimationFrame(play);
+    else window.addEventListener("load", ()=> requestAnimationFrame(play));
+  }
+})();
+</script>
+</body>
+</html>

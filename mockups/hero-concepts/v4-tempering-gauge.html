@@ -1,0 +1,409 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CertAnvil — The Tempering Gauge</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:oklch(0.975 0.007 85); --bg-deep:oklch(0.955 0.012 82);
+    --surface:oklch(0.992 0.004 85); --surface-2:oklch(0.965 0.010 84);
+    --ink:oklch(0.22 0.015 280); --ink-soft:oklch(0.36 0.014 280); --muted:oklch(0.50 0.013 280);
+    --border:oklch(0.86 0.008 85); --border-soft:oklch(0.91 0.006 85);
+    --accent:oklch(0.50 0.155 55); --accent-bright:oklch(0.80 0.155 64); --accent-deep:oklch(0.42 0.150 52);
+    --on-accent:oklch(0.985 0.010 85);
+    --tile-top:#FFFDF8; --tile-bot:#FFF7EC;
+    --shadow-soft:0 1px 0 rgba(255,255,255,.55),0 18px 38px -18px oklch(0.22 0.015 280 / .20);
+    --shadow-tile:0 2px 4px oklch(0.22 0.015 280 / .05),0 22px 44px -20px oklch(0.22 0.015 280 / .24);
+    --ease-out:cubic-bezier(0.23,1,0.32,1);
+    --ease-in-out:cubic-bezier(0.77,0,0.175,1);
+    --ease-drawer:cubic-bezier(0.32,0.72,0,1);
+  }
+  [data-theme="dark"]{
+    --bg:oklch(0.16 0.009 275); --bg-deep:oklch(0.185 0.012 275);
+    --surface:oklch(0.205 0.009 275); --surface-2:oklch(0.185 0.009 275);
+    --ink:oklch(0.96 0.006 275); --ink-soft:oklch(0.78 0.010 275); --muted:oklch(0.60 0.013 275);
+    --border:oklch(0.30 0.008 275); --border-soft:oklch(0.26 0.008 275);
+    --accent:oklch(0.80 0.155 64); --accent-bright:oklch(0.86 0.140 70); --accent-deep:oklch(0.70 0.150 62);
+    --on-accent:oklch(0.18 0.020 275);
+    --shadow-soft:0 1px 0 rgba(255,255,255,.04),0 20px 40px -18px rgba(0,0,0,.55);
+    --shadow-tile:0 2px 4px rgba(0,0,0,.3),0 24px 46px -20px rgba(0,0,0,.6);
+  }
+  *{box-sizing:border-box;margin:0}
+  html,body{height:100%}
+  body{background:var(--bg);color:var(--ink);font-family:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif;-webkit-font-smoothing:antialiased}
+
+  .hero{min-height:100vh;display:flex;align-items:center;padding:clamp(28px,5vw,72px);overflow:hidden}
+  .hero-grid{width:100%;max-width:1180px;margin:0 auto;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(32px,5vw,72px);align-items:center}
+
+  /* ── left copy (IDENTICAL across all variants) ───────────────── */
+  .hero-copy{max-width:560px}
+  .eyebrow{display:inline-flex;align-items:center;gap:10px;font-size:12px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+  .eyebrow svg{width:15px;height:15px;display:block}
+  .title{font-family:'Fraunces',Georgia,serif;font-weight:600;font-size:clamp(34px,4.6vw,58px);line-height:1.02;letter-spacing:-.022em;color:var(--ink);margin:18px 0 0}
+  .title>span{display:block}
+  .title .forge{font-style:italic;font-weight:600;color:var(--accent)}
+  .sub{margin:20px 0 0;font-size:clamp(14px,1.05vw,15.5px);line-height:1.62;color:var(--ink-soft);max-width:46ch}
+  .proof{display:flex;align-items:center;gap:16px;margin:26px 0 0}
+  .proof-score{font-family:'Fraunces',Georgia,serif;font-weight:600;font-size:30px;letter-spacing:-.01em;color:var(--ink);font-variant-numeric:tabular-nums}
+  .proof-score s{color:var(--muted);text-decoration:none;font-weight:600;font-size:.62em}
+  .proof-div{width:1px;align-self:stretch;background:var(--border)}
+  .proof-text{font-size:13px;line-height:1.45;color:var(--ink-soft)}
+  .proof-text .live{display:inline-flex;align-items:center;gap:6px;font-weight:600;color:var(--accent)}
+  .proof-text .dot{width:7px;height:7px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 3px color-mix(in oklab,var(--accent) 20%,transparent)}
+  .proof-text small{color:var(--muted);font-size:12.5px}
+  .ctas{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:28px 0 0}
+  .cta-primary{position:relative;display:flex;flex-direction:column;gap:3px;background:var(--accent);color:var(--on-accent);padding:13px 22px;border-radius:13px;text-decoration:none;box-shadow:var(--shadow-soft);transition:transform 140ms var(--ease-out),background 200ms var(--ease-out)}
+  .cta-primary .cta-row{display:flex;align-items:center;gap:10px;font-size:15px;font-weight:600}
+  .cta-primary .cta-row svg{width:17px;height:17px;transition:transform 220ms var(--ease-out)}
+  .cta-primary .cta-meta{font-size:11px;font-weight:500;letter-spacing:.03em;text-transform:uppercase;color:color-mix(in oklab,var(--on-accent) 74%,transparent)}
+  @media (hover:hover){.cta-primary:hover{background:var(--accent-deep)}.cta-primary:hover .cta-row svg{transform:translateX(4px)}}
+  .cta-primary:active{transform:scale(0.975)}
+  .cta-secondary{display:inline-flex;align-items:center;gap:7px;font-size:14px;font-weight:600;color:var(--ink-soft);text-decoration:none;padding:12px 6px;transition:color 180ms var(--ease-out)}
+  .cta-secondary svg{width:15px;height:15px}
+  @media (hover:hover){.cta-secondary:hover{color:var(--accent)}}
+  .trust{display:flex;flex-wrap:wrap;gap:7px 18px;margin:26px 0 0;font-size:12.5px;color:var(--muted)}
+  .trust b{color:var(--ink-soft);font-weight:650}
+
+  /* ── right visual anchor ─────────────────────────────────────── */
+  .hero-art{position:relative;aspect-ratio:1/1;width:100%;max-width:540px;margin-left:auto}
+
+  /* entrance for left copy (Emil: ease-out, stagger, reduced-motion safe) */
+  .reveal{opacity:0;transform:translateY(14px);transition:opacity 560ms var(--ease-out),transform 560ms var(--ease-out)}
+  .ready .reveal{opacity:1;transform:none}
+  .ready .reveal[data-d="1"]{transition-delay:40ms}
+  .ready .reveal[data-d="2"]{transition-delay:110ms}
+  .ready .reveal[data-d="3"]{transition-delay:180ms}
+  .ready .reveal[data-d="4"]{transition-delay:250ms}
+  .ready .reveal[data-d="5"]{transition-delay:320ms}
+  .ready .reveal[data-d="6"]{transition-delay:390ms}
+
+  /* chrome */
+  .theme-toggle{position:fixed;top:18px;right:18px;z-index:50;width:40px;height:40px;border-radius:999px;border:1px solid var(--border);background:var(--surface);color:var(--ink);font-size:16px;cursor:pointer;display:grid;place-items:center;transition:transform 140ms var(--ease-out),border-color 200ms var(--ease-out)}
+  .theme-toggle:active{transform:scale(0.94)}
+  .caption{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);z-index:50;font-size:12px;color:var(--muted);letter-spacing:.02em}
+
+  @media (max-width:900px){
+    .hero-grid{grid-template-columns:1fr;gap:44px}
+    .hero-copy{max-width:none}
+    .hero-art{margin:0 auto;max-width:440px}
+  }
+  @media (prefers-reduced-motion:reduce){
+    .reveal{transition:opacity 240ms ease!important;transform:none!important}
+    .ready .reveal{transform:none!important}
+  }
+
+  /* ===== RIGHT-VISUAL CSS — inject below this line ===== */
+  .tg{
+    --straw:oklch(0.85 0.10 95);
+    --hot:oklch(0.96 0.06 80);
+    --sweep:1100ms;
+    position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;
+    gap:clamp(20px,3.4vw,30px);padding:clamp(18px,4vw,30px);
+    font-variant-numeric:tabular-nums;
+  }
+
+  /* ── readout cluster ─────────────────────────────── */
+  .tg-readout{display:flex;align-items:baseline;gap:14px}
+  .tg-pct{
+    font-family:'Fraunces',Georgia,serif;font-style:italic;font-weight:600;
+    font-size:clamp(56px,9.6vw,92px);line-height:.86;letter-spacing:-.028em;color:var(--ink);
+  }
+  .tg-pct .u{font-size:.46em;font-style:normal;color:var(--muted);margin-left:.04em}
+  .tg-readout-meta{display:flex;flex-direction:column;gap:3px;padding-bottom:6px}
+  .tg-readout-meta .l1{font-size:12.5px;font-weight:600;letter-spacing:.01em;color:var(--ink-soft)}
+  .tg-readout-meta .l2{font-size:11px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+
+  /* ── channel ─────────────────────────────────────── */
+  .tg-bar{position:relative}
+  .tg-channel{
+    position:relative;height:clamp(34px,7vw,46px);border-radius:13px;
+    background:var(--surface-2);border:1px solid var(--border);
+    box-shadow:inset 0 1px 2px oklch(0.22 0.015 280 / .08);
+    overflow:hidden;
+  }
+  [data-theme="dark"] .tg-channel{box-shadow:inset 0 1px 3px rgba(0,0,0,.5)}
+
+  /* pre-rendered FULL temper gradient — revealed by clip-path */
+  .tg-fill{
+    position:absolute;inset:0;
+    background:linear-gradient(90deg,
+      var(--accent-deep) 0%,
+      var(--accent) 30%,
+      var(--straw) 62%,
+      var(--accent-bright) 84%,
+      var(--hot) 100%);
+    clip-path:inset(0 100% 0 0 round 13px);
+    will-change:clip-path;
+  }
+  .tg.is-final .tg-fill{clip-path:inset(0 22% 0 0 round 13px)}
+  .tg.run .tg-fill{
+    clip-path:inset(0 100% 0 0 round 13px);
+    transition:clip-path var(--sweep) var(--ease-out);
+  }
+  .tg.run.is-final .tg-fill{clip-path:inset(0 22% 0 0 round 13px)}
+
+  /* emissive heat haze sitting over the fill (dark mode glow) */
+  .tg-haze{
+    position:absolute;inset:0;border-radius:13px;pointer-events:none;
+    background:radial-gradient(120% 160% at 78% 50%,
+      color-mix(in oklab,var(--hot) 38%,transparent) 0%,transparent 58%);
+    opacity:0;clip-path:inset(0 22% 0 0 round 13px);
+    transition:opacity 520ms var(--ease-out);
+  }
+  .tg.is-final .tg-haze{opacity:.7}
+  [data-theme="dark"] .tg.is-final .tg-haze{opacity:1}
+
+  /* leading-edge bright highlight, rides the fill front */
+  .tg-edge{
+    position:absolute;top:3px;bottom:3px;width:2px;border-radius:2px;
+    left:0;transform:translateX(-50%);
+    background:var(--hot);
+    box-shadow:0 0 7px 1px color-mix(in oklab,var(--hot) 70%,transparent),
+               0 0 16px 3px color-mix(in oklab,var(--accent-bright) 45%,transparent);
+    opacity:0;
+  }
+  .tg.is-final .tg-edge{left:78%;opacity:1}
+  .tg.run .tg-edge{
+    left:0;opacity:1;
+    transition:left var(--sweep) var(--ease-out);
+  }
+  .tg.run.is-final .tg-edge{left:78%}
+
+  /* one-time bronze glow pulse when fill crosses READY */
+  .tg-pulse{
+    position:absolute;inset:-2px;border-radius:15px;pointer-events:none;
+    box-shadow:0 0 0 0 color-mix(in oklab,var(--accent-bright) 50%,transparent);
+    opacity:0;
+  }
+  .tg.pulsed .tg-pulse{animation:tgPulse 900ms var(--ease-out) forwards}
+  @keyframes tgPulse{
+    0%{opacity:0;box-shadow:0 0 0 0 color-mix(in oklab,var(--accent-bright) 55%,transparent)}
+    28%{opacity:1;box-shadow:0 0 22px 5px color-mix(in oklab,var(--accent-bright) 42%,transparent)}
+    100%{opacity:0;box-shadow:0 0 30px 9px color-mix(in oklab,var(--accent-bright) 0%,transparent)}
+  }
+
+  /* READY threshold notch at ~75% */
+  .tg-notch{position:absolute;top:-7px;bottom:-7px;left:75%;width:2px;
+    background:var(--border);border-radius:2px;transform:translateX(-50%)}
+  .tg-notch::after{content:"";position:absolute;left:50%;top:-4px;width:7px;height:7px;
+    transform:translateX(-50%) rotate(45deg);background:var(--accent);border-radius:1.5px}
+  .tg-ready{
+    position:absolute;left:75%;top:-30px;transform:translateX(-50%) translateY(4px);
+    display:inline-flex;align-items:center;gap:5px;white-space:nowrap;
+    font-size:10.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:var(--accent);
+    opacity:0;transition:opacity 420ms var(--ease-out),transform 420ms var(--ease-out);
+  }
+  .tg-ready svg{width:11px;height:11px}
+  .tg.is-final .tg-ready{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  /* fine "767 cleared" tick on the scale */
+  .tg-cleared{
+    position:absolute;left:85.2%;top:calc(100% + 7px);transform:translateX(-50%);
+    display:flex;flex-direction:column;align-items:center;gap:3px;
+    font-size:10px;font-weight:500;letter-spacing:.04em;color:var(--muted);white-space:nowrap;
+  }
+  .tg-cleared i{width:1px;height:7px;background:var(--border);display:block}
+
+  /* ── domain segment ticks below the bar ──────────── */
+  .tg-domains{position:relative;height:54px;margin-top:34px}
+  .tg-dom{position:absolute;top:0;transform:translateX(-50%);
+    display:flex;flex-direction:column;align-items:center;gap:6px;width:0}
+  .tg-dom i{width:2px;height:11px;border-radius:1px;
+    background:color-mix(in oklab,var(--accent) 70%,var(--border));}
+  .tg-dom.cool i{background:var(--muted)}
+  .tg-dom b{font-family:'Fraunces',Georgia,serif;font-weight:600;font-size:13px;
+    color:var(--ink-soft);font-style:normal}
+  .tg-dom span{font-size:9.5px;font-weight:500;letter-spacing:.02em;color:var(--muted);
+    white-space:nowrap;max-width:78px;text-align:center;line-height:1.25}
+  .tg-dom.cool span{color:var(--accent)}
+  .tg-dom.cool b{color:var(--ink-soft)}
+
+  /* replay control */
+  .tg-replay{
+    position:absolute;right:clamp(18px,4vw,30px);top:clamp(16px,3.4vw,26px);
+    display:inline-flex;align-items:center;gap:5px;
+    background:none;border:0;padding:4px 2px;cursor:pointer;
+    font-family:inherit;font-size:11px;font-weight:500;letter-spacing:.03em;color:var(--muted);
+    transition:color 180ms var(--ease-out);
+  }
+  .tg-replay svg{width:12px;height:12px;transition:transform 420ms var(--ease-out)}
+  .tg-replay:active{transform:scale(0.96)}
+  @media (hover:hover) and (pointer:fine){
+    .tg-replay:hover{color:var(--accent)}
+    .tg-replay:hover svg{transform:rotate(-180deg)}
+  }
+
+  @media (max-width:900px){
+    .tg-dom span{display:none}
+  }
+
+  @media (prefers-reduced-motion:reduce){
+    .tg .tg-fill,.tg .tg-edge{transition:none!important}
+    .tg .tg-pulse{animation:none!important}
+    .tg-ready,.tg-haze{transition:none!important}
+  }
+  /* ===== /RIGHT-VISUAL CSS ===== */
+</style>
+</head>
+<body>
+  <button class="theme-toggle" id="theme-toggle" aria-label="Toggle theme">☾</button>
+  <div class="caption" id="caption">Variant 4 · The Tempering Gauge</div>
+
+  <main class="hero" id="hero">
+    <div class="hero-grid">
+      <div class="hero-copy">
+        <span class="eyebrow reveal" data-d="1">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4l6 6-9 9H5v-6z"/><path d="M12 6l6 6"/></svg>
+          AI cert practice, forged from CompTIA blueprints
+        </span>
+        <h1 class="title reveal" data-d="2">
+          <span><span class="forge">Forge</span> your way</span>
+          <span>through every</span>
+          <span>CompTIA cert.</span>
+        </h1>
+        <p class="sub reveal" data-d="3">
+          Questions written from the real exam objectives and checked by a
+          seven-layer AI engine. You drill what you keep getting wrong, until
+          the score sticks.
+        </p>
+        <div class="proof reveal" data-d="4">
+          <span class="proof-score">767<s>&thinsp;/&thinsp;900</s></span>
+          <span class="proof-div"></span>
+          <span class="proof-text">
+            <span class="live"><span class="dot"></span>Network+ N10-009 · passed</span><br>
+            <small>Built and passed with this tool on 2026-05-05.</small>
+          </span>
+        </div>
+        <div class="ctas reveal" data-d="5">
+          <a class="cta-primary" href="#">
+            <span class="cta-row">Take the baseline diagnostic
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+            </span>
+            <span class="cta-meta">About 20 minutes · Free · No account</span>
+          </a>
+          <a class="cta-secondary" href="#">Or pick a cert
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+          </a>
+        </div>
+        <div class="trust reveal" data-d="6">
+          <span><b>5</b>&nbsp;N10-009 domains</span>
+          <span><b>7-layer</b>&nbsp;AI validation</span>
+          <span><b>No</b>&nbsp;repeated questions</span>
+        </div>
+      </div>
+
+      <div class="hero-art" id="hero-art" aria-hidden="true">
+        <!-- ===== RIGHT-VISUAL MARKUP — inject inside #hero-art ===== -->
+        <div class="tg" id="tg">
+          <button class="tg-replay" id="tg-replay" type="button" aria-label="Replay">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v4h4"/></svg>
+            replay
+          </button>
+
+          <div class="tg-readout">
+            <div class="tg-pct"><span id="tg-num">0</span><span class="u">%</span></div>
+            <div class="tg-readout-meta">
+              <span class="l1">ready</span>
+              <span class="l2">blueprint-weighted</span>
+            </div>
+          </div>
+
+          <div class="tg-bar">
+            <div class="tg-ready">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+              ready
+            </div>
+            <div class="tg-channel">
+              <div class="tg-fill"></div>
+              <div class="tg-haze"></div>
+              <div class="tg-edge"></div>
+            </div>
+            <div class="tg-pulse"></div>
+            <div class="tg-notch"></div>
+            <div class="tg-cleared"><i></i>767 cleared</div>
+          </div>
+
+          <div class="tg-domains">
+            <div class="tg-dom" style="left:88%"><i></i><b>88</b><span>Networking Concepts</span></div>
+            <div class="tg-dom" style="left:80%"><i></i><b>80</b><span>Implementation</span></div>
+            <div class="tg-dom" style="left:76%"><i></i><b>76</b><span>Troubleshooting</span></div>
+            <div class="tg-dom" style="left:72%"><i></i><b>72</b><span>Operations</span></div>
+            <div class="tg-dom cool" style="left:46%"><i></i><b>46</b><span>Security · weak spot → routed next</span></div>
+          </div>
+        </div>
+        <!-- ===== /RIGHT-VISUAL MARKUP ===== -->
+      </div>
+    </div>
+  </main>
+
+  <script>
+    /* left-copy entrance trigger */
+    requestAnimationFrame(function(){requestAnimationFrame(function(){document.getElementById('hero').classList.add('ready');});});
+    /* theme toggle */
+    (function(){var t=document.getElementById('theme-toggle');t.addEventListener('click',function(){var d=document.documentElement.getAttribute('data-theme')==='dark';document.documentElement.setAttribute('data-theme',d?'light':'dark');t.textContent=d?'☾':'☀';});})();
+
+    /* ===== RIGHT-VISUAL JS — inject below this line ===== */
+    (function(){
+      var tg=document.getElementById('tg');
+      if(!tg)return;
+      var num=document.getElementById('tg-num');
+      var replay=document.getElementById('tg-replay');
+      var TARGET=78, READY=75, SWEEP=1100;
+      var reduced=window.matchMedia('(prefers-reduced-motion:reduce)');
+      var raf=0, pulseTimer=0;
+
+      function setFinal(){
+        num.textContent=TARGET;
+        tg.classList.add('is-final','pulsed');
+      }
+
+      function count(ts0){
+        var start=null;
+        // fill front position is linear-in-clip but eased; ease-out curve for the count
+        var ease=function(t){return 1-Math.pow(1-t,3);}; // ~ease-out cubic, matches the visual feel
+        cancelAnimationFrame(raf);
+        (function step(now){
+          if(start===null)start=now;
+          var t=Math.min((now-start)/SWEEP,1);
+          num.textContent=Math.round(ease(t)*TARGET);
+          if(t<1){raf=requestAnimationFrame(step);}
+          else{num.textContent=TARGET;}
+        })(performance.now());
+      }
+
+      function run(){
+        cancelAnimationFrame(raf);
+        clearTimeout(pulseTimer);
+        tg.classList.remove('is-final','run','pulsed');
+        num.textContent='0';
+        // force reflow so removing then adding .run replays the clip-path transition
+        void tg.offsetWidth;
+
+        if(reduced.matches){setFinal();return;}
+
+        tg.classList.add('run');
+        // next frame: flip to final so the CSS transition fires from 0 -> 78%
+        requestAnimationFrame(function(){
+          requestAnimationFrame(function(){
+            tg.classList.add('is-final');
+            count();
+            // one-time bronze pulse when the hot front crosses the READY notch (~75/78 of sweep)
+            pulseTimer=setTimeout(function(){tg.classList.add('pulsed');},SWEEP*(READY/TARGET));
+          });
+        });
+      }
+
+      replay.addEventListener('click',run);
+      reduced.addEventListener('change',function(){if(reduced.matches)setFinal();});
+
+      // kick off once the page settles (after left-copy entrance starts)
+      requestAnimationFrame(function(){requestAnimationFrame(run);});
+    })();
+    /* ===== /RIGHT-VISUAL JS ===== */
+  </script>
+</body>
+</html>

@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CertAnvil — Concept 01 · Struck</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,600;1,9..144,400&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:oklch(0.975 0.007 85);
+    --bg-deep:oklch(0.955 0.012 82);
+    --surface:oklch(0.992 0.004 85);
+    --surface-2:oklch(0.965 0.010 84);
+    --ink:oklch(0.22 0.015 280);
+    --ink-soft:oklch(0.36 0.014 280);
+    --muted:oklch(0.50 0.013 280);
+    --border:oklch(0.86 0.008 85);
+    --border-soft:oklch(0.91 0.006 85);
+    --accent:oklch(0.50 0.155 55);
+    --accent-bright:oklch(0.80 0.155 64);
+    --accent-deep:oklch(0.42 0.150 52);
+    --on-accent:oklch(0.985 0.010 85);
+
+    --ease-out:cubic-bezier(0.23,1,0.32,1);
+    --ease-in-out:cubic-bezier(0.77,0,0.175,1);
+
+    /* live specular position for the hero word, lerped on pointermove */
+    --mx:38%;
+    /* hot-overlay opacity, cooled to 0 after the strike */
+    --heat:0;
+  }
+  html[data-theme="dark"]{
+    --bg:oklch(0.16 0.009 275);
+    --bg-deep:oklch(0.185 0.012 275);
+    --surface:oklch(0.205 0.009 275);
+    --surface-2:oklch(0.185 0.009 275);
+    --ink:oklch(0.96 0.006 275);
+    --ink-soft:oklch(0.78 0.010 275);
+    --muted:oklch(0.60 0.013 275);
+    --border:oklch(0.30 0.008 275);
+    --border-soft:oklch(0.26 0.008 275);
+    --accent:oklch(0.80 0.155 64);
+    --accent-bright:oklch(0.86 0.140 70);
+    --accent-deep:oklch(0.70 0.150 62);
+    --on-accent:oklch(0.18 0.020 275);
+  }
+
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    background:
+      radial-gradient(120% 90% at 78% 8%, var(--bg-deep), transparent 60%),
+      var(--bg);
+    color:var(--ink);
+    font-family:"Inter",system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased;
+    text-rendering:optimizeLegibility;
+    min-height:100svh;
+    overflow-x:hidden;
+    transition:background-color .5s var(--ease-out), color .5s var(--ease-out);
+  }
+
+  /* ---------- theme toggle ---------- */
+  .theme-toggle{
+    position:fixed;top:20px;right:22px;z-index:50;
+    width:40px;height:40px;border-radius:999px;
+    display:grid;place-items:center;cursor:pointer;
+    background:var(--surface);
+    border:1px solid var(--border);
+    color:var(--ink-soft);
+    font-size:16px;line-height:1;
+    box-shadow:0 1px 2px oklch(0 0 0 / .06);
+    transition:transform .14s var(--ease-out), background-color .4s var(--ease-out), border-color .4s var(--ease-out), color .4s var(--ease-out);
+  }
+  .theme-toggle:active{transform:scale(0.92)}
+  @media (hover:hover) and (pointer:fine){
+    .theme-toggle:hover{border-color:var(--accent);color:var(--accent)}
+  }
+
+  /* ---------- layout ---------- */
+  .wrap{
+    min-height:100svh;
+    display:flex;align-items:center;
+    padding:96px clamp(28px,7vw,140px);
+  }
+  .hero{
+    max-width:1020px;width:100%;
+  }
+
+  .eyebrow{
+    font-size:12.5px;font-weight:600;letter-spacing:.16em;
+    text-transform:uppercase;
+    color:var(--accent);
+    display:flex;align-items:center;gap:11px;
+    margin-bottom:clamp(22px,3vw,34px);
+  }
+  .eyebrow::before{
+    content:"";width:26px;height:1px;background:var(--accent);
+    opacity:.7;flex:none;
+  }
+
+  /* ---------- headline ---------- */
+  .headline{
+    font-family:"Fraunces",serif;
+    font-weight:400;
+    line-height:0.98;
+    letter-spacing:-0.02em;
+    color:var(--ink);
+    font-size:clamp(54px,10.4vw,148px);
+    font-optical-sizing:auto;
+    margin-bottom:clamp(26px,3.4vw,40px);
+    max-width:14ch;
+  }
+  .headline .line{display:block}
+  .calm{
+    font-weight:400;
+    color:var(--ink);
+    will-change:transform,opacity;
+  }
+  /* opacity for the rest of the headline so the metal word leads the eye */
+  .headline .line1, .headline .line3{opacity:.92}
+
+  /* ----- the forged hero word ----- */
+  .knowing{
+    position:relative;
+    display:inline-block;
+    font-style:italic;
+    font-weight:600;
+    /* largest optical size */
+    font-variation-settings:"opsz" 144;
+    /* bronze gradient fill via background-clip */
+    background:linear-gradient(
+      176deg,
+      var(--accent-bright) 0%,
+      var(--accent) 46%,
+      var(--accent-deep) 100%
+    );
+    -webkit-background-clip:text;
+    background-clip:text;
+    -webkit-text-fill-color:transparent;
+    color:transparent;
+    /* warm cast shadow giving physical depth */
+    filter:
+      drop-shadow(0 1px 0 oklch(0.95 0.04 85 / .35))
+      drop-shadow(0 10px 22px oklch(0.45 0.13 55 / .28));
+    padding-right:.08em;
+    will-change:transform,filter;
+  }
+  /* faint top-edge specular highlight (static base sheen) */
+  .knowing::before{
+    content:attr(data-word);
+    position:absolute;inset:0;
+    pointer-events:none;
+    background:linear-gradient(
+      180deg,
+      oklch(0.98 0.05 88 / .85) 0%,
+      oklch(0.98 0.05 88 / 0) 34%
+    );
+    -webkit-background-clip:text;
+    background-clip:text;
+    -webkit-text-fill-color:transparent;
+    color:transparent;
+    opacity:.6;
+  }
+  /* moving specular sweep — tracks --mx, runs the strike sweep once */
+  .knowing::after{
+    content:attr(data-word);
+    position:absolute;inset:0;
+    pointer-events:none;
+    background:linear-gradient(
+      105deg,
+      transparent calc(var(--mx) - 16%),
+      oklch(0.99 0.03 90 / .92) var(--mx),
+      transparent calc(var(--mx) + 16%)
+    );
+    -webkit-background-clip:text;
+    background-clip:text;
+    -webkit-text-fill-color:transparent;
+    color:transparent;
+    opacity:var(--sheen,0);
+    transition:opacity .3s var(--ease-out);
+  }
+  /* hot overlay — high-chroma amber that cools to 0 after the strike */
+  .knowing-hot{
+    position:absolute;inset:0;
+    pointer-events:none;
+    font-style:italic;font-weight:600;
+    font-variation-settings:"opsz" 144;
+    background:linear-gradient(
+      176deg,
+      oklch(0.88 0.17 72) 0%,
+      var(--accent-bright) 55%,
+      oklch(0.74 0.16 60) 100%
+    );
+    -webkit-background-clip:text;
+    background-clip:text;
+    -webkit-text-fill-color:transparent;
+    color:transparent;
+    opacity:var(--heat);
+  }
+
+  /* spark burst container at the baseline */
+  .sparks{
+    position:absolute;left:8%;bottom:.12em;
+    width:0;height:0;pointer-events:none;
+  }
+  .spark{
+    position:absolute;top:0;left:0;
+    width:5px;height:5px;border-radius:999px;
+    background:radial-gradient(circle at 40% 40%, oklch(0.97 0.06 90), var(--accent-bright));
+    opacity:0;
+    will-change:transform,opacity;
+  }
+
+  /* ---------- subhead ---------- */
+  .subhead{
+    font-size:clamp(16px,1.5vw,19.5px);
+    line-height:1.55;
+    color:var(--ink-soft);
+    max-width:48ch;
+    margin-bottom:clamp(30px,3.6vw,44px);
+    will-change:transform,opacity;
+  }
+
+  /* ---------- CTA row ---------- */
+  .cta-row{
+    display:flex;align-items:center;gap:18px;flex-wrap:wrap;
+    margin-bottom:clamp(30px,4vw,46px);
+    will-change:transform,opacity;
+  }
+  .btn{
+    font-family:"Inter",sans-serif;
+    font-size:15.5px;font-weight:600;
+    border-radius:11px;cursor:pointer;
+    border:1px solid transparent;
+    padding:14px 22px;
+    transition:transform .14s var(--ease-out),
+               background-color .3s var(--ease-out),
+               border-color .3s var(--ease-out),
+               box-shadow .3s var(--ease-out),
+               color .3s var(--ease-out);
+  }
+  .btn:active{transform:scale(0.97)}
+  .btn-primary{
+    background:var(--accent);
+    color:var(--on-accent);
+    box-shadow:0 1px 2px oklch(0.4 0.12 55 / .25), 0 8px 20px oklch(0.45 0.13 55 / .22);
+  }
+  .btn-ghost{
+    background:transparent;
+    color:var(--ink-soft);
+    border-color:var(--border);
+  }
+  @media (hover:hover) and (pointer:fine){
+    .btn-primary:hover{
+      background:var(--accent-deep);
+      transform:translateY(-1px);
+      box-shadow:0 3px 6px oklch(0.4 0.12 55 / .28), 0 12px 28px oklch(0.45 0.13 55 / .3);
+    }
+    .btn-ghost:hover{
+      border-color:var(--accent);
+      color:var(--accent);
+      transform:translateY(-1px);
+    }
+  }
+
+  /* ---------- debossed proof chip ---------- */
+  .proof{
+    display:inline-flex;align-items:center;gap:18px;
+    padding:16px 22px;border-radius:14px;
+    background:var(--surface-2);
+    border:1px solid var(--border-soft);
+    /* letterpressed / debossed inset */
+    box-shadow:
+      inset 0 2px 4px oklch(0 0 0 / .08),
+      inset 0 -1px 0 oklch(1 0 0 / .5),
+      0 1px 0 oklch(1 0 0 / .4);
+    will-change:transform,opacity;
+  }
+  html[data-theme="dark"] .proof{
+    box-shadow:
+      inset 0 2px 5px oklch(0 0 0 / .4),
+      inset 0 -1px 0 oklch(1 0 0 / .04);
+  }
+  .proof-num{
+    font-family:"Fraunces",serif;
+    font-weight:600;
+    font-size:34px;
+    line-height:1;
+    letter-spacing:-0.01em;
+    color:var(--accent);
+    font-variation-settings:"opsz" 60;
+  }
+  .proof-meta{display:flex;flex-direction:column;gap:3px}
+  .proof-label{
+    font-size:12.5px;font-weight:600;letter-spacing:.03em;
+    text-transform:uppercase;color:var(--ink-soft);
+  }
+  .proof-sub{font-size:12.5px;color:var(--muted)}
+  .proof-divider{
+    width:1px;align-self:stretch;background:var(--border);
+    margin:2px 0;
+  }
+
+  /* ---------- caption strip ---------- */
+  .caption{
+    position:fixed;left:50%;bottom:16px;transform:translateX(-50%);
+    z-index:40;
+    font-size:11.5px;letter-spacing:.06em;
+    color:var(--muted);
+    background:var(--surface);
+    border:1px solid var(--border-soft);
+    padding:6px 14px;border-radius:999px;
+    white-space:nowrap;
+  }
+
+  /* ---------- entrance states (JS removes .pre) ---------- */
+  .pre .calm,
+  .pre .subhead,
+  .pre .cta-row,
+  .pre .proof{opacity:0;transform:translateY(8px)}
+  .pre .knowing-wrap{opacity:0}
+
+  /* ---------- responsive ---------- */
+  @media (max-width:520px){
+    .wrap{padding:84px 24px 72px;align-items:flex-start;padding-top:120px}
+    .headline{font-size:clamp(46px,15vw,72px);max-width:none}
+    .proof{width:100%;justify-content:flex-start}
+    .cta-row{gap:12px}
+    .btn{flex:1 1 auto;text-align:center}
+  }
+
+  /* ---------- reduced motion ---------- */
+  @media (prefers-reduced-motion:reduce){
+    *{animation:none !important;transition:none !important}
+    .pre .calm,.pre .subhead,.pre .cta-row,.pre .proof,.pre .knowing-wrap{
+      opacity:1 !important;transform:none !important;
+    }
+    .knowing::after{opacity:0 !important}
+    .knowing-hot{opacity:0 !important}
+    .spark{display:none}
+  }
+</style>
+</head>
+<body>
+  <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">☾</button>
+
+  <main class="wrap">
+    <section class="hero pre" id="hero">
+      <p class="eyebrow">AI Cert Practice · Forged From CompTIA Blueprints</p>
+
+      <h1 class="headline">
+        <span class="line line1"><span class="calm" data-step="0">Walk in</span></span>
+        <span class="line line2">
+          <span class="knowing-wrap" id="knowingWrap">
+            <span class="knowing" id="knowing" data-word="knowing,">knowing,<span class="knowing-hot" aria-hidden="true">knowing,</span></span>
+            <span class="sparks" id="sparks" aria-hidden="true"></span>
+          </span>
+        </span>
+        <span class="line line3"><span class="calm" data-step="1">not hoping.</span></span>
+      </h1>
+
+      <p class="subhead">Fresh exam questions every session, validated seven ways, scored to the real blueprint. You'll know when you're ready, not just hopeful.</p>
+
+      <div class="cta-row">
+        <button class="btn btn-primary">Start the baseline diagnostic →</button>
+        <button class="btn btn-ghost">See how it works</button>
+      </div>
+
+      <div class="proof">
+        <span class="proof-num">767 / 900</span>
+        <span class="proof-divider"></span>
+        <span class="proof-meta">
+          <span class="proof-label">Network+ N10-009 · passed</span>
+          <span class="proof-sub">Built and passed with this tool.</span>
+        </span>
+      </div>
+    </section>
+  </main>
+
+  <div class="caption">Concept 01 · Struck</div>
+
+<script>
+(function(){
+  "use strict";
+  var root = document.documentElement;
+  var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  /* ---------- theme toggle ---------- */
+  var toggle = document.getElementById("themeToggle");
+  function syncToggleLabel(){
+    toggle.textContent = root.getAttribute("data-theme") === "dark" ? "☀" : "☾";
+  }
+  syncToggleLabel();
+  toggle.addEventListener("click", function(){
+    root.setAttribute("data-theme",
+      root.getAttribute("data-theme") === "dark" ? "light" : "dark");
+    syncToggleLabel();
+  });
+
+  var hero    = document.getElementById("hero");
+  var knowing = document.getElementById("knowing");
+  var kwrap   = document.getElementById("knowingWrap");
+  var sparks  = document.getElementById("sparks");
+  var calms   = Array.prototype.slice.call(document.querySelectorAll(".calm"));
+
+  /* reduced motion: settle everything, skip the forge */
+  if (reduce){
+    hero.classList.remove("pre");
+    knowing.style.setProperty("--heat","0");
+    return;
+  }
+
+  /* ---------- entrance orchestration ---------- */
+  function animIn(el, delay){
+    el.animate(
+      [{opacity:0, transform:"translateY(8px)"},
+       {opacity:1, transform:"translateY(0)"}],
+      {duration:620, delay:delay, easing:"cubic-bezier(0.23,1,0.32,1)", fill:"both"}
+    );
+  }
+
+  function start(){
+    hero.classList.remove("pre");
+
+    /* 1. "Walk in" then "not hoping." — staggered ~60ms */
+    animIn(calms[0], 0);
+    animIn(calms[1], 60);
+
+    /* 2. THE FORGE — hero word drops in with slight overshoot */
+    kwrap.style.opacity = "1";
+    var drop = knowing.animate(
+      [
+        {transform:"translateY(-24px)", opacity:0,   offset:0},
+        {transform:"translateY(4px)",   opacity:1,   offset:0.72},
+        {transform:"translateY(-1px)",  opacity:1,   offset:0.88},
+        {transform:"translateY(0)",     opacity:1,   offset:1}
+      ],
+      {duration:680, delay:200, easing:"cubic-bezier(0.34,1.42,0.5,1)", fill:"both"}
+    );
+
+    drop.onfinish = strike;
+
+    /* subhead, CTAs, proof cascade after the headline */
+    animIn(document.querySelector(".subhead"), 360);
+    animIn(document.querySelector(".cta-row"), 420);
+    animIn(document.querySelector(".proof"),   480);
+  }
+
+  /* ---------- the strike: sweep + cool + spark, once ---------- */
+  function strike(){
+    /* fill begins HOT, then cools to resting bronze over ~500ms */
+    knowing.style.setProperty("--heat","1");
+    var cool = knowing.animate(
+      [{}, {}],
+      {duration:520, easing:"cubic-bezier(0.23,1,0.32,1)", fill:"none"}
+    );
+    /* drive --heat down via rAF so the CSS var animates */
+    var t0 = performance.now();
+    (function coolStep(now){
+      var p = Math.min(1, (now - t0) / 520);
+      var eased = 1 - Math.pow(1 - p, 3);
+      knowing.style.setProperty("--heat", String(1 - eased));
+      if (p < 1) requestAnimationFrame(coolStep);
+      else knowing.style.setProperty("--heat","0");
+    })(t0);
+
+    /* specular sweep left -> right across the glyph, once */
+    knowing.style.setProperty("--sheen","1");
+    var s0 = performance.now();
+    (function sweep(now){
+      var p = Math.min(1, (now - s0) / 520);
+      var eased = p < 1 ? 1 - Math.pow(1 - p, 2) : 1;
+      var pos = -10 + eased * 120;           /* -10% -> 110% */
+      knowing.style.setProperty("--mx", pos + "%");
+      if (p < 1) requestAnimationFrame(sweep);
+      else { knowing.style.setProperty("--sheen","0"); resetSheenBase(); }
+    })(s0);
+
+    spark();
+  }
+
+  /* after the sweep, park sheen near the rest position for hover pickup */
+  function resetSheenBase(){
+    knowing.style.setProperty("--mx","38%");
+  }
+
+  /* ---------- one-time spark burst ---------- */
+  function spark(){
+    var n = 5;
+    for (var i=0;i<n;i++){
+      var dot = document.createElement("span");
+      dot.className = "spark";
+      sparks.appendChild(dot);
+      var ang = (-Math.PI*0.85) + (i/(n-1))*(Math.PI*0.7); /* fan upward */
+      var dist = 26 + Math.random()*22;
+      var dx = Math.cos(ang)*dist;
+      var dy = Math.sin(ang)*dist;
+      dot.animate(
+        [
+          {transform:"translate(0,0) scale(1)",          opacity:1},
+          {transform:"translate("+dx+"px,"+dy+"px) scale(0.4)", opacity:0}
+        ],
+        {duration:300 + Math.random()*80, easing:"cubic-bezier(0.23,1,0.32,1)", fill:"forwards"}
+      ).onfinish = (function(d){ return function(){ d.remove(); }; })(dot);
+    }
+  }
+
+  /* ---------- signature hover: re-warm + cursor-tracked specular ---------- */
+  var hovering = false;
+  var targetMx = 38;   /* % */
+  var currentMx = 38;
+  var targetHeat = 0;
+  var currentHeat = 0;
+  var rafActive = false;
+
+  function lerpLoop(){
+    currentMx   += (targetMx   - currentMx)   * 0.16;
+    currentHeat += (targetHeat - currentHeat) * 0.12;
+    knowing.style.setProperty("--mx", currentMx + "%");
+    knowing.style.setProperty("--sheen", String(Math.min(1, currentHeat*1.1)));
+    knowing.style.setProperty("--heat", String(currentHeat * 0.55));
+    if (Math.abs(targetMx-currentMx) > 0.1 ||
+        Math.abs(targetHeat-currentHeat) > 0.003){
+      requestAnimationFrame(lerpLoop);
+    } else {
+      rafActive = false;
+      if (!hovering){ knowing.style.setProperty("--sheen","0"); }
+    }
+  }
+  function kick(){ if(!rafActive){ rafActive = true; requestAnimationFrame(lerpLoop); } }
+
+  var fine = window.matchMedia("(hover:hover) and (pointer:fine)").matches;
+  if (fine){
+    kwrap.addEventListener("pointerenter", function(){
+      hovering = true; targetHeat = 1; kick();
+    });
+    kwrap.addEventListener("pointermove", function(e){
+      var r = knowing.getBoundingClientRect();
+      var rel = (e.clientX - r.left) / r.width;
+      targetMx = Math.max(-10, Math.min(110, rel*100));
+      kick();
+    });
+    kwrap.addEventListener("pointerleave", function(){
+      hovering = false; targetHeat = 0; targetMx = 38; kick();
+    });
+  }
+
+  /* go */
+  if (document.readyState === "complete") requestAnimationFrame(start);
+  else window.addEventListener("load", function(){ requestAnimationFrame(start); });
+})();
+</script>
+</body>
+</html>

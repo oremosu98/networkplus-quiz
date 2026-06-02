@@ -1,0 +1,613 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CertAnvil — The Forged Seal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:oklch(0.975 0.007 85); --bg-deep:oklch(0.955 0.012 82);
+    --surface:oklch(0.992 0.004 85); --surface-2:oklch(0.965 0.010 84);
+    --ink:oklch(0.22 0.015 280); --ink-soft:oklch(0.36 0.014 280); --muted:oklch(0.50 0.013 280);
+    --border:oklch(0.86 0.008 85); --border-soft:oklch(0.91 0.006 85);
+    --accent:oklch(0.50 0.155 55); --accent-bright:oklch(0.80 0.155 64); --accent-deep:oklch(0.42 0.150 52);
+    --on-accent:oklch(0.985 0.010 85);
+    --tile-top:#FFFDF8; --tile-bot:#FFF7EC;
+    --shadow-soft:0 1px 0 rgba(255,255,255,.55),0 18px 38px -18px oklch(0.22 0.015 280 / .20);
+    --shadow-tile:0 2px 4px oklch(0.22 0.015 280 / .05),0 22px 44px -20px oklch(0.22 0.015 280 / .24);
+    --ease-out:cubic-bezier(0.23,1,0.32,1);
+    --ease-in-out:cubic-bezier(0.77,0,0.175,1);
+    --ease-drawer:cubic-bezier(0.32,0.72,0,1);
+  }
+  [data-theme="dark"]{
+    --bg:oklch(0.16 0.009 275); --bg-deep:oklch(0.185 0.012 275);
+    --surface:oklch(0.205 0.009 275); --surface-2:oklch(0.185 0.009 275);
+    --ink:oklch(0.96 0.006 275); --ink-soft:oklch(0.78 0.010 275); --muted:oklch(0.60 0.013 275);
+    --border:oklch(0.30 0.008 275); --border-soft:oklch(0.26 0.008 275);
+    --accent:oklch(0.80 0.155 64); --accent-bright:oklch(0.86 0.140 70); --accent-deep:oklch(0.70 0.150 62);
+    --on-accent:oklch(0.18 0.020 275);
+    --shadow-soft:0 1px 0 rgba(255,255,255,.04),0 20px 40px -18px rgba(0,0,0,.55);
+    --shadow-tile:0 2px 4px rgba(0,0,0,.3),0 24px 46px -20px rgba(0,0,0,.6);
+  }
+  *{box-sizing:border-box;margin:0}
+  html,body{height:100%}
+  body{background:var(--bg);color:var(--ink);font-family:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif;-webkit-font-smoothing:antialiased}
+
+  .hero{min-height:100vh;display:flex;align-items:center;padding:clamp(28px,5vw,72px);overflow:hidden}
+  .hero-grid{width:100%;max-width:1180px;margin:0 auto;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(32px,5vw,72px);align-items:center}
+
+  /* ── left copy (IDENTICAL across all variants) ───────────────── */
+  .hero-copy{max-width:560px}
+  .eyebrow{display:inline-flex;align-items:center;gap:10px;font-size:12px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+  .eyebrow svg{width:15px;height:15px;display:block}
+  .title{font-family:'Fraunces',Georgia,serif;font-weight:600;font-size:clamp(34px,4.6vw,58px);line-height:1.02;letter-spacing:-.022em;color:var(--ink);margin:18px 0 0}
+  .title>span{display:block}
+  .title .forge{font-style:italic;font-weight:600;color:var(--accent)}
+  .sub{margin:20px 0 0;font-size:clamp(14px,1.05vw,15.5px);line-height:1.62;color:var(--ink-soft);max-width:46ch}
+  .proof{display:flex;align-items:center;gap:16px;margin:26px 0 0}
+  .proof-score{font-family:'Fraunces',Georgia,serif;font-weight:600;font-size:30px;letter-spacing:-.01em;color:var(--ink);font-variant-numeric:tabular-nums}
+  .proof-score s{color:var(--muted);text-decoration:none;font-weight:600;font-size:.62em}
+  .proof-div{width:1px;align-self:stretch;background:var(--border)}
+  .proof-text{font-size:13px;line-height:1.45;color:var(--ink-soft)}
+  .proof-text .live{display:inline-flex;align-items:center;gap:6px;font-weight:600;color:var(--accent)}
+  .proof-text .dot{width:7px;height:7px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 3px color-mix(in oklab,var(--accent) 20%,transparent)}
+  .proof-text small{color:var(--muted);font-size:12.5px}
+  .ctas{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:28px 0 0}
+  .cta-primary{position:relative;display:flex;flex-direction:column;gap:3px;background:var(--accent);color:var(--on-accent);padding:13px 22px;border-radius:13px;text-decoration:none;box-shadow:var(--shadow-soft);transition:transform 140ms var(--ease-out),background 200ms var(--ease-out)}
+  .cta-primary .cta-row{display:flex;align-items:center;gap:10px;font-size:15px;font-weight:600}
+  .cta-primary .cta-row svg{width:17px;height:17px;transition:transform 220ms var(--ease-out)}
+  .cta-primary .cta-meta{font-size:11px;font-weight:500;letter-spacing:.03em;text-transform:uppercase;color:color-mix(in oklab,var(--on-accent) 74%,transparent)}
+  @media (hover:hover){.cta-primary:hover{background:var(--accent-deep)}.cta-primary:hover .cta-row svg{transform:translateX(4px)}}
+  .cta-primary:active{transform:scale(0.975)}
+  .cta-secondary{display:inline-flex;align-items:center;gap:7px;font-size:14px;font-weight:600;color:var(--ink-soft);text-decoration:none;padding:12px 6px;transition:color 180ms var(--ease-out)}
+  .cta-secondary svg{width:15px;height:15px}
+  @media (hover:hover){.cta-secondary:hover{color:var(--accent)}}
+  .trust{display:flex;flex-wrap:wrap;gap:7px 18px;margin:26px 0 0;font-size:12.5px;color:var(--muted)}
+  .trust b{color:var(--ink-soft);font-weight:650}
+
+  /* ── right visual anchor ─────────────────────────────────────── */
+  .hero-art{position:relative;aspect-ratio:1/1;width:100%;max-width:540px;margin-left:auto}
+
+  /* entrance for left copy (Emil: ease-out, stagger, reduced-motion safe) */
+  .reveal{opacity:0;transform:translateY(14px);transition:opacity 560ms var(--ease-out),transform 560ms var(--ease-out)}
+  .ready .reveal{opacity:1;transform:none}
+  .ready .reveal[data-d="1"]{transition-delay:40ms}
+  .ready .reveal[data-d="2"]{transition-delay:110ms}
+  .ready .reveal[data-d="3"]{transition-delay:180ms}
+  .ready .reveal[data-d="4"]{transition-delay:250ms}
+  .ready .reveal[data-d="5"]{transition-delay:320ms}
+  .ready .reveal[data-d="6"]{transition-delay:390ms}
+
+  /* chrome */
+  .theme-toggle{position:fixed;top:18px;right:18px;z-index:50;width:40px;height:40px;border-radius:999px;border:1px solid var(--border);background:var(--surface);color:var(--ink);font-size:16px;cursor:pointer;display:grid;place-items:center;transition:transform 140ms var(--ease-out),border-color 200ms var(--ease-out)}
+  .theme-toggle:active{transform:scale(0.94)}
+  .caption{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);z-index:50;font-size:12px;color:var(--muted);letter-spacing:.02em}
+
+  @media (max-width:900px){
+    .hero-grid{grid-template-columns:1fr;gap:44px}
+    .hero-copy{max-width:none}
+    .hero-art{margin:0 auto;max-width:440px}
+  }
+  @media (prefers-reduced-motion:reduce){
+    .reveal{transition:opacity 240ms ease!important;transform:none!important}
+    .ready .reveal{transform:none!important}
+  }
+
+  /* ===== RIGHT-VISUAL CSS — inject below this line ===== */
+  .seal-wrap{position:relative;width:100%;height:100%;display:flex;flex-direction:column;
+    align-items:center;justify-content:center}
+  .seal{width:100%;height:auto;max-width:540px;display:block;overflow:visible;
+    filter:drop-shadow(0 24px 48px oklch(0.22 0.015 280 / .22))}
+  [data-theme="dark"] .seal{filter:drop-shadow(0 26px 52px rgba(0,0,0,.55))}
+
+  /* plate + glow */
+  .seal-plate{fill:var(--surface);stroke:var(--border-soft);stroke-width:1}
+  .seal-glow{fill:none;stroke:var(--accent-bright);stroke-width:6;opacity:0;
+    transform-box:fill-box;transform-origin:center;transform:scale(.92)}
+  [data-theme="dark"] .seal-glow{stroke-width:8}
+
+  /* etched ticks */
+  .seal-ticks line{stroke:var(--border);stroke-width:1.4}
+  .seal-ticks line.major{stroke:var(--ink-soft);stroke-width:1.8;opacity:.8}
+  [data-theme="dark"] .seal-ticks line{stroke:var(--border)}
+
+  /* outer ring */
+  .ring-track{fill:none;stroke:var(--border-soft);stroke-width:9}
+  .ring-forge{fill:none;stroke:var(--accent);stroke-width:9;stroke-linecap:round}
+  .ring-bead{fill:none;stroke:var(--accent-bright);stroke-width:1.2;opacity:.42}
+  [data-theme="dark"] .ring-forge{filter:drop-shadow(0 0 6px color-mix(in oklab,var(--accent-bright) 55%,transparent))}
+  [data-theme="dark"] .ring-bead{opacity:.6}
+
+  .ring-label{font-family:'Inter',sans-serif;font-size:13px;font-weight:600;
+    letter-spacing:.22em;fill:var(--muted)}
+
+  /* sunburst segments */
+  .seg-track{fill:none;stroke:var(--surface-2);stroke-width:24;stroke-linecap:round}
+  [data-theme="dark"] .seg-track{stroke:var(--bg-deep)}
+  .seg-bar{fill:none;stroke:var(--accent);stroke-width:24;stroke-linecap:round;
+    transform-box:fill-box;transform-origin:center}
+  .seg-bar.weak{stroke:var(--accent-deep)}
+  [data-theme="dark"] .seg-bar{filter:drop-shadow(0 0 4px color-mix(in oklab,var(--accent-bright) 40%,transparent))}
+  .seg-label{font-family:'Inter',sans-serif;font-size:11px;font-weight:600;
+    fill:var(--ink-soft);letter-spacing:.01em}
+  .seg-val{font-family:'Inter',sans-serif;font-size:10px;font-weight:600;
+    fill:var(--muted);font-variant-numeric:tabular-nums}
+
+  /* center emblem */
+  .core-disc{fill:var(--surface-2);stroke:none}
+  [data-theme="dark"] .core-disc{fill:var(--bg-deep)}
+  .core-ring{fill:none;stroke:var(--accent);stroke-width:1.6;opacity:.55}
+  .anvil path,.anvil rect{fill:var(--accent);opacity:.7}
+  .core-pct{font-family:'Fraunces',Georgia,serif;font-style:italic;font-weight:600;
+    font-size:62px;letter-spacing:-.02em;fill:var(--ink);text-anchor:middle;
+    font-variant-numeric:tabular-nums}
+  .core-pct-sign{font-size:30px;fill:var(--accent)}
+  .core-sub{font-family:'Inter',sans-serif;font-size:11px;font-weight:500;
+    letter-spacing:.04em;fill:var(--muted);text-anchor:middle}
+
+  /* weak-spot tag */
+  .weak-tag{position:absolute;display:inline-flex;align-items:center;gap:7px;
+    padding:5px 10px;border-radius:999px;background:var(--surface);
+    border:1px solid var(--border);box-shadow:var(--shadow-soft);
+    font-size:11px;font-weight:600;color:var(--ink-soft);white-space:nowrap;
+    pointer-events:none;opacity:0;transform:translateY(4px) scale(.96);
+    transform-origin:left center;
+    transition:opacity 340ms var(--ease-out),transform 340ms var(--ease-out)}
+  .seal-wrap.tag-in .weak-tag{opacity:1;transform:translateY(0) scale(1)}
+  .weak-tag em{font-style:normal;color:var(--accent);font-weight:600}
+  .weak-dot{width:8px;height:8px;border-radius:50%;background:var(--accent);
+    box-shadow:0 0 0 3px color-mix(in oklab,var(--accent) 22%,transparent)}
+  .weak-tag.breathe .weak-dot{animation:weak-breathe 2600ms var(--ease-in-out) 1 both}
+  @keyframes weak-breathe{
+    0%{transform:scale(1)}40%{transform:scale(1.5);opacity:.85}
+    70%{transform:scale(1)}100%{transform:scale(1)}}
+
+  /* replay control */
+  .replay{position:absolute;bottom:-6px;left:50%;transform:translateX(-50%);
+    display:inline-flex;align-items:center;gap:5px;background:none;border:0;
+    font-family:'Inter',sans-serif;font-size:11.5px;font-weight:500;color:var(--muted);
+    letter-spacing:.04em;cursor:pointer;padding:6px 8px;
+    transition:color 180ms var(--ease-out)}
+  .replay-glyph{font-size:13px;display:inline-block;transition:transform 420ms var(--ease-out)}
+  @media (hover:hover) and (pointer:fine){
+    .replay:hover{color:var(--accent)}
+    .replay:hover .replay-glyph{transform:rotate(-130deg)}
+  }
+  .replay:active{transform:translateX(-50%) scale(.96)}
+
+  @media (prefers-reduced-motion:reduce){
+    .weak-tag{transition:none}
+    .weak-tag.breathe .weak-dot{animation:none}
+    .replay-glyph{transition:none}
+  }
+  /* ===== /RIGHT-VISUAL CSS ===== */
+</style>
+</head>
+<body>
+  <button class="theme-toggle" id="theme-toggle" aria-label="Toggle theme">☾</button>
+  <div class="caption" id="caption">Variant</div>
+
+  <main class="hero" id="hero">
+    <div class="hero-grid">
+      <div class="hero-copy">
+        <span class="eyebrow reveal" data-d="1">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4l6 6-9 9H5v-6z"/><path d="M12 6l6 6"/></svg>
+          AI cert practice, forged from CompTIA blueprints
+        </span>
+        <h1 class="title reveal" data-d="2">
+          <span><span class="forge">Forge</span> your way</span>
+          <span>through every</span>
+          <span>CompTIA cert.</span>
+        </h1>
+        <p class="sub reveal" data-d="3">
+          Questions written from the real exam objectives and checked by a
+          seven-layer AI engine. You drill what you keep getting wrong, until
+          the score sticks.
+        </p>
+        <div class="proof reveal" data-d="4">
+          <span class="proof-score">767<s>&thinsp;/&thinsp;900</s></span>
+          <span class="proof-div"></span>
+          <span class="proof-text">
+            <span class="live"><span class="dot"></span>Network+ N10-009 · passed</span><br>
+            <small>Built and passed with this tool on 2026-05-05.</small>
+          </span>
+        </div>
+        <div class="ctas reveal" data-d="5">
+          <a class="cta-primary" href="#">
+            <span class="cta-row">Take the baseline diagnostic
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+            </span>
+            <span class="cta-meta">About 20 minutes · Free · No account</span>
+          </a>
+          <a class="cta-secondary" href="#">Or pick a cert
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+          </a>
+        </div>
+        <div class="trust reveal" data-d="6">
+          <span><b>5</b>&nbsp;N10-009 domains</span>
+          <span><b>7-layer</b>&nbsp;AI validation</span>
+          <span><b>No</b>&nbsp;repeated questions</span>
+        </div>
+      </div>
+
+      <div class="hero-art" id="hero-art" aria-hidden="true">
+        <!-- ===== RIGHT-VISUAL MARKUP — inject inside #hero-art ===== -->
+        <div class="seal-wrap">
+          <svg class="seal" id="seal" viewBox="0 0 540 540" role="img" aria-label="Network+ readiness seal, 78 percent ready">
+            <defs>
+              <radialGradient id="seal-inner-glow" cx="50%" cy="46%" r="56%">
+                <stop offset="0%" stop-color="var(--accent-bright)" stop-opacity="0"/>
+                <stop offset="74%" stop-color="var(--accent-bright)" stop-opacity="0"/>
+                <stop offset="100%" stop-color="var(--accent-bright)" stop-opacity="0"/>
+              </radialGradient>
+            </defs>
+
+            <!-- struck-settle group: scales 1.02→1 on ring-close -->
+            <g class="seal-struck" id="seal-struck">
+
+              <!-- faint plate behind seal -->
+              <circle class="seal-plate" cx="270" cy="270" r="232"/>
+
+              <!-- one-time bronze glow pulse on strike -->
+              <circle class="seal-glow" id="seal-glow" cx="270" cy="270" r="214"/>
+
+              <!-- etched tick marks around the ring -->
+              <g class="seal-ticks" id="seal-ticks"></g>
+
+              <!-- OUTER bronze ring that draws closed -->
+              <circle class="ring-track" cx="270" cy="270" r="214"/>
+              <circle class="ring-forge" id="ring-forge" cx="270" cy="270" r="214"
+                      transform="rotate(-90 270 270)"/>
+              <circle class="ring-bead" cx="270" cy="270" r="214"/>
+
+              <!-- engraved "767 CLEARED" label on the ring (bottom) -->
+              <path id="ring-label-path" d="M 90 270 A 180 180 0 0 0 450 270" fill="none"/>
+              <text class="ring-label" id="ring-label">
+                <textPath href="#ring-label-path" startOffset="50%">767&#160;&#160;·&#160;&#160;CLEARED&#160;&#160;·&#160;&#160;N10-009</textPath>
+              </text>
+
+              <!-- 5 radial sunburst segments (drawn by JS) -->
+              <g class="seg-group" id="seg-group"></g>
+
+              <!-- CENTER struck-seal emblem -->
+              <circle class="core-disc" cx="270" cy="270" r="96"/>
+              <circle class="core-ring" cx="270" cy="270" r="96"/>
+
+              <!-- tiny forge / anvil mark -->
+              <g class="anvil" transform="translate(270 206)">
+                <path d="M-12 -3 L12 -3 L9 3 L-3 3 L-3 7 L4 7 L4 10 L-10 10 L-10 7 L-7 7 L-7 3 L-12 3 Z"/>
+                <rect x="-6" y="11.5" width="12" height="2.4" rx="1.2"/>
+              </g>
+
+              <text class="core-pct" id="core-pct" x="270" y="284">0<tspan class="core-pct-sign">%</tspan></text>
+              <text class="core-sub" id="core-sub" x="270" y="312">ready · blueprint-weighted</text>
+
+            </g>
+          </svg>
+
+          <!-- weak-spot tag (HTML overlay, positioned by JS over the Security segment) -->
+          <div class="weak-tag" id="weak-tag">
+            <span class="weak-dot"></span>
+            <span class="weak-label">weak spot <em>&rarr; routed next</em></span>
+          </div>
+
+          <button class="replay" id="replay" type="button" aria-label="Replay animation">
+            <span class="replay-glyph">&#8635;</span> replay
+          </button>
+        </div>
+        <!-- ===== /RIGHT-VISUAL MARKUP ===== -->
+      </div>
+    </div>
+  </main>
+
+  <script>
+    /* left-copy entrance trigger */
+    requestAnimationFrame(function(){requestAnimationFrame(function(){document.getElementById('hero').classList.add('ready');});});
+    /* theme toggle */
+    (function(){var t=document.getElementById('theme-toggle');t.addEventListener('click',function(){var d=document.documentElement.getAttribute('data-theme')==='dark';document.documentElement.setAttribute('data-theme',d?'light':'dark');t.textContent=d?'☾':'☀';});})();
+
+    /* ===== RIGHT-VISUAL JS — inject below this line ===== */
+    (function(){
+      document.title = 'CertAnvil — The Forged Seal';
+      var cap = document.getElementById('caption');
+      if (cap) cap.textContent = 'Variant 1 · The Forged Seal';
+
+      var SVGNS = 'http://www.w3.org/2000/svg';
+      var CX = 270, CY = 270;
+      var TARGET = 78;            // final readiness %
+      var OVERSHOOT = 2;          // count overshoot cap
+
+      // 5 real N10-009 domains, honest uneven mastery
+      var DOMAINS = [
+        { name:'Networking Concepts',      val:88 },
+        { name:'Network Implementation',   val:80 },
+        { name:'Network Operations',       val:72 },
+        { name:'Network Security',         val:46, weak:true },
+        { name:'Network Troubleshooting',  val:76 }
+      ];
+
+      var svg       = document.getElementById('seal');
+      var struck    = document.getElementById('seal-struck');
+      var glow      = document.getElementById('seal-glow');
+      var ringForge = document.getElementById('ring-forge');
+      var ticks     = document.getElementById('seal-ticks');
+      var segGroup  = document.getElementById('seg-group');
+      var corePct   = document.getElementById('core-pct');
+      var weakTag   = document.getElementById('weak-tag');
+      var wrap      = document.querySelector('.seal-wrap');
+      var replayBtn = document.getElementById('replay');
+
+      var reduce = window.matchMedia('(prefers-reduced-motion:reduce)');
+
+      // ---- geometry helpers ----
+      function polar(cx, cy, r, deg){
+        var a = (deg - 90) * Math.PI/180;
+        return { x: cx + r*Math.cos(a), y: cy + r*Math.sin(a) };
+      }
+
+      // ---- build etched ticks (60 minor, 12 major) ----
+      (function buildTicks(){
+        var rOut = 232, rMinor = 224, rMajor = 220;
+        for (var i=0; i<60; i++){
+          var deg = i*6;
+          var major = (i % 5 === 0);
+          var p1 = polar(CX, CY, rOut, deg);
+          var p2 = polar(CX, CY, major ? rMajor : rMinor, deg);
+          var ln = document.createElementNS(SVGNS,'line');
+          ln.setAttribute('x1', p1.x.toFixed(2)); ln.setAttribute('y1', p1.y.toFixed(2));
+          ln.setAttribute('x2', p2.x.toFixed(2)); ln.setAttribute('y2', p2.y.toFixed(2));
+          if (major) ln.setAttribute('class','major');
+          ticks.appendChild(ln);
+        }
+      })();
+
+      // ---- build 5 radial sunburst segments ----
+      // Each segment is a radial arc-bar drawn from inner radius outward.
+      var R_INNER = 116, R_OUTER = 188;
+      var segBars = [];   // {bar, len, label, val, weak, angle}
+      var weakSeg = null;
+
+      (function buildSegments(){
+        var n = DOMAINS.length;
+        for (var i=0; i<n; i++){
+          var d = DOMAINS[i];
+          // distribute around circle, start at top, clockwise
+          var ang = (i / n) * 360;                 // degrees
+          var inner = polar(CX, CY, R_INNER, ang);
+          var outer = polar(CX, CY, R_OUTER, ang);
+
+          // track (full extent, faint)
+          var track = document.createElementNS(SVGNS,'line');
+          track.setAttribute('class','seg-track');
+          track.setAttribute('x1', inner.x.toFixed(2)); track.setAttribute('y1', inner.y.toFixed(2));
+          track.setAttribute('x2', outer.x.toFixed(2)); track.setAttribute('y2', outer.y.toFixed(2));
+          segGroup.appendChild(track);
+
+          // filled bar (length scaled to mastery val)
+          var frac = d.val/100;
+          var fOuter = polar(CX, CY, R_INNER + (R_OUTER-R_INNER)*frac, ang);
+          var bar = document.createElementNS(SVGNS,'line');
+          bar.setAttribute('class','seg-bar' + (d.weak ? ' weak' : ''));
+          bar.setAttribute('x1', inner.x.toFixed(2)); bar.setAttribute('y1', inner.y.toFixed(2));
+          bar.setAttribute('x2', fOuter.x.toFixed(2)); bar.setAttribute('y2', fOuter.y.toFixed(2));
+          var len = Math.hypot(fOuter.x-inner.x, fOuter.y-inner.y);
+          bar.style.strokeDasharray = len + ' ' + len;
+          segGroup.appendChild(bar);
+
+          // labels just outside the bar tip
+          var lr = R_OUTER + 22;
+          var lp = polar(CX, CY, lr, ang);
+          var onLeft = (Math.cos((ang-90)*Math.PI/180) < -0.12);
+          var onRight = (Math.cos((ang-90)*Math.PI/180) > 0.12);
+          var anchor = onLeft ? 'end' : (onRight ? 'start' : 'middle');
+
+          var words = d.name.replace('Network ','Net. ').split(' ');
+          var nameTxt = document.createElementNS(SVGNS,'text');
+          nameTxt.setAttribute('class','seg-label');
+          nameTxt.setAttribute('text-anchor', anchor);
+          nameTxt.setAttribute('x', lp.x.toFixed(1));
+          nameTxt.setAttribute('y', lp.y.toFixed(1));
+          // two-line for two-word names
+          if (words.length >= 2){
+            var t1 = document.createElementNS(SVGNS,'tspan');
+            t1.setAttribute('x', lp.x.toFixed(1)); t1.setAttribute('dy','-5');
+            t1.textContent = words.slice(0,1).join(' ');
+            var t2 = document.createElementNS(SVGNS,'tspan');
+            t2.setAttribute('x', lp.x.toFixed(1)); t2.setAttribute('dy','13');
+            t2.textContent = words.slice(1).join(' ');
+            nameTxt.appendChild(t1); nameTxt.appendChild(t2);
+          } else {
+            nameTxt.textContent = d.name;
+          }
+          segGroup.appendChild(nameTxt);
+
+          var valTxt = document.createElementNS(SVGNS,'text');
+          valTxt.setAttribute('class','seg-val');
+          valTxt.setAttribute('text-anchor', anchor);
+          valTxt.setAttribute('x', lp.x.toFixed(1));
+          valTxt.setAttribute('y', (lp.y + 22).toFixed(1));
+          valTxt.textContent = d.val;
+          segGroup.appendChild(valTxt);
+
+          var rec = { bar:bar, len:len, val:d.val, weak:!!d.weak, ang:ang, mid:polar(CX, CY, (R_INNER+R_OUTER*frac)/1, ang) };
+          segBars.push(rec);
+          if (d.weak){ weakSeg = rec; weakSeg.tip = fOuter; }
+        }
+      })();
+
+      // ---- outer ring dash setup ----
+      var RING_R = 214;
+      var RING_C = 2 * Math.PI * RING_R;
+      ringForge.style.strokeDasharray = RING_C + ' ' + RING_C;
+
+      // ---- position the weak-spot tag over the Security segment tip ----
+      function positionWeakTag(){
+        if (!weakSeg) return;
+        var box = svg.getBoundingClientRect();
+        var wbox = wrap.getBoundingClientRect();
+        var scale = box.width / 540;
+        // anchor a bit outside the segment tip
+        var anchor = polar(CX, CY, R_OUTER + 4, weakSeg.ang);
+        var px = box.left - wbox.left + anchor.x * scale;
+        var py = box.top  - wbox.top  + anchor.y * scale;
+        weakTag.style.left = px + 'px';
+        weakTag.style.top  = py + 'px';
+        weakTag.style.transform = ''; // base transform handled by class; nudge below
+        weakTag.style.marginLeft = '8px';
+        weakTag.style.marginTop = '-10px';
+      }
+
+      // ---- count-up via rAF, with small overshoot then settle ----
+      var countRAF = null;
+      function setPct(v){ corePct.firstChild.nodeValue = String(Math.round(v)); }
+      function countUp(dur){
+        var start = performance.now();
+        var peak = TARGET + OVERSHOOT;
+        function tick(now){
+          var t = Math.min(1, (now - start)/dur);
+          // ease-out
+          var e = 1 - Math.pow(1 - t, 3);
+          var v;
+          if (t < 0.82){ v = e/0.82 * peak; if (v > peak) v = peak; }
+          else {
+            // settle from peak back to TARGET
+            var st = (t - 0.82)/0.18;
+            var se = 1 - Math.pow(1 - st, 2);
+            v = peak - (peak - TARGET) * se;
+          }
+          setPct(v);
+          if (t < 1){ countRAF = requestAnimationFrame(tick); }
+          else { setPct(TARGET); }
+        }
+        countRAF = requestAnimationFrame(tick);
+      }
+
+      // ---- final/static state (reduced motion or end of anim) ----
+      function renderFinal(){
+        ringForge.style.transition = 'none';
+        ringForge.style.strokeDashoffset = '0';
+        for (var i=0;i<segBars.length;i++){
+          var s = segBars[i];
+          s.bar.style.transition = 'none';
+          s.bar.style.strokeDashoffset = '0';
+          s.bar.style.transform = 'none';
+        }
+        setPct(TARGET);
+        struck.style.transform = 'none';
+        glow.style.opacity = '0';
+        wrap.classList.add('tag-in');
+        positionWeakTag();
+      }
+
+      // ---- the signature entrance ----
+      var timers = [];
+      function clearTimers(){ timers.forEach(clearTimeout); timers = []; if(countRAF) cancelAnimationFrame(countRAF); }
+
+      function reset(){
+        clearTimers();
+        wrap.classList.remove('tag-in');
+        weakTag.classList.remove('breathe');
+        // ring closed -> open
+        ringForge.style.transition = 'none';
+        ringForge.style.strokeDashoffset = RING_C;
+        // segments empty
+        for (var i=0;i<segBars.length;i++){
+          var s = segBars[i];
+          s.bar.style.transition = 'none';
+          s.bar.style.strokeDashoffset = s.len;
+          s.bar.style.transform = 'scale(0.965)';
+        }
+        struck.style.transition = 'none';
+        struck.style.transform = 'scale(0.985)';
+        glow.style.transition = 'none';
+        glow.style.opacity = '0';
+        glow.style.transform = 'scale(0.92)';
+        setPct(0);
+        // force reflow so the reset sticks before animating
+        void svg.getBoundingClientRect();
+      }
+
+      function play(){
+        if (reduce.matches){ renderFinal(); return; }
+        reset();
+
+        // (1) ring draws closed ~700ms ease-out
+        requestAnimationFrame(function(){
+          ringForge.style.transition = 'stroke-dashoffset 700ms var(--ease-out)';
+          ringForge.style.strokeDashoffset = '0';
+        });
+
+        // (2) 5 segments fill, 60ms stagger, gentle spring overshoot
+        var SEG_START = 220;
+        for (var i=0;i<segBars.length;i++){
+          (function(s, idx){
+            timers.push(setTimeout(function(){
+              s.bar.style.transition =
+                'stroke-dashoffset 560ms var(--ease-out), transform 520ms cubic-bezier(0.34,1.32,0.5,1)';
+              s.bar.style.strokeDashoffset = '0';
+              s.bar.style.transform = 'scale(1.012)';
+              // settle back from overshoot
+              timers.push(setTimeout(function(){
+                s.bar.style.transition = 'transform 260ms var(--ease-out)';
+                s.bar.style.transform = 'scale(1)';
+              }, 360));
+            }, SEG_START + idx*60));
+          })(segBars[i], i);
+        }
+
+        // (3) count-up in sync (runs across ring + segment fill)
+        timers.push(setTimeout(function(){ countUp(720); }, 120));
+
+        // (4) at ring close (~700ms): struck settle + glow pulse
+        timers.push(setTimeout(function(){
+          struck.style.transition = 'transform 300ms cubic-bezier(0.34,1.28,0.5,1)';
+          struck.style.transform = 'scale(1.02)';
+          glow.style.transition = 'opacity 160ms var(--ease-out), transform 520ms var(--ease-out)';
+          glow.style.opacity = '0.55';
+          glow.style.transform = 'scale(1)';
+          timers.push(setTimeout(function(){
+            struck.style.transition = 'transform 360ms var(--ease-out)';
+            struck.style.transform = 'scale(1)';
+            glow.style.transition = 'opacity 620ms var(--ease-out)';
+            glow.style.opacity = '0';
+          }, 150));
+        }, 700));
+
+        // weak-spot tag in after segments settle, then ONE breathe
+        timers.push(setTimeout(function(){
+          positionWeakTag();
+          wrap.classList.add('tag-in');
+        }, 720));
+        timers.push(setTimeout(function(){
+          weakTag.classList.add('breathe');
+        }, 1180));
+      }
+
+      // ---- kick off in sync with left-copy entrance ----
+      requestAnimationFrame(function(){
+        requestAnimationFrame(function(){ play(); });
+      });
+
+      // replay
+      replayBtn.addEventListener('click', function(){
+        weakTag.classList.remove('breathe');
+        // restart breathe cleanly
+        void weakTag.offsetWidth;
+        play();
+      });
+
+      // keep tag aligned on resize / theme reflow
+      var rz;
+      window.addEventListener('resize', function(){
+        clearTimeout(rz);
+        rz = setTimeout(positionWeakTag, 120);
+      });
+      if (reduce.matches){ renderFinal(); }
+    })();
+    /* ===== /RIGHT-VISUAL JS ===== */
+  </script>
+</body>
+</html>
