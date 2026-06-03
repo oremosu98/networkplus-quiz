@@ -1546,15 +1546,32 @@ test.describe('bug-report drawer', () => {
     await expect(page.locator('#br-send')).toBeDisabled();
   });
 
-  test('08: cross-cert leak filter — Sec+ active reads secplus cert', async ({ page }) => {
+  test('08: cross-cert leak filter — Sec+ active files secplus context, not netplus', async ({ page }) => {
+    // v7.13.3: the visible "Auto-attached" panel was removed from the drawer
+    // (end-users don't need it). The diagnostic context still travels in the
+    // filed GitHub issue body + cert label, so the cross-cert leak guard now
+    // asserts against the captured POST payload — a stronger check than the
+    // old display-panel read.
     await page.addInitScript(() => {
-      try { localStorage.setItem('nplus_dev_cert', 'secplus'); } catch (e) {}
+      try {
+        localStorage.setItem('nplus_dev_cert', 'secplus');
+        localStorage.setItem('nplus_gh_monitor_token', 'ghp_faketoken_for_e2e');
+      } catch (e) {}
+    });
+    let postData = null;
+    await page.route('https://api.github.com/**', route => {
+      if (route.request().method() === 'POST') postData = route.request().postData();
+      route.fulfill({ status: 201, contentType: 'application/json',
+        body: JSON.stringify({ number: 1, html_url: 'https://github.com/x/y/issues/1' }) });
     });
     await page.goto('/');
     await page.click('#topbar-bug-report');
-    const ctxText = await page.locator('.br-ctx-fields').innerText();
-    expect(ctxText).toContain('secplus');
-    expect(ctxText).not.toContain('netplus');
+    await page.fill('#br-input-title', 'cross-cert leak check');
+    await page.fill('#br-input-desc', 'verifying the filed context reflects the active cert');
+    await page.click('#br-send');
+    await expect.poll(() => postData, { timeout: 8000 }).toBeTruthy();
+    expect(postData).toContain('secplus');
+    expect(postData).not.toContain('netplus');
   });
 
   test('09: topbar dot appears when queue non-empty', async ({ page }) => {
