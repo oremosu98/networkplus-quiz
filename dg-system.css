@@ -2299,3 +2299,11 @@ html[data-theme] body #page-setup #readiness-card-v2.is-pass .readiness-score #r
 #readiness-card-v2 .rc-v2-confetti i{position:absolute;width:8px;height:12px;border-radius:2px;opacity:0;will-change:transform,opacity}
 @media (prefers-reduced-motion:reduce){#readiness-card-v2 #rc-v2-num,#readiness-card-v2 .rc-v2-bar-fill-green,#readiness-card-v2 .rc-v2-glow,#readiness-card-v2 .rc-v2-ring{transition:none}}
 
+/* Brand · light-theme heading underlines were hardcoded purple (#6355e0) in
+   styles.css ([data-theme="light"] .ed-pagehead::after ~9240 / .ed-section-head::after
+   ~8015), bypassing the bronze --accent token (dark theme already uses var(--accent)).
+   Repoint to the accent so "Topic progress." / "Performance analytics." etc. underline
+   in bronze. No-purple rule (BRAND §9). */
+html[data-theme="light"] body .ed-pagehead::after,
+html[data-theme="light"] body .ed-section-head::after{background:var(--accent);}
+

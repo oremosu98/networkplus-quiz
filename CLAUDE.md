@@ -107,6 +107,7 @@ npx playwright test              # E2E (tests/e2e/app.spec.js)
 
 | Version | Features Added |
 |---|---|
+| v7.13.4 | light-theme heading underline bronze (was hardcoded purple) |
 | v7.13.3 | redesign Report-an-issue drawer (forged-bronze) · drop auto-attached panel from UI |
 | v7.13.2 | remove author pass-proof banner from setup page |
 | v7.13.1 | SW cross-origin passthrough — fixes Google Fonts (Fraunces) load on cert-app |
