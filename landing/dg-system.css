@@ -726,3 +726,24 @@ html[data-theme] body .toast-stack .toast{background:var(--dg-bg-2);border:1px s
   html[data-theme] body .cca-wn-hero-cta{transition:none!important;}
   html[data-theme] body .account-dropdown[hidden]{transform:none;}
 }
+
+/* ── Topbar monogram · kill the styles.css dark tile on EVERY page ──────────
+   styles.css ships .logo-mark as a dark gradient tile + dark-filled paths.
+   index.html reset it inline (#site-topbar scope) so only the home page showed
+   the bare stroke-only mark; terms/pricing/account/etc. fell back to the dark
+   "reversed" tile. Promoted here (higher specificity than both styles.css and
+   the inline reset) so the editorial bronze monogram is consistent everywhere. */
+html[data-theme] body .logo .logo-mark{background:none;border:0;border-radius:0;padding:0;box-shadow:none;}
+html[data-theme] body .logo .logo-mark::before,
+html[data-theme] body .logo .logo-mark::after{content:none!important;}
+html[data-theme] body .logo .logo-mark svg{fill:none;}
+html[data-theme] body .logo .logo-mark svg path{fill:none;stroke:var(--dg-accent);}
+html[data-theme] body .logo .logo-mark svg line{stroke:var(--dg-text-dim);}
+
+/* ── Waitlist "Notify me" modal · was purple ───────────────────────────────
+   .modal-cta / .modal-input use styles.css var(--accent), which landing leaves
+   purple (the dg overlay standardizes branded chrome on --dg-accent and never
+   restyled this modal). Bring it onto the bronze accent. */
+html[data-theme] body .modal-cta{background:var(--dg-accent);color:var(--dg-accent-ink);border:0;}
+html[data-theme] body .modal-cta:hover{background:var(--dg-accent);filter:brightness(1.05);}
+html[data-theme] body .modal-input:focus{border-color:var(--dg-accent);box-shadow:0 0 0 3px color-mix(in oklab,var(--dg-accent) 22%,transparent);outline:none;}
