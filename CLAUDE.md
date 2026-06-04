@@ -109,6 +109,7 @@ npx playwright test              # E2E (tests/e2e/app.spec.js)
 
 | Version | Features Added |
 |---|---|
+| v7.14.0 | Analytics-page motion: constellation drift, accuracy pass-verdict, streak flame, domain-mastery reveal/expand, milestones shine+hover; taste fixes (rail/emoji) |
 | v7.13.5 | light-theme de-purple sweep — dg-depurple.css repaints legacy purple to bronze |
 | v7.13.4 | light-theme heading underline bronze (was hardcoded purple) |
 | v7.13.3 | redesign Report-an-issue drawer (forged-bronze) · drop auto-attached panel from UI |

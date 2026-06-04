@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════
-   Network+ AI Quiz — styles.css  v7.13.5
+   Network+ AI Quiz — styles.css  v7.14.0
    ══════════════════════════════════════════ */
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -5331,12 +5331,18 @@ body.hero-v2-active #page-setup #streak-badge { display: none !important; }
 .ana-why-score .why-bar-pct.is-critical { color: var(--red, #f87171); }
 .ana-why-score .why-diagnosis {
   margin-top: 22px;
-  padding: 14px 18px;
-  background: rgba(251, 146, 60, .08);
-  border-left: 3px solid var(--orange);
-  border-radius: 8px;
+  padding: 15px 18px;
+  /* v7.14.0 taste: dropped the `border-left: 3px solid` accent rail (AI-slop
+     tell). The warning identity is carried by the ⚠ eyebrow + warm tint; a soft
+     full hairline now encloses it intentionally instead of a decorative slab. */
+  background: rgba(251, 146, 60, .07);
+  border: 1px solid rgba(251, 146, 60, .20);
+  border-radius: 10px;
 }
 .ana-why-score .why-diagnosis-head {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
   font-size: 11px;
   letter-spacing: .12em;
   color: var(--orange);
@@ -5344,6 +5350,8 @@ body.hero-v2-active #page-setup #streak-badge { display: none !important; }
   font-weight: 700;
   margin-bottom: 6px;
 }
+/* v7.14.0 taste: SVG warning mark instead of the ⚠ emoji glyph (no emoji icons) */
+.ana-why-score .why-diag-ico { width: 13px; height: 13px; flex: none; }
 .ana-why-score .why-diagnosis-body {
   font-size: 13.5px;
   line-height: 1.55;
@@ -5552,8 +5560,9 @@ body.hero-v2-active #page-setup #streak-badge { display: none !important; }
 .ana-const-core {
   transform-box: fill-box;
   transform-origin: center;
-  /* phase variety via inline --tw (0..6): each star drifts on its own clock */
-  animation: ana-twinkle calc(4.6s + var(--tw, 0) * 0.42s) ease-in-out calc(var(--tw, 0) * -0.6s) infinite;
+  /* v7.14.0 Living Constellation: the continuous CSS twinkle is retired. The
+     JS drift loop (_anaConstWireDrift) now owns ambient core sparkle (a random
+     glow every ~3s) so it doesn't stack with the new wander + halo breathe. */
 }
 @keyframes ana-twinkle {
   0%, 100% { opacity: var(--tw-lo, .78); }
@@ -5565,18 +5574,10 @@ body.hero-v2-active #page-setup #streak-badge { display: none !important; }
 .ana-const-node.ana-const-tier-developing  .ana-const-core { --tw-lo: .6;  --tw-hi: .85; }
 .ana-const-node.ana-const-tier-novice      .ana-const-core { --tw-lo: .36; --tw-hi: .5; }
 
-/* PULSAR — slow breathing glow on strengths (mastered + proficient halos) */
+/* v7.14.0 Living Constellation: CSS pulsar retired. Halo "breathe" is now
+   opacity-driven by the JS drift loop (tuned breatheDepth 0.25 / speed 0.60),
+   so halos no longer scale-pulse and opacity-breathe at the same time. */
 .ana-const-halo { transform-box: fill-box; transform-origin: center; }
-.ana-const-node.ana-const-tier-mastered .ana-const-halo {
-  animation: ana-pulsar calc(3.4s + var(--tw, 0) * 0.3s) ease-in-out calc(var(--tw, 0) * -0.5s) infinite;
-}
-.ana-const-node.ana-const-tier-proficient .ana-const-halo {
-  animation: ana-pulsar calc(3.9s + var(--tw, 0) * 0.3s) ease-in-out calc(var(--tw, 0) * -0.7s) infinite;
-}
-@keyframes ana-pulsar {
-  0%, 100% { transform: scale(.92); }
-  50%      { transform: scale(1.22); }
-}
 
 /* HOVER FLARE (desktop only) — purely visual, independent of the JS tooltip
    delegation on .ana-const-map. No pointer-events change, so mouseover still
@@ -8231,8 +8232,43 @@ body.hero-v2-active #page-setup #streak-badge { display: none !important; }
   width: 100%;
   aspect-ratio: 960 / 220;
   max-height: 280px;
+  position: relative; /* v7.14.0: anchor the "trending toward pass?" verdict badge */
 }
 .ana-accchart-svg { width: 100%; height: 100%; display: block; }
+
+/* v7.14.0 — "trending toward pass?" verdict badge (top-right of the chart).
+   Number = latest accuracy, verdict direction = least-squares projection vs the
+   72% pass mark. Revealed + re-pulsed by _anaAccChartPlay on load / range switch. */
+.ana-accv {
+  position: absolute; top: 8px; right: 12px; text-align: right; pointer-events: none;
+  opacity: 0; transform: translateY(-4px);
+  transition: opacity .3s cubic-bezier(0.23,1,0.32,1), transform .3s cubic-bezier(0.23,1,0.32,1);
+}
+.ana-accv.ana-accv-show { opacity: 1; transform: translateY(0); }
+.ana-accv-num {
+  font-family: monospace; font-weight: 800; font-size: 24px; line-height: 1;
+  color: var(--red, #c2402f); letter-spacing: -.01em;
+}
+.ana-accv-num span { font-size: .6em; font-weight: 700; opacity: .8; }
+.ana-accv.is-good .ana-accv-num { color: var(--green, #5a8f4e); }
+.ana-accv-cap {
+  font-family: monospace; font-size: 9px; letter-spacing: .12em; text-transform: uppercase;
+  color: var(--text-dim); margin-top: 3px;
+}
+.ana-accv-pill {
+  display: inline-block; margin-top: 7px; font-family: monospace; font-size: 9.5px;
+  font-weight: 700; letter-spacing: .05em; text-transform: uppercase;
+  padding: 3px 8px; border-radius: 6px;
+  background: rgba(194,64,47,.12); color: var(--red, #c2402f); border: 1px solid rgba(194,64,47,.3);
+}
+.ana-accv.is-good .ana-accv-pill {
+  background: rgba(90,143,78,.14); color: var(--green, #5a8f4e); border-color: rgba(90,143,78,.35);
+}
+.ana-accv--hide { display: none; }
+.ana-acc-ring { transform-box: fill-box; transform-origin: center; }
+@media (prefers-reduced-motion: reduce) {
+  .ana-accv { transition: none !important; }
+}
 [data-theme="light"] .ana-accchart-eyebrow,
 [data-theme="light"] .ana-accchart-title em { color: #6355e0; }
 [data-theme="light"] .ana-accchart-tab-active {
@@ -9829,6 +9865,13 @@ html { zoom: 1.10; }
 .hm-cell-t4 { fill: var(--accent); }
 .hm-cell-today { stroke: var(--yellow); stroke-width: 2; }
 .hm-cell-exam { fill: var(--red) !important; stroke: #ffffff; stroke-width: 1.5; }
+/* v7.14.0 Streak Flame — glow + transform-box carried by classes so the reveal
+   JS adds zero inline styles. Ember radii locked in the tuning studio (6px). */
+.hm-cell-flame, .hm-flame-ring, .hm-today-ring, .hm-cell-today { transform-box: fill-box; transform-origin: center; }
+.hm-cell-flame.lit { filter: drop-shadow(0 0 6px #e8a23a) drop-shadow(0 0 12px #b5692a); }
+.hm-cell-today.lit-today { filter: drop-shadow(0 0 4px #e8a23a); }
+.hm-flame-ring { fill: none; stroke: #e8a23a; stroke-width: 1.6; }
+.hm-today-ring { fill: none; stroke: #e8a23a; stroke-width: 1.3; }
 .hm-month, .hm-dow {
   font-family: monospace;
   font-size: 9.5px;

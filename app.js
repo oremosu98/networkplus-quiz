@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v7.13.5
+// Network+ AI Quiz — app.js  v7.14.0
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '7.13.5';
+const APP_VERSION = '7.14.0';
 // v4.99.45 (Phase 6b): expose APP_VERSION on window so the web-vitals
 // collector (lib/web-vitals-collector.js, loaded BEFORE app.js so its
 // PerformanceObservers attach earlier) can stamp this version onto every
@@ -14178,6 +14178,20 @@ function _renderAnaStudyHeatmap(h) {
   // Accumulate streak + 30/90 study-day totals in the same pass
   let daysStudied30 = 0, daysStudied90 = 0, totalStudyDays = 0;
   let maxDayQ = 0;
+  // v7.14.0 Streak Flame: find the longest consecutive active-day run (the
+  // "best streak") so the reveal can ignite exactly those cells, oldest→newest.
+  let _flameStart = -1, _flameEnd = -1;
+  {
+    let bestS = -1, bestL = 0, curS = -1, curL = 0;
+    for (let di = 0; di < WEEKS * 7; di++) {
+      const dd = new Date(start); dd.setDate(start.getDate() + di);
+      if (dd > today) break;
+      const e = byDay.get(dd.toISOString().slice(0, 10));
+      if (e && e.q > 0) { if (curS === -1) { curS = di; curL = 0; } curL++; if (curL > bestL) { bestL = curL; bestS = curS; } }
+      else { curS = -1; curL = 0; }
+    }
+    if (bestL > 0) { _flameStart = bestS; _flameEnd = bestS + bestL - 1; }
+  }
   const cells = [];
   const monthLabels = [];
   let prevMonth = -1;
@@ -14204,7 +14218,11 @@ function _renderAnaStudyHeatmap(h) {
       const isToday = daysAgo === 0;
       const isExam = examKey && key === examKey;
       const extraCls = isExam ? ' hm-cell-exam' : (isToday && q > 0 ? ' hm-cell-today' : '');
-      cells.push(`<rect x="${x}" y="${y}" width="${CELL}" height="${CELL}" rx="2" ry="2" class="hm-cell hm-cell-t${tier}${extraCls}" data-date="${key}"><title>${title}</title></rect>`);
+      const dayIndex = col * 7 + row;
+      const isFlame = _flameStart >= 0 && dayIndex >= _flameStart && dayIndex <= _flameEnd;
+      const flameCls = isFlame ? (dayIndex === _flameEnd ? ' hm-cell-flame hm-cell-flame-end' : ' hm-cell-flame') : '';
+      const flameAttr = isFlame ? ` data-flame-i="${dayIndex - _flameStart}"` : '';
+      cells.push(`<rect x="${x}" y="${y}" width="${CELL}" height="${CELL}" rx="2" ry="2" class="hm-cell hm-cell-t${tier}${extraCls}${flameCls}" data-date="${key}"${flameAttr}><title>${title}</title></rect>`);
       // Month labels \u2014 place one per month at the top when the Sunday of a
       // new month appears in the grid.
       if (row === 0) {
@@ -14263,6 +14281,104 @@ function _renderAnaStudyHeatmap(h) {
   </div>`;
 }
 
+// v7.14.0 — Study Rhythm "streak flame" reveal. Counts the four stat numbers
+// up, ignites the best-streak cells one by one (a fuse to today), lands an ember
+// flare, and leaves today softly glowing. Values locked in the tuning studio:
+// fuseStagger 140ms · emberGlow 6px (CSS) · cellPop 1.35 · flareRings 3 ·
+// countUp 700ms · today-glow on. The glow + transform-box live in CSS classes so
+// this adds no inline styles (stays under the inline-style budget). Re-bound on
+// each analytics render; the prior run is cancelled so nothing stacks. Skipped
+// under prefers-reduced-motion (final lit state shown, no motion).
+let _anaFlame = null;
+function _anaHeatmapPlayFlame() {
+  if (_anaFlame) {
+    _anaFlame.timers.forEach(clearTimeout);
+    _anaFlame.anims.forEach(a => { try { a.cancel(); } catch (e) {} });
+    if (_anaFlame.iv) clearInterval(_anaFlame.iv);
+    _anaFlame = null;
+  }
+  const card = document.getElementById('ana-s-heatmap');
+  if (!card) return;
+  const svg = card.querySelector('.ana-heatmap-svg');
+  const flameCells = Array.prototype.slice.call(card.querySelectorAll('.hm-cell-flame'))
+    .sort((a, b) => (parseInt(a.getAttribute('data-flame-i'), 10) || 0) - (parseInt(b.getAttribute('data-flame-i'), 10) || 0));
+  const endCell = card.querySelector('.hm-cell-flame-end');
+  const todayCell = card.querySelector('.hm-cell-today');
+  const statVals = Array.prototype.slice.call(card.querySelectorAll('.hms-val'));
+  const finals = statVals.map(v => parseInt(v.textContent, 10) || 0);
+
+  const FUSE = 140, POP = 1.35, RINGS = 3, COUNT = 700;
+  const NS = 'http://www.w3.org/2000/svg';
+  const timers = [], anims = [];
+  _anaFlame = { timers, anims, iv: null };
+  const at = (ms, fn) => { timers.push(setTimeout(fn, ms)); };
+
+  // reset (cancel above already reverted WAAPI fills; just clear the lit glow)
+  flameCells.forEach(r => r.classList.remove('lit'));
+  if (todayCell) todayCell.classList.remove('lit-today');
+  if (svg) svg.querySelectorAll('.hm-flame-ring,.hm-today-ring').forEach(n => n.remove());
+
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    statVals.forEach((v, i) => { v.textContent = finals[i]; });
+    flameCells.forEach(r => r.classList.add('lit'));
+    if (todayCell) todayCell.classList.add('lit-today');
+    return;
+  }
+
+  // 1) count the four stat numbers up
+  statVals.forEach((v, i) => at(i * 80, () => {
+    const target = finals[i], t0 = performance.now();
+    const tick = (now) => {
+      const t = Math.min(1, (now - t0) / COUNT);
+      v.textContent = Math.round(target * (1 - Math.pow(1 - t, 3)));
+      if (t < 1) requestAnimationFrame(tick); else v.textContent = target;
+    };
+    requestAnimationFrame(tick);
+  }));
+
+  // 2) fuse — ignite the best-streak cells oldest -> newest
+  flameCells.forEach((r, i) => at(COUNT + i * FUSE, () => {
+    r.classList.add('lit');
+    anims.push(r.animate(
+      [{ transform: 'scale(1)' }, { transform: 'scale(' + POP + ')' }, { transform: 'scale(1.12)' }],
+      { duration: 420, easing: 'cubic-bezier(0.34,1.56,0.64,1)', fill: 'forwards' }
+    ));
+  }));
+
+  // 3) ember flare at the end of the run
+  if (endCell && svg) {
+    const ex = parseFloat(endCell.getAttribute('x')) + 5.5;
+    const ey = parseFloat(endCell.getAttribute('y')) + 5.5;
+    for (let i = 0; i < RINGS; i++) at(COUNT + flameCells.length * FUSE + i * 150, () => {
+      const ring = document.createElementNS(NS, 'circle');
+      ring.setAttribute('cx', ex); ring.setAttribute('cy', ey); ring.setAttribute('r', '6');
+      ring.setAttribute('class', 'hm-flame-ring');
+      svg.appendChild(ring);
+      const a = ring.animate([{ transform: 'scale(1)', opacity: 0.85 }, { transform: 'scale(3.4)', opacity: 0 }],
+        { duration: 650, easing: 'cubic-bezier(0.23,1,0.32,1)', fill: 'forwards' });
+      a.onfinish = () => ring.remove(); anims.push(a);
+    });
+  }
+
+  // 4) today keeps a soft glow + a slow looping ring
+  if (todayCell && svg) at(COUNT + flameCells.length * FUSE + 250, () => {
+    todayCell.classList.add('lit-today');
+    const tx = parseFloat(todayCell.getAttribute('x')) + 5.5;
+    const ty = parseFloat(todayCell.getAttribute('y')) + 5.5;
+    const emit = () => {
+      const ring = document.createElementNS(NS, 'circle');
+      ring.setAttribute('cx', tx); ring.setAttribute('cy', ty); ring.setAttribute('r', '6');
+      ring.setAttribute('class', 'hm-today-ring');
+      svg.appendChild(ring);
+      const a = ring.animate([{ transform: 'scale(1)', opacity: 0.5 }, { transform: 'scale(2.6)', opacity: 0 }],
+        { duration: 2200, easing: 'cubic-bezier(0.23,1,0.32,1)', fill: 'forwards' });
+      a.onfinish = () => ring.remove(); anims.push(a);
+    };
+    emit();
+    if (_anaFlame) _anaFlame.iv = setInterval(emit, 2400);
+  });
+}
+
 function _renderAnaAccuracyChart(h) {
   if (!Array.isArray(h) || h.length === 0) return '';
   // Build 3 series: last 7 days (daily), last 30 days (daily), all-time (weekly).
@@ -14314,10 +14430,10 @@ function _renderAnaAccuracyChart(h) {
   const xOf = (i, n) => PAD + (n > 1 ? (i / (n - 1)) * innerW : innerW / 2);
   const plot = (seriesKey) => {
     const pts = series[seriesKey].points;
-    if (pts.length === 0) return { path: '', dots: '', area: '' };
+    if (pts.length === 0) return { path: '', dots: '', area: '', lastX: 0, lastY: 0, accs: [] };
     let linePath = '', areaPath = '';
-    let lastValidIdx = -1;
-    const dots = [];
+    let lastValidIdx = -1, lastX = 0, lastY = 0;
+    const dots = [], accs = [];
     pts.forEach((p, i) => {
       if (p.acc === null) return;
       const x = xOf(i, pts.length);
@@ -14330,13 +14446,15 @@ function _renderAnaAccuracyChart(h) {
         areaPath += ` L${x.toFixed(1)},${y.toFixed(1)}`;
       }
       dots.push(`<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="3.5" fill="var(--surface)" stroke="var(--accent)" stroke-width="2"/>`);
+      accs.push(p.acc);
+      lastX = x; lastY = y;
       lastValidIdx = i;
     });
     if (lastValidIdx >= 0) {
-      const lastX = xOf(lastValidIdx, pts.length);
-      areaPath += ` L${lastX.toFixed(1)},${yOf(0).toFixed(1)} Z`;
+      const lastXx = xOf(lastValidIdx, pts.length);
+      areaPath += ` L${lastXx.toFixed(1)},${yOf(0).toFixed(1)} Z`;
     }
-    return { path: linePath, dots: dots.join(''), area: areaPath };
+    return { path: linePath, dots: dots.join(''), area: areaPath, lastX, lastY, accs };
   };
   const weekSeries = plot('week');
   const monthSeries = plot('month');
@@ -14345,8 +14463,33 @@ function _renderAnaAccuracyChart(h) {
     `<line x1="${PAD}" y1="${yOf(pct).toFixed(1)}" x2="${W - PAD}" y2="${yOf(pct).toFixed(1)}" stroke="var(--border)" stroke-width="1" stroke-dasharray="4,4" opacity="0.5"/>
      <text x="${PAD - 8}" y="${yOf(pct).toFixed(1)}" text-anchor="end" dominant-baseline="middle" font-size="10" fill="var(--text-dim)" font-family="monospace">${pct}%</text>`
   ).join('');
-  const passLine = `<line x1="${PAD}" y1="${yOf(passYRaw).toFixed(1)}" x2="${W - PAD}" y2="${yOf(passYRaw).toFixed(1)}" stroke="var(--accent)" stroke-width="2" stroke-dasharray="6,4" opacity="0.8"/>
+  const passLine = `<line class="ana-accchart-pass" x1="${PAD}" y1="${yOf(passYRaw).toFixed(1)}" x2="${W - PAD}" y2="${yOf(passYRaw).toFixed(1)}" stroke="var(--accent)" stroke-width="2" stroke-dasharray="6,4" opacity="0.8"/>
     <text x="${W - PAD + 4}" y="${yOf(passYRaw).toFixed(1)}" dominant-baseline="middle" font-size="10" fill="var(--accent-light)" font-family="monospace" font-weight="700">PASS</text>`;
+  // v7.14.0 — "trending toward pass?" verdict per range. Least-squares projection
+  // over the range's accuracy points decides the direction; the displayed number
+  // is the latest accuracy (matches the tuned design). Drives the badge + dip pulse.
+  const _accVerdict = (s) => {
+    const a = (s && s.accs) || [];
+    if (a.length < 2) return null;
+    const n = a.length;
+    let sx = 0, sy = 0, sxy = 0, sxx = 0;
+    a.forEach((v, i) => { sx += i; sy += v; sxy += i * v; sxx += i * i; });
+    const denom = (n * sxx - sx * sx) || 1;
+    const m = (n * sxy - sx * sy) / denom;
+    const b = (sy - m * sx) / n;
+    const proj = m * (n - 1) + b;
+    return { num: Math.round(a[a.length - 1]), willPass: proj >= passYRaw };
+  };
+  const _accBadge = (range, s) => {
+    const v = _accVerdict(s);
+    if (!v) return '';
+    const hide = range === 'month' ? '' : ' ana-accv--hide';
+    return `<div class="ana-accv${v.willPass ? ' is-good' : ''}${hide}" data-range="${range}">
+      <div class="ana-accv-num">${v.num}<span>%</span></div>
+      <div class="ana-accv-cap">projected at exam</div>
+      <div class="ana-accv-pill">${v.willPass ? '▲ On track to pass' : '▼ Trending below pass'}</div>
+    </div>`;
+  };
   return `<div class="ana-card ana-accchart-card" id="ana-s-accchart">
     <div class="ana-accchart-head">
       <div>
@@ -14363,22 +14506,25 @@ function _renderAnaAccuracyChart(h) {
       <svg class="ana-accchart-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="Accuracy over time chart">
         ${gridlines}
         ${passLine}
-        <g data-range="week" style="display:none">
+        <g data-range="week" data-lastx="${weekSeries.lastX.toFixed(1)}" data-lasty="${weekSeries.lastY.toFixed(1)}" style="display:none">
           <path d="${weekSeries.area}" fill="var(--accent)" opacity="0.07"/>
           <path d="${weekSeries.path}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round"/>
           ${weekSeries.dots}
         </g>
-        <g data-range="month">
+        <g data-range="month" data-lastx="${monthSeries.lastX.toFixed(1)}" data-lasty="${monthSeries.lastY.toFixed(1)}">
           <path d="${monthSeries.area}" fill="var(--accent)" opacity="0.07"/>
           <path d="${monthSeries.path}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round"/>
           ${monthSeries.dots}
         </g>
-        <g data-range="all" style="display:none">
+        <g data-range="all" data-lastx="${allSeries.lastX.toFixed(1)}" data-lasty="${allSeries.lastY.toFixed(1)}" style="display:none">
           <path d="${allSeries.area}" fill="var(--accent)" opacity="0.07"/>
           <path d="${allSeries.path}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round"/>
           ${allSeries.dots}
         </g>
       </svg>
+      ${_accBadge('week', weekSeries)}
+      ${_accBadge('month', monthSeries)}
+      ${_accBadge('all', allSeries)}
     </div>
   </div>`;
 }
@@ -14393,6 +14539,71 @@ function _anaAccChartTab(range) {
   card.querySelectorAll('.ana-accchart-svg g[data-range]').forEach(g => {
     g.style.display = g.getAttribute('data-range') === range ? '' : 'none';
   });
+  // v7.14.0: swap the verdict badge + replay the dip pulse for the new range
+  if (typeof _anaAccChartPlay === 'function') _anaAccChartPlay(range);
+}
+
+// v7.14.0 — reveals the active range's "trending toward pass?" verdict badge and
+// plays the reveal motion: one confident PASS-line pulse + 3 attention rings on
+// the latest point (red below pass, bronze on track). Tuned in the combined
+// studio (3 beats, 1.0x). Re-bound on each call; previous pulse cancelled so
+// rapid range switches never stack rings. Skipped under prefers-reduced-motion
+// (the badge still resolves to its final state — it aids comprehension).
+let _anaAccPulse = null;
+function _anaAccChartPlay(range) {
+  if (_anaAccPulse) {
+    if (_anaAccPulse.iv) clearInterval(_anaAccPulse.iv);
+    (_anaAccPulse.anims || []).forEach(a => { try { a.cancel(); } catch (e) {} });
+    _anaAccPulse = null;
+  }
+  const card = document.getElementById('ana-s-accchart');
+  if (!card) return;
+  // reveal the active badge (kept even under reduced motion — comprehension aid)
+  card.querySelectorAll('.ana-accv[data-range]').forEach(v => {
+    const on = v.getAttribute('data-range') === range;
+    v.classList.toggle('ana-accv--hide', !on);
+    v.classList.toggle('ana-accv-show', on);
+  });
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const svg = card.querySelector('.ana-accchart-svg');
+  const g = card.querySelector('.ana-accchart-svg g[data-range="' + range + '"]');
+  if (!svg || !g) return;
+
+  const anims = [];
+  // confident PASS-line pulse
+  const passEl = card.querySelector('.ana-accchart-pass');
+  if (passEl && passEl.animate) {
+    anims.push(passEl.animate(
+      [{ strokeWidth: 2, opacity: 0.8 }, { strokeWidth: 3, opacity: 1 }, { strokeWidth: 2, opacity: 0.8 }],
+      { duration: 560, easing: 'cubic-bezier(0.23,1,0.32,1)' }
+    ));
+  }
+
+  const cx = parseFloat(g.getAttribute('data-lastx'));
+  const cy = parseFloat(g.getAttribute('data-lasty'));
+  const badge = card.querySelector('.ana-accv[data-range="' + range + '"]');
+  const ringColor = (badge && badge.classList.contains('is-good')) ? 'var(--accent)' : 'var(--red, #c2402f)';
+  if (isNaN(cx) || isNaN(cy)) { _anaAccPulse = { iv: 0, anims }; return; }
+
+  const NS = 'http://www.w3.org/2000/svg';
+  let beats = 0; const MAX = 3;
+  const fire = () => {
+    if (beats >= MAX) { if (_anaAccPulse) { clearInterval(_anaAccPulse.iv); _anaAccPulse.iv = 0; } return; }
+    beats++;
+    const ring = document.createElementNS(NS, 'circle');
+    ring.setAttribute('cx', cx); ring.setAttribute('cy', cy); ring.setAttribute('r', '4');
+    ring.setAttribute('fill', 'none'); ring.setAttribute('stroke', ringColor); ring.setAttribute('stroke-width', '2');
+    ring.setAttribute('class', 'ana-acc-ring');
+    svg.appendChild(ring);
+    const a = ring.animate(
+      [{ transform: 'scale(1)', opacity: 0.85 }, { transform: 'scale(3.4)', opacity: 0 }],
+      { duration: 750, easing: 'cubic-bezier(0.23,1,0.32,1)', fill: 'forwards' }
+    );
+    a.onfinish = () => ring.remove();
+    anims.push(a);
+  };
+  _anaAccPulse = { iv: setInterval(fire, 900), anims };
+  fire();
 }
 
 function _renderAnaReadiness(h) {
@@ -14667,7 +14878,7 @@ function _renderAnaWhyScore(readiness) {
     <div class="why-bars">${barsHtml}</div>
 
     <div class="why-diagnosis">
-      <div class="why-diagnosis-head">⚠ What's holding you back</div>
+      <div class="why-diagnosis-head"><svg class="why-diag-ico" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.7 21.6 20.3 2.4 20.3Z"/><line x1="12" y1="10" x2="12" y2="14"/><line x1="12" y1="16.8" x2="12.01" y2="16.8"/></svg>What's holding you back</div>
       <div class="why-diagnosis-body">${diagnosisHtml}</div>
     </div>
 
@@ -15034,11 +15245,102 @@ function computeDomainRawAccuracy(h) {
 // v4.85.7: extracted from _renderAnaDomainMastery() — renders a single row.
 // Either the unstudied "Not started" state or the active progress bar with
 // tier badge + drill button. Pure HTML out.
+// v7.14.0 — Domain Mastery reveal + expand (locked in the combined studio).
+// Reveal on load: bars un-arm from 0 (CSS --dm-fill var + the base 800ms width
+// transition), the % counts up, the tier badge pops, and mastered bars flash as
+// the fill crosses the 80% line. Expand on hover/focus: the row lifts out of the
+// ledger into a card with a detail strip; neighbours dim. All class-driven +
+// WAAPI + textContent — NO inline .style writes (keeps the style budget at 80).
+// Re-bound each analytics render; prior timers cancelled. prefers-reduced-motion
+// shows the final state and keeps the expand (comprehension) without the motion.
+let _anaDMState = null;
+function _dmCountPct(el, target, dur) {
+  if (!el) return;
+  const t0 = performance.now();
+  const tick = (now) => {
+    const t = Math.min(1, (now - t0) / dur);
+    el.textContent = Math.round(target * (1 - Math.pow(1 - t, 3))) + '%';
+    if (t < 1) requestAnimationFrame(tick); else el.textContent = target + '%';
+  };
+  requestAnimationFrame(tick);
+}
+function _dmBuildDetail(r) {
+  if (r.querySelector('.dm-detail')) return;
+  const pct = parseInt(r.getAttribute('data-pct'), 10) || 0;
+  const met = pct >= 80;
+  const wEl = r.querySelector('.dm-row-weight');
+  const weight = wEl ? (parseInt(wEl.textContent, 10) || 0) : 0;
+  const d = document.createElement('div');
+  d.className = 'dm-detail';
+  d.innerHTML = '<div class="dm-detail-inner">' +
+    '<span class="dm-detail-item ' + (met ? 'met' : '') + '">' +
+      (met ? '<strong>Mastered ✓</strong> at or above the 80% line'
+           : '<strong>' + (80 - pct) + '% to mastery</strong> from ' + pct + '%') + '</span>' +
+    '<span class="dm-detail-item"><strong>' + weight + '%</strong> of the exam blueprint</span>' +
+    '<span class="dm-detail-item">Next: <span class="dm-detail-action">' +
+      (met ? 'Review to keep it sharp' : 'Drill weakest topics first') + '</span></span>' +
+    '</div>';
+  r.appendChild(d);
+}
+function _anaDomainMasteryPlay() {
+  if (_anaDMState) { _anaDMState.timers.forEach(clearTimeout); _anaDMState = null; }
+  const card = document.getElementById('ana-s-domain-mastery');
+  if (!card) return;
+  const rows = Array.prototype.slice.call(card.querySelectorAll('.dm-row[data-pct]'));
+  const allRows = Array.prototype.slice.call(card.querySelectorAll('.dm-row'));
+  if (!rows.length) return;
+  const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const fine = window.matchMedia && window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+  const timers = [], anims = [];
+  _anaDMState = { timers, anims };
+  const at = (ms, fn) => { timers.push(setTimeout(fn, ms)); };
+
+  // detail strips + hover/focus expand (kept under reduced motion — comprehension)
+  rows.forEach(r => {
+    _dmBuildDetail(r);
+    r.setAttribute('tabindex', '0');
+    const expand = (on) => {
+      r.classList.toggle('dm-lifted', on);
+      allRows.forEach(o => { if (o !== r) o.classList.toggle('dm-dim', on); });
+      if (!reduce && fine) anims.push(r.animate(
+        [{ transform: on ? 'translateY(0) scale(1)' : 'translateY(-2px) scale(1.01)' },
+         { transform: on ? 'translateY(-2px) scale(1.01)' : 'translateY(0) scale(1)' }],
+        { duration: on ? 240 : 180, easing: on ? 'cubic-bezier(0.34,1.56,0.64,1)' : 'cubic-bezier(0.23,1,0.32,1)', fill: 'forwards' }));
+    };
+    r.addEventListener('pointerenter', () => expand(true));
+    r.addEventListener('pointerleave', () => expand(false));
+    r.addEventListener('focus', () => expand(true));
+    r.addEventListener('blur', () => expand(false));
+  });
+
+  if (reduce) { rows.forEach(r => r.classList.remove('dm-armed', 'dm-pre')); return; }
+
+  // reveal: park bars at 0 + hide badges, then un-arm staggered
+  rows.forEach(r => r.classList.add('dm-armed', 'dm-pre'));
+  void card.offsetWidth; // reflow so the no-transition width:0 is the start point
+  rows.forEach((r, i) => at(i * 110, () => {
+    r.classList.remove('dm-armed');
+    r.classList.remove('dm-pre');
+    const badge = r.querySelector('.dm-row-badge');
+    if (badge) anims.push(badge.animate(
+      [{ opacity: 0, transform: 'scale(0.9)' }, { opacity: 1, transform: 'scale(1)' }],
+      { duration: 300, delay: 120, easing: 'cubic-bezier(0.34,1.56,0.64,1)', fill: 'backwards' }));
+    const target = parseInt(r.getAttribute('data-pct'), 10) || 0;
+    _dmCountPct(r.querySelector('.dm-bar-pct'), target, 800);
+    if (target >= 80) {
+      const tgt = r.querySelector('.dm-bar-target');
+      if (tgt) at((80 / target) * 800, () => anims.push(tgt.animate(
+        [{ boxShadow: '0 0 0 0 rgba(60,122,69,0.7)' }, { boxShadow: '0 0 0 7px rgba(60,122,69,0)' }],
+        { duration: 560, easing: 'cubic-bezier(0.23,1,0.32,1)' })));
+    }
+  }));
+}
+
 function _renderAnaDomainMasteryRow(d, data, tierInfo) {
   if (data.t === 0) {
     return `<div class="dm-row dm-row-unstudied" style="--dm-accent:${d.color}">
       <div class="dm-row-head">
-        <div class="dm-row-label"><span class="dm-row-name">${d.label}</span><span class="dm-row-weight">${d.weight}% of exam</span></div>
+        <div class="dm-row-label"><span class="dm-dot"></span><span class="dm-row-text"><span class="dm-row-name">${d.label}</span><span class="dm-row-weight">${d.weight}% of exam</span></span></div>
         <div class="dm-row-badge dm-badge-unstudied">Not started</div>
       </div>
       <div class="dm-bar-wrap">
@@ -15053,14 +15355,14 @@ function _renderAnaDomainMasteryRow(d, data, tierInfo) {
   }
   const pct = Math.round((data.c / data.t) * 100);
   const tier = tierInfo(pct);
-  return `<div class="dm-row" style="--dm-accent:${d.color}">
+  return `<div class="dm-row" style="--dm-accent:${d.color}" data-pct="${pct}">
     <div class="dm-row-head">
-      <div class="dm-row-label"><span class="dm-row-name">${d.label}</span><span class="dm-row-weight">${d.weight}% of exam</span></div>
+      <div class="dm-row-label"><span class="dm-dot"></span><span class="dm-row-text"><span class="dm-row-name">${d.label}</span><span class="dm-row-weight">${d.weight}% of exam</span></span></div>
       <div class="dm-row-badge ${tier.cls}">${tier.label}</div>
     </div>
     <div class="dm-bar-wrap">
       <div class="dm-bar-track">
-        <div class="dm-bar-fill" style="width:${Math.min(pct, 100)}%"></div>
+        <div class="dm-bar-fill" style="--dm-fill:${Math.min(pct, 100)}%"></div>
         <div class="dm-bar-target" style="left:80%" title="80% mastery threshold"></div>
       </div>
       <div class="dm-bar-pct">${pct}%</div>
@@ -15371,6 +15673,92 @@ function _renderAnaConstellation(h) {
 //   - Click on node does NOTHING (auto-drill removed); drilling goes through
 //     the explicit Drill button inside the tooltip
 //   - Tooltip is positioned at fixed top-center via CSS, never follows the cursor
+// v7.14.0 — Living Constellation: ambient drift. Every star wanders a tiny,
+// individual orbit (two desynced sine waves), studied halos slowly breathe,
+// and a random core sparkles every few seconds. Values locked in the tuning
+// studio: amp 3.2 · speed 0.85 · spread 0.70 · breatheDepth 0.25 ·
+// breatheSpeed 0.60 · twinkleEvery 3.0s · twinkleGlow 9px. This replaces the
+// v7.13.0 CSS twinkle + pulsar (removed in styles.css) so motion never stacks.
+// One rAF loop, re-bound on each analytics re-render (the previous loop is
+// cancelled first) so detached nodes never leak. Transform/opacity/filter only
+// (GPU-friendly); the whole loop is skipped under prefers-reduced-motion.
+let _anaDriftRaf = null;
+function _anaConstWireDrift() {
+  if (_anaDriftRaf) { cancelAnimationFrame(_anaDriftRaf); _anaDriftRaf = null; }
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const map = document.querySelector('#ana-s-constellation .ana-const-map');
+  if (!map) return;
+  const nodeEls = Array.prototype.slice.call(map.querySelectorAll('.ana-const-node'));
+  if (!nodeEls.length) return;
+
+  const TAU = Math.PI * 2;
+  const AMP = 3.2, SPEED = 0.85, SPREAD = 0.70;        // wander
+  const BREATHE_DEPTH = 0.25, BREATHE_SPEED = 0.60;    // halo opacity pulse
+  const TWINKLE_EVERY = 3.0, TWINKLE_GLOW = 9;         // discrete core sparkle
+  const tierBase = { mastered: 0.30, proficient: 0.24, developing: 0.18, novice: 0.12 };
+
+  const stars = nodeEls.map((g, i) => {
+    g.style.transition = 'none';        // don't smear per-frame drift through the .2s transform transition
+    g.style.transformBox = 'fill-box';
+    g.style.transformOrigin = 'center';
+    const cls = (g.className && g.className.baseVal != null) ? g.className.baseVal : (g.getAttribute('class') || '');
+    const tm = cls.match(/ana-const-tier-(\w+)/);
+    const tier = tm ? tm[1] : 'novice';
+    const s = i + (parseInt(g.dataset.domainIdx, 10) || 0) * 7.31;
+    return {
+      g,
+      halo: g.querySelector('.ana-const-halo'),
+      core: g.querySelector('.ana-const-core'),
+      studied: (parseInt(g.dataset.ttAttempts, 10) || 0) > 0,
+      base: tierBase[tier] != null ? tierBase[tier] : 0.15,
+      fAmpX: 0.7 + ((s * 0.37) % 1) * 0.6,
+      fAmpY: 0.7 + ((s * 0.61 + 0.4) % 1) * 0.6,
+      fPerX: ((s * 0.53) % 1),
+      fPerY: ((s * 0.29 + 0.3) % 1),
+      phX: (s * 1.7) % TAU,
+      phY: (s * 2.3 + 1.1) % TAU,
+      fB: ((s * 0.41) % 1),
+      bph: (s * 0.9 + 0.5) % TAU,
+    };
+  });
+  const breathers = stars.filter(d => d.studied && d.halo);
+
+  let nextTwinkle = 1500, tw = null;
+  const t0 = (typeof performance !== 'undefined' ? performance.now() : Date.now());
+
+  function frame(now) {
+    const t = now - t0;
+    for (let k = 0; k < stars.length; k++) {
+      const d = stars[k];
+      const perX = (6000 + d.fPerX * (4000 * SPREAD + 1500)) / SPEED;
+      const perY = (6500 + d.fPerY * (3500 * SPREAD + 1500)) / SPEED;
+      const dx = Math.sin((t / perX) * TAU + d.phX) * AMP * d.fAmpX;
+      const dy = Math.sin((t / perY) * TAU + d.phY) * AMP * d.fAmpY;
+      d.g.style.transform = 'translate(' + dx.toFixed(2) + 'px,' + dy.toFixed(2) + 'px)';
+    }
+    for (let k = 0; k < breathers.length; k++) {
+      const d = breathers[k];
+      // While hovered/focused, clear the inline opacity so the CSS hover state owns the halo.
+      if (d.g.matches(':hover') || document.activeElement === d.g) { d.halo.style.opacity = ''; continue; }
+      const bper = (4200 + d.fB * 3000) / BREATHE_SPEED;
+      const sv = (Math.sin((t / bper) * TAU + d.bph) + 1) * 0.5;
+      d.halo.style.opacity = (d.base + sv * BREATHE_DEPTH).toFixed(3);
+    }
+    if (t >= nextTwinkle && !tw && breathers.length) {
+      const d = breathers[(Math.random() * breathers.length) | 0];
+      if (d.core && !d.g.matches(':hover')) {
+        d.core.style.filter = 'drop-shadow(0 0 ' + TWINKLE_GLOW + 'px rgba(255,255,255,0.9))';
+        tw = { core: d.core, until: t + 420 };
+      }
+      nextTwinkle = t + TWINKLE_EVERY * 1000 * (0.6 + Math.random() * 0.8);
+    }
+    if (tw && t >= tw.until) { tw.core.style.filter = ''; tw = null; }  // revert to CSS tier filter
+
+    _anaDriftRaf = requestAnimationFrame(frame);
+  }
+  _anaDriftRaf = requestAnimationFrame(frame);
+}
+
 function _anaConstWireTooltip() {
   try {
     const map = document.querySelector('#ana-s-constellation .ana-const-map');
@@ -15632,6 +16020,86 @@ function _renderAnaExamVsQuiz(h) {
 //   3. Collapsed <details> containing the full grid (all 49 milestones)
 // Users get the at-a-glance "how far along am I + what did I just earn"
 // read on the default view, and can expand for the full browse if they want.
+// v7.14.0 — locked-milestone progress [cur,tar] for the hover-detail reveal (numeric badges); guarded at call site.
+const MILESTONE_PROGRESS = {
+  hundred_qs: c => [c.totalQs, 100], five_hundred_qs: c => [c.totalQs, 500], thousand_qs: c => [c.totalQs, 1000],
+  streak_7: c => [c.streak.currentStreak, 7], streak_30: c => [c.streak.currentStreak, 30],
+  ready_650: c => [Math.round(c.readiness.predicted), 650], ready_720: c => [Math.round(c.readiness.predicted), EXAM_PASS_SCORE],
+  five_exams: c => [c.exams.length, 5], ten_exams: c => [c.exams.length, 10],
+  subnet_50: c => [c.subStats.seen, 50], deep_dive_10: c => [c.ddUses, 10],
+  daily_challenge_7: c => [c.dc.bestStreak, 7], daily_challenge_30: c => [c.dc.bestStreak, 30],
+  labs_5: c => [c.labsDone, 5], labs_10: c => [c.labsDone, 10], fix_5: c => [c.fixDone, 5],
+  ab_50: c => [c.abM.totalAnswered, 50], os_50: c => [c.osM.totalAnswered, 50], cb_50: c => [c.cbM.totalAnswered, 50],
+};
+// v7.14.0 — Milestones "Trophy Shine × Hover Detail". Shine: recent tiles get a
+// staggered gleam + sparkle on load. Detail: hover lifts + reveals earned-date /
+// progress / hint, neighbours dim. Class-driven + WAAPI (no inline styles);
+// re-bound each render; reduced-motion keeps lift/detail, drops the gleam.
+let _anaMsState = null;
+function _anaMilestonesPlay() {
+  if (_anaMsState) { _anaMsState.timers.forEach(clearTimeout); _anaMsState = null; }
+  const card = document.getElementById('ana-s-milestones');
+  if (!card) return;
+  const allTiles = Array.prototype.slice.call(card.querySelectorAll('.ana-milestone'));
+  if (!allTiles.length) return;
+  const recentTiles = Array.prototype.slice.call(card.querySelectorAll('.ana-ms-recent .ana-milestone'));
+  const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const fine = window.matchMedia && window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+  const timers = [];
+  _anaMsState = { timers };
+  const at = (ms, fn) => { timers.push(setTimeout(fn, ms)); };
+
+  // hover detail — build the extra line once + wire lift/dim
+  allTiles.forEach(t => {
+    if (!t.querySelector('.ms-extra')) {
+      const earned = t.getAttribute('data-ms-earned');
+      const prog = t.getAttribute('data-ms-progress');
+      let inner;
+      if (earned) inner = '<span class="ms-extra-earned">' + earned + '</span>';
+      else if (prog) {
+        const p = prog.split(','); const w = Math.round((+p[0]) / (+p[1]) * 100);
+        inner = '<span class="ms-mini-label">' + p[0] + ' / ' + p[1] + '</span>' +
+          '<div class="ms-mini-track"><div class="ms-mini-fill" style="--mp:' + w + '%"></div></div>';
+      } else inner = 'Locked — keep going';
+      const ex = document.createElement('div'); ex.className = 'ms-extra';
+      ex.innerHTML = '<div class="ms-extra-inner">' + inner + '</div>';
+      t.appendChild(ex);
+    }
+    t.setAttribute('tabindex', '0');
+    const enter = () => {
+      t.classList.add('ms-lift');
+      allTiles.forEach(o => { if (o !== t) o.classList.add('ms-dim'); });
+      if (!reduce && fine) t.animate([{ transform: 'translateY(0) scale(1)' }, { transform: 'translateY(-3px) scale(1.03)' }], { duration: 240, easing: 'cubic-bezier(0.34,1.56,0.64,1)', fill: 'forwards' });
+    };
+    const leave = () => {
+      t.classList.remove('ms-lift');
+      allTiles.forEach(o => o.classList.remove('ms-dim'));
+      if (!reduce && fine) t.animate([{ transform: 'translateY(-3px) scale(1.03)' }, { transform: 'translateY(0) scale(1)' }], { duration: 180, easing: 'cubic-bezier(0.23,1,0.32,1)', fill: 'forwards' });
+    };
+    t.addEventListener('pointerenter', enter);
+    t.addEventListener('pointerleave', leave);
+    t.addEventListener('focus', enter);
+    t.addEventListener('blur', leave);
+  });
+
+  // trophy shine on the recently-unlocked tiles
+  recentTiles.forEach(el => { el.querySelectorAll('.ms-gleam,.ms-spark').forEach(n => n.remove()); el.classList.remove('ms-earned-static'); });
+  if (reduce) { recentTiles.forEach(el => el.classList.add('ms-earned-static')); return; }
+  recentTiles.forEach((el, i) => at(i * 260, () => {
+    el.classList.add('ms-shining');
+    el.animate([{ transform: 'scale(0.97)' }, { transform: 'scale(1.02)' }, { transform: 'scale(1)' }], { duration: 420, easing: 'cubic-bezier(0.34,1.56,0.64,1)' });
+    const g = document.createElement('div'); g.className = 'ms-gleam'; el.appendChild(g);
+    const ga = g.animate([{ transform: 'translateX(-130%)' }, { transform: 'translateX(130%)' }], { duration: 650, easing: 'cubic-bezier(0.23,1,0.32,1)', fill: 'forwards' });
+    ga.onfinish = () => g.remove();
+    [1, 2, 3].forEach((n, si) => {
+      const sp = document.createElement('div'); sp.className = 'ms-spark ms-spark-' + n; el.appendChild(sp);
+      const sa = sp.animate([{ opacity: 0, transform: 'scale(0.4) translateY(0)' }, { opacity: 1, transform: 'scale(1) translateY(-4px)' }, { opacity: 0, transform: 'scale(0.6) translateY(-10px)' }], { duration: 560, delay: 260 + si * 90, easing: 'cubic-bezier(0.23,1,0.32,1)', fill: 'forwards' });
+      sa.onfinish = () => sp.remove();
+    });
+    at(1100, () => el.classList.remove('ms-shining'));
+  }));
+}
+
 function _renderAnaMilestones() {
   evaluateMilestones(); // unlock any newly-earned milestones on render
   const unlockedMap = getMilestones();
@@ -15645,11 +16113,40 @@ function _renderAnaMilestones() {
     return new Date(unlockedMap[b.id]) - new Date(unlockedMap[a.id]);
   }).slice(0, 4);
 
-  const renderTile = (m, unlocked) => `<div class="ana-milestone ${unlocked ? 'ana-milestone-on' : 'ana-milestone-off'}" title="${escHtml(m.desc)}">
+  // v7.14.0: context for locked-progress (built once; guarded)
+  let _msCtx = null;
+  try { if (typeof _buildMilestoneCtx === 'function') _msCtx = _buildMilestoneCtx(); } catch (_) {}
+  const _msRel = (iso) => {
+    try {
+      const days = Math.floor((Date.now() - new Date(iso).getTime()) / 86400000);
+      if (days <= 0) return 'Earned today';
+      if (days === 1) return 'Earned yesterday';
+      if (days < 7) return 'Earned ' + days + ' days ago';
+      if (days < 14) return 'Earned last week';
+      return 'Earned ' + new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+    } catch (_) { return 'Earned'; }
+  };
+  const _msProg = (id) => {
+    try {
+      const f = MILESTONE_PROGRESS[id];
+      if (!f || !_msCtx) return '';
+      const r = f(_msCtx);
+      if (!r || !(r[1] > 0)) return '';
+      const cur = Math.max(0, Math.min(r[0] || 0, r[1]));
+      if (cur >= r[1]) return '';
+      return cur + ',' + r[1];
+    } catch (_) { return ''; }
+  };
+  const renderTile = (m, unlocked) => {
+    const dataAttr = unlocked
+      ? ` data-ms-earned="${escHtml(_msRel(unlockedMap[m.id]))}"`
+      : (function () { const p = _msProg(m.id); return p ? ` data-ms-progress="${p}"` : ''; })();
+    return `<div class="ana-milestone ${unlocked ? 'ana-milestone-on' : 'ana-milestone-off'}" title="${escHtml(m.desc)}"${dataAttr}>
     <div class="ana-milestone-icon">${m.icon}</div>
     <div class="ana-milestone-label">${escHtml(m.label)}</div>
     <div class="ana-milestone-desc">${escHtml(m.desc)}</div>
   </div>`;
+  };
 
   const recentBlock = recent.length > 0
     ? `<div class="ana-ms-section-title">Recently unlocked</div>
@@ -15761,6 +16258,17 @@ function renderAnalytics() {
   // v4.85.12: wire constellation hover tooltip after innerHTML insertion.
   // Idempotent (data-tooltip-wired guard) so re-renders don't double-bind.
   if (typeof _anaConstWireTooltip === 'function') _anaConstWireTooltip();
+  // v7.14.0: start the Living Constellation ambient drift (re-binds to the
+  // freshly rendered nodes; cancels any prior loop so detached nodes don't leak).
+  if (typeof _anaConstWireDrift === 'function') _anaConstWireDrift();
+  // v7.14.0: reveal the accuracy chart's "trending toward pass?" verdict + pulse.
+  if (typeof _anaAccChartPlay === 'function') _anaAccChartPlay('month');
+  // v7.14.0: play the Study Rhythm "streak flame" reveal (count-up + fuse + flare).
+  if (typeof _anaHeatmapPlayFlame === 'function') _anaHeatmapPlayFlame();
+  // v7.14.0: Domain Mastery reveal (bars grow + count-up + badge pop) + hover expand.
+  if (typeof _anaDomainMasteryPlay === 'function') _anaDomainMasteryPlay();
+  // v7.14.0: Milestones trophy-shine (recent tiles) + hover detail reveal.
+  if (typeof _anaMilestonesPlay === 'function') _anaMilestonesPlay();
 }
 
 // Wired to the exam date input on the analytics page
