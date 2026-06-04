@@ -47,7 +47,7 @@
 - **Conventions & lessons** — testing philosophy, progressive disclosure, magic-number constants, tier-threshold anchoring, prescriptive analytics, lesson authoring, scope disambiguation, live-verify, scenario `autoBuild` → [docs/conventions/conventions.md](docs/conventions/conventions.md)
 - **Regression-Guard Tombstones** — deleted code that must stay deleted → [docs/conventions/regression-tombstones.md](docs/conventions/regression-tombstones.md)
 - **Project boards, weekly cadence, external references** → [docs/conventions/workflow.md](docs/conventions/workflow.md)
-- **Audits / handoffs / planning docs** — coverage/editorial/writing/motion audits → `docs/audits/`; TB-v3 phase resume notes → `docs/handoffs/`; rebrand + social planning → `docs/planning/`. (Mobile/iOS docs + `SECURITY-AUDIT-*` stay at repo root — pinned by `tests/uat.js` / cross-links.)
+- **Audits / handoffs / planning / mobile docs** — coverage/editorial/writing/motion/security audits → `docs/audits/`; TB-v3 phase resume notes → `docs/handoffs/`; rebrand + social planning → `docs/planning/`; mobile/iOS baseline + optimization + app-store + Phase-11B → `docs/mobile/`. (Only `IOS_TESTING.md`, `SHIP_CHECKLIST.md`, `ENVIRONMENT_STRATEGY.md`, `CHANGELOG.md` stay at repo root — pinned by `tests/uat.js` / tooling.)
 - **Design scratch** — brand kit, icon library, hallmark + experiment mockups → `design/` (`brand/`, `svg-icons/`, `hallmark-mockups/`, `experiments/`). Note: `mockups/` and `dogfood/` deliberately stay at repo root (`/mockups/` is deploy-served per `vercel.json`; `dogfood/` is a documented smoke-test path).
 
 ## Decision rules

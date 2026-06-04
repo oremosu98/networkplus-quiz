@@ -19204,7 +19204,7 @@ test('v6.5.4 Bug A: walkActiveFlowStepId no longer assigned (removed from code p
 // ══════════════════════════════════════════════════════════════════════════
 // Security Phase 2 · DB quick wins (20260529_phase2_db_quick_wins.sql)
 // M1 stripe_events RLS · M2 diagnostic_share enumeration · M4 notify validation
-// · L3 claim_diagnostic_results email-match. See SECURITY-AUDIT-2026-05-29.md.
+// · L3 claim_diagnostic_results email-match. See docs/audits/SECURITY-AUDIT-2026-05-29.md.
 // ══════════════════════════════════════════════════════════════════════════
 console.log('\n\x1b[1m── Security Phase 2 — DB QUICK WINS ──\x1b[0m');
 (function () {
@@ -19264,7 +19264,7 @@ console.log('\n\x1b[1m── Security Phase 2 — DB QUICK WINS ──\x1b[0m');
 // ══════════════════════════════════════════════════════════════════════════
 // Security Phase 3 · notify-me rate limit + CORS (20260529_phase3_notify_rate_limit.sql
 // + landing/api/notify.js). M3a per-IP-hash rate limit (fail-OPEN) · M3b CORS
-// tightened from `*` to the certanvil.com allowlist. See SECURITY-AUDIT-2026-05-29.md.
+// tightened from `*` to the certanvil.com allowlist. See docs/audits/SECURITY-AUDIT-2026-05-29.md.
 // ══════════════════════════════════════════════════════════════════════════
 console.log('\n\x1b[1m── Security Phase 3 — NOTIFY RATE LIMIT + CORS ──\x1b[0m');
 (function () {
@@ -19349,7 +19349,7 @@ console.log('\n\x1b[1m── Security Phase 3 — NOTIFY RATE LIMIT + CORS ─�
 // further" deep-dive) and landing cross-user/remote rows (admin user table from
 // Supabase profiles + ship commits from the GitHub API). L2 keeps guide.diagram
 // escHtml-escaped AND routes the guide body through the DOMPurify backstop. L5
-// adds secret-file patterns to .gitignore. See SECURITY-AUDIT-2026-05-29.md.
+// adds secret-file patterns to .gitignore. See docs/audits/SECURITY-AUDIT-2026-05-29.md.
 // ══════════════════════════════════════════════════════════════════════════
 console.log('\n\x1b[1m── Security Phase 4 — XSS DEFENCE-IN-DEPTH (DOMPurify) ──\x1b[0m');
 (function () {
@@ -19420,7 +19420,7 @@ console.log('\n\x1b[1m── Security Phase 4 — XSS DEFENCE-IN-DEPTH (DOMPurif
 // Append-only admin_audit_log table + SECURITY DEFINER triggers on the three
 // privilege/entitlement-sensitive tables (profiles.role, subscriptions,
 // cert_entitlements). M5 closed as an accepted-decision ADR (no BFF build).
-// See SECURITY-AUDIT-2026-05-29.md.
+// See docs/audits/SECURITY-AUDIT-2026-05-29.md.
 // ══════════════════════════════════════════════════════════════════════════
 console.log('\n\x1b[1m── Security Phase 5 — RBAC + ADMIN AUDIT LOG ──\x1b[0m');
 (function () {
