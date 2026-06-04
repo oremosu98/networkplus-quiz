@@ -203,7 +203,7 @@ html[data-theme] body .pricing-faq-foot a{color:var(--dg-accent);font-weight:700
 /* ════ LEGAL PAGES (privacy + terms · shared template) ════ */
 html[data-theme] body .legal-hero{padding:70px 0 26px;text-align:center;}
 html[data-theme] body .legal-eyebrow{display:inline-block;background:none;border:0;padding:0;margin-bottom:16px;font-size:11px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:var(--dg-accent);}
-html[data-theme] body .legal-h1{font-size:var(--dg-t4);font-weight:800;letter-spacing:-0.03em;line-height:1.05;color:var(--dg-text);margin:0 0 14px;}
+html[data-theme] body .legal-h1{font-family:'Fraunces',Georgia,serif;font-size:var(--dg-t4);font-weight:600;letter-spacing:-0.018em;line-height:1.08;color:var(--dg-text);margin:0 0 14px;}
 html[data-theme] body .legal-sub{color:var(--dg-text-2);font-size:var(--dg-t1);line-height:1.6;max-width:640px;margin:0 auto 8px;}
 html[data-theme] body .legal-meta{display:inline-flex;align-items:center;gap:10px;font-size:var(--dg-t-1);color:var(--dg-text-dim);margin-top:18px;}
 html[data-theme] body .legal-meta-dot{width:6px;height:6px;border-radius:50%;background:var(--dg-accent);}
@@ -217,9 +217,9 @@ html[data-theme] body .legal-toc a{color:var(--dg-text-2);font-weight:600;text-d
 html[data-theme] body .legal-toc a:hover{color:var(--dg-accent);}
 
 html[data-theme] body .legal-body{max-width:720px;margin:0 auto;padding-bottom:80px;}
-html[data-theme] body .legal-body h2{font-size:var(--dg-t3);font-weight:800;letter-spacing:-0.02em;color:var(--dg-text);margin:46px 0 8px;}
+html[data-theme] body .legal-body h2{font-family:'Fraunces',Georgia,serif;font-size:var(--dg-t3);font-weight:600;letter-spacing:-0.015em;color:var(--dg-text);margin:46px 0 8px;}
 html[data-theme] body .legal-body h2:first-child{margin-top:30px;}
-html[data-theme] body .legal-body h2 .legal-h2-num{color:var(--dg-accent);font-size:11px;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;display:block;margin-bottom:4px;}
+html[data-theme] body .legal-body h2 .legal-h2-num{color:var(--dg-text-dim);font-size:0.66em;font-weight:500;letter-spacing:0;text-transform:none;display:inline;margin-right:12px;vertical-align:baseline;font-variant-numeric:tabular-nums;}
 html[data-theme] body .legal-body h3{font-size:var(--dg-t0);font-weight:800;color:var(--dg-text);letter-spacing:-0.01em;margin:26px 0 7px;}
 html[data-theme] body .legal-body p,html[data-theme] body .legal-body li{font-size:var(--dg-t0);line-height:1.7;color:var(--dg-text-2);}
 html[data-theme] body .legal-body p strong,html[data-theme] body .legal-body li strong{color:var(--dg-text);font-weight:700;}
@@ -229,11 +229,11 @@ html[data-theme] body .legal-body a{color:var(--dg-accent);text-decoration:none;
 html[data-theme] body .legal-body a:hover{text-decoration:underline;text-underline-offset:3px;}
 html[data-theme] body .legal-body em{color:var(--dg-text-dim);font-style:italic;}
 
-html[data-theme] body .legal-tldr{background:color-mix(in oklab,var(--dg-accent) 5%,transparent);border:1px solid var(--dg-rule-soft);border-left:2px solid var(--dg-accent);border-radius:8px;padding:14px 18px;margin:14px 0 22px;font-size:var(--dg-t-1);color:var(--dg-text-2);line-height:1.6;}
+html[data-theme] body .legal-tldr{background:color-mix(in oklab,var(--dg-accent) 5%,transparent);border:1px solid color-mix(in oklab,var(--dg-accent) 20%,var(--dg-rule-soft));border-radius:12px;padding:16px 18px;margin:14px 0 22px;font-size:var(--dg-t-1);color:var(--dg-text-2);line-height:1.6;}
 html[data-theme] body .legal-tldr strong{color:var(--dg-accent);font-size:10px;text-transform:uppercase;letter-spacing:0.1em;display:block;margin-bottom:5px;font-weight:800;}
-html[data-theme] body .legal-callout{background:color-mix(in oklab,var(--dg-accent) 5%,transparent);border:1px solid var(--dg-rule-soft);border-left:2px solid var(--dg-accent);border-radius:8px;padding:14px 18px;margin:14px 0 22px;font-size:var(--dg-t-1);color:var(--dg-text-2);line-height:1.6;}
+html[data-theme] body .legal-callout{background:color-mix(in oklab,var(--dg-accent) 5%,transparent);border:1px solid color-mix(in oklab,var(--dg-accent) 20%,var(--dg-rule-soft));border-radius:12px;padding:16px 18px;margin:14px 0 22px;font-size:var(--dg-t-1);color:var(--dg-text-2);line-height:1.6;}
 html[data-theme] body .legal-callout strong{color:var(--dg-accent);font-size:10px;text-transform:uppercase;letter-spacing:0.1em;display:block;margin-bottom:5px;font-weight:800;}
-html[data-theme] body .legal-warn{background:color-mix(in oklab,var(--dg-danger) 6%,transparent);border:1px solid var(--dg-rule-soft);border-left:2px solid var(--dg-danger);border-radius:8px;padding:14px 18px;margin:14px 0 22px;font-size:var(--dg-t-1);color:var(--dg-text-2);line-height:1.6;}
+html[data-theme] body .legal-warn{background:color-mix(in oklab,var(--dg-danger) 6%,transparent);border:1px solid color-mix(in oklab,var(--dg-danger) 22%,var(--dg-rule-soft));border-radius:12px;padding:16px 18px;margin:14px 0 22px;font-size:var(--dg-t-1);color:var(--dg-text-2);line-height:1.6;}
 html[data-theme] body .legal-warn strong{color:var(--dg-danger);font-size:10px;text-transform:uppercase;letter-spacing:0.1em;display:block;margin-bottom:5px;font-weight:800;}
 
 html[data-theme] body .legal-table{background:none;border:1px solid var(--dg-rule-soft);border-radius:8px;overflow:hidden;font-size:var(--dg-t-1);}
