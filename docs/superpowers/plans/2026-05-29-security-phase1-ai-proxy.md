@@ -1,7 +1,7 @@
 # Phase 1 — Stop the bleed: AI proxy hardening
 
 **Date:** 2026-05-29
-**Source:** [SECURITY-AUDIT-2026-05-29.md](../../../SECURITY-AUDIT-2026-05-29.md) findings C1, C2, H1, L1
+**Source:** [SECURITY-AUDIT-2026-05-29.md](../../audits/SECURITY-AUDIT-2026-05-29.md) findings C1, C2, H1, L1
 **Risk addressed:** 🔴 Live, actively-exploitable financial exploit — any signed-in (free, self-serve) user can use `api/ai/generate.js` as an uncapped, general-purpose Claude relay on the billing key.
 **Lane:** **GATED** (touches `api/ai/*` + a Supabase migration) → feature branch → PR → Vercel preview ⇄ Supabase branch DB → smoke-test → squash-merge. Per `ENVIRONMENT_STRATEGY.md`.
 **Throttle store decision (locked):** Supabase table, reusing the `diagnostic_rate_limit` RPC pattern. No new infra/deps/secrets.
