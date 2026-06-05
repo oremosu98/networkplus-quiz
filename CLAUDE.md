@@ -109,6 +109,7 @@ npx playwright test              # E2E (tests/e2e/app.spec.js)
 
 | Version | Features Added |
 |---|---|
+| v7.19.4 | Mobile fit #2 — My Certs modal scroll, landing iOS input zoom, hamburger drawer full-height on phones (touch-only; desktop unchanged) |
 | v7.19.3 | P2-density mobile fit — readiness ribbon, drill-by-domain, mastery stats, Progress topic names fit on phones (touch-only; desktop unchanged) |
 | v7.19.2 | Core-loop mobile polish — quiz/exam topbar overflow fix + in-card tap targets >=44px (touch-only) |
 | v7.19.1 | Mobile polish — kill horizontal overflow + iOS input focus-zoom, all tap targets >=44px, showToast revival + scroll-lock + drawer dvh |
