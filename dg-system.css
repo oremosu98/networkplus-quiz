@@ -3197,3 +3197,35 @@ html[data-theme] body #page-setup .dw-launch{flex:0 0 auto;padding:13px 22px;bor
   html[data-theme] body #page-exam .exam-shortfall-dismiss{min-width:44px!important;min-height:44px!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;}
 }
 
+/* ===== P2-density mobile fit (audit 2026-06): keep all content, fix what doesn't fit =====
+   #readiness-card-v2's "pts to pass" stamp (.rc-v2-stamp) is ~175px wide inside a
+   ~252px card on phones, so its absolute top-right placement (top:46px right:16px)
+   overlaps the eyebrow + the score (audit finding 10). On phones, flow it as a flat
+   centered badge above the eyebrow (order:-1 + static) — keeps the stamp and its
+   fade-in, removes the collision. transform:none beats the WAAPI rotate via the
+   !important cascade tier (opacity fade is untouched). Desktop card is wider, so the
+   tilted corner stamp sits clear there — this rule never fires above 480px. */
+@media (max-width:480px){
+  /* card is block-flow by default; flex-column lets `order` re-seat the stamp.
+     align-items defaults to stretch, so the other children keep full width. */
+  #readiness-card-v2{display:flex!important;flex-direction:column!important;}
+  /* everything except the eyebrow + stamp drops to order:1; the stamp (order:0,
+     DOM-last among order:0 items) lands right after the eyebrow, before the score. */
+  #readiness-card-v2 > *:not(.readiness-eyebrow):not(.rc-v2-stamp){order:1;}
+  #readiness-card-v2 .rc-v2-stamp{
+    order:0; position:static!important; top:auto!important; right:auto!important;
+    transform:none!important; align-self:center; margin:2px 0 14px!important;
+  }
+  /* drill-by-domain tiles are 2-col (~84px) on phones, so long domain words like
+     "Troubleshooting" overrun the tile and the .ld-n label clips. 1-col gives each
+     tile full width: names fit, all content kept. (audit finding 12) */
+  #page-setup .ld-grid{grid-template-columns:1fr!important;}
+  #page-setup .ld-n{min-height:0!important;}
+  /* mastery ring + stats: the horizontal "number + label" stat is ~114px wide in
+     an ~89px column, so the label clips ("questions" -> "quest"). Stack number over
+     label on phones so the label gets the full column and wraps cleanly. Tighten the
+     ring gap a touch for breathing room. (audit: .mo-stats clip) */
+  #page-setup .mo-ring-row{gap:13px!important;}
+  #page-setup .mo-stat{flex-direction:column!important;align-items:flex-start!important;gap:1px!important;}
+}
+
