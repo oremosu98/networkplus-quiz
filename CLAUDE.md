@@ -109,6 +109,7 @@ npx playwright test              # E2E (tests/e2e/app.spec.js)
 
 | Version | Features Added |
 |---|---|
+| v7.18.0 | Desktop breathing-room widths (Home/Analytics/Progress) + Progress kicker title + Settings control-center bento redesign |
 | v7.17.0 | Cert Home bento redesign (lift of approved mockup-3, real data; keeper readiness hero kept) |
 | v7.16.0 | Analytics bento redesign (lift of approved mockup, real data) + N10-009 kicker title; drop action-headline band |
 | v7.15.0 | Progress redesign: bento grid (domain tiles, weakest/strong/untouched/recent, drill-next spotlight) |
