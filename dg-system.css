@@ -2028,6 +2028,41 @@ html[data-theme] body .topbar-quota-chip .quota-chip-icon{display:none!important
 /* ── Topbar version pill ── */
 html[data-theme] body .topbar-version-pill{font-size:10px!important;font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace!important;color:var(--text-dim)!important;letter-spacing:.04em!important;}
 
+/* ══ TOPBAR · v7.19 bento refinement ══
+   Forged-bronze control bar: quiet mono metadata, a segmented action group,
+   refined pills + a polished account pill, consistent hover/press/focus.
+   Both themes via tokens; the quota chip keeps its semantic state colours. */
+html[data-theme] body .topbar-right{gap:12px!important;}
+/* metadata stays quiet + monospaced */
+html[data-theme] body .topbar-time{font-family:'Roboto Mono',ui-monospace,monospace!important;font-size:11.5px!important;letter-spacing:.01em!important;font-variant-numeric:tabular-nums!important;color:var(--text-dim)!important;}
+html[data-theme] body .topbar-version-pill{border:1px solid var(--border)!important;border-radius:999px!important;padding:3px 9px!important;}
+/* tier / quota chip → refined pill (shape only; state colours preserved) */
+html[data-theme] body .topbar-quota-chip{border-radius:999px!important;padding:3px 11px!important;font-family:'Roboto Mono',ui-monospace,monospace!important;font-size:10px!important;letter-spacing:.08em!important;text-transform:uppercase!important;}
+/* segmented action group: settings · report · theme as one control */
+html[data-theme] body .app-topbar .tb-actions{display:inline-flex!important;align-items:center!important;border:1px solid var(--border)!important;border-radius:10px!important;background:color-mix(in oklab,var(--surface) 55%,var(--bg))!important;overflow:hidden!important;}
+html[data-theme] body .app-topbar .tb-actions .topbar-iconbtn{width:34px!important;height:30px!important;border:0!important;border-radius:0!important;background:none!important;color:var(--text-dim)!important;}
+html[data-theme] body .app-topbar .tb-actions .topbar-iconbtn + .topbar-iconbtn{border-left:1px solid var(--border)!important;}
+/* refined squares + states */
+html[data-theme] body .topbar-iconbtn,html[data-theme] body .topbar-toggle{border-radius:9px!important;transition:background .14s ease,border-color .14s ease,color .14s ease,transform .1s ease-out!important;}
+@media (hover:hover) and (pointer:fine){
+  html[data-theme] body .app-topbar .tb-actions .topbar-iconbtn:hover{background:color-mix(in oklab,var(--accent) 11%,transparent)!important;color:var(--accent)!important;}
+  html[data-theme] body .topbar-toggle:hover{background:color-mix(in oklab,var(--accent) 9%,transparent)!important;border-color:var(--accent)!important;color:var(--accent)!important;}
+}
+html[data-theme] body .topbar-iconbtn:active,html[data-theme] body .topbar-toggle:active{transform:scale(0.94)!important;}
+html[data-theme] body .topbar-iconbtn:focus-visible,html[data-theme] body .topbar-toggle:focus-visible,html[data-theme] body .topbar-account-pill:focus-visible{outline:2px solid var(--accent)!important;outline-offset:2px!important;}
+/* current-page crumb */
+html[data-theme] body .topbar-crumb{font-size:13.5px!important;font-weight:600!important;color:var(--text)!important;letter-spacing:-0.005em!important;}
+/* account pill */
+html[data-theme] body .topbar-account-pill{border:1px solid var(--border)!important;border-radius:999px!important;background:color-mix(in oklab,var(--surface) 55%,var(--bg))!important;padding:3px 11px 3px 4px!important;gap:8px!important;transition:background .14s ease,border-color .14s ease,transform .1s ease-out!important;}
+@media (hover:hover) and (pointer:fine){html[data-theme] body .topbar-account-pill:hover{border-color:var(--accent)!important;background:color-mix(in oklab,var(--accent) 7%,transparent)!important;}}
+html[data-theme] body .topbar-account-pill:active{transform:scale(0.97)!important;}
+html[data-theme] body .topbar-account-avatar{border-radius:50%!important;background:var(--accent)!important;color:var(--bg)!important;font-weight:700!important;}
+html[data-theme] body .topbar-account-email{color:var(--text-mid,var(--text-dim))!important;font-size:12px!important;}
+html[data-theme] body .topbar-account-chevron{color:var(--text-dim)!important;}
+@media (prefers-reduced-motion:reduce){
+  html[data-theme] body .topbar-iconbtn,html[data-theme] body .topbar-toggle,html[data-theme] body .topbar-account-pill{transition:background .14s ease,border-color .14s ease,color .14s ease!important;transform:none!important;}
+}
+
 /* ── Light mode sidebar de-purple ── */
 html[data-theme="light"] body .app-sidebar,html[data-theme="light"] body #app-sidebar{background:var(--bg)!important;}
 html[data-theme="light"] body .sb-item:hover{background:color-mix(in oklab,var(--accent) 7%,transparent)!important;color:var(--text)!important;}
