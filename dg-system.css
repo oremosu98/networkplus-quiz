@@ -968,9 +968,16 @@ html[data-theme] body #page-progress .progress-bento .recent-card{flex:0 0 auto;
   #page-progress .prog-filter-btn{flex:1;text-align:center;}
   #page-progress #progress-rec-host .page-rec-btn{width:100%;justify-content:center;}
   #page-progress .progress-bento .spot-name{font-size:var(--t2);}
-  #page-progress .progress-bento .progress-domain-rows .t-row,
-  #page-progress .progress-bento .scoped-list .t-row{grid-template-columns:1fr 48px;}
+  /* These need the html[data-theme] body prefix + !important to beat the desktop
+     1fr/78px/56px rule (which carries that prefix); otherwise the bar's column
+     stays reserved as dead space and topic names truncate to ~89px. */
+  html[data-theme] body #page-progress .progress-bento .progress-domain-rows .t-row,
+  html[data-theme] body #page-progress .progress-bento .scoped-list .t-row{grid-template-columns:1fr 48px!important;}
   #page-progress .progress-bento .t-row .tbar{display:none;}
+  /* tpc carries grid-column:3 from the desktop layout; in the 2-col mobile grid
+     that strands it in an implicit ~11px column (the percent would clip) while the
+     bar's column 2 sits empty. Pull the percent into column 2. */
+  html[data-theme] body #page-progress .progress-bento .t-row .tpc{grid-column:2!important;}
 }
 
 /* ── REDUCED MOTION ── */
