@@ -7342,6 +7342,23 @@ test('v7.21.0 SR #4: streak credit gated on at least one card marked',
   /total > 0[\s\S]{0,200}updateStreak\(\)/.test(js));
 test('v7.21.0 SR CSS: .sr-recap + .sr-streak + .sr-miss scoped in dg-system',
   (function(){ const dg = read('dg-system.css'); return dg.includes('.sr-recap') && dg.includes('.sr-streak') && dg.includes('.sr-miss'); })());
+// ── v7.22.0 SR enhancements · Phase 3 (#8 right-sized sessions + Settings) ──
+test('v7.22.0 SR #8: SR_PREFS storage key defined',
+  /SR_PREFS:\s*['"]nplus_sr_prefs['"]/.test(js));
+test('v7.22.0 SR #8: SR_SESSION_CAP raised to 30',
+  /const\s+SR_SESSION_CAP\s*=\s*30/.test(js));
+test('v7.22.0 SR #8: loadSrPrefs + saveSrPrefs helpers defined',
+  /function\s+loadSrPrefs\s*\(/.test(js) && /function\s+saveSrPrefs\s*\(/.test(js));
+test('v7.22.0 SR #8: startSrReview caps to the chosen session size',
+  /loadSrPrefs\(\)[\s\S]{0,260}sessionSize/.test(js));
+test('v7.22.0 SR #8: settings handlers defined',
+  /function\s+pickSrSessionSize\s*\(/.test(js) && /function\s+toggleSrTopUp\s*\(/.test(js) && /function\s+renderSrSettings\s*\(/.test(js));
+test('v7.22.0 SR #8: renderSettingsPage syncs SR settings',
+  /renderSettingsPage[\s\S]{0,900}renderSrSettings/.test(js));
+test('v7.22.0 SR #8: Daily Review settings group in HTML',
+  html.includes('sr-size-chip') && html.includes('sr-topup-toggle') && /Daily Review/.test(html));
+test('v7.22.0 SR #8: top-up toggle styled in dg-system',
+  (function(){ const dg = read('dg-system.css'); return dg.includes('.sr-topup-toggle'); })());
 test('v4.74.0 CSS: .sr-option pickable button styled', css.includes('.sr-option'));
 test('v4.74.0 CSS: .sr-confidence-confident green styled', css.includes('.sr-confidence-confident'));
 test('v4.74.0 CSS: .sr-confidence-uncertain yellow styled', css.includes('.sr-confidence-uncertain'));
@@ -11086,6 +11103,7 @@ test('v4.81.31 SRScrub: vm fixture — order/cli-sim cards filtered out, mcq ret
         getSrDueEntries: () => fakeQueue.slice(),
         loadSrQueue: () => fakeQueue.slice(),
         saveSrQueue: (q) => { savedPayload = q; },
+        loadSrPrefs: () => ({ sessionSize: 30, topUp: true }),
         showToast: () => {},
         showPage: () => {},
         document: {
@@ -11098,7 +11116,7 @@ test('v4.81.31 SRScrub: vm fixture — order/cli-sim cards filtered out, mcq ret
         _srScrubQueue: null,
         getQType: null,
         _STEM_NUMBER_WORDS: { two: 2, three: 3, four: 4, five: 5 },
-        SR_SESSION_CAP: 20,
+        SR_SESSION_CAP: 30,
         Math, parseInt, Number,
         Set, Object, Array, String, console, RegExp
       };
@@ -11152,6 +11170,7 @@ test('v4.81.31 SRScrub: vm fixture — clean queue triggers no scrub write',
         getSrDueEntries: () => fakeQueue.map(c => Object.assign({}, c)),
         loadSrQueue: () => fakeQueue.map(c => Object.assign({}, c)),
         saveSrQueue: () => { saveCallCount++; },
+        loadSrPrefs: () => ({ sessionSize: 30, topUp: true }),
         showToast: () => {},
         showPage: () => {},
         document: {
@@ -11164,7 +11183,7 @@ test('v4.81.31 SRScrub: vm fixture — clean queue triggers no scrub write',
         _srScrubQueue: null,
         getQType: null,
         _STEM_NUMBER_WORDS: { two: 2, three: 3, four: 4, five: 5 },
-        SR_SESSION_CAP: 20,
+        SR_SESSION_CAP: 30,
         Math, parseInt, Number,
         Set, Object, Array, String, console, RegExp
       };
@@ -12019,14 +12038,15 @@ test('v4.84.0 NetAnalysis CSS: reduced-motion gate kills transitions',
 // on the next session or via the completion-screen "Continue" button.
 // ═══════════════════════════════════════════════════════════════════════
 
-test('v4.85.1 SRSessionCap: SR_SESSION_CAP constant declared at 20',
-  /const\s+SR_SESSION_CAP\s*=\s*20\b/.test(js));
+test('v7.22.0 SRSessionCap: SR_SESSION_CAP constant declared at 30 (#8, was 20)',
+  /const\s+SR_SESSION_CAP\s*=\s*30\b/.test(js));
 
-test('v4.85.1 SRSessionCap: startSrReview caps due array to SR_SESSION_CAP',
+test('v7.22.0 SRSessionCap: startSrReview caps due array to the chosen size (#8)',
   (() => {
     const body = _fnBody(js, 'startSrReview');
-    return body && /due\.length\s*>\s*SR_SESSION_CAP/.test(body)
-      && /due\s*=\s*due\.slice\(0,\s*SR_SESSION_CAP\)/.test(body);
+    return body && /loadSrPrefs\(\)/.test(body)
+      && /due\.length\s*>\s*_srCap/.test(body)
+      && /due\s*=\s*due\.slice\(0,\s*_srCap\)/.test(body);
   })());
 
 test('v4.85.1 SRSessionCap: startSrReview records totalDueCount for completion screen',
@@ -12068,8 +12088,8 @@ test('v4.85.1 SRSessionCap: CSS — .sr-remaining-text declared',
 test('v4.85.1 SRSessionCap: CSS — mobile breakpoint for .sr-remaining-row',
   css.includes('.sr-remaining-row') && /flex-direction:\s*column/.test(css));
 
-// vm-fixture: 30 due cards → session contains exactly 20 + totalDueCount=30
-test('v4.85.1 SRSessionCap: vm fixture — session capped at SR_SESSION_CAP with totalDueCount preserved',
+// vm-fixture: 40 due cards → session contains exactly 30 (cap) + totalDueCount=40
+test('v7.22.0 SRSessionCap: vm fixture — session capped at SR_SESSION_CAP with totalDueCount preserved',
   (() => {
     try {
       const body = _fnBody(js, 'startSrReview');
@@ -12081,13 +12101,14 @@ test('v4.85.1 SRSessionCap: vm fixture — session capped at SR_SESSION_CAP with
       const getQTypeBody = _fnBody(js, 'getQType');
       // Build 30 fake due mcq cards
       const fakeQueue = [];
-      for (let i = 0; i < 30; i++) {
+      for (let i = 0; i < 40; i++) {
         fakeQueue.push({ id: 'card-' + i, type: 'mcq', question: 'Q' + i + '?', options: { A: 'a', B: 'b', C: 'c', D: 'd' }, answer: 'A', nextReview: 0, graduated: false });
       }
       const ctx = {
         getSrDueEntries: () => fakeQueue.map(c => Object.assign({}, c)),
         loadSrQueue: () => fakeQueue.map(c => Object.assign({}, c)),
         saveSrQueue: () => {},
+        loadSrPrefs: () => ({ sessionSize: 30, topUp: true }),
         showToast: () => {},
         showPage: () => {},
         document: {
@@ -12100,7 +12121,7 @@ test('v4.85.1 SRSessionCap: vm fixture — session capped at SR_SESSION_CAP with
         _srScrubQueue: null,
         getQType: null,
         _STEM_NUMBER_WORDS: { two: 2, three: 3, four: 4, five: 5 },
-        SR_SESSION_CAP: 20,
+        SR_SESSION_CAP: 30,
         Math, parseInt, Number,
         Set, Object, Array, String, console, RegExp
       };
@@ -12114,13 +12135,13 @@ test('v4.85.1 SRSessionCap: vm fixture — session capped at SR_SESSION_CAP with
 
       const session = ctx._srSession;
       if (!session) return false;
-      // Session should have exactly SR_SESSION_CAP (20) cards
-      const cappedCorrectly = session.cards.length === 20;
-      // totalDueCount should preserve the original 30
-      const totalPreserved = session.totalDueCount === 30;
+      // Session should have exactly SR_SESSION_CAP (30) cards
+      const cappedCorrectly = session.cards.length === 30;
+      // totalDueCount should preserve the original 40
+      const totalPreserved = session.totalDueCount === 40;
       // First card should be card-0 (slice preserves order)
       const orderPreserved = session.cards[0].id === 'card-0'
-        && session.cards[19].id === 'card-19';
+        && session.cards[29].id === 'card-29';
       return cappedCorrectly && totalPreserved && orderPreserved;
     } catch (e) { return false; }
   })());
@@ -12144,6 +12165,7 @@ test('v4.85.1 SRSessionCap: vm fixture — small queue not capped, totalDueCount
         getSrDueEntries: () => fakeQueue.map(c => Object.assign({}, c)),
         loadSrQueue: () => fakeQueue.map(c => Object.assign({}, c)),
         saveSrQueue: () => {},
+        loadSrPrefs: () => ({ sessionSize: 30, topUp: true }),
         showToast: () => {},
         showPage: () => {},
         document: {
@@ -12156,7 +12178,7 @@ test('v4.85.1 SRSessionCap: vm fixture — small queue not capped, totalDueCount
         _srScrubQueue: null,
         getQType: null,
         _STEM_NUMBER_WORDS: { two: 2, three: 3, four: 4, five: 5 },
-        SR_SESSION_CAP: 20,
+        SR_SESSION_CAP: 30,
         Math, parseInt, Number,
         Set, Object, Array, String, console, RegExp
       };
@@ -12244,6 +12266,7 @@ test('v4.85.2 SRQualityScrub: vm fixture — stem-vs-answer-count mismatch scrub
         getSrDueEntries: () => fakeQueue.map(c => Object.assign({}, c)),
         loadSrQueue: () => fakeQueue.map(c => Object.assign({}, c)),
         saveSrQueue: (q) => { savedQueue = q; },
+        loadSrPrefs: () => ({ sessionSize: 30, topUp: true }),
         showToast: () => {},
         showPage: () => {},
         document: {
@@ -12256,7 +12279,7 @@ test('v4.85.2 SRQualityScrub: vm fixture — stem-vs-answer-count mismatch scrub
         _srScrubQueue: null,
         getQType: null,
         _STEM_NUMBER_WORDS: { two: 2, three: 3, four: 4, five: 5 },
-        SR_SESSION_CAP: 20,
+        SR_SESSION_CAP: 30,
         Math, parseInt, Number,
         Set, Object, Array, String, console, RegExp
       };
@@ -12301,6 +12324,7 @@ test('v4.85.2 SRQualityScrub: vm fixture — clean queue triggers no quality-scr
         getSrDueEntries: () => goodCards.map(c => Object.assign({}, c)),
         loadSrQueue: () => goodCards.map(c => Object.assign({}, c)),
         saveSrQueue: () => { saveCallCount++; },
+        loadSrPrefs: () => ({ sessionSize: 30, topUp: true }),
         showToast: () => {},
         showPage: () => {},
         document: {
@@ -12313,7 +12337,7 @@ test('v4.85.2 SRQualityScrub: vm fixture — clean queue triggers no quality-scr
         _srScrubQueue: null,
         getQType: null,
         _STEM_NUMBER_WORDS: { two: 2, three: 3, four: 4, five: 5 },
-        SR_SESSION_CAP: 20,
+        SR_SESSION_CAP: 30,
         Math, parseInt, Number,
         Set, Object, Array, String, console, RegExp
       };
@@ -12425,6 +12449,7 @@ test('v4.81.28 SR: vm fixture — re-enrollment heals legacy null-answer entry',
           try { return JSON.parse(storage['srq'] || '[]'); } catch { return []; }
         },
         saveSrQueue: (q) => { storage['srq'] = JSON.stringify(q); },
+        loadSrPrefs: () => ({ sessionSize: 30, topUp: true }),
         _srHash: (s) => 'h_' + s.length, // stub hash
         _srSchedule: (entry) => { entry.intervalDays = 1; return entry; },
         SR_QUEUE_CAP: 200,
@@ -12475,6 +12500,7 @@ test('v4.81.28 SR: vm fixture — order/cli-sim/topology types not enrolled',
           try { return JSON.parse(storage['srq'] || '[]'); } catch { return []; }
         },
         saveSrQueue: (q) => { storage['srq'] = JSON.stringify(q); },
+        loadSrPrefs: () => ({ sessionSize: 30, topUp: true }),
         _srHash: (s) => 'h_' + s.length,
         _srSchedule: (entry) => entry,
         SR_QUEUE_CAP: 200,

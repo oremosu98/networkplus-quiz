@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v7.21.0
+// Network+ AI Quiz — app.js  v7.22.0
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '7.21.0';
+const APP_VERSION = '7.22.0';
 // v4.99.45 (Phase 6b): expose APP_VERSION on window so the web-vitals
 // collector (lib/web-vitals-collector.js, loaded BEFORE app.js so its
 // PerformanceObservers attach earlier) can stamp this version onto every
@@ -862,6 +862,7 @@ const STORAGE = {
   STREAK: 'nplus_streak',
   WRONG_BANK: 'nplus_wrong_bank',
   SR_QUEUE: 'nplus_sr_queue',
+  SR_PREFS: 'nplus_sr_prefs',     // #8: review session prefs (sessionSize, topUp)
   REPORTS: 'nplus_reports',
   BUG_REPORTS: 'nplus_bug_reports', // v5.6.x bug-report drawer retry queue
   TB_V3_DRAFT: 'nplus_tb_v3_draft', // v6.x topology-builder v3 canvas state (Net+ only)
@@ -3397,10 +3398,21 @@ function graduateFromBank(questionText) {
 // different surfaces, can co-exist without conflict.
 // ══════════════════════════════════════════
 const SR_QUEUE_CAP = 500;
-const SR_SESSION_CAP = 20;            // max cards per review session (~10 min)
+const SR_SESSION_CAP = 30;            // #8: max cards per review session (was 20; ~15 min at 30)
 const SR_GRADUATION_STREAK = 3;       // correct streak needed to graduate
 const SR_GRADUATION_EASE = 2.5;       // ease factor needed at graduation
 const SR_GRADUATION_INTERVAL = 30;    // days interval needed at graduation
+
+// #8: review session preferences (session size + top-up). Cloud-flushed like
+// the queue. sessionSize is 10 | 20 | 30 | 'all' (capped at SR_SESSION_CAP).
+function loadSrPrefs() {
+  try { return Object.assign({ sessionSize: 30, topUp: true }, JSON.parse(localStorage.getItem(STORAGE.SR_PREFS) || '{}')); }
+  catch (e) { return { sessionSize: 30, topUp: true }; }
+}
+function saveSrPrefs(prefs) {
+  try { localStorage.setItem(STORAGE.SR_PREFS, JSON.stringify(prefs)); } catch (e) {}
+  if (typeof _cloudFlush === 'function') _cloudFlush(STORAGE.SR_PREFS);
+}
 
 function loadSrQueue() {
   try { return JSON.parse(localStorage.getItem(STORAGE.SR_QUEUE) || '[]'); }
@@ -3670,8 +3682,13 @@ function startSrReview() {
   // homepage "N remaining" prompt. 20 cards × ~30s = ~10 min, which is the
   // sweet spot for SR retention without fatigue (Anki best-practice range).
   const totalDueCount = due.length;
-  if (due.length > SR_SESSION_CAP) {
-    due = due.slice(0, SR_SESSION_CAP);
+  // #8: cap to the user's chosen session size (default 30; hard ceiling SR_SESSION_CAP).
+  const _srPrefs = loadSrPrefs();
+  const _srCap = (_srPrefs.sessionSize === 'all')
+    ? due.length
+    : Math.min(_srPrefs.sessionSize || SR_SESSION_CAP, SR_SESSION_CAP);
+  if (due.length > _srCap) {
+    due = due.slice(0, _srCap);
   }
   _srSession = {
     cards: due,
@@ -17876,6 +17893,8 @@ function renderSettingsPage() {
   if (typeof syncSettingsDailyGoal === 'function') syncSettingsDailyGoal();
   // v4.54.16: render the exam-date chip using the shared _buildExamDateChipHtml helper
   if (typeof syncSettingsExamDate === 'function') syncSettingsExamDate();
+  // #8: sync the Daily Review session-size chips + top-up toggle
+  if (typeof renderSrSettings === 'function') renderSrSettings();
   // v4.81.2: refresh the auto-backup list every time Settings opens so the
   // user sees what's available + can restore/download from any snapshot.
   if (typeof renderAutoBackupList === 'function') renderAutoBackupList();
@@ -18073,6 +18092,42 @@ function saveSettingsDailyGoal() {
   // Re-sync preset highlight
   syncSettingsDailyGoal();
   if (typeof showSuccessToast === 'function') showSuccessToast(`Daily goal saved \u2014 ${v} questions/day`);
+}
+
+// #8: Daily Review (spaced repetition) settings — session size + top-up.
+function pickSrSessionSize(n) {
+  const prefs = loadSrPrefs();
+  prefs.sessionSize = n;
+  saveSrPrefs(prefs);
+  renderSrSettings();
+  if (typeof showSuccessToast === 'function') {
+    showSuccessToast('Review session size: ' + (n === 'all' ? 'all due cards' : n + ' cards'));
+  }
+}
+function toggleSrTopUp() {
+  const prefs = loadSrPrefs();
+  prefs.topUp = !prefs.topUp;
+  saveSrPrefs(prefs);
+  renderSrSettings();
+}
+function renderSrSettings() {
+  const prefs = loadSrPrefs();
+  // Bind listeners once (no inline on* handlers — keeps the Sec-P7 ratchet falling).
+  document.querySelectorAll('.sr-size-chip').forEach(c => {
+    const v = c.getAttribute('data-size');
+    if (!c._srBound) {
+      c._srBound = true;
+      c.addEventListener('click', () => pickSrSessionSize(v === 'all' ? 'all' : parseInt(v, 10)));
+    }
+    const match = (v === 'all') ? (prefs.sessionSize === 'all') : (parseInt(v, 10) === prefs.sessionSize);
+    c.classList.toggle('is-active', match);
+  });
+  const tog = document.getElementById('sr-topup-toggle');
+  if (tog) {
+    if (!tog._srBound) { tog._srBound = true; tog.addEventListener('click', toggleSrTopUp); }
+    tog.classList.toggle('is-on', !!prefs.topUp);
+    tog.setAttribute('aria-checked', prefs.topUp ? 'true' : 'false');
+  }
 }
 
 // ── Sidebar collapse ──

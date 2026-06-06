@@ -111,6 +111,7 @@ npx playwright test              # E2E (tests/e2e/app.spec.js)
 
 | Version | Features Added |
 |---|---|
+| v7.22.0 | SR Phase 3 — right-sized sessions (#8): session-size setting + cap 30 + Daily Review settings group |
 | v7.21.0 | SR Phase 2 — missed-card recap (#2) + review feeds the daily streak (#4) |
 | v7.20.0 | SR Phase 1 — same-session retry (#1) + why-it's-due microcopy (#5) |
 | v7.19.5 | Strip tablet-audit (~40MB dev-only) from prod deploy + build.test guard; CLAUDE.md size-figure refresh + version-history trim; /ship skill + git-mv convention |
