@@ -7527,6 +7527,48 @@ test('v7.28.0 titles: _syncPageHeaderCert defined (cert name + code) and wired i
     && (() => { const b = _fnBody(js, '_syncPageHeaderCert'); return b && /CERT_PACK\.meta\.name/.test(b) && /CERT_CODE/.test(b); })());
 test('v7.28.0 settings: study-setup sections default to full width (kills the desktop 1/12 squish)',
   (() => { const dg = read('dg-system.css'); return /\[data-group="study-setup"\]\s*section\.settings-section\{grid-column:1 \/ -1;\}/.test(dg); })());
+// ── Cloud cert-keying: SR cloud state scoped to metadata.sr.<certId> (gated) ──
+test('cloud cert-keying: _ccCert reads window.CURRENT_CERT (subdomain-derived)',
+  (() => { const cjs = read('cloud-store.js'); return /function\s+_ccCert\s*\(/.test(cjs) && /window\.CURRENT_CERT/.test(cjs); })());
+test('cloud cert-keying: buildJsonb writes sr per-cert (out.sr[cert].queue), never flat sr_queue',
+  (() => { const b = _fnBody(read('cloud-store.js'), 'buildJsonbFromLocalStorage'); return b && /out\.sr\[cert\]\.queue\s*=\s*parsed/.test(b) && /_ccCert\(\)/.test(b); })());
+test('cloud cert-keying: applyJsonb pulls this cert + legacy sr_queue fallback',
+  (() => { const b = _fnBody(read('cloud-store.js'), 'applyJsonbToLocalStorage'); return b && /cloudKey === 'sr'/.test(b) && /meta\.sr\[cert\]/.test(b) && /cloudKey === 'sr_queue'/.test(b); })());
+test('cloud cert-keying: doFlush read-merge-writes metadata.sr (preserves other certs)',
+  (() => { const b = _fnBody(read('cloud-store.js'), 'doFlush'); return b && /select\('metadata'\)/.test(b) && /Object\.assign\(\{\},\s*existingSr/.test(b); })());
+test('cloud cert-keying: vm — buildJsonb cert-scopes sr_queue, leaves other keys flat',
+  (() => {
+    try {
+      const cjs = read('cloud-store.js');
+      const cc = _fnBody(cjs, '_ccCert'); const build = _fnBody(cjs, 'buildJsonbFromLocalStorage');
+      if (!cc || !build) return false;
+      const vm = require('vm');
+      const store = { 'nplus_sr_queue': JSON.stringify([{ q: 'a' }]), 'nplus_streak': JSON.stringify({ current: 3 }) };
+      const ctx = { USER_DATA_KEYS: new Set(['nplus_sr_queue', 'nplus_streak']), TABLE_BACKED_KEYS: new Set(), localStorage: { getItem: (k) => (k in store ? store[k] : null) }, window: { CURRENT_CERT: 'secplus' }, JSON: JSON, Object: Object };
+      vm.createContext(ctx);
+      const out = vm.runInContext(cc + '\n' + build + '\nbuildJsonbFromLocalStorage();', ctx);
+      return out && out.sr && out.sr.secplus && Array.isArray(out.sr.secplus.queue) && out.sr.secplus.queue[0].q === 'a'
+        && out.sr_queue === undefined && out.streak && out.streak.current === 3;
+    } catch (e) { return false; }
+  })());
+test('cloud cert-keying: vm — applyJsonb extracts this cert; legacy flat sr_queue fallback',
+  (() => {
+    try {
+      const cjs = read('cloud-store.js');
+      const cc = _fnBody(cjs, '_ccCert'); const apply = _fnBody(cjs, 'applyJsonbToLocalStorage');
+      if (!cc || !apply) return false;
+      const vm = require('vm');
+      const sets = {};
+      const ctx = { USER_DATA_KEYS: new Set(['nplus_sr_queue', 'nplus_streak']), TABLE_BACKED_KEYS: new Set(), localStorage: { setItem: (k, v) => { sets[k] = v; } }, window: { CURRENT_CERT: 'secplus' }, JSON: JSON, Object: Object };
+      vm.createContext(ctx);
+      vm.runInContext(cc + '\n' + apply + '\napplyJsonbToLocalStorage({sr:{secplus:{queue:[1,2]},netplus:{queue:[9]}}});', ctx);
+      const perCert = sets['nplus_sr_queue'] === JSON.stringify([1, 2]);   // secplus, not netplus
+      delete sets['nplus_sr_queue'];
+      vm.runInContext('applyJsonbToLocalStorage({sr_queue:[7,7]});', ctx);
+      const legacy = sets['nplus_sr_queue'] === JSON.stringify([7, 7]);     // flat fallback
+      return perCert && legacy;
+    } catch (e) { return false; }
+  })());
 test('v4.74.0 CSS: .sr-option pickable button styled', css.includes('.sr-option'));
 test('v4.74.0 CSS: .sr-confidence-confident green styled', css.includes('.sr-confidence-confident'));
 test('v4.74.0 CSS: .sr-confidence-uncertain yellow styled', css.includes('.sr-confidence-uncertain'));
