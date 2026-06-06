@@ -370,20 +370,24 @@ test.describe('Theme Persistence', () => {
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
   });
 
-  test('theme toggle updates button text', async ({ page }) => {
+  test('theme toggle swaps the SVG icon and persists the theme', async ({ page }) => {
     await page.goto('/');
 
-    // v4.54.0: topbar theme button switches between \u2600 (sun, dark mode) and \u263E (crescent, light mode)
+    // v7.28.0: topbar theme button renders a monoline SVG (sun in dark, moon in
+    // light); the icon swaps on toggle and the data-theme round-trips.
     const btn = page.locator('#topbar-theme');
-    const initial = await btn.textContent();
+    await expect(btn.locator('svg')).toBeVisible();
+    const initialHtml = await btn.innerHTML();
+    const initialTheme = await page.evaluate(() => document.documentElement.getAttribute('data-theme'));
 
     await btn.click();
-    const afterFirst = await btn.textContent();
-    expect(afterFirst).not.toBe(initial);
+    const afterTheme = await page.evaluate(() => document.documentElement.getAttribute('data-theme'));
+    expect(afterTheme).not.toBe(initialTheme);
+    await expect(btn.locator('svg')).toBeVisible();
+    expect(await btn.innerHTML()).not.toBe(initialHtml);  // icon swapped, not wiped
 
     await btn.click();
-    const afterSecond = await btn.textContent();
-    expect(afterSecond).toBe(initial);
+    expect(await page.evaluate(() => document.documentElement.getAttribute('data-theme'))).toBe(initialTheme);
   });
 });
 

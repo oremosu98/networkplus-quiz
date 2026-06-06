@@ -1115,7 +1115,7 @@ test('Label: exam toggle "Strict Mode" (was Hardcore)', html.includes('Strict Mo
 test('Label: no legacy "Hardcore Mode" UI text', !html.includes('Hardcore Mode <span class="hardcore-sub"'));
 // v7.18.0: Settings page header is now the bento mono kicker (matches Analytics/Progress).
 test('Label: Settings page bento kicker heading (v7.18.0: Network+ N10-009 · Settings)',
-  /id="page-settings"[\s\S]{0,800}ana-pagehead-title[^>]*>Network\+ N10-009\s*<span class="ana-ph-dot"[^>]*>&middot;<\/span>\s*Settings/.test(html));
+  /id="page-settings"[\s\S]{0,800}ana-pagehead-title[^>]*><span class="ana-ph-cert">Network\+ N10-009<\/span>\s*<span class="ana-ph-dot"[^>]*>&middot;<\/span>\s*Settings/.test(html));
 test('codex-home: legacy #marathon-section stub + Marathon presets in session picker', html.includes('id="marathon-section"') && html.includes("applyPreset('bulk30')") && html.includes("applyPreset('bulk45')"));
 // Internal code identifiers must NOT have been renamed
 test('Code: examHardcore state var preserved', js.includes('let examHardcore'));
@@ -3473,7 +3473,7 @@ console.log('\n\x1b[1m── v7.2.0 PROGRESS v2 (mastery instrument + domain str
 test('v7.2.0 HTML: progress page uses .ed-pagehead editorial header',
   /id="page-progress"[\s\S]{0,400}class="ed-pagehead"/.test(html));
 test('v7.18.0 HTML: progress page uses the analytics-style mono kicker title (Network+ N10-009 · Progress)',
-  /id="page-progress"[\s\S]{0,800}ana-pagehead-title[^>]*>Network\+ N10-009\s*<span class="ana-ph-dot"[^>]*>&middot;<\/span>\s*Progress/.test(html));
+  /id="page-progress"[\s\S]{0,800}ana-pagehead-title[^>]*><span class="ana-ph-cert">Network\+ N10-009<\/span>\s*<span class="ana-ph-dot"[^>]*>&middot;<\/span>\s*Progress/.test(html));
 test('v4.51.0 HTML: regression — old inline-styled flex header removed',
   !html.includes('<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">'));
 test('v4.51.0 HTML: regression — old inline legend dots removed from header',
@@ -4563,9 +4563,9 @@ test('v4.54.9 CSS: .ed-pagehead-eyebrow monospace small-caps with leading-dash p
 test('v4.54.9 HTML: Review page uses .ed-pagehead with italic-accent "Every answer."',
   /id="page-review"[\s\S]{0,400}class="ed-pagehead"[\s\S]{0,1000}Every\s*<em>answer\.<\/em>/.test(html));
 test('v4.54.9 HTML: Progress page uses .ed-pagehead with the analytics-style kicker title',
-  /id="page-progress"[\s\S]{0,500}class="ed-pagehead"[\s\S]{0,1000}ana-pagehead-title[^>]*>Network\+ N10-009/.test(html));
+  /id="page-progress"[\s\S]{0,500}class="ed-pagehead"[\s\S]{0,1000}ana-pagehead-title[^>]*><span class="ana-ph-cert">Network\+ N10-009/.test(html));
 test('v7.18.0 HTML: Settings page uses .ed-pagehead with the bento kicker title',
-  /id="page-settings"[\s\S]{0,500}class="ed-pagehead"[\s\S]{0,1000}ana-pagehead-title[^>]*>Network\+ N10-009/.test(html));
+  /id="page-settings"[\s\S]{0,500}class="ed-pagehead"[\s\S]{0,1000}ana-pagehead-title[^>]*><span class="ana-ph-cert">Network\+ N10-009/.test(html));
 
 // Exam parity: progress dots + kbd hints + wrongExplain
 test('v4.54.9 HTML: Exam page has #exam-prog-dots segmented progress container',
@@ -7517,6 +7517,16 @@ test('v7.27.0 SR #8 fallback: _srTopUpHtml offers AI-gen only when an API key is
 test('v7.27.0 SR #8 fallback: gen launcher bound in JS, no inline onclick (Sec-P7)',
   (() => { const b = _fnBody(js, '_srEndReview'); return b && /sr-topup-gen-btn/.test(b) && /startSrGenTopUp/.test(b); })()
     && !/id="sr-topup-gen-btn"[^>]*onclick/.test(js));
+// ── v7.28.0 post-ship fixes: cert-specific page titles + theme-toggle icon + Settings desktop layout ──
+test('v7.28.0 theme: _syncTopbarTheme injects an SVG icon (sun/moon), not a bare glyph',
+  (() => { const b = _fnBody(js, '_syncTopbarTheme'); return b && /topbar-theme/.test(b) && /<svg/.test(b) && /isLight\s*\?\s*moon\s*:\s*sun/.test(b); })());
+test('v7.28.0 titles: .ana-ph-cert spans wrap the cert text on all 3 page headers',
+  (html.match(/ana-ph-cert/g) || []).length >= 3);
+test('v7.28.0 titles: _syncPageHeaderCert defined (cert name + code) and wired into init',
+  /function\s+_syncPageHeaderCert\s*\(/.test(js) && /_syncPageHeaderCert\(\)/.test(js)
+    && (() => { const b = _fnBody(js, '_syncPageHeaderCert'); return b && /CERT_PACK\.meta\.name/.test(b) && /CERT_CODE/.test(b); })());
+test('v7.28.0 settings: study-setup sections default to full width (kills the desktop 1/12 squish)',
+  (() => { const dg = read('dg-system.css'); return /\[data-group="study-setup"\]\s*section\.settings-section\{grid-column:1 \/ -1;\}/.test(dg); })());
 test('v4.74.0 CSS: .sr-option pickable button styled', css.includes('.sr-option'));
 test('v4.74.0 CSS: .sr-confidence-confident green styled', css.includes('.sr-confidence-confident'));
 test('v4.74.0 CSS: .sr-confidence-uncertain yellow styled', css.includes('.sr-confidence-uncertain'));

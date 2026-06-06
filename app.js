@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v7.27.0
+// Network+ AI Quiz — app.js  v7.28.0
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '7.27.0';
+const APP_VERSION = '7.28.0';
 // v4.99.45 (Phase 6b): expose APP_VERSION on window so the web-vitals
 // collector (lib/web-vitals-collector.js, loaded BEFORE app.js so its
 // PerformanceObservers attach earlier) can stamp this version onto every
@@ -18865,7 +18865,24 @@ function _syncTopbarTheme() {
   const btn = document.getElementById('topbar-theme');
   if (!btn) return;
   const isLight = document.documentElement.getAttribute('data-theme') === 'light';
-  btn.innerHTML = isLight ? '\u263E' : '\u2600';  // crescent for light, sun for dark
+  // Monoline SVG (sun in dark, moon in light) matching the other topbar icons.
+  // A bare \u2600/\u263E glyph rendered near-invisibly at 15px (the old bug).
+  const sun = '<svg viewBox="0 0 24 24" fill="none" width="15" height="15" aria-hidden="true"><circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.6"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>';
+  const moon = '<svg viewBox="0 0 24 24" fill="none" width="15" height="15" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>';
+  btn.innerHTML = isLight ? moon : sun;
+}
+
+// Page-header cert label (Progress / Analytics / Settings). Those titles are
+// static "Network+ N10-009" in index.html; populate them from the active cert
+// pack so each cert subdomain shows its own name + code (mirrors the bento
+// topbar's vendor-prefix strip).
+function _syncPageHeaderCert() {
+  const els = document.querySelectorAll('.ana-ph-cert');
+  if (!els.length) return;
+  const name = (typeof CERT_PACK === 'object' && CERT_PACK && CERT_PACK.meta && CERT_PACK.meta.name) ? CERT_PACK.meta.name : 'CompTIA Network+';
+  const code = (typeof CERT_CODE !== 'undefined' && CERT_CODE) ? CERT_CODE : 'N10-009';
+  const label = String(name).replace(/^(CompTIA|Microsoft|Amazon|AWS)\s+/, '') + ' ' + code;
+  els.forEach(function (el) { el.textContent = label; });
 }
 
 // ── v4.54.0 init ──
@@ -18874,6 +18891,7 @@ function _v454Init() {
     _initSidebarCollapsed();
     _topbarStartClock();
     _syncTopbarTheme();
+    _syncPageHeaderCert();   // cert-specific Progress/Analytics/Settings titles
     // v4.54.17: render the persistent exam countdown on load
     if (typeof renderTopbarCountdown === 'function') renderTopbarCountdown();
     // Observe theme changes so the topbar icon stays in sync

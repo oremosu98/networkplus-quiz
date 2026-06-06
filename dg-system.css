@@ -1778,6 +1778,7 @@ html[data-theme] body #page-settings .ed-pagehead-back:hover{border-color:var(--
 #page-settings .settings-group[data-group]:first-of-type{margin-top:30px;}
 #page-settings .settings-group-head{grid-column:1 / -1;}
 #page-settings #settings-health-card{grid-column:1 / -1;}
+#page-settings [data-group="study-setup"] section.settings-section{grid-column:1 / -1;}
 #page-settings [data-group="study-setup"] section.settings-section:nth-of-type(2){grid-column:span 7;}
 #page-settings [data-group="study-setup"] section.settings-section:nth-of-type(3){grid-column:span 5;}
 #page-settings [data-group="data-backups"] section.settings-section:nth-of-type(1){grid-column:span 5;}
