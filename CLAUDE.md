@@ -111,6 +111,7 @@ npx playwright test              # E2E (tests/e2e/app.spec.js)
 
 | Version | Features Added |
 |---|---|
+| v7.25.0 | SR Phase 6a: lapse-aware partial reset (#3) — wrong drops interval to ~30% of prior, not hard 1 |
 | v7.24.0 | SR Phase 5: exam-aware scheduling (#7) — interval cap to exam day, weak/blueprint front-load, countdown |
 | v7.23.0 | SR Phase 4: review forecast (#6) — 7-day due-by-day projection on home tile + complete screen |
 | v7.22.0 | SR Phase 3 — right-sized sessions (#8): session-size setting + cap 30 + Daily Review settings group |

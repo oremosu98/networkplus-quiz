@@ -7231,15 +7231,13 @@ test('v4.74.0 helpers: getSrStats defined',
   /function\s+getSrStats\s*\(/.test(js));
 
 // SM-2 algorithm correctness — vm-sandbox the schedule fn
-test('v4.74.0 algorithm: wrong answer resets interval to 1 day', (() => {
-  // Simulate the algorithm directly (no need to extract)
-  const entry = { intervalDays: 30, easeFactor: 2.5, correctStreak: 5, attempts: 5, graduated: true };
-  // Apply 'wrong' outcome
-  entry.intervalDays = 1;
-  entry.easeFactor = Math.max(1.3, entry.easeFactor - 0.20);
-  entry.correctStreak = 0;
-  entry.graduated = false;
-  return entry.intervalDays === 1 && entry.easeFactor === 2.3 && !entry.graduated;
+// v7.25.0 (#3 lapse-aware): a wrong answer now drops the interval to ~30% of
+// prior (floor 1d), not a hard reset to 1. Mature lapses relearn faster.
+test('v7.25.0 algorithm (#3): wrong drops interval to ~30% of prior (floor 1), ease -0.20', (() => {
+  const prior = 30;
+  const newInterval = Math.max(1, Math.round(prior * 0.30)); // 9
+  const newEase = Math.max(1.3, 2.5 - 0.20);                 // 2.3
+  return newInterval === 9 && newEase === 2.3;
 })());
 test('v4.74.0 algorithm: correct-confident grows interval by ease factor', (() => {
   const entry = { intervalDays: 7, easeFactor: 2.5 };
@@ -7316,7 +7314,7 @@ test('v4.74.0 CSS: .sr-card review card styled',
 test('v7.20.0 SR data: lapses field defaulted in addToSrQueue',
   js.includes('lapses: 0,'));
 test('v7.20.0 SR data: _srSchedule increments lapses on wrong',
-  /outcome === 'wrong'[\s\S]{0,200}entry\.lapses\s*=\s*\(entry\.lapses/.test(js));
+  (() => { const b = _fnBody(js, '_srSchedule'); return b && /outcome === 'wrong'/.test(b) && /entry\.lapses\s*=\s*\(entry\.lapses\s*\|\|\s*0\)\s*\+\s*1/.test(b); })());
 test('v7.20.0 SR #5: why-due microcopy rendered in card',
   js.includes('sr-why-due') && /Rebuilding[\s\S]{0,60}you missed this one last time/.test(js));
 test('v7.20.0 SR #1: same-session retry appends a _retry clone on wrong',
@@ -7446,6 +7444,28 @@ test('v7.24.0 SR #7: vm fixture — _srSchedule exam cap (14d→12, null→75, 7
         + '({a:e1.intervalDays,b:e2.intervalDays,c:e3.intervalDays});';
       const r = vm.runInContext(script, ctx);
       return r.a === 12 && r.b === 75 && r.c === 6 && r.c < r.a;
+    } catch (e) { return false; }
+  })());
+// ── v7.25.0 SR enhancements · Phase 6 (#3 lapse-aware partial reset) ──
+test('v7.25.0 SR #3: SR_LAPSE_FACTOR constant defined (0.30)',
+  /const\s+SR_LAPSE_FACTOR\s*=\s*0\.30/.test(js));
+test('v7.25.0 SR #3: _srSchedule wrong-branch is a partial reset (SR_LAPSE_FACTOR x prior, not hard 1)',
+  (() => { const b = _fnBody(js, '_srSchedule'); return b && /Math\.max\(1,\s*Math\.round\(prior\s*\*\s*SR_LAPSE_FACTOR\)\)/.test(b) && !/entry\.intervalDays\s*=\s*1;/.test(b); })());
+test('v7.25.0 SR #3: vm fixture — wrong on 30d->9, 2d->1, 1d->1, lapses increments',
+  (() => {
+    try {
+      const body = _fnBody(js, '_srSchedule');
+      if (!body) return false;
+      const vm = require('vm');
+      const ctx = { Date: Date, Math: Math, SR_LAPSE_FACTOR: 0.30, SR_GRADUATION_STREAK: 3, SR_GRADUATION_EASE: 2.5, SR_GRADUATION_INTERVAL: 30 };
+      vm.createContext(ctx);
+      const script = body + '\n'
+        + 'const a = _srSchedule({intervalDays:30,easeFactor:2.5,correctStreak:2,lapses:0},"wrong");\n'
+        + 'const b = _srSchedule({intervalDays:2,easeFactor:2.5,lapses:0},"wrong");\n'
+        + 'const c = _srSchedule({intervalDays:1,easeFactor:2.5,lapses:1},"wrong");\n'
+        + '({a:a.intervalDays,al:a.lapses,b:b.intervalDays,c:c.intervalDays,cl:c.lapses,ae:a.easeFactor});';
+      const r = vm.runInContext(script, ctx);
+      return r.a === 9 && r.al === 1 && r.b === 1 && r.c === 1 && r.cl === 2 && Math.abs(r.ae - 2.3) < 0.001;
     } catch (e) { return false; }
   })());
 test('v4.74.0 CSS: .sr-option pickable button styled', css.includes('.sr-option'));

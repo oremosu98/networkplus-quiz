@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v7.24.0
+// Network+ AI Quiz — app.js  v7.25.0
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '7.24.0';
+const APP_VERSION = '7.25.0';
 // v4.99.45 (Phase 6b): expose APP_VERSION on window so the web-vitals
 // collector (lib/web-vitals-collector.js, loaded BEFORE app.js so its
 // PerformanceObservers attach earlier) can stamp this version onto every
@@ -3403,6 +3403,7 @@ const SR_GRADUATION_STREAK = 3;       // correct streak needed to graduate
 const SR_GRADUATION_EASE = 2.5;       // ease factor needed at graduation
 const SR_GRADUATION_INTERVAL = 30;    // days interval needed at graduation
 const SR_EXAM_BUFFER_PCT = 0.15;      // #7: leave 15% of days-to-exam as a final-pass buffer
+const SR_LAPSE_FACTOR = 0.30;         // #3: a wrong answer drops the interval to ~30% of prior (floor 1d), not a hard reset to 1
 
 // #8: review session preferences (session size + top-up). Cloud-flushed like
 // the queue. sessionSize is 10 | 20 | 30 | 'all' (capped at SR_SESSION_CAP).
@@ -3442,7 +3443,12 @@ function _srSchedule(entry, outcome) {
   entry.attempts = (entry.attempts || 0) + 1;
 
   if (outcome === 'wrong') {
-    entry.intervalDays = 1;
+    // #3 lapse-aware partial reset: mature cards relearn faster than fresh
+    // failures, so drop the interval to ~30% of its prior value (floor 1d)
+    // instead of a hard reset to 1. A 30d card returns in ~9d; a young 1-2d
+    // card still returns next day, so the downside stays bounded.
+    const prior = entry.intervalDays || 1;
+    entry.intervalDays = Math.max(1, Math.round(prior * SR_LAPSE_FACTOR));
     entry.easeFactor = Math.max(1.3, (entry.easeFactor || 2.5) - 0.20);
     entry.correctStreak = 0;
     entry.lapses = (entry.lapses || 0) + 1;   // #5: powers the "Rebuilding" microcopy
