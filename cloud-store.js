@@ -266,6 +266,13 @@
     } catch (e) { return []; }
   }
 
+  // Active cert id (subdomain-derived; set by app.js as window.CURRENT_CERT).
+  // SR cloud state is cert-scoped under metadata.sr.<certId> so one cert's sync
+  // cannot overwrite another's (the localStorage queue is already per-subdomain).
+  function _ccCert() {
+    return (typeof window !== 'undefined' && window.CURRENT_CERT) ? window.CURRENT_CERT : 'netplus';
+  }
+
   // Read all USER_DATA keys from localStorage, structure for cloud write
   function buildJsonbFromLocalStorage() {
     var out = {};
@@ -280,6 +287,14 @@
       // Parse JSON-shaped values, leave strings as-is
       var parsed;
       try { parsed = JSON.parse(raw); } catch (e) { parsed = raw; }
+      // Cert-scope the SR queue: metadata.sr.<certId>.queue (never flat sr_queue).
+      if (cloudKey === 'sr_queue') {
+        var cert = _ccCert();
+        if (!out.sr) out.sr = {};
+        if (!out.sr[cert]) out.sr[cert] = {};
+        out.sr[cert].queue = parsed;
+        return;
+      }
       out[cloudKey] = parsed;
     });
     return out;
@@ -288,7 +303,26 @@
   // Inverse of buildJsonbFromLocalStorage — write cloud jsonb back to localStorage
   function applyJsonbToLocalStorage(meta) {
     if (!meta || typeof meta !== 'object') return;
+    var cert = _ccCert();
     Object.keys(meta).forEach(function (cloudKey) {
+      // Cert-scoped SR: pull only THIS cert's queue out of metadata.sr.<certId>.
+      if (cloudKey === 'sr') {
+        var certSr = (meta.sr && meta.sr[cert]) ? meta.sr[cert] : null;
+        if (certSr && certSr.queue != null) {
+          var q = certSr.queue;
+          try { localStorage.setItem('nplus_sr_queue', typeof q === 'string' ? q : JSON.stringify(q)); } catch (e) {}
+        }
+        return;
+      }
+      // Backward-compat: legacy flat metadata.sr_queue (pre-cert-scoping). Only
+      // adopt it when there's no per-cert entry for the active cert, so we never
+      // clobber the new structure. The next flush rewrites it cert-scoped.
+      if (cloudKey === 'sr_queue') {
+        if (meta.sr && meta.sr[cert] && meta.sr[cert].queue != null) return;
+        var v = meta.sr_queue;
+        if (v != null) { try { localStorage.setItem('nplus_sr_queue', typeof v === 'string' ? v : JSON.stringify(v)); } catch (e) {} }
+        return;
+      }
       var localKey = 'nplus_' + cloudKey;
       // Skip non-user-data keys defensively (in case jsonb has extra fields like
       // role / migration_v1_at / etc. that shouldn't pollute localStorage)
@@ -374,11 +408,24 @@
         if (raw) examDate = raw;
       } catch (e) {}
 
-      var update = { metadata: jsonb };
-      if (examDate) update.exam_date = examDate;
-
+      // metadata.sr is cert-scoped, but the column write is a full replace built
+      // from THIS subdomain's localStorage (which only knows its own cert). Read
+      // the existing metadata.sr first and merge ours over it, preserving OTHER
+      // certs' SR sub-objects — otherwise flushing one cert wipes the rest.
+      var writeProfile = function (mergedSr) {
+        if (mergedSr && Object.keys(mergedSr).length) jsonb.sr = mergedSr;
+        var update = { metadata: jsonb };
+        if (examDate) update.exam_date = examDate;
+        return sb.from('profiles').update(update).eq('id', userId);
+      };
       ops.push(
-        sb.from('profiles').update(update).eq('id', userId)
+        sb.from('profiles').select('metadata').eq('id', userId).single().then(function (res) {
+          var existingSr = (res && res.data && res.data.metadata && res.data.metadata.sr) || {};
+          var merged = Object.assign({}, existingSr, (jsonb.sr || {}));   // our cert overrides, others preserved
+          return writeProfile(merged);
+        }, function () {
+          return writeProfile(jsonb.sr);   // read failed — write our cert's sr only
+        })
       );
     }
 
