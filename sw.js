@@ -1,5 +1,5 @@
-// Service Worker v7.29.1 — Network+ Quiz App (Phase C′ cloud-first)
-const CACHE_NAME = 'netplus-v7.29.1';
+// Service Worker v7.30.0 — Network+ Quiz App (Phase C′ cloud-first)
+const CACHE_NAME = 'netplus-v7.30.0';
 const SHELL_ASSETS = [
   './',
   './index.html',

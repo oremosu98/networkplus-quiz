@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CertAnvil · First-run activation concept</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  /* ── Forged-bronze tokens (design/brand/BRAND.md). Dark in :root, light in [data-theme=light]. Light is primary. ── */
+  :root {
+    --bg: oklch(0.16 0.009 275); --surface: oklch(0.205 0.009 275); --surface-2: oklch(0.185 0.009 275);
+    --ink: oklch(0.96 0.006 275); --ink-soft: oklch(0.78 0.010 275); --muted: oklch(0.60 0.013 275);
+    --border: oklch(0.30 0.008 275); --border-soft: oklch(0.26 0.008 275);
+    --accent: oklch(0.80 0.155 64); --accent-bright: oklch(0.86 0.140 70); --accent-deep: oklch(0.70 0.150 62);
+    --on-accent: oklch(0.18 0.020 275); --pass: oklch(0.74 0.150 152); --warn: oklch(0.80 0.130 75);
+    /* page-chrome (outside the phone) */
+    --page-bg: oklch(0.22 0.012 275); --page-ink: oklch(0.92 0.008 275); --page-dim: oklch(0.66 0.012 275);
+  }
+  [data-theme="light"] {
+    --bg: oklch(0.975 0.007 85); --surface: oklch(0.992 0.004 85); --surface-2: oklch(0.965 0.010 84);
+    --ink: oklch(0.22 0.015 280); --ink-soft: oklch(0.36 0.014 280); --muted: oklch(0.50 0.013 280);
+    --border: oklch(0.86 0.008 85); --border-soft: oklch(0.91 0.006 85);
+    --accent: oklch(0.50 0.155 55); --accent-bright: oklch(0.80 0.155 64); --accent-deep: oklch(0.42 0.150 52);
+    --on-accent: oklch(0.985 0.010 85); --pass: oklch(0.52 0.13 150); --warn: oklch(0.62 0.14 70);
+    --page-bg: oklch(0.93 0.010 84); --page-ink: oklch(0.28 0.015 280); --page-dim: oklch(0.46 0.013 280);
+  }
+  :root { --text: var(--ink); --text-mid: var(--ink-soft); --text-dim: var(--muted); --ease: cubic-bezier(0.16,1,0.3,1); }
+
+  * { box-sizing: border-box; }
+  html { color-scheme: light dark; }
+  body {
+    margin: 0; background: var(--page-bg); color: var(--page-ink);
+    font: 15px/1.55 Inter, -apple-system, BlinkMacSystemFont, sans-serif;
+    padding: 28px 20px 60px; transition: background .35s var(--ease), color .35s var(--ease);
+  }
+  .stage { max-width: 760px; margin: 0 auto; }
+
+  /* page header */
+  .stage-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
+  .stage-eyebrow { font-size: 10.5px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent-bright); margin: 0 0 6px; }
+  .stage-title { font-family: Fraunces, Georgia, serif; font-weight: 600; font-size: 22px; letter-spacing: -0.01em; margin: 0; color: var(--page-ink); }
+  .stage-sub { color: var(--page-dim); font-size: 13px; margin: 4px 0 0; }
+  .theme-toggle {
+    flex: 0 0 auto; display: inline-flex; align-items: center; gap: 7px; font: 600 12px/1 Inter, sans-serif;
+    color: var(--accent-bright); background: transparent; border: 1px solid color-mix(in oklab, var(--accent-bright) 38%, var(--page-dim));
+    border-radius: 999px; padding: 8px 13px; cursor: pointer; transition: transform .15s var(--ease), background .2s;
+  }
+  .theme-toggle svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+  .theme-toggle:active { transform: scale(0.97); }
+
+  /* ── Phone frame ── */
+  .phone-wrap { display: flex; flex-direction: column; align-items: center; }
+  .phone {
+    width: 390px; height: 800px; border-radius: 46px; padding: 12px;
+    background: linear-gradient(160deg, #20232b, #0e0f13); position: relative;
+    box-shadow: 0 30px 80px -28px rgba(0,0,0,0.55), 0 0 0 1.5px rgba(255,255,255,0.06) inset;
+    flex: 0 0 auto;
+  }
+  .phone-screen {
+    position: relative; width: 366px; height: 776px; border-radius: 36px; overflow: hidden;
+    background: var(--bg); color: var(--text); transition: background .35s var(--ease), color .35s var(--ease);
+  }
+  .notch { position: absolute; top: 9px; left: 50%; transform: translateX(-50%); width: 116px; height: 26px; background: #0e0f13; border-radius: 0 0 16px 16px; z-index: 40; }
+  .statusbar { position: absolute; top: 0; left: 0; right: 0; height: 44px; display: flex; align-items: center; justify-content: space-between; padding: 0 22px; font-size: 12.5px; font-weight: 650; color: var(--text); z-index: 30; }
+  .statusbar .sb-right { display: inline-flex; gap: 6px; align-items: center; }
+  .sb-bars { width: 17px; height: 11px; border: 1.4px solid var(--text); border-radius: 3px; position: relative; opacity: .9; }
+  .sb-bars::after { content: ""; position: absolute; inset: 1.6px; right: 5px; background: var(--text); border-radius: 1px; }
+
+  /* screen scroll area */
+  .screens { position: absolute; inset: 44px 0 0; overflow: hidden; }
+  /* inactive screens hide instantly (no transition); only the incoming active screen fades in, so two layers never blend */
+  .screen { position: absolute; inset: 0; padding: 8px 22px 26px; overflow-y: auto; background: var(--bg); z-index: 1; opacity: 0; visibility: hidden; transform: translateY(8px); }
+  .screen.active { opacity: 1; visibility: visible; transform: none; z-index: 2; transition: opacity .42s var(--ease), transform .42s var(--ease); }
+  .screen::-webkit-scrollbar { width: 0; }
+
+  /* shared bits */
+  .kicker { font-size: 10.5px; font-weight: 800; letter-spacing: 0.13em; text-transform: uppercase; color: var(--accent); margin: 0 0 10px; }
+  .kicker.neutral { color: var(--text-dim); }
+  h2.s-title { font-family: Fraunces, Georgia, serif; font-weight: 600; font-size: 27px; line-height: 1.1; letter-spacing: -0.02em; margin: 0 0 10px; color: var(--text); }
+  .s-body { font-size: 14.5px; line-height: 1.5; color: var(--text-mid); margin: 0 0 18px; }
+  .s-foot { position: sticky; bottom: 0; padding-top: 12px; background: linear-gradient(to top, var(--bg) 72%, transparent); }
+
+  .btn { display: block; width: 100%; text-align: center; font: 700 15px/1 Inter, sans-serif; border-radius: 13px; padding: 16px 18px; cursor: pointer; border: 1px solid transparent; transition: transform .15s var(--ease), filter .2s; }
+  .btn:active { transform: scale(0.978); }
+  .btn-primary { background: var(--accent); color: var(--on-accent); border-color: var(--accent-deep); }
+  @media (hover:hover){ .btn-primary:hover { filter: brightness(1.04); } }
+  .btn-ghost { background: transparent; color: var(--accent); border: 1px solid color-mix(in oklab, var(--accent) 32%, var(--border)); margin-top: 9px; }
+  .btn[disabled] { opacity: .45; pointer-events: none; }
+  .micro { text-align: center; font-size: 12px; color: var(--text-dim); margin: 11px 0 0; }
+  .btn:focus-visible, .nav-btn:focus-visible, .add-cert:focus-visible, .theme-toggle:focus-visible, .dots button:focus-visible, .cert-row:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  /* monogram */
+  .mono { width: 60px; height: 60px; }
+  .mono path { stroke: var(--accent); fill: none; }
+
+  /* ── S1 lobby ── */
+  .lobby { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px; }
+  .lobby .wordmark { font-family: Fraunces, serif; font-weight: 600; font-size: 21px; letter-spacing: -0.01em; color: var(--text); }
+  .skeleton { width: 210px; display: grid; gap: 10px; }
+  .sk-line { height: 11px; border-radius: 999px; background: linear-gradient(90deg, var(--surface-2) 0%, color-mix(in oklab, var(--accent) 16%, var(--surface-2)) 50%, var(--surface-2) 100%); background-size: 200% 100%; animation: shimmer 1.4s var(--ease) infinite; }
+  .sk-line.short { width: 62%; margin: 0 auto; }
+  @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+  .lobby .note { font-size: 12.5px; color: var(--text-dim); }
+
+  /* ── cert picker ── */
+  .cert-list { display: grid; gap: 8px; margin: 2px 0 10px; }
+  .cert-row { display: flex; align-items: center; gap: 13px; padding: 13px 14px; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); cursor: pointer; transition: border-color .18s var(--ease), background .18s var(--ease); }
+  .cert-row:active { transform: scale(0.992); }
+  .cert-row.sel { border-color: var(--accent); background: color-mix(in oklab, var(--accent) 8%, var(--surface)); }
+  .lettermark { flex: 0 0 auto; width: 42px; height: 42px; border-radius: 11px; display: grid; place-items: center; font: 800 13px/1 Inter, sans-serif; letter-spacing: 0.01em; color: var(--accent); background: color-mix(in oklab, var(--accent) 12%, transparent); border: 1px solid color-mix(in oklab, var(--accent) 22%, var(--border)); }
+  .cert-row.sel .lettermark { color: var(--on-accent); background: var(--accent); border-color: var(--accent-deep); }
+  .cert-meta { flex: 1 1 auto; min-width: 0; }
+  .cert-name { font-weight: 650; font-size: 14.5px; color: var(--text); }
+  .cert-vendor { font-size: 12px; color: var(--text-dim); margin-top: 2px; }
+  .cert-check { flex: 0 0 auto; width: 20px; height: 20px; opacity: 0; }
+  .cert-row.sel .cert-check { opacity: 1; }
+  .cert-check svg { width: 20px; height: 20px; stroke: var(--accent); fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+
+  /* reassurance row */
+  .reassure { display: flex; align-items: center; gap: 10px; padding: 13px 15px; border-radius: 13px; background: color-mix(in oklab, var(--accent) 7%, var(--surface)); border: 1px solid color-mix(in oklab, var(--accent) 16%, var(--border)); margin-bottom: 18px; }
+  .reassure svg { flex: 0 0 auto; width: 19px; height: 19px; stroke: var(--accent); fill: none; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+  .reassure span { font-size: 13px; color: var(--text-mid); line-height: 1.4; }
+  .reassure b { color: var(--text); font-weight: 650; }
+
+  /* ── readiness instrument ── */
+  .readiness { text-align: center; margin: 8px 0 6px; }
+  .readiness .label { font-size: 11px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-dim); }
+  .readiness .num { display: block; font-family: Fraunces, Georgia, serif; font-weight: 600; font-size: clamp(76px, 24vw, 96px); line-height: 1; letter-spacing: -0.03em; color: var(--text); font-variant-numeric: lining-nums tabular-nums; font-feature-settings: "lnum","tnum"; margin-top: 6px; }
+  .readiness .outof { font-size: 12px; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; color: var(--text-dim); margin-top: 2px; }
+  .delta { display: inline-flex; align-items: center; gap: 5px; margin-top: 12px; padding: 6px 12px; border-radius: 999px; font-size: 13px; font-weight: 700; color: var(--pass); background: color-mix(in oklab, var(--pass) 12%, transparent); border: 1px solid color-mix(in oklab, var(--pass) 26%, transparent); opacity: 0; transform: translateY(4px) scale(0.92); transition: opacity .32s var(--ease), transform .42s cubic-bezier(0.34, 1.4, 0.64, 1); }
+  .delta.show { opacity: 1; transform: none; }
+  .delta svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+
+  .bar-wrap { margin: 20px 2px 6px; }
+  .bar-track { position: relative; height: 9px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--border-soft); overflow: visible; }
+  .bar-fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 999px; background: linear-gradient(90deg, var(--accent-deep), var(--accent)); width: 0; transition: width 1s var(--ease); }
+  .bar-tick { position: absolute; top: -7px; bottom: -7px; width: 2px; background: var(--text-mid); left: 80%; border-radius: 2px; }
+  .bar-legend { display: flex; justify-content: space-between; margin-top: 9px; font-size: 11px; color: var(--text-dim); }
+  .bar-legend .pass { color: var(--text-mid); font-weight: 700; }
+  .honest { font-size: 12.5px; line-height: 1.5; color: var(--text-dim); margin: 16px 2px 0; }
+
+  .gap-stat { text-align: center; font-size: 14px; color: var(--text-mid); margin: 16px 0 0; }
+  .gap-stat b { color: var(--text); font-weight: 700; }
+
+  /* weak chip */
+  .chip { display: inline-flex; align-items: center; gap: 7px; padding: 7px 13px; border-radius: 999px; background: color-mix(in oklab, var(--accent) 11%, var(--surface)); border: 1px solid color-mix(in oklab, var(--accent) 22%, var(--border)); font-size: 12.5px; font-weight: 650; color: var(--accent); }
+  .chip .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+  .center { text-align: center; }
+
+  /* habit card */
+  .card { border: 1px solid var(--border); border-radius: 16px; background: var(--surface); padding: 18px; box-shadow: 0 1px 0 color-mix(in oklab, var(--text) 4%, transparent), 0 16px 36px -22px color-mix(in oklab, var(--text) 20%, transparent); }
+  .card.focal { background: var(--accent); color: var(--on-accent); border-color: var(--accent-deep); }
+  .review-card { display: flex; align-items: center; gap: 14px; }
+  .review-ring { flex: 0 0 auto; width: 54px; height: 54px; border-radius: 14px; display: grid; place-items: center; background: color-mix(in oklab, var(--on-accent) 16%, transparent); border: 1px solid color-mix(in oklab, var(--on-accent) 26%, transparent); }
+  .review-ring .n { font-family: Fraunces, serif; font-weight: 600; font-size: 24px; color: var(--on-accent); font-variant-numeric: lining-nums; }
+  .review-card .rc-title { font-weight: 700; font-size: 15px; color: var(--on-accent); }
+  .review-card .rc-sub { font-size: 12.5px; color: color-mix(in oklab, var(--on-accent) 78%, transparent); margin-top: 2px; }
+  .streak { display: inline-flex; align-items: center; gap: 7px; margin-top: 14px; font-size: 12.5px; color: var(--text-dim); }
+  .streak b { color: var(--text); }
+
+  /* ── free home ── */
+  .home-top { display: flex; align-items: center; justify-content: space-between; padding: 2px 0 14px; }
+  .home-cert { display: flex; align-items: center; gap: 10px; }
+  .home-cert .lettermark { width: 34px; height: 34px; border-radius: 9px; font-size: 11px; }
+  .home-cert .ct { font-weight: 700; font-size: 14px; color: var(--text); }
+  .home-cert .cv { font-size: 11px; color: var(--text-dim); margin-top: 1px; }
+  .acct { width: 30px; height: 30px; border-radius: 50%; background: color-mix(in oklab, var(--accent) 16%, var(--surface)); border: 1px solid color-mix(in oklab, var(--accent) 26%, var(--border)); display: grid; place-items: center; font-weight: 800; font-size: 12px; color: var(--accent); }
+
+  .ready-mini { display: flex; align-items: baseline; gap: 9px; }
+  .ready-mini .n { font-family: Fraunces, serif; font-weight: 600; font-size: 40px; line-height: 1; letter-spacing: -0.02em; color: var(--text); font-variant-numeric: lining-nums tabular-nums; font-feature-settings: "lnum","tnum"; }
+  .ready-mini .of { font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-dim); }
+
+  .plan-title { font-size: 11px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-dim); margin: 4px 0 11px; }
+  .meter { margin-bottom: 14px; }
+  .meter:last-child { margin-bottom: 0; }
+  .meter-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 8px; }
+  .meter-name { font-size: 13.5px; font-weight: 650; color: var(--text); }
+  .meter-count { font-size: 12px; color: var(--text-dim); }
+  .pips { display: flex; gap: 5px; }
+  .pip { flex: 1 1 0; height: 7px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--border-soft); }
+  .pip.on { background: var(--accent); border-color: var(--accent-deep); }
+  .thinbar { height: 7px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--border-soft); overflow: hidden; }
+  .thinbar i { display: block; height: 100%; width: 100%; background: linear-gradient(90deg, var(--accent-deep), var(--accent)); }
+
+  .add-cert { display: flex; align-items: center; gap: 11px; padding: 13px 15px; border-radius: 13px; border: 1px dashed color-mix(in oklab, var(--accent) 34%, var(--border)); background: transparent; cursor: pointer; margin-top: 4px; transition: border-color .18s var(--ease), background .18s var(--ease), transform .15s var(--ease); }
+  .add-cert:active { transform: scale(0.985); }
+  @media (hover:hover){ .add-cert:hover { background: color-mix(in oklab, var(--accent) 5%, transparent); border-color: color-mix(in oklab, var(--accent) 50%, var(--border)); } }
+  .add-cert .plus { flex: 0 0 auto; width: 26px; height: 26px; border-radius: 8px; display: grid; place-items: center; color: var(--accent); background: color-mix(in oklab, var(--accent) 10%, transparent); font-weight: 700; }
+  .add-cert .ac-txt { flex: 1 1 auto; font-size: 13.5px; font-weight: 600; color: var(--text-mid); }
+  .pro-tag { font: 800 9.5px/1 Inter, sans-serif; letter-spacing: 0.08em; text-transform: uppercase; color: var(--on-accent); background: var(--accent); border-radius: 999px; padding: 4px 8px; }
+
+  .stack { display: grid; gap: 12px; }
+  .mt18 { margin-top: 18px; } .mt14 { margin-top: 14px; } .mt10 { margin-top: 10px; }
+
+  /* ── controls below phone ── */
+  .controls { display: flex; align-items: center; gap: 16px; margin-top: 22px; }
+  .nav-btn { display: inline-flex; align-items: center; gap: 7px; font: 650 13px/1 Inter, sans-serif; color: var(--page-ink); background: transparent; border: 1px solid color-mix(in oklab, var(--page-ink) 22%, transparent); border-radius: 999px; padding: 10px 16px; cursor: pointer; transition: transform .15s var(--ease), background .2s; }
+  .nav-btn:active { transform: scale(0.97); }
+  .nav-btn[disabled] { opacity: .4; pointer-events: none; }
+  .nav-btn svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .dots { display: flex; gap: 8px; flex: 1 1 auto; justify-content: center; }
+  .dots button { width: 9px; height: 9px; border-radius: 50%; border: none; padding: 0; background: color-mix(in oklab, var(--page-ink) 24%, transparent); cursor: pointer; transition: transform .2s var(--ease), background .2s; }
+  .dots button.on { background: var(--accent-bright); transform: scale(1.25); }
+  .screen-name { text-align: center; margin-top: 14px; font-size: 13px; color: var(--page-dim); }
+  .screen-name b { color: var(--page-ink); font-weight: 650; }
+
+  /* reduced motion: keep gentle opacity fades (comprehension), drop transform motion + the shimmer loop */
+  @media (prefers-reduced-motion: reduce) {
+    .sk-line { animation: none; background: var(--surface-2); }
+    .screen { transform: none; }
+    .screen.active { transition: opacity .2s ease; }
+    .bar-fill { transition: none; }
+    .delta { transform: none; transition: opacity .2s ease; }
+    .delta.show { transform: none; }
+  }
+  @media (max-width: 430px) { .phone { transform: scale(0.92); transform-origin: top center; } }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="stage-head">
+    <div>
+      <p class="stage-eyebrow">Concept mockup · not prod · review before lifting</p>
+      <h1 class="stage-title">First-run activation flow</h1>
+      <p class="stage-sub">The new surfaces that do not exist yet. Click through the 7 screens. Light is primary; toggle for dark.</p>
+    </div>
+    <button id="themeBtn" class="theme-toggle" type="button" aria-pressed="false"></button>
+  </div>
+
+  <div class="phone-wrap">
+    <div class="phone">
+      <div class="phone-screen">
+        <div class="notch"></div>
+        <div class="statusbar"><span>9:41</span><span class="sb-right"><span>5G</span><span class="sb-bars"></span></span></div>
+
+        <div class="screens">
+
+          <!-- S1 · LOBBY RESOLVE -->
+          <section class="screen" data-screen="0">
+            <div class="lobby">
+              <svg class="mono" viewBox="0 0 48 48" aria-hidden="true">
+                <path d="M31 14a11 11 0 1 0 0 20" stroke-width="3.6" stroke-linecap="round"/>
+                <path d="M30 33 L37 14" stroke-width="2.6" stroke-linecap="round" opacity="0.55"/>
+                <path d="M21 33 L28 14 M22.5 27 h6.4" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <div class="wordmark">CertAnvil</div>
+              <div class="skeleton">
+                <div class="sk-line"></div>
+                <div class="sk-line short"></div>
+              </div>
+              <div class="note">Getting things ready</div>
+            </div>
+          </section>
+
+          <!-- S2 · CERT PICKER -->
+          <section class="screen" data-screen="1">
+            <p class="kicker">Step 1 of 3</p>
+            <h2 class="s-title">Which exam are you studying for?</h2>
+            <p class="s-body">Pick one to get your readiness score. On the free plan you focus on a single exam at a time.</p>
+            <div class="cert-list">
+              <div class="cert-row sel"><div class="lettermark">N+</div><div class="cert-meta"><div class="cert-name">Network+</div><div class="cert-vendor">CompTIA · N10-009</div></div><span class="cert-check"><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg></span></div>
+              <div class="cert-row"><div class="lettermark">S+</div><div class="cert-meta"><div class="cert-name">Security+</div><div class="cert-vendor">CompTIA · SY0-701</div></div><span class="cert-check"><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg></span></div>
+              <div class="cert-row"><div class="lettermark">A+</div><div class="cert-meta"><div class="cert-name">A+ Core 1</div><div class="cert-vendor">CompTIA · 220-1101</div></div><span class="cert-check"><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg></span></div>
+              <div class="cert-row"><div class="lettermark">AZ</div><div class="cert-meta"><div class="cert-name">AZ-900</div><div class="cert-vendor">Microsoft Azure Fundamentals</div></div><span class="cert-check"><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg></span></div>
+              <div class="cert-row"><div class="lettermark">CLF</div><div class="cert-meta"><div class="cert-name">Cloud Practitioner</div><div class="cert-vendor">AWS · CLF-C02</div></div><span class="cert-check"><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg></span></div>
+            </div>
+            <div class="s-foot">
+              <button class="btn btn-primary">Continue with Network+</button>
+              <p class="micro">8 exams available. Switching between them is a Pro feature.</p>
+            </div>
+          </section>
+
+          <!-- S3 · DIAGNOSTIC INTRO -->
+          <section class="screen" data-screen="2">
+            <p class="kicker">Step 2 of 3</p>
+            <h2 class="s-title">Let's see where you stand.</h2>
+            <p class="s-body">Answer about 15 questions so we can calibrate your readiness. No studying needed. Anything you miss becomes your first review set.</p>
+            <div class="reassure">
+              <svg viewBox="0 0 24 24"><path d="M12 3l7 3v5c0 4.4-3 7.6-7 9-4-1.4-7-4.6-7-9V6l7-3z"/><path d="M9 12l2 2 4-4"/></svg>
+              <span><b>This is calibration, not a test.</b> There is nothing to fail here. A low score just means more room to climb.</span>
+            </div>
+            <div class="s-foot">
+              <button class="btn btn-primary">Start the 15-question check</button>
+              <button class="btn btn-ghost">Skip for now</button>
+              <p class="micro">Takes about 4 minutes, and it does not use your daily questions. You can take it later from your home.</p>
+            </div>
+          </section>
+
+          <!-- S4 · SCORE REVEAL -->
+          <section class="screen" data-screen="3">
+            <p class="kicker neutral">Your readiness today</p>
+            <div class="readiness">
+              <span class="num" id="revealNum">0</span>
+              <div class="outof">out of 900</div>
+            </div>
+            <div class="bar-wrap">
+              <div class="bar-track"><div class="bar-fill" id="revealBar"></div><div class="bar-tick"></div></div>
+              <div class="bar-legend"><span>100</span><span class="pass">Pass 720</span><span>900</span></div>
+            </div>
+            <p class="gap-stat">You are <b>255 points</b> from the Network+ pass mark.</p>
+            <p class="honest">This estimates where you stand today, based on your diagnostic. It is not a prediction or a pass guarantee. It moves as you study.</p>
+            <div class="s-foot">
+              <button class="btn btn-primary">Start closing the gap</button>
+            </div>
+          </section>
+
+          <!-- S5 · MOVEMENT (the aha) -->
+          <section class="screen" data-screen="4">
+            <p class="kicker">Your weakest area</p>
+            <div class="center" style="margin-bottom:18px"><span class="chip"><span class="dot"></span>Subnetting · 5 answered</span></div>
+            <div class="readiness">
+              <span class="num" id="moveNum">465</span>
+              <div class="outof">out of 900</div>
+              <div class="delta" id="moveDelta"><svg viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg><span>+17 today</span></div>
+            </div>
+            <div class="bar-wrap">
+              <div class="bar-track"><div class="bar-fill" id="moveBar"></div><div class="bar-tick"></div></div>
+              <div class="bar-legend"><span>100</span><span class="pass">Pass 720</span><span>900</span></div>
+            </div>
+            <p class="honest">You just moved your readiness. Five questions, seventeen points. That is the whole loop: study a little, watch the number climb.</p>
+            <div class="s-foot">
+              <button class="btn btn-primary">Set up my daily habit</button>
+            </div>
+          </section>
+
+          <!-- S6 · HABIT HOOK -->
+          <section class="screen" data-screen="5">
+            <p class="kicker">You're set up</p>
+            <h2 class="s-title">A few minutes a day is how it sticks.</h2>
+            <p class="s-body">Your diagnostic seeded your first review cards. Spaced practice is what moves the number, so we'll line up a small set each day.</p>
+            <div class="card focal">
+              <div class="review-card">
+                <div class="review-ring"><span class="n">5</span></div>
+                <div><div class="rc-title">Daily Review ready tomorrow</div><div class="rc-sub">5 cards from what you missed today</div></div>
+              </div>
+            </div>
+            <div class="streak"><span>Streak started.</span><b>Day 1</b></div>
+            <div class="s-foot">
+              <button class="btn btn-primary">Go to my home</button>
+            </div>
+          </section>
+
+          <!-- S7 · FREE HOME + QUOTA -->
+          <section class="screen" data-screen="6">
+            <div class="home-top">
+              <div class="home-cert"><div class="lettermark">N+</div><div><div class="ct">Network+</div><div class="cv">N10-009</div></div></div>
+              <div class="acct">SO</div>
+            </div>
+            <div class="card">
+              <p class="kicker neutral" style="margin:0 0 8px">Readiness</p>
+              <div class="ready-mini"><span class="n">482</span><span class="of">/ 900</span></div>
+              <div class="bar-wrap" style="margin:14px 0 0">
+                <div class="bar-track"><div class="bar-fill" style="width:53.6%"></div><div class="bar-tick"></div></div>
+                <div class="bar-legend"><span>238 to pass</span><span class="pass">Pass 720</span></div>
+              </div>
+            </div>
+
+            <p class="plan-title" style="margin-top:20px">Today's plan</p>
+            <div class="card">
+              <div class="meter">
+                <div class="meter-head"><span class="meter-name">Daily Review</span><span class="meter-count">5 cards ready</span></div>
+                <div class="pips"><i class="pip on"></i><i class="pip on"></i><i class="pip on"></i><i class="pip on"></i><i class="pip on"></i></div>
+              </div>
+              <div class="meter">
+                <div class="meter-head"><span class="meter-name">New practice</span><span class="meter-count">15 left today</span></div>
+                <div class="thinbar"><i style="width:100%"></i></div>
+              </div>
+            </div>
+
+            <div class="stack mt18">
+              <button class="btn btn-primary">Start Daily Review</button>
+              <button class="btn btn-ghost">Practice new questions</button>
+            </div>
+
+            <button class="add-cert mt18" type="button">
+              <span class="plus">+</span>
+              <span class="ac-txt">Studying for more than one exam?</span>
+              <span class="pro-tag">Pro</span>
+            </button>
+          </section>
+
+        </div>
+      </div>
+    </div>
+
+    <div class="controls" style="width:390px">
+      <button class="nav-btn" id="prevBtn"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>Back</button>
+      <div class="dots" id="dots"></div>
+      <button class="nav-btn" id="nextBtn">Next<svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg></button>
+    </div>
+    <p class="screen-name" id="screenName"></p>
+  </div>
+</div>
+
+<script>
+  (function () {
+    var NAMES = ["Lobby resolve (no flash of landing)","First-run cert picker","Diagnostic intro (calibration framing)","Readiness score reveal","The +5 movement (the aha)","Habit hook","Free home with quota meter"];
+    var screens = Array.prototype.slice.call(document.querySelectorAll('.screen'));
+    var dotsWrap = document.getElementById('dots');
+    var prevBtn = document.getElementById('prevBtn');
+    var nextBtn = document.getElementById('nextBtn');
+    var nameEl = document.getElementById('screenName');
+    var i = 0, reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    screens.forEach(function (s, idx) {
+      var b = document.createElement('button');
+      b.addEventListener('click', function () { go(idx); });
+      dotsWrap.appendChild(b);
+    });
+    var dots = Array.prototype.slice.call(dotsWrap.children);
+
+    function pct(score) { return ((score - 100) / 800 * 100) + '%'; }
+
+    // count-up with a setTimeout fallback so the final value is correct even if rAF is throttled
+    function animateNum(el, from, to, ms, onDone) {
+      el.textContent = from;
+      if (reduce) { el.textContent = to; if (onDone) onDone(); return; }
+      var start = null, done = false;
+      function finish() { if (done) return; done = true; el.textContent = to; if (onDone) onDone(); }
+      function step(t) {
+        if (done) return;
+        if (start === null) start = t;
+        var p = Math.min((t - start) / ms, 1);
+        el.textContent = Math.round(from + (to - from) * (1 - Math.pow(1 - p, 3)));
+        if (p < 1) requestAnimationFrame(step); else finish();
+      }
+      requestAnimationFrame(step);
+      setTimeout(finish, ms + 250);
+    }
+
+    function onEnter(idx) {
+      if (idx === 3) {
+        var bar = document.getElementById('revealBar');
+        bar.style.transition = 'none'; bar.style.width = '0'; void bar.offsetWidth;  // reflow
+        bar.style.transition = ''; bar.style.width = pct(465);                        // CSS transition animates the fill
+        animateNum(document.getElementById('revealNum'), 0, 465, 1100);
+      }
+      if (idx === 4) {
+        var mbar = document.getElementById('moveBar');
+        var delta = document.getElementById('moveDelta');
+        var num = document.getElementById('moveNum');
+        num.textContent = '465';
+        delta.classList.remove('show');
+        mbar.style.transition = 'none'; mbar.style.width = pct(465); void mbar.offsetWidth;
+        setTimeout(function () {
+          mbar.style.transition = ''; mbar.style.width = pct(482);
+          animateNum(num, 465, 482, 900, function () { delta.classList.add('show'); });
+        }, 420);
+      }
+    }
+
+    function go(idx) {
+      i = Math.max(0, Math.min(screens.length - 1, idx));
+      screens.forEach(function (s, n) { s.classList.toggle('active', n === i); });
+      dots.forEach(function (d, n) { d.classList.toggle('on', n === i); });
+      prevBtn.disabled = (i === 0);
+      nextBtn.disabled = (i === screens.length - 1);
+      nameEl.innerHTML = 'Screen ' + (i + 1) + ' of ' + screens.length + ' · <b>' + NAMES[i] + '</b>';
+      onEnter(i);
+    }
+
+    prevBtn.addEventListener('click', function () { go(i - 1); });
+    nextBtn.addEventListener('click', function () { go(i + 1); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'ArrowRight') go(i + 1); if (e.key === 'ArrowLeft') go(i - 1); });
+
+    // theme toggle
+    var SUN = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2v2.4M12 19.6V22M2 12h2.4M19.6 12H22M4.9 4.9l1.7 1.7M17.4 17.4l1.7 1.7M19.1 4.9l-1.7 1.7M6.6 17.4l-1.7 1.7"/></svg>';
+    var MOON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8Z"/></svg>';
+    var btn = document.getElementById('themeBtn');
+    function syncBtn() {
+      var light = document.documentElement.getAttribute('data-theme') === 'light';
+      btn.innerHTML = (light ? MOON : SUN) + '<span>' + (light ? 'Dark' : 'Light') + '</span>';
+      btn.setAttribute('aria-pressed', String(!light));
+      btn.setAttribute('aria-label', light ? 'Switch to dark mode' : 'Switch to light mode');
+    }
+    btn.addEventListener('click', function () {
+      document.documentElement.setAttribute('data-theme', document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light');
+      syncBtn();
+    });
+
+    syncBtn();
+    go(0);
+  })();
+</script>
+</body>
+</html>

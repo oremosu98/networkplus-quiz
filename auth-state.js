@@ -528,6 +528,13 @@
       if (profile && profile.role && profile.role !== 'user') {
         renderSignedIn(session.user, profile);  // re-render with admin extras
       }
+      // Onboarding lobby (Phase 0, guarded): route once auth + profile resolve.
+      // No-op unless enabled (?onb=1). Runs AFTER hydrate so the activation check
+      // sees cloud-synced readiness; still fires on hydrate failure / no-cloud so
+      // the resolve skeleton never sticks.
+      var _onbRouteSignedIn = function () {
+        try { if (window._onbRoute) window._onbRoute({ isLoggedIn: true, profile: profile }); } catch (_) {}
+      };
       var cs = getCloudStore();
       if (cs) {
         cs.hydrate().then(function () {
@@ -540,10 +547,14 @@
           if (cs.onStatusChange) {
             cs.onStatusChange(updateSyncStatusUI);
           }
+          _onbRouteSignedIn();
         }).catch(function (err) {
           console.warn('[auth-state] hydrate failed (still signed in, just no cloud data yet)', err);
           updateSyncStatusUI();
+          _onbRouteSignedIn();
         });
+      } else {
+        _onbRouteSignedIn();
       }
     });
   }
@@ -559,9 +570,15 @@
   // ── Init ───────────────────────────────────────────────────────────────
   function init() {
     var sb = getSupabase();
+    // Onboarding lobby (Phase 0, guarded): anonymous-launch route. No-op unless
+    // enabled (?onb=1); fires the router's logged-out branch + hides the skeleton.
+    var _onbRouteAnon = function () {
+      try { if (window._onbRoute) window._onbRoute({ isLoggedIn: false }); } catch (_) {}
+    };
     if (!sb) {
       console.warn('[auth-state] Supabase client not ready — rendering anonymous');
       renderAnonymous();
+      _onbRouteAnon();
       return;
     }
 
@@ -572,10 +589,12 @@
         handleSignedIn(session);
       } else {
         renderAnonymous();
+        _onbRouteAnon();
       }
     }).catch(function (err) {
       console.warn('[auth-state] getSession failed, defaulting to anonymous', err);
       renderAnonymous();
+      _onbRouteAnon();
     });
 
     // Subscribe to auth state changes

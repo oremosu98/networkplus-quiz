@@ -111,6 +111,7 @@ npx playwright test              # E2E (tests/e2e/app.spec.js)
 
 | Version | Features Added |
 |---|---|
+| v7.30.0 | Onboarding: lobby router + first-run activation (short calibration) + tier chrome (quota meter + Pro switcher), gated behind ?onb=1 |
 | v7.29.1 | Dark-mode fix: cert-switcher lettermark glyphs were near-white on cream (invisible) |
 | v7.29.0 | SR cloud cert-keying — metadata.sr.<certId> (gated; prevents cross-cert overwrite) |
 | v7.28.0 | Post-ship fixes: cert-specific page titles + theme-toggle icon + Settings desktop layout |
