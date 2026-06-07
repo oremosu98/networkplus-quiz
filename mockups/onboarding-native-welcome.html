@@ -67,7 +67,8 @@
   .welcome.lit .ambient { opacity: 1; }
 
   .brand { display: flex; align-items: center; gap: 9px; justify-content: center; margin-top: 18px; position: relative; z-index: 1; }
-  .brand-mark { width: 30px; height: 30px; border-radius: 9px; background: linear-gradient(160deg, var(--accent-bright), var(--accent-deep)); display: grid; place-items: center; color: var(--on-accent); font: 800 14px/1 Fraunces, serif; box-shadow: 0 6px 16px -8px color-mix(in oklab, var(--accent) 60%, transparent); }
+  .brand-mark { width: 32px; height: 32px; color: var(--accent); display: inline-flex; }
+  .brand-mark svg { width: 100%; height: 100%; }
   .brand-name { font: 700 17px/1 Inter, sans-serif; letter-spacing: -0.01em; color: var(--ink); }
 
   /* the hero gauge */
@@ -84,8 +85,19 @@
   .hero.passed .g-glow { animation: glowpulse .9s var(--ease) forwards; }
   @keyframes glowpulse { 0%{opacity:.9; box-shadow:0 0 0 0 color-mix(in oklab,var(--pass) 50%,transparent);} 100%{opacity:0; box-shadow:0 0 0 26px color-mix(in oklab,var(--pass) 0%,transparent);} }
 
+  /* confetti burst fired once when the score crosses into pass range */
+  .confetti { position: absolute; left: 50%; top: 50%; width: 0; height: 0; z-index: 5; pointer-events: none; }
+  .confetto { position: absolute; left: 0; top: 0; width: 8px; height: 11px; border-radius: 2px; opacity: 0; will-change: transform, opacity;
+    animation: confetti var(--dur, 1.3s) cubic-bezier(0.2,0.7,0.35,1) var(--delay, 0s) forwards; }
+  @keyframes confetti {
+    0% { transform: translate(0,0) rotate(0); opacity: 0; }
+    10% { opacity: 1; }
+    100% { transform: translate(var(--dx), var(--dy)) rotate(var(--rot)); opacity: 0; }
+  }
+  @media (prefers-reduced-motion: reduce) { .confetti { display: none; } }
+
   .g-center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0; }
-  .g-num { font: 600 56px/1 Fraunces, Georgia, serif; letter-spacing: -0.02em; color: var(--ink); font-variant-numeric: tabular-nums; transition: color .45s var(--ease); }
+  .g-num { font: 600 56px/1 Fraunces, Georgia, serif; letter-spacing: -0.02em; color: var(--ink); font-variant-numeric: lining-nums tabular-nums; font-feature-settings: "lnum","tnum"; transition: color .45s var(--ease); }
   .hero.passed .g-num { color: var(--pass); }
   .g-of { font: 700 10.5px/1 Inter, sans-serif; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); margin-top: 9px; }
   .g-pass { margin-top: 14px; font: 700 10px/1 Inter, sans-serif; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
@@ -164,7 +176,13 @@
             <div class="ambient"></div>
 
             <div class="brand reveal">
-              <span class="brand-mark">CA</span>
+              <span class="brand-mark" aria-hidden="true">
+                <svg viewBox="0 0 100 100" fill="none">
+                  <path class="ca-c" d="M58 12 C42 6, 16 16, 14 34 C12 52, 22 62, 42 64" stroke="currentColor" stroke-width="7" stroke-linecap="round"/>
+                  <line class="ca-slash" x1="30" y1="84" x2="70" y2="16" stroke="currentColor" stroke-width="5" stroke-linecap="round" opacity="0.55"/>
+                  <path class="ca-a" d="M46 88 L64 50 L82 88 M53 74 L75 74" stroke="currentColor" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </span>
               <span class="brand-name">CertAnvil</span>
             </div>
 
@@ -181,6 +199,7 @@
                   <div class="g-of">out of 900</div>
                   <div class="g-ready"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6L9 17l-5-5"></path></svg>Pass range</div>
                 </div>
+                <div class="confetti" id="confetti"></div>
               </div>
               <div class="g-pass">Pass mark 720</div>
             </div>
@@ -223,6 +242,26 @@
 
       function setRing(v){ fill.style.strokeDashoffset = (C * (1 - v / MAX)).toFixed(2); }
 
+      var confetti = document.getElementById('confetti'), firedConfetti = false;
+      function burst(){
+        if (reduce || !confetti) return;
+        confetti.innerHTML = '';
+        var palette = ['var(--accent-bright)', 'var(--accent)', 'var(--pass)', 'var(--accent-deep)'];
+        for (var i = 0; i < 42; i++){
+          var p = document.createElement('span'); p.className = 'confetto';
+          var ang = Math.random() * Math.PI * 2, dist = 50 + Math.random() * 120;
+          p.style.setProperty('--dx', Math.round(Math.cos(ang) * dist) + 'px');
+          p.style.setProperty('--dy', Math.round(70 + Math.random() * 280) + 'px');
+          p.style.setProperty('--rot', Math.round(Math.random() * 720 - 360) + 'deg');
+          p.style.setProperty('--dur', (1.0 + Math.random() * 0.8).toFixed(2) + 's');
+          p.style.setProperty('--delay', (Math.random() * 0.12).toFixed(2) + 's');
+          p.style.background = palette[i % palette.length];
+          var w = 6 + Math.random() * 5; p.style.width = Math.round(w) + 'px'; p.style.height = Math.round(w * 1.5) + 'px';
+          confetti.appendChild(p);
+        }
+        setTimeout(function(){ if (confetti) confetti.innerHTML = ''; }, 2400);
+      }
+
       function finalState(){
         if (raf) cancelAnimationFrame(raf);
         num.textContent = END; setRing(END); hero.classList.add('passed'); welcome.classList.add('lit', 'run');
@@ -231,6 +270,7 @@
       function play(){
         if (reduce) { finalState(); return; }
         welcome.classList.remove('run'); hero.classList.remove('passed');
+        firedConfetti = false;
         num.textContent = START; setRing(START);
         void welcome.offsetWidth;                 // reflow so the reveal + transitions restart
         welcome.classList.add('lit', 'run');
@@ -244,7 +284,7 @@
           var v = START + (END - START) * e;
           num.textContent = Math.round(v);
           setRing(v);
-          if (v >= PASS) hero.classList.add('passed');
+          if (v >= PASS) { hero.classList.add('passed'); if (!firedConfetti) { firedConfetti = true; burst(); } }
           if (p < 1) { raf = requestAnimationFrame(tick); } else { num.textContent = END; setRing(END); }
         }
         raf = requestAnimationFrame(tick);
