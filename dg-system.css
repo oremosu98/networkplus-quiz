@@ -3462,6 +3462,25 @@ html[data-theme] body #page-setup .dw-launch{flex:0 0 auto;padding:13px 22px;bor
 @keyframes onbShimmer{0%{background-position:200% 0;}100%{background-position:-200% 0;}}
 @media (prefers-reduced-motion: reduce){.onb-resolve-skel span{animation:none;background:var(--surface2);}}
 
+/* ── Free-tier cert lock wall (sibling of .onb-resolve; tokens => light/dark parity) ── */
+.cl-wall{position:fixed;inset:0;z-index:9100;display:flex;align-items:center;justify-content:center;padding:24px;background:color-mix(in oklab,var(--bg) 90%,transparent);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);animation:clWallIn .32s cubic-bezier(0.16,1,0.3,1);}
+.cl-wall-card{width:100%;max-width:380px;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:34px 26px 26px;text-align:center;box-shadow:0 24px 60px color-mix(in oklab,var(--text) 14%,transparent);animation:clCardIn .36s cubic-bezier(0.16,1,0.3,1);}
+.cl-wall-mark svg{width:52px;height:52px;display:block;margin:0 auto 18px;}
+.cl-wall-title{font-family:'Fraunces',Georgia,serif;font-weight:600;font-size:23px;line-height:1.18;letter-spacing:-0.01em;color:var(--text);margin:0 0 10px;}
+.cl-wall-sub{font:400 14.5px/1.55 Inter,sans-serif;color:var(--text-dim);margin:0 0 22px;}
+.cl-wall-sub strong{color:var(--text);font-weight:600;}
+.cl-wall-actions{display:flex;flex-direction:column;gap:9px;}
+.cl-wall-cta,.cl-wall-pro{display:block;width:100%;text-align:center;font:700 15px/1 Inter,sans-serif;border-radius:13px;padding:16px 18px;cursor:pointer;text-decoration:none;border:1px solid transparent;transition:transform .15s cubic-bezier(0.16,1,0.3,1),filter .2s;}
+.cl-wall-cta{background:var(--accent);color:var(--bg);border-color:var(--accent);}
+.cl-wall-pro{background:transparent;color:var(--accent);border:1px solid color-mix(in oklab,var(--accent) 32%,var(--border));}
+.cl-wall-cta:active,.cl-wall-pro:active{transform:scale(0.978);}
+.cl-wall-cta:focus-visible,.cl-wall-pro:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+@media (hover:hover) and (pointer:fine){.cl-wall-cta:hover{filter:brightness(1.04);}.cl-wall-pro:hover{border-color:color-mix(in oklab,var(--accent) 40%,var(--border));}}
+html.cl-locked,html.cl-locked body{overflow:hidden;}
+@keyframes clWallIn{from{opacity:0;}to{opacity:1;}}
+@keyframes clCardIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+@media (prefers-reduced-motion: reduce){.cl-wall,.cl-wall-card{animation:clWallIn .2s ease;}}  /* keep a gentle opacity fade, drop positional motion */
+
 /* ══ Onboarding tier chrome (Phase 2) · home bar (quota meter · Pro switcher) ═══
    Injected as the first child of the home bento (main.board) by lib/onboarding-home.js,
    only when ?onb=1. Forged-bronze, scoped; never touches the existing home. */
