@@ -7534,8 +7534,47 @@ test('cloud cert-keying: buildJsonb writes sr per-cert (out.sr[cert].queue), nev
   (() => { const b = _fnBody(read('cloud-store.js'), 'buildJsonbFromLocalStorage'); return b && /out\.sr\[cert\]\.queue\s*=\s*parsed/.test(b) && /_ccCert\(\)/.test(b); })());
 test('cloud cert-keying: applyJsonb pulls this cert + legacy sr_queue fallback',
   (() => { const b = _fnBody(read('cloud-store.js'), 'applyJsonbToLocalStorage'); return b && /cloudKey === 'sr'/.test(b) && /meta\.sr\[cert\]/.test(b) && /cloudKey === 'sr_queue'/.test(b); })());
-test('cloud cert-keying: doFlush read-merge-writes metadata.sr (preserves other certs)',
-  (() => { const b = _fnBody(read('cloud-store.js'), 'doFlush'); return b && /select\('metadata'\)/.test(b) && /Object\.assign\(\{\},\s*existingSr/.test(b); })());
+test('cloud cert-keying: doFlush read-merge-writes cert-scoped maps sr/activated/onb_skips (preserves other certs)',
+  (() => { const b = _fnBody(read('cloud-store.js'), 'doFlush'); return b && /select\('metadata'\)/.test(b) && /CERT_SCOPED\s*=\s*\['sr',\s*'activated',\s*'onb_skips'\]/.test(b) && /Object\.assign\(\{\},\s*existing,\s*ours\)/.test(b); })());
+// ── Onboarding rollout gate + activation telemetry (Track A) ──────────────────
+test('onb gate: USER_DATA_KEYS includes nplus_activated + nplus_onb_skips',
+  (() => { const cjs = read('cloud-store.js'); return /'nplus_activated'/.test(cjs) && /'nplus_onb_skips'/.test(cjs); })());
+test('onb gate: buildJsonb cert-scopes activated + onb_skips (metadata.<key>.<certId>)',
+  (() => { const b = _fnBody(read('cloud-store.js'), 'buildJsonbFromLocalStorage'); return b && /cloudKey === 'activated' \|\| cloudKey === 'onb_skips'/.test(b) && /out\[cloudKey\]\[aCert\]\s*=\s*parsed/.test(b); })());
+test('onb gate: applyJsonb pulls this cert slice for activated/onb_skips',
+  (() => { const b = _fnBody(read('cloud-store.js'), 'applyJsonbToLocalStorage'); return b && /cloudKey === 'activated' \|\| cloudKey === 'onb_skips'/.test(b) && /meta\[cloudKey\]\[cert\]/.test(b); })());
+test('onb gate: vm — buildJsonb cert-scopes activated under this cert, not siblings',
+  (() => {
+    try {
+      const cjs = read('cloud-store.js');
+      const cc = _fnBody(cjs, '_ccCert'); const build = _fnBody(cjs, 'buildJsonbFromLocalStorage');
+      if (!cc || !build) return false;
+      const vm = require('vm');
+      const store = { 'nplus_activated': JSON.stringify({ at: 5, baseline: 600, moved: null }) };
+      const ctx = { USER_DATA_KEYS: new Set(['nplus_activated']), TABLE_BACKED_KEYS: new Set(), localStorage: { getItem: (k) => (k in store ? store[k] : null) }, window: { CURRENT_CERT: 'secplus' }, JSON: JSON, Object: Object };
+      vm.createContext(ctx);
+      const out = vm.runInContext(cc + '\n' + build + '\nbuildJsonbFromLocalStorage();', ctx);
+      return out && out.activated && out.activated.secplus && out.activated.secplus.baseline === 600 && out.activated.netplus === undefined;
+    } catch (e) { return false; }
+  })());
+test('onb gate: vm — applyJsonb extracts this cert activated slice (sibling stays cloud-only)',
+  (() => {
+    try {
+      const cjs = read('cloud-store.js');
+      const cc = _fnBody(cjs, '_ccCert'); const apply = _fnBody(cjs, 'applyJsonbToLocalStorage');
+      if (!cc || !apply) return false;
+      const vm = require('vm');
+      const sets = {};
+      const ctx = { USER_DATA_KEYS: new Set(['nplus_activated']), TABLE_BACKED_KEYS: new Set(), localStorage: { setItem: (k, v) => { sets[k] = v; } }, window: { CURRENT_CERT: 'secplus' }, JSON: JSON, Object: Object };
+      vm.createContext(ctx);
+      vm.runInContext(cc + '\n' + apply + '\napplyJsonbToLocalStorage({activated:{secplus:{baseline:700},netplus:{baseline:400}}});', ctx);
+      return sets['nplus_activated'] === JSON.stringify({ baseline: 700 });
+    } catch (e) { return false; }
+  })());
+test('onb gate: onboarding-boot reads app_config via refreshConfig + onb_cfg cache, default off',
+  (() => { const b = read('lib/onboarding-boot.js'); return /app_config/.test(b) && /refreshConfig/.test(b) && /onb_cfg/.test(b) && /onboarding_enabled/.test(b); })());
+test('onb gate: firstrun writes activation (baseline+moved) and skip record',
+  (() => { const f = read('lib/onboarding-firstrun.js'); return /function\s+writeActivation/.test(f) && /function\s+recordSkip/.test(f) && /baseline:\s*real\.calibScore/.test(f) && /nplus_onb_skips/.test(f); })());
 test('cloud cert-keying: vm — buildJsonb cert-scopes sr_queue, leaves other keys flat',
   (() => {
     try {
