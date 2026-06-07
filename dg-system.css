@@ -3342,6 +3342,42 @@ html[data-theme] body #page-setup .dw-launch{flex:0 0 auto;padding:13px 22px;bor
 .onb-resolve{position:fixed;inset:0;z-index:9000;display:flex;align-items:center;justify-content:center;background:var(--bg);color:var(--text);transition:opacity .3s cubic-bezier(0.16,1,0.3,1);}
 .onb-resolve[hidden]{display:none!important;}
 .onb-resolve.onb-resolve-out{opacity:0;pointer-events:none;}
+
+/* ══ Onboarding first-run spine (Phase 1) ════════════════════════════════════
+   Activation sequence overlay, lifted from mockups/onboarding-first-run-concept
+   and mapped to the real dg tokens. Screens rendered by lib/onboarding-firstrun.
+   Mobile-first column, centered on wider viewports. One focal action per screen. */
+.onb-fr{position:fixed;inset:0;z-index:8995;background:var(--bg);color:var(--text);overflow-y:auto;display:flex;justify-content:center;}
+.onb-fr[hidden]{display:none!important;}
+.onb-fr .fr-screen{width:100%;max-width:440px;padding:40px 24px 28px;display:flex;flex-direction:column;min-height:100%;}
+.onb-fr .fr-kicker{font:800 10.5px/1 Inter,sans-serif;letter-spacing:0.13em;text-transform:uppercase;color:var(--accent);margin:0 0 10px;}
+.onb-fr .fr-title{font-family:'Fraunces',Georgia,serif;font-weight:600;font-size:27px;line-height:1.1;letter-spacing:-0.02em;color:var(--text);margin:0 0 10px;}
+.onb-fr .fr-body{font-size:14.5px;line-height:1.5;color:var(--text-mid);margin:0 0 18px;}
+.onb-fr .fr-cert-list{display:flex;flex-direction:column;gap:8px;margin:2px 0 10px;}
+.onb-fr .fr-cert{display:flex;align-items:center;gap:13px;width:100%;text-align:left;padding:13px 14px;border:1px solid var(--border);border-radius:14px;background:var(--surface);cursor:pointer;transition:border-color .18s cubic-bezier(0.16,1,0.3,1),background .18s cubic-bezier(0.16,1,0.3,1),transform .15s cubic-bezier(0.16,1,0.3,1);}
+.onb-fr .fr-cert:active{transform:scale(0.992);}
+.onb-fr .fr-cert:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+.onb-fr .fr-cert.fr-sel{border-color:var(--accent);background:color-mix(in oklab,var(--accent) 8%,var(--surface));}
+.onb-fr .fr-mark{flex:0 0 auto;width:42px;height:42px;border-radius:11px;display:grid;place-items:center;font:800 13px/1 Inter,sans-serif;color:var(--accent);background:color-mix(in oklab,var(--accent) 12%,transparent);border:1px solid color-mix(in oklab,var(--accent) 22%,var(--border));}
+.onb-fr .fr-cert.fr-sel .fr-mark{color:var(--bg);background:var(--accent);border-color:var(--accent);}
+.onb-fr .fr-cmeta{flex:1 1 auto;min-width:0;}
+.onb-fr .fr-cname{display:block;font-weight:650;font-size:14.5px;line-height:1.15;color:var(--text);}
+.onb-fr .fr-cvendor{display:block;font-size:12px;color:var(--text-dim);margin-top:2px;}
+.onb-fr .fr-check{flex:0 0 auto;width:20px;height:20px;opacity:0;}
+.onb-fr .fr-cert.fr-sel .fr-check{opacity:1;}
+.onb-fr .fr-check svg{width:20px;height:20px;stroke:var(--accent);fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;}
+.onb-fr .fr-reassure{display:flex;align-items:flex-start;gap:10px;padding:13px 15px;border-radius:13px;background:color-mix(in oklab,var(--accent) 7%,var(--surface));border:1px solid color-mix(in oklab,var(--accent) 16%,var(--border));margin-bottom:18px;}
+.onb-fr .fr-reassure svg{flex:0 0 auto;width:19px;height:19px;stroke:var(--accent);fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;margin-top:1px;}
+.onb-fr .fr-reassure span{font-size:13px;line-height:1.4;color:var(--text-mid);}
+.onb-fr .fr-reassure b{color:var(--text);font-weight:650;}
+.onb-fr .fr-foot{margin-top:auto;padding-top:18px;}
+.onb-fr .fr-btn{display:block;width:100%;text-align:center;font:700 15px/1 Inter,sans-serif;border-radius:13px;padding:16px 18px;cursor:pointer;border:1px solid transparent;transition:transform .15s cubic-bezier(0.16,1,0.3,1),filter .2s;}
+.onb-fr .fr-btn:active{transform:scale(0.978);}
+.onb-fr .fr-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+.onb-fr .fr-btn-primary{background:var(--accent);color:var(--bg);border-color:var(--accent);}
+.onb-fr .fr-btn-ghost{background:transparent;color:var(--accent);border:1px solid color-mix(in oklab,var(--accent) 32%,var(--border));margin-top:9px;}
+.onb-fr .fr-micro{text-align:center;font-size:12px;line-height:1.45;color:var(--text-dim);margin:11px 0 0;}
+@media (hover:hover) and (pointer:fine){.onb-fr .fr-btn-primary:hover{filter:brightness(1.04);}.onb-fr .fr-cert:hover{border-color:color-mix(in oklab,var(--accent) 40%,var(--border));}}
 .onb-resolve-inner{display:flex;flex-direction:column;align-items:center;gap:20px;padding:24px;}
 .onb-resolve-mark svg{width:58px;height:58px;display:block;}
 .onb-resolve-word{font-family:'Fraunces',Georgia,serif;font-weight:600;font-size:21px;letter-spacing:-0.01em;color:var(--text);}

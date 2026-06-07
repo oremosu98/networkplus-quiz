@@ -181,6 +181,13 @@
 </div>
 
 <!-- ══════════════════════════════════════════
+     ONBOARDING FIRST-RUN (Phase 1) — the activation spine.
+     Screens rendered by lib/onboarding-firstrun.js into this container; launched
+     by the lobby router's 'first-run' decision (guarded). Hidden by default.
+══════════════════════════════════════════ -->
+<div id="onb-firstrun" class="onb-fr" hidden></div>
+
+<!-- ══════════════════════════════════════════
      PERSISTENT APP SIDEBAR (v4.53.0)
      Rendered client-side by renderAppSidebar() so the active state
      stays in sync with showPage(). Mobile: hidden off-screen, opens
@@ -1645,6 +1652,7 @@
      skeleton handler registers before the home-render handler. -->
 <script defer src="lib/router.js"></script>
 <script defer src="lib/onboarding-boot.js"></script>
+<script defer src="lib/onboarding-firstrun.js"></script>
 <script defer src="app.js"></script>
 <!-- codex-home reveal animation. Purely presentational + additive: a
      staggered IntersectionObserver fade-up for #page-setup .reveal blocks,
