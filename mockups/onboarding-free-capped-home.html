@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CertAnvil · Done for today (after declining Pro)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  /* ── Forged-bronze tokens (matches dg-system.css + the onboarding mockups). ── */
+  :root {
+    --bg: oklch(0.15 0.010 275); --surface: oklch(0.205 0.009 275); --surface-2: oklch(0.255 0.010 275);
+    --ink: oklch(0.97 0.006 275); --ink-soft: oklch(0.80 0.010 275); --muted: oklch(0.62 0.013 275);
+    --border: oklch(0.34 0.009 275);
+    --accent: oklch(0.82 0.150 66); --accent-bright: oklch(0.88 0.140 72); --accent-deep: oklch(0.72 0.150 62);
+    --on-accent: oklch(0.18 0.020 275); --pass: oklch(0.78 0.150 152);
+    --page-bg: oklch(0.22 0.012 275); --page-ink: oklch(0.92 0.008 275); --page-dim: oklch(0.66 0.012 275);
+  }
+  [data-theme="light"] {
+    --bg: oklch(0.975 0.007 85); --surface: oklch(0.955 0.009 84); --surface-2: oklch(0.92 0.010 84);
+    --ink: oklch(0.22 0.015 280); --ink-soft: oklch(0.38 0.014 280); --muted: oklch(0.52 0.013 280);
+    --border: oklch(0.85 0.010 85);
+    --accent: oklch(0.55 0.155 55); --accent-bright: oklch(0.62 0.150 58); --accent-deep: oklch(0.46 0.150 52);
+    --on-accent: oklch(0.99 0.008 85); --pass: oklch(0.52 0.13 150);
+    --page-bg: oklch(0.93 0.010 84); --page-ink: oklch(0.28 0.015 280); --page-dim: oklch(0.46 0.013 280);
+  }
+  :root { --ease: cubic-bezier(0.16,1,0.3,1); }
+
+  * { box-sizing: border-box; }
+  html { color-scheme: light dark; }
+  body { margin: 0; background: var(--page-bg); color: var(--page-ink);
+    font: 15px/1.55 Inter, -apple-system, BlinkMacSystemFont, sans-serif; padding: 30px 20px 64px;
+    transition: background .35s var(--ease), color .35s var(--ease); }
+  .stage { max-width: 520px; margin: 0 auto; }
+  .stage-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 24px; }
+  .stage-eyebrow { font-size: 10.5px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; color: var(--accent-bright); margin: 0 0 7px; }
+  .stage-title { font-family: Fraunces, Georgia, serif; font-weight: 600; font-size: 24px; letter-spacing: -0.012em; margin: 0; color: var(--page-ink); }
+  .stage-sub { color: var(--page-dim); font-size: 13px; margin: 7px 0 0; max-width: 48ch; line-height: 1.5; }
+  .theme-toggle { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 7px; font: 600 12px/1 Inter, sans-serif; color: var(--accent-bright);
+    background: transparent; border: 1px solid color-mix(in oklab, var(--accent-bright) 38%, var(--page-dim)); border-radius: 999px; padding: 8px 13px; cursor: pointer; transition: transform .15s var(--ease), background .2s; }
+  .theme-toggle svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+  .theme-toggle:active { transform: scale(0.97); }
+
+  .phone-wrap { display: flex; flex-direction: column; align-items: center; }
+  .phone { width: 390px; height: 844px; border-radius: 52px; padding: 11px; flex: 0 0 auto;
+    background: linear-gradient(165deg, #23262f, #0c0d11); box-shadow: 0 40px 90px -34px rgba(0,0,0,0.6), 0 0 0 1.5px rgba(255,255,255,0.06) inset; }
+  .screen { width: 100%; height: 100%; border-radius: 42px; overflow: hidden; position: relative; background: var(--bg); color: var(--ink);
+    display: flex; flex-direction: column; transition: background .35s var(--ease), color .35s var(--ease); }
+  .notch { position: absolute; top: 9px; left: 50%; transform: translateX(-50%); width: 122px; height: 32px; background: #07080b; border-radius: 18px; z-index: 6; }
+  .statusbar { display: flex; align-items: center; justify-content: space-between; padding: 14px 26px 0; font: 700 13px/1 Inter, sans-serif; color: var(--ink); }
+  .sb-icons { display: inline-flex; gap: 6px; align-items: center; }
+  .sb-icons svg { width: 17px; height: 12px; fill: var(--ink); }
+
+  .home { flex: 1; padding: 10px 20px 24px; overflow-y: auto; }
+  .home::-webkit-scrollbar { width: 0; }
+
+  /* free home bar (capped state) */
+  .hb { border: 1px solid var(--border); border-radius: 16px; background: var(--surface); padding: 14px 15px; margin-top: 8px; }
+  .hb-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+  .hb-cert { display: inline-flex; align-items: center; gap: 9px; min-width: 0; }
+  .hb-mark { flex: 0 0 auto; width: 34px; height: 34px; border-radius: 9px; background: color-mix(in oklab, var(--accent) 14%, var(--surface-2)); color: var(--accent-deep); display: grid; place-items: center; font: 800 13px/1 Inter, sans-serif; }
+  .hb-name { font: 650 15px/1.1 Inter, sans-serif; color: var(--ink); }
+  .hb-code { font: 600 11.5px/1 'Roboto Mono', monospace; color: var(--muted); margin-top: 3px; }
+  .hb-plan { flex: 0 0 auto; font: 800 10px/1 Inter, sans-serif; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); border: 1px solid var(--border); border-radius: 999px; padding: 5px 9px; }
+  .hb-quota { border-top: 1px solid color-mix(in oklab, var(--border) 60%, transparent); padding-top: 4px; }
+  .hb-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 9px 0; }
+  .hb-row + .hb-row { border-top: 1px solid color-mix(in oklab, var(--border) 55%, transparent); }
+  .hb-rn { font-size: 13.5px; color: var(--ink-soft); }
+  .hb-rv { font: 600 13px/1 Inter, sans-serif; color: var(--ink); }
+  .hb-reset { display: inline-flex; align-items: center; gap: 6px; font: 700 11.5px/1 Inter, sans-serif; color: var(--accent-deep); background: color-mix(in oklab, var(--accent) 11%, transparent); border: 1px solid color-mix(in oklab, var(--accent) 28%, var(--border)); border-radius: 999px; padding: 6px 10px; }
+  .hb-reset svg { width: 12px; height: 12px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+  /* done-for-today moment */
+  .done { text-align: center; margin: 24px 4px 6px; }
+  .done .kick { font: 800 10px/1 Inter, sans-serif; letter-spacing: 0.14em; text-transform: uppercase; color: var(--pass); margin-bottom: 9px; display: inline-flex; align-items: center; gap: 7px; }
+  .done .kick svg { width: 14px; height: 14px; stroke: var(--pass); fill: none; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+  .done h2 { font-family: Fraunces, Georgia, serif; font-weight: 600; font-size: 25px; line-height: 1.1; letter-spacing: -0.015em; margin: 0 0 9px; color: var(--ink); }
+  .done p { font-size: 13.5px; line-height: 1.5; color: var(--ink-soft); margin: 0 auto; max-width: 34ch; }
+
+  /* the still-free next action */
+  .review { margin-top: 20px; border: 1px solid color-mix(in oklab, var(--accent) 30%, var(--border)); border-radius: 16px; background: color-mix(in oklab, var(--accent) 6%, var(--surface)); padding: 16px; }
+  .review-head { display: flex; align-items: center; gap: 12px; margin-bottom: 13px; }
+  .review-ring { flex: 0 0 auto; width: 44px; height: 44px; border-radius: 999px; display: grid; place-items: center; background: var(--surface); border: 2px solid color-mix(in oklab, var(--accent) 45%, var(--border)); font-family: Fraunces, serif; font-weight: 600; font-size: 18px; color: var(--accent-deep); font-variant-numeric: lining-nums; font-feature-settings: "lnum"; }
+  .review-t { font: 650 15px/1.1 Inter, sans-serif; color: var(--ink); }
+  .review-s { font-size: 12.5px; color: var(--ink-soft); margin-top: 3px; }
+  .btn-primary { width: 100%; border: none; border-radius: 13px; padding: 14px; cursor: pointer; background: var(--accent); color: var(--on-accent); font: 700 15px/1 Inter, sans-serif;
+    box-shadow: 0 10px 22px -12px color-mix(in oklab, var(--accent) 70%, transparent); transition: transform .15s var(--ease), filter .2s; }
+  .btn-primary:active { transform: scale(0.985); }
+  @media (hover:hover) and (pointer:fine) { .btn-primary:hover { filter: brightness(1.05); } }
+
+  /* soft, re-openable Pro line (not a sheet) */
+  .pro-soft { margin-top: 14px; display: flex; align-items: center; gap: 12px; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); padding: 13px 15px; }
+  .pro-soft .pt { flex: 1 1 auto; min-width: 0; }
+  .pro-soft .pt b { font: 650 13.5px/1.2 Inter, sans-serif; color: var(--ink); }
+  .pro-soft .pt span { display: block; font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .pro-soft .see { flex: 0 0 auto; background: none; border: 1px solid color-mix(in oklab, var(--accent) 40%, var(--border)); border-radius: 999px; padding: 8px 13px; cursor: pointer; font: 650 12.5px/1 Inter, sans-serif; color: var(--accent-bright); transition: background .2s; }
+  @media (hover:hover) and (pointer:fine) { .pro-soft .see:hover { background: color-mix(in oklab, var(--accent) 9%, transparent); } }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .reveal { opacity: 0; transform: translateY(10px); animation: rise .5s var(--ease) forwards; }
+    .hb { animation-delay: .04s; } .done { animation-delay: .12s; } .review { animation-delay: .2s; } .pro-soft { animation-delay: .28s; }
+    @keyframes rise { to { opacity: 1; transform: none; } }
+  }
+  .hint { text-align: center; color: var(--page-dim); font-size: 12px; margin-top: 18px; }
+  @media (max-width: 440px) { .phone { transform: scale(.92); transform-origin: top center; } }
+</style>
+</head>
+<body>
+  <div class="stage">
+    <div class="stage-head">
+      <div>
+        <p class="stage-eyebrow">After declining Pro</p>
+        <h1 class="stage-title">Done for today</h1>
+        <p class="stage-sub">Where a free user lands after closing the Pro sheet. Not a wall: Daily Review is still free, the cap resets tomorrow, and Pro stays a quiet option.</p>
+      </div>
+      <button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle light and dark">
+        <svg id="themeIcon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path></svg>
+        <span id="themeLabel">Dark</span>
+      </button>
+    </div>
+
+    <div class="phone-wrap">
+      <div class="phone">
+        <div class="screen">
+          <div class="notch"></div>
+          <div class="statusbar">
+            <span>9:41</span>
+            <span class="sb-icons">
+              <svg viewBox="0 0 18 12" aria-hidden="true"><rect x="0" y="7" width="3" height="5" rx="1"/><rect x="5" y="4" width="3" height="8" rx="1"/><rect x="10" y="1" width="3" height="11" rx="1" opacity="0.4"/></svg>
+              <svg viewBox="0 0 18 12" aria-hidden="true"><rect x="1" y="2" width="14" height="8" rx="2.4" fill="none" stroke="currentColor" stroke-width="1.4"/><rect x="2.6" y="3.6" width="9" height="4.8" rx="1.2"/><rect x="16" y="4.6" width="1.4" height="2.8" rx="0.7"/></svg>
+            </span>
+          </div>
+
+          <div class="home">
+            <div class="hb reveal">
+              <div class="hb-top">
+                <div class="hb-cert"><span class="hb-mark">N+</span><span><span class="hb-name">Network+</span><div class="hb-code">N10-009</div></span></div>
+                <span class="hb-plan">Free</span>
+              </div>
+              <div class="hb-quota">
+                <div class="hb-row"><span class="hb-rn">Daily Review</span><span class="hb-rv">5 cards due</span></div>
+                <div class="hb-row"><span class="hb-rn">New practice</span><span class="hb-reset"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>15 of 15 · resets in 5h</span></div>
+              </div>
+            </div>
+
+            <div class="done reveal">
+              <span class="kick"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6L9 17l-5-5"></path></svg>Done for today</span>
+              <h2>That's today's 15 done.</h2>
+              <p>Your streak is safe. Daily Review still moves your readiness, and 15 fresh questions unlock in about 5 hours.</p>
+            </div>
+
+            <div class="review reveal">
+              <div class="review-head">
+                <div class="review-ring">5</div>
+                <div><div class="review-t">Daily Review</div><div class="review-s">5 cards from what you've missed, about 3 minutes. Still free today.</div></div>
+              </div>
+              <button class="btn-primary" type="button">Start review</button>
+            </div>
+
+            <div class="pro-soft reveal">
+              <div class="pt"><b>Hitting the cap a lot?</b><span>Pro removes the daily limit.</span></div>
+              <button class="see" type="button">See Pro</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="hint">The Pro sheet stays one tap away (See Pro), never forced.</p>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      var html = document.documentElement, label = document.getElementById('themeLabel'), icon = document.getElementById('themeIcon');
+      var sun = '<circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path>';
+      var moon = '<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"></path>';
+      function paint(){ var dark = html.getAttribute('data-theme') !== 'light'; label.textContent = dark ? 'Light' : 'Dark'; icon.innerHTML = dark ? moon : sun; }
+      document.getElementById('themeToggle').addEventListener('click', function(){ html.setAttribute('data-theme', html.getAttribute('data-theme') === 'light' ? 'dark' : 'light'); paint(); });
+      paint();
+    })();
+  </script>
+</body>
+</html>

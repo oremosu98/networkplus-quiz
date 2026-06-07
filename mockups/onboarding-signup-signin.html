@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CertAnvil · Sign up / Sign in concept</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  /* ── Forged-bronze tokens (matches dg-system.css + the welcome mockup). Dark :root, light override; light is primary. ── */
+  :root {
+    --bg: oklch(0.15 0.010 275); --surface: oklch(0.205 0.009 275); --surface-2: oklch(0.255 0.010 275);
+    --ink: oklch(0.97 0.006 275); --ink-soft: oklch(0.80 0.010 275); --muted: oklch(0.62 0.013 275);
+    --border: oklch(0.34 0.009 275);
+    --accent: oklch(0.82 0.150 66); --accent-bright: oklch(0.88 0.140 72); --accent-deep: oklch(0.72 0.150 62);
+    --on-accent: oklch(0.18 0.020 275);
+    --apple-bg: oklch(0.98 0.004 275); --apple-fg: oklch(0.16 0.010 275);   /* white button on dark */
+    --page-bg: oklch(0.22 0.012 275); --page-ink: oklch(0.92 0.008 275); --page-dim: oklch(0.66 0.012 275);
+  }
+  [data-theme="light"] {
+    --bg: oklch(0.985 0.006 85); --surface: oklch(0.965 0.008 84); --surface-2: oklch(0.93 0.010 84);
+    --ink: oklch(0.22 0.015 280); --ink-soft: oklch(0.38 0.014 280); --muted: oklch(0.52 0.013 280);
+    --border: oklch(0.85 0.010 85);
+    --accent: oklch(0.55 0.155 55); --accent-bright: oklch(0.62 0.150 58); --accent-deep: oklch(0.46 0.150 52);
+    --on-accent: oklch(0.99 0.008 85);
+    --apple-bg: oklch(0.17 0.010 280); --apple-fg: oklch(0.98 0.004 85);    /* black button on light */
+    --page-bg: oklch(0.93 0.010 84); --page-ink: oklch(0.28 0.015 280); --page-dim: oklch(0.46 0.013 280);
+  }
+  :root { --ease: cubic-bezier(0.16,1,0.3,1); }
+
+  * { box-sizing: border-box; }
+  html { color-scheme: light dark; }
+  body { margin: 0; background: var(--page-bg); color: var(--page-ink);
+    font: 15px/1.55 Inter, -apple-system, BlinkMacSystemFont, sans-serif; padding: 30px 20px 64px;
+    transition: background .35s var(--ease), color .35s var(--ease); }
+  .stage { max-width: 520px; margin: 0 auto; }
+  .stage-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 24px; }
+  .stage-eyebrow { font-size: 10.5px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; color: var(--accent-bright); margin: 0 0 7px; }
+  .stage-title { font-family: Fraunces, Georgia, serif; font-weight: 600; font-size: 24px; letter-spacing: -0.012em; margin: 0; color: var(--page-ink); }
+  .stage-sub { color: var(--page-dim); font-size: 13px; margin: 7px 0 0; max-width: 46ch; line-height: 1.5; }
+  .theme-toggle { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 7px; font: 600 12px/1 Inter, sans-serif; color: var(--accent-bright);
+    background: transparent; border: 1px solid color-mix(in oklab, var(--accent-bright) 38%, var(--page-dim)); border-radius: 999px; padding: 8px 13px; cursor: pointer; transition: transform .15s var(--ease), background .2s; }
+  .theme-toggle svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+  .theme-toggle:active { transform: scale(0.97); }
+
+  /* phone */
+  .phone-wrap { display: flex; flex-direction: column; align-items: center; }
+  .phone { width: 390px; height: 844px; border-radius: 52px; padding: 11px; flex: 0 0 auto;
+    background: linear-gradient(165deg, #23262f, #0c0d11); box-shadow: 0 40px 90px -34px rgba(0,0,0,0.6), 0 0 0 1.5px rgba(255,255,255,0.06) inset; }
+  .screen { width: 100%; height: 100%; border-radius: 42px; overflow: hidden; position: relative; background: var(--bg); color: var(--ink);
+    display: flex; flex-direction: column; transition: background .35s var(--ease), color .35s var(--ease); }
+  .notch { position: absolute; top: 9px; left: 50%; transform: translateX(-50%); width: 122px; height: 32px; background: #07080b; border-radius: 18px; z-index: 6; }
+  .statusbar { display: flex; align-items: center; justify-content: space-between; padding: 14px 26px 0; font: 700 13px/1 Inter, sans-serif; color: var(--ink); }
+  .sb-icons { display: inline-flex; gap: 6px; align-items: center; }
+  .sb-icons svg { width: 17px; height: 12px; fill: var(--ink); }
+
+  /* auth layout */
+  .auth { flex: 1; display: flex; flex-direction: column; padding: 6px 28px 26px; }
+  .topbar { display: flex; align-items: center; gap: 10px; margin-top: 12px; }
+  .back { width: 36px; height: 36px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface); display: grid; place-items: center; cursor: pointer; color: var(--ink-soft); transition: transform .15s var(--ease); }
+  .back:active { transform: scale(0.95); }
+  .back svg { width: 17px; height: 17px; stroke: currentColor; fill: none; stroke-width: 2.1; stroke-linecap: round; stroke-linejoin: round; }
+  .brand-mark { width: 26px; height: 26px; color: var(--accent); display: inline-flex; margin-left: 2px; }
+  .brand-mark svg { width: 100%; height: 100%; }
+  .brand-name { font: 700 15px/1 Inter, sans-serif; letter-spacing: -0.01em; color: var(--ink); }
+
+  .auth-body { display: flex; flex-direction: column; margin-top: 30px; }
+  .auth-title { font-family: Fraunces, Georgia, serif; font-weight: 600; font-size: 27px; line-height: 1.1; letter-spacing: -0.015em; margin: 0; color: var(--ink); }
+  .auth-sub { font-size: 14px; color: var(--ink-soft); margin: 9px 0 0; }
+  .auth-sub b { color: var(--accent-deep); font-weight: 650; }
+
+  .segmented { display: grid; grid-template-columns: 1fr 1fr; gap: 3px; margin: 22px 0 20px; padding: 4px; background: var(--surface); border: 1px solid var(--border); border-radius: 13px; }
+  .seg { border: none; background: transparent; border-radius: 9px; padding: 10px; cursor: pointer; font: 650 13.5px/1 Inter, sans-serif; color: var(--muted); transition: color .2s, background .2s, box-shadow .2s; }
+  .seg.active { color: var(--ink); background: var(--bg); box-shadow: 0 1px 3px -1px color-mix(in oklab, var(--ink) 20%, transparent); }
+
+  .view { display: none; flex-direction: column; gap: 12px; }
+  .view.active { display: flex; }
+
+  .btn-apple { display: inline-flex; align-items: center; justify-content: center; gap: 9px; width: 100%; border: none; border-radius: 14px; padding: 15px; cursor: pointer;
+    background: var(--apple-bg); color: var(--apple-fg); font: 600 15px/1 Inter, sans-serif; transition: transform .15s var(--ease), filter .2s; }
+  .btn-apple svg { width: 17px; height: 17px; fill: currentColor; margin-top: -1px; }
+  .btn-apple:active { transform: scale(0.985); }
+  .btn-primary { width: 100%; border: none; border-radius: 14px; padding: 15px; cursor: pointer; background: var(--accent); color: var(--on-accent); font: 700 15px/1 Inter, sans-serif;
+    box-shadow: 0 12px 26px -14px color-mix(in oklab, var(--accent) 70%, transparent); transition: transform .15s var(--ease), filter .2s; }
+  .btn-primary:active { transform: scale(0.985); }
+  .btn-outline { width: 100%; border: 1px solid var(--border); border-radius: 14px; padding: 15px; cursor: pointer; background: var(--surface); color: var(--ink); font: 650 15px/1 Inter, sans-serif; transition: transform .15s var(--ease), border-color .2s; }
+  .btn-outline:active { transform: scale(0.985); }
+  @media (hover:hover) and (pointer:fine) { .btn-apple:hover, .btn-primary:hover { filter: brightness(1.05); } .btn-outline:hover { border-color: color-mix(in oklab, var(--accent) 45%, var(--border)); } }
+
+  .divider { display: flex; align-items: center; gap: 12px; color: var(--muted); font: 600 11px/1 Inter, sans-serif; letter-spacing: 0.06em; text-transform: uppercase; margin: 3px 0; }
+  .divider::before, .divider::after { content: ""; flex: 1; height: 1px; background: var(--border); }
+
+  .field { display: flex; flex-direction: column; gap: 6px; }
+  .field label { font: 650 12px/1 Inter, sans-serif; color: var(--ink-soft); }
+  .field input { border: 1px solid var(--border); background: var(--surface); color: var(--ink); border-radius: 12px; padding: 13px 14px; font: 500 15px/1 Inter, sans-serif; transition: border-color .18s, box-shadow .18s; }
+  .field input::placeholder { color: var(--muted); }
+  .field input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 22%, transparent); }
+  .link-forgot { align-self: flex-end; background: none; border: none; cursor: pointer; font: 600 12.5px/1 Inter, sans-serif; color: var(--accent-bright); padding: 2px; margin-top: -2px; }
+
+  .legal { margin-top: auto; padding-top: 22px; text-align: center; font-size: 11px; line-height: 1.5; color: var(--muted); }
+  .legal a { color: var(--ink-soft); text-decoration: underline; text-underline-offset: 2px; }
+
+  /* gentle entrance — an account screen is functional, so motion stays light */
+  @media (prefers-reduced-motion: no-preference) {
+    .reveal { opacity: 0; transform: translateY(10px); animation: rise .5s var(--ease) forwards; }
+    .topbar { animation-delay: .02s; } .auth-title { animation-delay: .08s; } .auth-sub { animation-delay: .12s; }
+    .segmented { animation-delay: .16s; } .view.active { animation-delay: .2s; } .legal { animation-delay: .26s; }
+    @keyframes rise { to { opacity: 1; transform: none; } }
+  }
+  .hint { text-align: center; color: var(--page-dim); font-size: 12px; margin-top: 18px; }
+  @media (max-width: 440px) { .phone { transform: scale(.92); transform-origin: top center; } }
+</style>
+</head>
+<body>
+  <div class="stage">
+    <div class="stage-head">
+      <div>
+        <p class="stage-eyebrow">App Store · account</p>
+        <h1 class="stage-title">Sign up / Sign in</h1>
+        <p class="stage-sub">What a user hits after tapping Get started on the welcome. Account-first, free, no payment here. Toggle Create / Sign in below.</p>
+      </div>
+      <button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle light and dark">
+        <svg id="themeIcon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path></svg>
+        <span id="themeLabel">Dark</span>
+      </button>
+    </div>
+
+    <div class="phone-wrap">
+      <div class="phone">
+        <div class="screen">
+          <div class="notch"></div>
+          <div class="statusbar">
+            <span>9:41</span>
+            <span class="sb-icons">
+              <svg viewBox="0 0 18 12" aria-hidden="true"><rect x="0" y="7" width="3" height="5" rx="1"/><rect x="5" y="4" width="3" height="8" rx="1"/><rect x="10" y="1" width="3" height="11" rx="1" opacity="0.4"/></svg>
+              <svg viewBox="0 0 18 12" aria-hidden="true"><rect x="1" y="2" width="14" height="8" rx="2.4" fill="none" stroke="currentColor" stroke-width="1.4"/><rect x="2.6" y="3.6" width="9" height="4.8" rx="1.2"/><rect x="16" y="4.6" width="1.4" height="2.8" rx="0.7"/></svg>
+            </span>
+          </div>
+
+          <div class="auth">
+            <div class="topbar reveal">
+              <button class="back" type="button" aria-label="Back to welcome"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6"></path></svg></button>
+              <span class="brand-mark" aria-hidden="true">
+                <svg viewBox="0 0 100 100" fill="none">
+                  <path class="ca-c" d="M58 12 C42 6, 16 16, 14 34 C12 52, 22 62, 42 64" stroke="currentColor" stroke-width="7" stroke-linecap="round"/>
+                  <line class="ca-slash" x1="30" y1="84" x2="70" y2="16" stroke="currentColor" stroke-width="5" stroke-linecap="round" opacity="0.55"/>
+                  <path class="ca-a" d="M46 88 L64 50 L82 88 M53 74 L75 74" stroke="currentColor" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </span>
+              <span class="brand-name">CertAnvil</span>
+            </div>
+
+            <div class="auth-body">
+              <h1 class="auth-title reveal" id="authTitle">Create your account</h1>
+              <p class="auth-sub reveal" id="authSub"><b>Free to start.</b> No card needed.</p>
+
+              <div class="segmented reveal" role="tablist">
+                <button class="seg active" data-seg="create" type="button" role="tab">Create account</button>
+                <button class="seg" data-seg="signin" type="button" role="tab">Sign in</button>
+              </div>
+
+              <div class="view view-create active reveal" id="viewCreate">
+                <button class="btn-apple" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16.4 12.6c0-2 1.6-3 1.7-3.05-0.93-1.36-2.38-1.55-2.9-1.57-1.23-0.12-2.4 0.72-3.03 0.72-0.62 0-1.59-0.7-2.62-0.68-1.35 0.02-2.6 0.78-3.29 1.99-1.4 2.43-0.36 6.02 1.0 7.99 0.67 0.96 1.46 2.05 2.5 2.0 1.0-0.04 1.38-0.65 2.6-0.65 1.21 0 1.56 0.65 2.62 0.63 1.08-0.02 1.77-0.98 2.43-1.95 0.77-1.11 1.08-2.19 1.1-2.25-0.02-0.01-2.11-0.81-2.13-3.22zM14.5 6.6c0.55-0.67 0.92-1.6 0.82-2.53-0.79 0.03-1.76 0.53-2.33 1.2-0.51 0.59-0.96 1.54-0.84 2.45 0.88 0.07 1.79-0.45 2.35-1.12z"/></svg>Continue with Apple</button>
+                <div class="divider">or</div>
+                <div class="field"><label for="cEmail">Email</label><input id="cEmail" type="email" placeholder="you@example.com" autocomplete="email" /></div>
+                <button class="btn-primary" type="button">Continue with email</button>
+              </div>
+
+              <div class="view view-signin reveal" id="viewSignin">
+                <button class="btn-apple" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16.4 12.6c0-2 1.6-3 1.7-3.05-0.93-1.36-2.38-1.55-2.9-1.57-1.23-0.12-2.4 0.72-3.03 0.72-0.62 0-1.59-0.7-2.62-0.68-1.35 0.02-2.6 0.78-3.29 1.99-1.4 2.43-0.36 6.02 1.0 7.99 0.67 0.96 1.46 2.05 2.5 2.0 1.0-0.04 1.38-0.65 2.6-0.65 1.21 0 1.56 0.65 2.62 0.63 1.08-0.02 1.77-0.98 2.43-1.95 0.77-1.11 1.08-2.19 1.1-2.25-0.02-0.01-2.11-0.81-2.13-3.22zM14.5 6.6c0.55-0.67 0.92-1.6 0.82-2.53-0.79 0.03-1.76 0.53-2.33 1.2-0.51 0.59-0.96 1.54-0.84 2.45 0.88 0.07 1.79-0.45 2.35-1.12z"/></svg>Continue with Apple</button>
+                <div class="divider">or</div>
+                <div class="field"><label for="sEmail">Email</label><input id="sEmail" type="email" placeholder="you@example.com" autocomplete="email" /></div>
+                <div class="field"><label for="sPass">Password</label><input id="sPass" type="password" placeholder="Your password" autocomplete="current-password" /></div>
+                <button class="link-forgot" type="button">Forgot password?</button>
+                <button class="btn-primary" type="button">Sign in</button>
+              </div>
+
+              <p class="legal reveal">By continuing you agree to our <a href="#" onclick="return false">Terms</a> and <a href="#" onclick="return false">Privacy Policy</a>.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="hint">Tap Create account / Sign in to switch states.</p>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      var html = document.documentElement, label = document.getElementById('themeLabel'), icon = document.getElementById('themeIcon');
+      var sun = '<circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path>';
+      var moon = '<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"></path>';
+      function paint(){ var dark = html.getAttribute('data-theme') !== 'light'; label.textContent = dark ? 'Light' : 'Dark'; icon.innerHTML = dark ? moon : sun; }
+      document.getElementById('themeToggle').addEventListener('click', function(){ html.setAttribute('data-theme', html.getAttribute('data-theme') === 'light' ? 'dark' : 'light'); paint(); });
+      paint();
+
+      var title = document.getElementById('authTitle'), sub = document.getElementById('authSub');
+      var copy = {
+        create: { title: 'Create your account', sub: '<b>Free to start.</b> No card needed.' },
+        signin: { title: 'Welcome back',          sub: 'Pick up where you left off.' }
+      };
+      var segs = document.querySelectorAll('.seg');
+      function select(which){
+        segs.forEach(function(s){ s.classList.toggle('active', s.dataset.seg === which); });
+        document.getElementById('viewCreate').classList.toggle('active', which === 'create');
+        document.getElementById('viewSignin').classList.toggle('active', which === 'signin');
+        title.textContent = copy[which].title; sub.innerHTML = copy[which].sub;
+      }
+      segs.forEach(function(s){ s.addEventListener('click', function(){ select(s.dataset.seg); }); });
+    })();
+  </script>
+</body>
+</html>

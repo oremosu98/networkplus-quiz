@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CertAnvil · Pro upgrade sheet concept</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  /* ── Forged-bronze tokens (matches dg-system.css + the other onboarding mockups). ── */
+  :root {
+    --bg: oklch(0.15 0.010 275); --surface: oklch(0.205 0.009 275); --surface-2: oklch(0.255 0.010 275);
+    --ink: oklch(0.97 0.006 275); --ink-soft: oklch(0.80 0.010 275); --muted: oklch(0.62 0.013 275);
+    --border: oklch(0.34 0.009 275);
+    --accent: oklch(0.82 0.150 66); --accent-bright: oklch(0.88 0.140 72); --accent-deep: oklch(0.72 0.150 62);
+    --on-accent: oklch(0.18 0.020 275); --pass: oklch(0.78 0.150 152);
+    --sheet: oklch(0.205 0.009 275);
+    --page-bg: oklch(0.22 0.012 275); --page-ink: oklch(0.92 0.008 275); --page-dim: oklch(0.66 0.012 275);
+  }
+  [data-theme="light"] {
+    --bg: oklch(0.975 0.007 85); --surface: oklch(0.955 0.009 84); --surface-2: oklch(0.92 0.010 84);
+    --ink: oklch(0.22 0.015 280); --ink-soft: oklch(0.38 0.014 280); --muted: oklch(0.52 0.013 280);
+    --border: oklch(0.85 0.010 85);
+    --accent: oklch(0.55 0.155 55); --accent-bright: oklch(0.62 0.150 58); --accent-deep: oklch(0.46 0.150 52);
+    --on-accent: oklch(0.99 0.008 85); --pass: oklch(0.52 0.13 150);
+    --sheet: oklch(0.995 0.004 85);
+    --page-bg: oklch(0.93 0.010 84); --page-ink: oklch(0.28 0.015 280); --page-dim: oklch(0.46 0.013 280);
+  }
+  :root { --ease: cubic-bezier(0.16,1,0.3,1); --ease-drawer: cubic-bezier(0.32,0.72,0,1); }
+
+  * { box-sizing: border-box; }
+  html { color-scheme: light dark; }
+  body { margin: 0; background: var(--page-bg); color: var(--page-ink);
+    font: 15px/1.55 Inter, -apple-system, BlinkMacSystemFont, sans-serif; padding: 30px 20px 64px;
+    transition: background .35s var(--ease), color .35s var(--ease); }
+  .stage { max-width: 520px; margin: 0 auto; }
+  .stage-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 24px; }
+  .stage-eyebrow { font-size: 10.5px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; color: var(--accent-bright); margin: 0 0 7px; }
+  .stage-title { font-family: Fraunces, Georgia, serif; font-weight: 600; font-size: 24px; letter-spacing: -0.012em; margin: 0; color: var(--page-ink); }
+  .stage-sub { color: var(--page-dim); font-size: 13px; margin: 7px 0 0; max-width: 48ch; line-height: 1.5; }
+  .head-controls { display: flex; flex-direction: column; gap: 8px; align-items: flex-end; flex: 0 0 auto; }
+  .chip-btn { display: inline-flex; align-items: center; gap: 7px; font: 600 12px/1 Inter, sans-serif; color: var(--accent-bright);
+    background: transparent; border: 1px solid color-mix(in oklab, var(--accent-bright) 38%, var(--page-dim)); border-radius: 999px; padding: 8px 13px; cursor: pointer; transition: transform .15s var(--ease), background .2s; white-space: nowrap; }
+  .chip-btn svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+  .chip-btn:active { transform: scale(0.97); }
+
+  /* phone */
+  .phone-wrap { display: flex; flex-direction: column; align-items: center; }
+  .phone { width: 390px; height: 844px; border-radius: 52px; padding: 11px; flex: 0 0 auto;
+    background: linear-gradient(165deg, #23262f, #0c0d11); box-shadow: 0 40px 90px -34px rgba(0,0,0,0.6), 0 0 0 1.5px rgba(255,255,255,0.06) inset; }
+  .screen { width: 100%; height: 100%; border-radius: 42px; overflow: hidden; position: relative; background: var(--bg); color: var(--ink);
+    transition: background .35s var(--ease), color .35s var(--ease); }
+  .notch { position: absolute; top: 9px; left: 50%; transform: translateX(-50%); width: 122px; height: 32px; background: #07080b; border-radius: 18px; z-index: 30; }
+
+  /* dimmed home behind the sheet */
+  .behind { position: absolute; inset: 0; padding: 52px 22px 0; }
+  .b-cmd { display: flex; align-items: center; justify-content: space-between; border: 1px solid var(--border); border-radius: 16px; padding: 15px 16px; background: var(--surface); }
+  .b-cmd .sys { font: 700 9.5px/1 'Roboto Mono', monospace; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); }
+  .b-cmd .cert { font: 600 19px/1.1 Fraunces, serif; color: var(--ink); margin-top: 5px; }
+  .b-chip { font: 700 11px/1 Inter, sans-serif; color: var(--muted); border: 1px solid var(--border); border-radius: 999px; padding: 7px 10px; }
+  .b-tile { border: 1px solid var(--border); border-radius: 16px; background: var(--surface); height: 92px; margin-top: 14px; }
+  .scrim { position: absolute; inset: 0; background: oklch(0.10 0.01 275 / 0.55); opacity: 0; z-index: 18; transition: opacity .4s var(--ease); }
+  .screen.open .scrim { opacity: 1; }
+
+  /* the Pro sheet */
+  .sheet { position: absolute; left: 0; right: 0; bottom: 0; z-index: 20; background: var(--sheet);
+    border-radius: 26px 26px 42px 42px; padding: 10px 24px 30px; box-shadow: 0 -20px 50px -20px rgba(0,0,0,0.4);
+    transform: translateY(102%); transition: transform .52s var(--ease-drawer); }
+  .screen.open .sheet { transform: translateY(0); }
+  @media (prefers-reduced-motion: reduce) { .sheet { transition: none; } .scrim { transition: none; } }
+  .grab { width: 38px; height: 5px; border-radius: 999px; background: var(--border); margin: 0 auto 14px; }
+  .sheet-close { position: absolute; top: 16px; right: 18px; width: 30px; height: 30px; border-radius: 999px; border: none; background: var(--surface-2); color: var(--ink-soft); cursor: pointer; display: grid; place-items: center; }
+  .sheet-close svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 2.2; stroke-linecap: round; }
+
+  .pro-badge { display: inline-flex; align-items: center; gap: 8px; }
+  .pro-mark { width: 26px; height: 26px; color: var(--accent); display: inline-flex; }
+  .pro-mark svg { width: 100%; height: 100%; }
+  .pro-tag { font: 800 10px/1 Inter, sans-serif; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); background: color-mix(in oklab, var(--accent) 12%, transparent); border: 1px solid color-mix(in oklab, var(--accent) 32%, transparent); border-radius: 999px; padding: 5px 9px; }
+  .context { font: 600 12.5px/1.4 Inter, sans-serif; color: var(--muted); margin: 13px 0 4px; }
+  .sheet h2 { font-family: Fraunces, Georgia, serif; font-weight: 600; font-size: 25px; line-height: 1.12; letter-spacing: -0.015em; margin: 0 0 14px; color: var(--ink); }
+
+  .feat { list-style: none; margin: 0 0 14px; padding: 0; display: grid; gap: 11px; }
+  .feat li { display: flex; align-items: flex-start; gap: 11px; font-size: 14px; color: var(--ink); }
+  .feat .ic { flex: 0 0 auto; width: 22px; height: 22px; border-radius: 999px; background: color-mix(in oklab, var(--accent) 14%, transparent); display: grid; place-items: center; margin-top: 1px; }
+  .feat .ic svg { width: 13px; height: 13px; stroke: var(--accent-deep); fill: none; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
+  .feat b { font-weight: 650; }
+  .feat span.sub { display: block; font-size: 12.5px; color: var(--ink-soft); font-weight: 400; margin-top: 1px; }
+
+  .honest { font-size: 12px; line-height: 1.45; color: var(--muted); margin: 0 0 16px; padding: 10px 12px; border-radius: 11px; background: var(--surface); border: 1px solid var(--border); }
+
+  .price-eyebrow { font: 800 9.5px/1 Inter, sans-serif; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+  .plans { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+  .plan { border: 1.5px solid var(--border); border-radius: 14px; padding: 13px 14px; cursor: pointer; background: var(--bg); position: relative; transition: border-color .18s, background .18s; }
+  .plan.sel { border-color: var(--accent); background: color-mix(in oklab, var(--accent) 7%, var(--bg)); }
+  .plan .pn { font: 700 12.5px/1 Inter, sans-serif; color: var(--ink-soft); }
+  .plan .pp { font-family: Fraunces, serif; font-weight: 600; font-size: 22px; color: var(--ink); margin-top: 6px; font-variant-numeric: lining-nums tabular-nums; font-feature-settings: "lnum","tnum"; }
+  .plan .pu { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+  .save { position: absolute; top: -9px; right: 10px; font: 800 9.5px/1 Inter, sans-serif; letter-spacing: 0.04em; text-transform: uppercase; color: var(--on-accent); background: var(--accent); border-radius: 999px; padding: 4px 8px; }
+
+  .btn-primary { width: 100%; border: none; border-radius: 15px; padding: 16px; cursor: pointer; background: var(--accent); color: var(--on-accent); font: 700 15.5px/1 Inter, sans-serif;
+    box-shadow: 0 12px 26px -12px color-mix(in oklab, var(--accent) 70%, transparent); transition: transform .15s var(--ease), filter .2s; }
+  .btn-primary:active { transform: scale(0.985); }
+  @media (hover:hover) and (pointer:fine) { .btn-primary:hover { filter: brightness(1.05); } }
+  .btn-later { width: 100%; background: none; border: none; cursor: pointer; margin-top: 10px; padding: 8px; font: 650 14px/1 Inter, sans-serif; color: var(--ink-soft); transition: color .2s; }
+  @media (hover:hover) and (pointer:fine) { .btn-later:hover { color: var(--ink); } }
+  .foot { text-align: center; font-size: 11.5px; color: var(--muted); margin-top: 8px; }
+  .foot button { background: none; border: none; color: var(--ink-soft); font: 600 11.5px/1 Inter, sans-serif; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+
+  .hint { text-align: center; color: var(--page-dim); font-size: 12px; margin-top: 18px; }
+  @media (max-width: 440px) { .phone { transform: scale(.92); transform-origin: top center; } }
+</style>
+</head>
+<body>
+  <div class="stage">
+    <div class="stage-head">
+      <div>
+        <p class="stage-eyebrow">The payment moment</p>
+        <h1 class="stage-title">Pro upgrade sheet</h1>
+        <p class="stage-sub">Appears after the aha, when a free user hits a Pro trigger (here: the daily question cap). Honest framing, example pricing. Billing wiring (web Stripe / iOS IAP) comes later.</p>
+      </div>
+      <div class="head-controls">
+        <button class="chip-btn" id="themeToggle" type="button" aria-label="Toggle light and dark">
+          <svg id="themeIcon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path></svg>
+          <span id="themeLabel">Dark</span>
+        </button>
+        <button class="chip-btn" id="replayBtn" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"></path><path d="M3 4v4h4"></path></svg>
+          Replay
+        </button>
+      </div>
+    </div>
+
+    <div class="phone-wrap">
+      <div class="phone">
+        <div class="screen open" id="screen">
+          <div class="notch"></div>
+
+          <!-- the app behind the sheet (dimmed) -->
+          <div class="behind" aria-hidden="true">
+            <div class="b-cmd">
+              <div><div class="sys">CertAnvil console</div><div class="cert">Network+ N10-009</div></div>
+              <div class="b-chip">0 day streak</div>
+            </div>
+            <div class="b-tile"></div>
+            <div class="b-tile" style="height:120px"></div>
+          </div>
+
+          <div class="scrim"></div>
+
+          <!-- the Pro upgrade sheet -->
+          <div class="sheet" role="dialog" aria-label="Upgrade to Pro">
+            <div class="grab"></div>
+            <button class="sheet-close" type="button" aria-label="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
+
+            <div class="pro-badge">
+              <span class="pro-mark" aria-hidden="true">
+                <svg viewBox="0 0 100 100" fill="none">
+                  <path d="M58 12 C42 6, 16 16, 14 34 C12 52, 22 62, 42 64" stroke="currentColor" stroke-width="7" stroke-linecap="round"/>
+                  <line x1="30" y1="84" x2="70" y2="16" stroke="currentColor" stroke-width="5" stroke-linecap="round" opacity="0.55"/>
+                  <path d="M46 88 L64 50 L82 88 M53 74 L75 74" stroke="currentColor" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </span>
+              <span class="pro-tag">CertAnvil Pro</span>
+            </div>
+
+            <p class="context">You've used your 15 free questions for today.</p>
+            <h2>Keep the streak going, unlimited.</h2>
+
+            <ul class="feat">
+              <li><span class="ic"><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"></path></svg></span><span><b>Unlimited questions, every day</b><span class="sub">No daily cap on new practice or Daily Review.</span></span></li>
+              <li><span class="ic"><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"></path></svg></span><span><b>All IT exams, switch anytime</b><span class="sub">Network+, Security+, A+, Azure, AWS, and more being added.</span></span></li>
+              <li><span class="ic"><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"></path></svg></span><span><b>Your readiness, across every cert</b><span class="sub">One place to see where you stand on each one.</span></span></li>
+            </ul>
+
+            <p class="honest">Pro is about access and volume. It is not a pass guarantee. Your readiness still moves only as you study.</p>
+
+            <p class="price-eyebrow">Example pricing</p>
+            <div class="plans">
+              <div class="plan" data-plan="monthly"><div class="pn">Monthly</div><div class="pp">£6.99</div><div class="pu">per month</div></div>
+              <div class="plan sel" data-plan="annual"><span class="save">Save 30%</span><div class="pn">Annual</div><div class="pp">£58</div><div class="pu">£4.83 / month</div></div>
+            </div>
+
+            <button class="btn-primary" type="button">Start Pro</button>
+            <button class="btn-later" id="maybeLater" type="button">Maybe later</button>
+            <p class="foot">Cancel anytime. <button type="button">Restore purchase</button></p>
+          </div>
+        </div>
+      </div>
+      <p class="hint">Tap Replay to watch the sheet present again.</p>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      var html = document.documentElement, label = document.getElementById('themeLabel'), icon = document.getElementById('themeIcon'), screen = document.getElementById('screen');
+      var sun = '<circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path>';
+      var moon = '<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"></path>';
+      function paint(){ var dark = html.getAttribute('data-theme') !== 'light'; label.textContent = dark ? 'Light' : 'Dark'; icon.innerHTML = dark ? moon : sun; }
+      document.getElementById('themeToggle').addEventListener('click', function(){ html.setAttribute('data-theme', html.getAttribute('data-theme') === 'light' ? 'dark' : 'light'); paint(); });
+      paint();
+
+      // plan selection
+      document.querySelectorAll('.plan').forEach(function(p){ p.addEventListener('click', function(){
+        document.querySelectorAll('.plan').forEach(function(x){ x.classList.remove('sel'); }); p.classList.add('sel');
+      }); });
+
+      // present / dismiss / replay
+      function present(){ screen.classList.remove('open'); void screen.offsetWidth; setTimeout(function(){ screen.classList.add('open'); }, 60); }
+      document.querySelector('.sheet-close').addEventListener('click', function(){ screen.classList.remove('open'); });
+      document.getElementById('maybeLater').addEventListener('click', function(){ screen.classList.remove('open'); });
+      document.querySelector('.scrim').addEventListener('click', function(){ screen.classList.remove('open'); });
+      document.getElementById('replayBtn').addEventListener('click', present);
+      present();
+    })();
+  </script>
+</body>
+</html>

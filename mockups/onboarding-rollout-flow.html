@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CertAnvil · Onboarding rollout flow</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  /* ── Forged-bronze tokens (matches dg-system.css). Dark in :root, light in [data-theme=light]; light is primary. ── */
+  :root {
+    --bg: oklch(0.16 0.009 275); --surface: oklch(0.205 0.009 275); --surface-2: oklch(0.185 0.009 275);
+    --ink: oklch(0.96 0.006 275); --ink-soft: oklch(0.78 0.010 275); --muted: oklch(0.60 0.013 275);
+    --border: oklch(0.30 0.008 275); --border-soft: oklch(0.26 0.008 275);
+    --accent: oklch(0.82 0.150 66); --accent-bright: oklch(0.87 0.140 70); --accent-deep: oklch(0.70 0.150 62);
+    --on-accent: oklch(0.18 0.020 275); --pass: oklch(0.76 0.140 152);
+    --page-bg: oklch(0.22 0.012 275); --page-ink: oklch(0.92 0.008 275); --page-dim: oklch(0.66 0.012 275);
+  }
+  [data-theme="light"] {
+    --bg: oklch(0.975 0.007 85); --surface: oklch(0.992 0.004 85); --surface-2: oklch(0.965 0.010 84);
+    --ink: oklch(0.22 0.015 280); --ink-soft: oklch(0.36 0.014 280); --muted: oklch(0.50 0.013 280);
+    --border: oklch(0.86 0.008 85); --border-soft: oklch(0.91 0.006 85);
+    --accent: oklch(0.50 0.155 55); --accent-bright: oklch(0.74 0.150 60); --accent-deep: oklch(0.42 0.150 52);
+    --on-accent: oklch(0.985 0.010 85); --pass: oklch(0.52 0.13 150);
+    --page-bg: oklch(0.93 0.010 84); --page-ink: oklch(0.28 0.015 280); --page-dim: oklch(0.46 0.013 280);
+  }
+  :root { --ease: cubic-bezier(0.16,1,0.3,1); }
+
+  * { box-sizing: border-box; }
+  html { color-scheme: light dark; }
+  body {
+    margin: 0; background: var(--page-bg); color: var(--page-ink);
+    font: 15px/1.55 Inter, -apple-system, BlinkMacSystemFont, sans-serif;
+    padding: 30px 20px 72px; transition: background .35s var(--ease), color .35s var(--ease);
+  }
+  .stage { max-width: 720px; margin: 0 auto; }
+
+  /* page header */
+  .stage-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 26px; }
+  .stage-eyebrow { font-size: 10.5px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; color: var(--accent-bright); margin: 0 0 7px; }
+  .stage-title { font-family: Fraunces, Georgia, serif; font-weight: 600; font-size: 26px; letter-spacing: -0.012em; margin: 0; color: var(--page-ink); }
+  .stage-sub { color: var(--page-dim); font-size: 13.5px; margin: 8px 0 0; max-width: 52ch; line-height: 1.5; }
+  .theme-toggle {
+    flex: 0 0 auto; display: inline-flex; align-items: center; gap: 7px; font: 600 12px/1 Inter, sans-serif;
+    color: var(--accent-bright); background: transparent; border: 1px solid color-mix(in oklab, var(--accent-bright) 38%, var(--page-dim));
+    border-radius: 999px; padding: 8px 13px; cursor: pointer; transition: transform .15s var(--ease), background .2s;
+  }
+  .theme-toggle svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+  .theme-toggle:active { transform: scale(0.97); }
+  @media (hover:hover) and (pointer:fine) { .theme-toggle:hover { background: color-mix(in oklab, var(--accent-bright) 9%, transparent); } }
+
+  /* ── flow spine ── */
+  .flow { display: flex; flex-direction: column; align-items: stretch; }
+
+  .node {
+    background: var(--surface); color: var(--ink); border: 1px solid var(--border);
+    border-radius: 15px; padding: 15px 17px; position: relative;
+    box-shadow: 0 1px 0 color-mix(in oklab, var(--ink) 4%, transparent), 0 16px 34px -26px color-mix(in oklab, var(--ink) 26%, transparent);
+  }
+  .node-kicker { font: 800 9.5px/1 Inter, sans-serif; letter-spacing: 0.15em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; display: inline-flex; align-items: center; gap: 7px; }
+  .node-kicker::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: var(--accent); opacity: .85; }
+  .node-title { font-size: 15.5px; font-weight: 650; letter-spacing: -0.005em; color: var(--ink); }
+  .node-meta { font-size: 12.5px; color: var(--ink-soft); margin-top: 4px; line-height: 1.45; }
+  .node-meta code { font: 600 11.5px/1.4 "Roboto Mono", ui-monospace, monospace; color: var(--accent-deep); background: color-mix(in oklab, var(--accent) 11%, transparent); padding: 1.5px 5px; border-radius: 5px; }
+
+  /* connector between stacked items */
+  .conn { width: 2px; height: 26px; background: color-mix(in oklab, var(--border) 80%, var(--accent)); margin: 0 auto; position: relative; }
+  .conn::after {
+    content: ""; position: absolute; left: 50%; bottom: -1px; width: 8px; height: 8px;
+    border-right: 2px solid color-mix(in oklab, var(--border) 80%, var(--accent)); border-bottom: 2px solid color-mix(in oklab, var(--border) 80%, var(--accent));
+    transform: translate(-50%, -2px) rotate(45deg);
+  }
+  .conn-label { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); background: var(--page-bg);
+    font: 700 10px/1 Inter, sans-serif; letter-spacing: 0.05em; text-transform: uppercase; color: var(--accent-deep); padding: 2px 7px; border-radius: 999px; border: 1px solid color-mix(in oklab, var(--accent) 26%, var(--border)); white-space: nowrap; }
+
+  /* decision node */
+  .gate { border-color: color-mix(in oklab, var(--accent) 32%, var(--border)); background: color-mix(in oklab, var(--accent) 5%, var(--surface)); }
+  .gate .node-kicker { color: var(--accent-deep); }
+  .gate .node-kicker::before { background: var(--accent); opacity: 1; }
+  .gate-q { font-size: 15.5px; font-weight: 650; color: var(--ink); }
+
+  /* an exit branch off a gate: the path that leaves the on-ramp */
+  .exit { display: flex; align-items: flex-start; gap: 10px; margin-top: 11px; padding: 10px 12px; border-radius: 11px;
+    background: var(--surface-2); border: 1px dashed var(--border); }
+  .exit-tag { flex: 0 0 auto; font: 800 9.5px/1 Inter, sans-serif; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted);
+    border: 1px solid var(--border); border-radius: 999px; padding: 4px 8px; margin-top: 1px; }
+  .exit-body { min-width: 0; }
+  .exit-title { font-size: 13.5px; font-weight: 600; color: var(--ink-soft); }
+  .exit-meta { font-size: 12px; color: var(--muted); margin-top: 2px; line-height: 1.4; }
+  .exit--calm { border-style: solid; border-color: color-mix(in oklab, var(--pass) 34%, var(--border)); background: color-mix(in oklab, var(--pass) 7%, var(--surface-2)); }
+  .exit--calm .exit-tag { color: var(--pass); border-color: color-mix(in oklab, var(--pass) 40%, var(--border)); }
+  .exit-split { list-style: none; margin: 8px 0 7px; padding: 0; display: grid; gap: 7px; }
+  .exit-split li { font-size: 12px; color: var(--ink-soft); line-height: 1.45; }
+  .exit-split b { color: var(--ink); font-weight: 650; }
+
+  /* the aha node */
+  .node--aha { border-color: color-mix(in oklab, var(--accent) 55%, var(--border)); background: color-mix(in oklab, var(--accent) 12%, var(--surface));
+    box-shadow: 0 1px 0 color-mix(in oklab, var(--accent) 22%, transparent), 0 20px 44px -22px color-mix(in oklab, var(--accent) 42%, transparent); }
+  .node--aha .node-kicker { color: var(--accent-deep); }
+  .node--aha .node-kicker::before { background: var(--accent); opacity: 1; box-shadow: 0 0 0 4px color-mix(in oklab, var(--accent) 24%, transparent); }
+  .node--aha .node-title { font-family: Fraunces, Georgia, serif; font-weight: 600; font-size: 18px; }
+
+  /* annotation notes */
+  .notes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 13px; margin-top: 30px; }
+  .note { background: var(--surface); border: 1px solid var(--border); border-radius: 13px; padding: 14px 15px; }
+  .note-h { font-size: 13px; font-weight: 700; color: var(--ink); display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .note-h svg { width: 16px; height: 16px; stroke: var(--accent-deep); fill: none; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; flex: 0 0 auto; }
+  .note-b { font-size: 12.5px; color: var(--ink-soft); line-height: 1.5; }
+  .note-b code { font: 600 11px/1.4 "Roboto Mono", ui-monospace, monospace; color: var(--accent-deep); }
+
+  .deferred { margin-top: 20px; text-align: center; font-size: 12.5px; color: var(--page-dim); font-style: italic; }
+
+  /* motivated motion: the flow reveals top-to-bottom on load (storytelling). Off under reduced-motion. */
+  @media (prefers-reduced-motion: no-preference) {
+    .flow > *, .notes, .deferred { opacity: 0; transform: translateY(10px); animation: rise .5s var(--ease) forwards; }
+    /* complete cascade across all 21 spine items (~30ms apart), then the notes + footnote */
+    .flow > *:nth-child(1){animation-delay:.02s} .flow > *:nth-child(2){animation-delay:.05s} .flow > *:nth-child(3){animation-delay:.08s}
+    .flow > *:nth-child(4){animation-delay:.11s} .flow > *:nth-child(5){animation-delay:.14s} .flow > *:nth-child(6){animation-delay:.17s}
+    .flow > *:nth-child(7){animation-delay:.20s} .flow > *:nth-child(8){animation-delay:.23s} .flow > *:nth-child(9){animation-delay:.26s}
+    .flow > *:nth-child(10){animation-delay:.29s} .flow > *:nth-child(11){animation-delay:.32s} .flow > *:nth-child(12){animation-delay:.35s}
+    .flow > *:nth-child(13){animation-delay:.38s} .flow > *:nth-child(14){animation-delay:.41s} .flow > *:nth-child(15){animation-delay:.44s}
+    .flow > *:nth-child(16){animation-delay:.47s} .flow > *:nth-child(17){animation-delay:.50s} .flow > *:nth-child(18){animation-delay:.53s}
+    .flow > *:nth-child(19){animation-delay:.56s} .flow > *:nth-child(20){animation-delay:.59s} .flow > *:nth-child(21){animation-delay:.62s}
+    .notes{animation-delay:.66s} .deferred{animation-delay:.72s}
+    @keyframes rise { to { opacity: 1; transform: none; } }
+  }
+
+  @media (max-width: 620px) { .notes { grid-template-columns: 1fr; } .stage-head { flex-direction: column; } }
+</style>
+</head>
+<body>
+  <div class="stage">
+    <div class="stage-head">
+      <div>
+        <p class="stage-eyebrow">Onboarding rollout</p>
+        <h1 class="stage-title">How a user lands</h1>
+        <p class="stage-sub">When the onboarding switch is on, every launch runs this path, on web and in the App Store app alike. The only platform difference is the logged-out front door. Anyone already activated feels no change at all.</p>
+      </div>
+      <button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle light and dark">
+        <svg id="themeIcon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path></svg>
+        <span id="themeLabel">Dark</span>
+      </button>
+    </div>
+
+    <div class="flow">
+
+      <div class="node">
+        <div class="node-kicker">Step</div>
+        <div class="node-title">App launch</div>
+        <div class="node-meta">Web, or the native shell opening into the lobby.</div>
+      </div>
+
+      <div class="conn"></div>
+
+      <div class="node">
+        <div class="node-kicker">Step</div>
+        <div class="node-title">Read the onboarding switch</div>
+        <div class="node-meta"><code>app_config.onboarding_enabled</code> from Supabase, read behind the loading skeleton. One switch, shared by every cert site.</div>
+      </div>
+
+      <div class="conn"></div>
+
+      <div class="node gate">
+        <div class="node-kicker">Decision</div>
+        <div class="gate-q">Switch on?</div>
+        <div class="exit">
+          <span class="exit-tag">Off</span>
+          <div class="exit-body">
+            <div class="exit-title">Today's app, unchanged.</div>
+            <div class="exit-meta">If the read fails, use the last cached value, otherwise stay off. This is the kill switch.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="conn"><span class="conn-label">On</span></div>
+
+      <div class="node">
+        <div class="node-kicker">Step</div>
+        <div class="node-title">Resolve sign-in</div>
+        <div class="node-meta">A neutral skeleton holds the screen. No flash of the landing page.</div>
+      </div>
+
+      <div class="conn"></div>
+
+      <div class="node gate">
+        <div class="node-kicker">Decision</div>
+        <div class="gate-q">Signed in?</div>
+        <div class="exit">
+          <span class="exit-tag">No</span>
+          <div class="exit-body">
+            <div class="exit-title">The logged-out front door, by platform:</div>
+            <ul class="exit-split">
+              <li><b>Web (desktop / Safari):</b> the marketing landing, your current site. Sign up or sign in there.</li>
+              <li><b>App Store app:</b> an in-app welcome. A one-line value prop, then Get started (Sign in with Apple or email) or Sign in. Never the marketing site.</li>
+            </ul>
+            <div class="exit-meta">Either door leads to the same place. Once they sign up, they re-enter this flow at the next step.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="conn"><span class="conn-label">Yes</span></div>
+
+      <div class="node">
+        <div class="node-kicker">Step</div>
+        <div class="node-title">Set the current cert</div>
+        <div class="node-meta">Free: their one locked cert. Pro: the last cert they were on.</div>
+      </div>
+
+      <div class="conn"></div>
+
+      <div class="node gate">
+        <div class="node-kicker">Decision</div>
+        <div class="gate-q">Activated for this cert?</div>
+        <div class="exit exit--calm">
+          <span class="exit-tag">Yes</span>
+          <div class="exit-body">
+            <div class="exit-title">Straight to the cert home. Nothing changes.</div>
+            <div class="exit-meta">Everyone with a readiness score already skips the on-ramp. This is most of your existing users.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="conn"><span class="conn-label">Not yet</span></div>
+
+      <div class="node">
+        <div class="node-kicker">On-ramp</div>
+        <div class="node-title">First-run diagnostic</div>
+        <div class="node-meta">A short check to place your readiness. Free, and it never counts against the daily cap. Take it, or skip straight in.</div>
+        <div class="exit">
+          <span class="exit-tag">Skip</span>
+          <div class="exit-body">
+            <div class="exit-title">Into the app. Start studying a topic now.</div>
+            <div class="exit-meta">A learner who only started today has nothing to diagnose yet. The diagnostic waits as an invite, not a gate. The score, and activation, happen whenever they choose to take it. Skips are tracked.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="conn"><span class="conn-label">Take it</span></div>
+
+      <div class="node">
+        <div class="node-kicker">On-ramp</div>
+        <div class="node-title">A readiness score appears</div>
+        <div class="node-meta">Scaled 100 to 900, the same number the rest of the app uses.</div>
+      </div>
+
+      <div class="conn"></div>
+
+      <div class="node node--aha">
+        <div class="node-kicker">The aha</div>
+        <div class="node-title">Practice a little, and the number moves</div>
+        <div class="node-meta">Delivered in the first session. This is the moment that predicts whether they come back.</div>
+      </div>
+
+      <div class="conn"></div>
+
+      <div class="node">
+        <div class="node-kicker">Step</div>
+        <div class="node-title">Mark the cert activated</div>
+        <div class="node-meta"><code>activated[certId] = { at, baseline, moved }</code>, cloud-synced. This is also what the activation metric counts.</div>
+      </div>
+
+    </div>
+
+    <div class="notes">
+      <div class="note">
+        <div class="note-h"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.4 5.6a9 9 0 1 1-12.8 0"></path><path d="M12 2v8"></path></svg>Kill switch</div>
+        <div class="note-b">Flip <code>onboarding_enabled</code> to off. Every device reverts on its next load, without a redeploy.</div>
+      </div>
+      <div class="note">
+        <div class="note-h"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3v18h18"></path><path d="M7 15l4-4 3 3 5-6"></path></svg>Activation metric</div>
+        <div class="note-b">The share of new accounts that move their readiness in session one. People who skip the diagnostic are tracked separately, so a beginner who studies first does not drag the number down. One Supabase query at this scale.</div>
+      </div>
+      <div class="note">
+        <div class="note-h"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 3h5v5"></path><path d="M21 3l-7 7"></path><path d="M8 21H3v-5"></path><path d="M3 21l7-7"></path></svg>Cert switching fixed</div>
+        <div class="note-b">One global switch, not a per-site flag. It stays on when you move from Network+ to Security+, so the switcher no longer disappears.</div>
+      </div>
+    </div>
+
+    <p class="deferred">A percentage ramp stays on the shelf until the audience is big enough to need one.</p>
+  </div>
+
+  <script>
+    (function () {
+      var html = document.documentElement, label = document.getElementById('themeLabel'), icon = document.getElementById('themeIcon');
+      var sun = '<circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path>';
+      var moon = '<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"></path>';
+      function paint() { var dark = html.getAttribute('data-theme') !== 'light'; label.textContent = dark ? 'Light' : 'Dark'; icon.innerHTML = dark ? moon : sun; }
+      document.getElementById('themeToggle').addEventListener('click', function () {
+        html.setAttribute('data-theme', html.getAttribute('data-theme') === 'light' ? 'dark' : 'light'); paint();
+      });
+      paint();
+    })();
+  </script>
+</body>
+</html>
