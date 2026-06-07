@@ -110,6 +110,8 @@
     'nplus_acl_state',
     'nplus_fix_challenges',
     'nplus_lab_completions',
+    'nplus_activated',   // onboarding: per-cert activation (metadata.activated.<certId>)
+    'nplus_onb_skips',   // onboarding: per-cert diagnostic-skip record (metadata.onb_skips.<certId>)
   ]);
 
   // Subset of USER_DATA that goes to a dedicated table, NOT profiles.metadata
@@ -295,6 +297,15 @@
         out.sr[cert].queue = parsed;
         return;
       }
+      // Cert-scope onboarding activation + skip: metadata.<key>.<certId>.
+      // localStorage holds only THIS subdomain's cert entry; doFlush re-reads
+      // cloud and merges so sibling certs are preserved.
+      if (cloudKey === 'activated' || cloudKey === 'onb_skips') {
+        var aCert = _ccCert();
+        if (!out[cloudKey]) out[cloudKey] = {};
+        out[cloudKey][aCert] = parsed;
+        return;
+      }
       out[cloudKey] = parsed;
     });
     return out;
@@ -321,6 +332,14 @@
         if (meta.sr && meta.sr[cert] && meta.sr[cert].queue != null) return;
         var v = meta.sr_queue;
         if (v != null) { try { localStorage.setItem('nplus_sr_queue', typeof v === 'string' ? v : JSON.stringify(v)); } catch (e) {} }
+        return;
+      }
+      // Onboarding cert-scoped maps: pull only THIS cert's entry down to local.
+      if (cloudKey === 'activated' || cloudKey === 'onb_skips') {
+        var mine = (meta[cloudKey] && meta[cloudKey][cert]) ? meta[cloudKey][cert] : null;
+        if (mine != null) {
+          try { localStorage.setItem('nplus_' + cloudKey, JSON.stringify(mine)); } catch (e) {}
+        }
         return;
       }
       var localKey = 'nplus_' + cloudKey;
@@ -412,19 +431,27 @@
       // from THIS subdomain's localStorage (which only knows its own cert). Read
       // the existing metadata.sr first and merge ours over it, preserving OTHER
       // certs' SR sub-objects — otherwise flushing one cert wipes the rest.
-      var writeProfile = function (mergedSr) {
-        if (mergedSr && Object.keys(mergedSr).length) jsonb.sr = mergedSr;
+      // All three of sr / activated / onb_skips are cert-scoped maps. We only
+      // know THIS subdomain's cert locally, so re-read cloud and merge ours
+      // over the existing per-cert entries — otherwise flushing one cert wipes
+      // the others' sub-objects on the full-metadata column replace.
+      var CERT_SCOPED = ['sr', 'activated', 'onb_skips'];
+      var writeProfile = function (existingMeta) {
+        CERT_SCOPED.forEach(function (k) {
+          var existing = (existingMeta && existingMeta[k]) || {};
+          var ours = jsonb[k] || {};
+          var merged = Object.assign({}, existing, ours);   // our cert overrides, siblings preserved
+          if (Object.keys(merged).length) jsonb[k] = merged;
+        });
         var update = { metadata: jsonb };
         if (examDate) update.exam_date = examDate;
         return sb.from('profiles').update(update).eq('id', userId);
       };
       ops.push(
         sb.from('profiles').select('metadata').eq('id', userId).single().then(function (res) {
-          var existingSr = (res && res.data && res.data.metadata && res.data.metadata.sr) || {};
-          var merged = Object.assign({}, existingSr, (jsonb.sr || {}));   // our cert overrides, others preserved
-          return writeProfile(merged);
+          return writeProfile(res && res.data && res.data.metadata);
         }, function () {
-          return writeProfile(jsonb.sr);   // read failed — write our cert's sr only
+          return writeProfile(null);   // read failed — write our cert's slices only
         })
       );
     }
