@@ -4533,7 +4533,15 @@ function dismissDiagnosticCta(ev) {
 // Top-level entry point — wired to the "Take the Diagnostic" button on the
 // home CTA. Confirms intent, fetches 20 Qs across all domains, then enters
 // the quiz flow.
-async function startDiagnostic() {
+async function startDiagnostic(opts) {
+  // v7.30.0: parameterized for the onboarding short-calibration. Called with NO
+  // args from the home Pass-Plan CTA → identical 20-Q Baseline Diagnostic. The
+  // ?onb=1 first-run passes { count, topic, skipConfirm, onboarding, onComplete,
+  // priorSession, mock } to run a reduced calibration that hands real readiness
+  // back to the first-run UI instead of the Pass-Plan results page.
+  opts = opts || {};
+  const N = (typeof opts.count === 'number' && opts.count > 0) ? opts.count : DIAGNOSTIC_QUESTION_COUNT;
+  const topic = opts.topic || MIXED_TOPIC;
   const key = (typeof getApiKey === 'function') ? getApiKey() : (localStorage.getItem(STORAGE.KEY) || '');
   // v4.99.46 fix: signed-in Pro users route through the server proxy (no
   // client BYOK key needed). validateApiKey() returns null for signed-in
@@ -4544,16 +4552,18 @@ async function startDiagnostic() {
   // v4.99.33 fix for Generate Quiz / Exam / Drills (all 5 of those use
   // validateApiKey at the top of their start* function — startDiagnostic
   // was missed because it predates the unified gate).
-  const keyErr = validateApiKey(key);
-  if (keyErr) {
-    showToast(keyErr, 'error');
-    if (typeof goSettings === 'function') goSettings();
-    return;
+  if (!opts.mock) {
+    const keyErr = validateApiKey(key);
+    if (keyErr) {
+      showToast(keyErr, 'error');
+      if (typeof goSettings === 'function') goSettings();
+      return;
+    }
   }
-  if (!confirm('Take the Baseline Diagnostic? 20 questions, ~30 minutes, single sitting. You can quit mid-flow but progress will be lost.')) return;
+  if (!opts.skipConfirm && !confirm('Take the Baseline Diagnostic? 20 questions, ~30 minutes, single sitting. You can quit mid-flow but progress will be lost.')) return;
 
   showPage('loading');
-  if (typeof showLoading === 'function') showLoading('Generating your diagnostic — 20 calibrated questions across all 5 domains…');
+  if (typeof showLoading === 'function') showLoading('Generating your diagnostic — ' + N + ' calibrated questions…');
   // v4.82.1: smooth loading bar across the diagnostic flow too.
   _loadingProgressBegin('Generating diagnostic questions…');
 
@@ -4565,21 +4575,28 @@ async function startDiagnostic() {
     // select / order / cli-sim / topology question types — and PBQs were
     // sneaking in via injectPBQs (called from fetchQuestions for n>=10).
     // Bump buffer + filter to keep MCQ-only flow.
-    const buffer = Math.max(8, Math.ceil(DIAGNOSTIC_QUESTION_COUNT * 0.4));
+    const buffer = Math.max(8, Math.ceil(N * 0.4));
     const _isMcq = (q) => q && q.options && typeof q.options === 'object' && !Array.isArray(q.options) &&
       Object.keys(q.options).length === 4 && typeof q.answer === 'string' && q.answer.length === 1 &&
       'ABCD'.includes(q.answer);
-    let qs = await fetchQuestions(key, MIXED_TOPIC, 'Mixed', DIAGNOSTIC_QUESTION_COUNT + buffer);
-    _loadingProgressUpdate('Filtering to MCQ-only…', 60);
-    qs = (qs || []).filter(_isMcq).slice(0, DIAGNOSTIC_QUESTION_COUNT);
-    if (qs.length < DIAGNOSTIC_QUESTION_COUNT) {
-      // Try one retry-to-fill to recover from a partial first batch.
-      const deficit = DIAGNOSTIC_QUESTION_COUNT - qs.length;
-      _loadingProgressUpdate('Topping up (' + deficit + ' more)…', 75);
-      try {
-        const more = await fetchQuestions(key, MIXED_TOPIC, 'Mixed', deficit + buffer);
-        qs = qs.concat((more || []).filter(_isMcq).slice(0, deficit));
-      } catch (_) { /* swallow — we ship what we have */ }
+    let qs;
+    if (opts.mock && typeof _onbMockQuestions === 'function') {
+      // Guarded onboarding-preview path — exercise the full calibration flow
+      // without an API key. Only reachable via startDiagnostic({mock:true}).
+      qs = _onbMockQuestions(N);
+    } else {
+      qs = await fetchQuestions(key, topic, 'Mixed', N + buffer);
+      _loadingProgressUpdate('Filtering to MCQ-only…', 60);
+      qs = (qs || []).filter(_isMcq).slice(0, N);
+      if (qs.length < N) {
+        // Try one retry-to-fill to recover from a partial first batch.
+        const deficit = N - qs.length;
+        _loadingProgressUpdate('Topping up (' + deficit + ' more)…', 75);
+        try {
+          const more = await fetchQuestions(key, topic, 'Mixed', deficit + buffer);
+          qs = qs.concat((more || []).filter(_isMcq).slice(0, deficit));
+        } catch (_) { /* swallow — we ship what we have */ }
+      }
     }
     if (qs.length === 0) {
       throw new Error('Could not generate diagnostic questions. Please try again in a moment.');
@@ -4592,7 +4609,11 @@ async function startDiagnostic() {
       currentIdx: 0,
       startedAt: Date.now(),
       pickedLetter: null,
-      confidence: null
+      confidence: null,
+      // v7.30.0 onboarding hooks (null for the normal Baseline Diagnostic):
+      onboarding: opts.onboarding || null,
+      onComplete: (typeof opts.onComplete === 'function') ? opts.onComplete : null,
+      priorSession: opts.priorSession || null
     };
     _diagnosticStartTimer();
     _loadingProgressFinish();
@@ -4980,6 +5001,16 @@ function completeDiagnostic() {
   if (!_diagnosticSession) return;
   _diagnosticStopTimer();
   const session = _diagnosticSession;
+
+  // v7.30.0: onboarding calibration / movement legs hand off to the first-run
+  // UI instead of the Pass-Plan results page. Guarded — only set when launched
+  // via startDiagnostic({ onboarding }) from the ?onb=1 first-run flow.
+  if (session.onboarding) {
+    _diagnosticSession = null;
+    try { _onbDiagnosticComplete(session); } catch (_) {}
+    return;
+  }
+
   const passPlan = _buildPassPlan(session);
   // Override seededCount with the actual addToSrQueue return after seeding,
   // so a dedup hit against an existing SR entry is reflected accurately.
@@ -5002,6 +5033,82 @@ function completeDiagnostic() {
   _diagnosticSession = null;
   renderDiagnosticResult();
   showPage('diagnostic-result');
+}
+
+// v7.30.0 — onboarding calibration / movement completion. Reuses _buildPassPlan
+// + _seedReviewQueueFromDiagnostic, writes the readiness snapshot directly from
+// the calibration (history-independent, unlike _writeReadinessSnapshot), then
+// hands the real numbers back to the first-run UI via the session's onComplete.
+// Activation falls out of the snapshot: the lobby router treats a per-cert
+// readiness snapshot as "activated", and the snapshot syncs cloud↔local via the
+// existing Phase C′ plumbing. Deliberately does NOT saveDiagnostic() — the short
+// calibration is separate from the full 20-Q Baseline (decision doc §2), so the
+// home keeps offering the full Baseline.
+function _onbDiagnosticComplete(session) {
+  // The movement leg combines with the calibration session so the recomputed
+  // prediction reflects every question answered, not just the last few.
+  var scored = session;
+  if (session.priorSession && session.priorSession.questions) {
+    scored = {
+      questions: session.priorSession.questions.concat(session.questions),
+      answers: session.priorSession.answers.concat(session.answers),
+      startedAt: session.priorSession.startedAt || session.startedAt
+    };
+  }
+  var passPlan = _buildPassPlan(scored);
+  // Seed only THIS leg's wrong / uncertain answers into the SR review queue.
+  try { passPlan.seededCount = _seedReviewQueueFromDiagnostic(session); } catch (_) {}
+  _onbWriteReadinessFromPassPlan(passPlan);
+  var cb = session.onComplete;
+  if (typeof cb === 'function') {
+    var passScore = (typeof EXAM_PASS_SCORE === 'number') ? EXAM_PASS_SCORE : 720;
+    try { cb({ passPlan: passPlan, session: scored, passScore: passScore }); } catch (_) {}
+  }
+}
+
+// Write the per-cert readiness snapshot straight from a calibration pass plan
+// (mirrors the shape in _writeReadinessSnapshot, but sourced from the diagnostic
+// session rather than cumulative quiz history). This is the activation signal.
+function _onbWriteReadinessFromPassPlan(passPlan) {
+  try {
+    if (!passPlan || typeof passPlan.predicted !== 'number') return;
+    var raw = localStorage.getItem(STORAGE.READINESS_SNAPSHOTS);
+    var snaps = {};
+    if (raw) { try { snaps = JSON.parse(raw) || {}; } catch (_) { snaps = {}; } }
+    var weak = (passPlan.weakDomains && passPlan.weakDomains[0]) || null;
+    snaps[CURRENT_CERT] = {
+      score: passPlan.predicted,
+      computed_at: new Date().toISOString(),
+      weak_topic: weak ? weak.label : null,
+      weak_pct: weak ? Math.round(weak.accuracy * 100) : null,
+      weak_domain: weak ? weak.key : null,
+      days_to_exam: null,
+      total_qs: passPlan.questionCount,
+      source: 'onb-calibration'
+    };
+    localStorage.setItem(STORAGE.READINESS_SNAPSHOTS, JSON.stringify(snaps));
+    if (typeof _cloudFlush === 'function') _cloudFlush(STORAGE.READINESS_SNAPSHOTS);
+  } catch (_) { /* non-fatal — never block the onboarding flow */ }
+}
+
+// Guarded preview-only mock question generator (no API key needed). Only ever
+// called via startDiagnostic({ mock:true }) from the ?onb=1 first-run, so it can
+// never affect the real diagnostic. Answers vary so the calibration score is a
+// realistic mix rather than 0% or 100%.
+function _onbMockQuestions(n) {
+  var out = [];
+  var topics = ['Subnetting & VLSM', 'OSI Model & Encapsulation', 'Routing & Switching', 'Network Security', 'Wireless Standards'];
+  for (var i = 0; i < n; i++) {
+    out.push({
+      question: 'Preview calibration question ' + (i + 1) + ' (mock — no API key).',
+      options: { A: 'Option A', B: 'Option B', C: 'Option C', D: 'Option D' },
+      answer: (i % 5 === 0) ? 'B' : 'A',
+      topic: topics[i % topics.length],
+      difficulty: 'Mixed',
+      explanation: 'Preview mock — not a real exam question.'
+    });
+  }
+  return out;
 }
 
 // v4.85.7: extracted from renderDiagnosticResult() — renders the weak-domains
