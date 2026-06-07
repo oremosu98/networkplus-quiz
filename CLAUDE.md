@@ -111,6 +111,7 @@ npx playwright test              # E2E (tests/e2e/app.spec.js)
 
 | Version | Features Added |
 |---|---|
+| v7.32.0 | Onboarding rollout gate (app_config) + activation telemetry — shipped OFF |
 | v7.31.0 | admin=Pro + console cert switcher + setup walkthrough tour (gated, ?onb=1) |
 | v7.30.0 | Onboarding: lobby router + first-run activation (short calibration) + tier chrome (quota meter + Pro switcher), gated behind ?onb=1 |
 | v7.29.1 | Dark-mode fix: cert-switcher lettermark glyphs were near-white on cream (invisible) |
