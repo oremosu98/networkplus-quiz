@@ -219,10 +219,17 @@
       <div class="node">
         <div class="node-kicker">On-ramp</div>
         <div class="node-title">First-run diagnostic</div>
-        <div class="node-meta">Skippable. Free, and it never counts against the daily cap.</div>
+        <div class="node-meta">A short check to place your readiness. Free, and it never counts against the daily cap. Take it, or skip straight in.</div>
+        <div class="exit">
+          <span class="exit-tag">Skip</span>
+          <div class="exit-body">
+            <div class="exit-title">Into the app. Start studying a topic now.</div>
+            <div class="exit-meta">A learner who only started today has nothing to diagnose yet. The diagnostic waits as an invite, not a gate. The score, and activation, happen whenever they choose to take it. Skips are tracked.</div>
+          </div>
+        </div>
       </div>
 
-      <div class="conn"></div>
+      <div class="conn"><span class="conn-label">Take it</span></div>
 
       <div class="node">
         <div class="node-kicker">On-ramp</div>
@@ -255,7 +262,7 @@
       </div>
       <div class="note">
         <div class="note-h"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3v18h18"></path><path d="M7 15l4-4 3 3 5-6"></path></svg>Activation metric</div>
-        <div class="note-b">The share of new accounts that move their readiness in session one. One Supabase query while the numbers are small enough to read by hand.</div>
+        <div class="note-b">The share of new accounts that move their readiness in session one. People who skip the diagnostic are tracked separately, so a beginner who studies first does not drag the number down. One Supabase query at this scale.</div>
       </div>
       <div class="note">
         <div class="note-h"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 3h5v5"></path><path d="M21 3l-7 7"></path><path d="M8 21H3v-5"></path><path d="M3 21l7-7"></path></svg>Cert switching fixed</div>
