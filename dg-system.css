@@ -3451,3 +3451,67 @@ html[data-theme] body #page-setup .dw-launch{flex:0 0 auto;padding:13px 22px;bor
 @keyframes onbShimmer{0%{background-position:200% 0;}100%{background-position:-200% 0;}}
 @media (prefers-reduced-motion: reduce){.onb-resolve-skel span{animation:none;background:var(--surface2);}}
 
+/* ══ Onboarding tier chrome (Phase 2) · home bar (quota meter · Pro switcher) ═══
+   Injected as the first child of the home bento (main.board) by lib/onboarding-home.js,
+   only when ?onb=1. Forged-bronze, scoped; never touches the existing home. */
+#onb-home-bar-host{grid-column:1/-1;width:100%;}
+.onb-home-bar{border:1px solid var(--border);border-radius:16px;background:var(--surface);padding:15px 16px 16px;margin:0 0 16px;box-shadow:0 1px 0 color-mix(in oklab,var(--text) 4%,transparent),0 16px 36px -24px color-mix(in oklab,var(--text) 20%,transparent);}
+/* Entrance plays once per session (added on first mount only). Returning to the
+   home tens of times/day should not replay it — Emil: don't animate frequent actions. */
+.onb-home-bar.onb-hb-enter{opacity:0;transform:translateY(6px);animation:onbHbIn .42s cubic-bezier(0.16,1,0.3,1) forwards;}
+@keyframes onbHbIn{to{opacity:1;transform:none;}}
+.onb-hb-top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:13px;}
+.onb-hb-switcher,.onb-hb-cert{display:inline-flex;align-items:center;gap:9px;min-width:0;}
+.onb-hb-switcher{padding:6px 8px 6px 6px;border-radius:12px;border:1px solid var(--border);background:var(--surface);cursor:pointer;transition:transform .15s cubic-bezier(0.16,1,0.3,1),border-color .18s cubic-bezier(0.16,1,0.3,1);}
+.onb-hb-switcher:active{transform:scale(0.98);}
+.onb-hb-switcher:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+@media (hover:hover) and (pointer:fine){.onb-hb-switcher:hover{border-color:color-mix(in oklab,var(--accent) 40%,var(--border));}}
+.onb-hb-mark{flex:0 0 auto;width:34px;height:34px;border-radius:9px;display:grid;place-items:center;font:800 11px/1 Inter,sans-serif;color:var(--accent);background:color-mix(in oklab,var(--accent) 12%,transparent);border:1px solid color-mix(in oklab,var(--accent) 22%,var(--border));}
+.onb-hb-ct{display:flex;flex-direction:column;min-width:0;text-align:left;}
+.onb-hb-name{font-weight:700;font-size:14px;line-height:1.1;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.onb-hb-code{font-size:11px;color:var(--text-dim);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.onb-hb-chev{flex:0 0 auto;width:16px;height:16px;stroke:var(--text-dim);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;margin-left:1px;}
+.onb-hb-plan{flex:0 0 auto;font:800 10px/1 Inter,sans-serif;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-dim);border:1px solid var(--border);border-radius:999px;padding:5px 9px;}
+.onb-hb-plan-pro{color:var(--accent);border-color:color-mix(in oklab,var(--accent) 32%,var(--border));background:color-mix(in oklab,var(--accent) 9%,transparent);}
+.onb-hb-quota{border-top:1px solid var(--border-soft,color-mix(in oklab,var(--border) 60%,transparent));padding-top:4px;}
+.onb-hb-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 0;}
+.onb-hb-row + .onb-hb-row{border-top:1px solid color-mix(in oklab,var(--border) 55%,transparent);}
+.onb-hb-rn{font-size:13.5px;font-weight:650;color:var(--text);}
+.onb-hb-rv{font-size:12.5px;color:var(--text-dim);}
+.onb-hb-rv-free{color:var(--accent);font-weight:650;}
+.onb-hb-capbtn{font:650 12.5px/1 Inter,sans-serif;color:var(--accent);background:none;border:none;padding:0;cursor:pointer;text-decoration:underline;text-underline-offset:3px;}
+.onb-hb-capbtn:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px;}
+.onb-hb-meter{height:6px;border-radius:999px;background:var(--surface2);border:1px solid color-mix(in oklab,var(--border) 70%,transparent);overflow:hidden;margin:2px 0 4px;}
+.onb-hb-meter span{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,color-mix(in oklab,var(--accent) 70%,var(--text)),var(--accent));transition:width .5s cubic-bezier(0.16,1,0.3,1);}
+.onb-hb-add{display:flex;align-items:center;gap:11px;width:100%;margin-top:13px;padding:11px 13px;border-radius:13px;border:1px dashed color-mix(in oklab,var(--accent) 34%,var(--border));background:transparent;cursor:pointer;transition:border-color .18s cubic-bezier(0.16,1,0.3,1),background .18s cubic-bezier(0.16,1,0.3,1),transform .15s cubic-bezier(0.16,1,0.3,1);}
+.onb-hb-add:active{transform:scale(0.99);}
+.onb-hb-add:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+@media (hover:hover) and (pointer:fine){.onb-hb-add:hover{border-color:color-mix(in oklab,var(--accent) 50%,var(--border));background:color-mix(in oklab,var(--accent) 5%,transparent);}}
+.onb-hb-plus{flex:0 0 auto;width:24px;height:24px;border-radius:7px;display:grid;place-items:center;color:var(--accent);background:color-mix(in oklab,var(--accent) 10%,transparent);font-weight:700;font-size:15px;}
+.onb-hb-add > span:nth-child(2){flex:1 1 auto;text-align:left;font-size:13.5px;font-weight:600;color:var(--text-mid);}
+.onb-hb-protag{flex:0 0 auto;font:800 9.5px/1 Inter,sans-serif;letter-spacing:0.08em;text-transform:uppercase;color:var(--accent);border:1px solid color-mix(in oklab,var(--accent) 30%,var(--border));border-radius:999px;padding:4px 8px;}
+@media (prefers-reduced-motion:reduce){.onb-home-bar.onb-hb-enter{animation:none;opacity:1;transform:none;}.onb-hb-meter span{transition:none;}}
+
+/* "Your exams" switcher sheet — reuses the .onb-ov sheet shell (scrim/sheet/grab). */
+.onb-ov .onb-sw-list{display:flex;flex-direction:column;gap:8px;margin:2px 0 12px;}
+.onb-ov .onb-sw-row{display:flex;align-items:center;gap:13px;width:100%;text-align:left;padding:12px;border:1px solid var(--border);border-radius:14px;background:var(--surface);cursor:pointer;transition:border-color .18s cubic-bezier(0.16,1,0.3,1),background .18s cubic-bezier(0.16,1,0.3,1),transform .15s cubic-bezier(0.16,1,0.3,1);}
+.onb-ov .onb-sw-row:active{transform:scale(0.992);}
+.onb-ov .onb-sw-row:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+.onb-ov .onb-sw-row.onb-sw-sel{border-color:var(--accent);background:color-mix(in oklab,var(--accent) 8%,var(--surface));}
+@media (hover:hover) and (pointer:fine){.onb-ov .onb-sw-row:hover{border-color:color-mix(in oklab,var(--accent) 40%,var(--border));}}
+.onb-ov .onb-sw-mark{flex:0 0 auto;width:42px;height:42px;border-radius:11px;display:grid;place-items:center;font:800 13px/1 Inter,sans-serif;color:var(--accent);background:color-mix(in oklab,var(--accent) 12%,transparent);border:1px solid color-mix(in oklab,var(--accent) 22%,var(--border));}
+.onb-ov .onb-sw-meta{flex:1 1 auto;min-width:0;}
+.onb-ov .onb-sw-cn{display:block;font-weight:650;font-size:14px;line-height:1.15;color:var(--text);}
+.onb-ov .onb-sw-cs{display:block;font-size:12px;color:var(--text-dim);margin-top:2px;}
+.onb-ov .onb-sw-score{flex:0 0 auto;text-align:right;}
+.onb-ov .onb-sw-v{font-family:'Fraunces',Georgia,serif;font-weight:600;font-size:19px;color:var(--text);font-variant-numeric:lining-nums tabular-nums;}
+.onb-ov .onb-sw-l{font-size:10px;color:var(--text-dim);letter-spacing:0.05em;margin-left:3px;}
+.onb-ov .onb-sw-start{flex:0 0 auto;font:700 11.5px/1 Inter,sans-serif;color:var(--accent);}
+.onb-ov .onb-sw-add{display:flex;align-items:center;gap:11px;width:100%;padding:12px 14px;border-radius:13px;border:1px dashed color-mix(in oklab,var(--accent) 34%,var(--border));background:transparent;cursor:pointer;transition:border-color .18s cubic-bezier(0.16,1,0.3,1),background .18s cubic-bezier(0.16,1,0.3,1),transform .15s cubic-bezier(0.16,1,0.3,1);}
+.onb-ov .onb-sw-add:active{transform:scale(0.99);}
+.onb-ov .onb-sw-add:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+.onb-ov .onb-sw-plus{flex:0 0 auto;width:26px;height:26px;border-radius:8px;display:grid;place-items:center;color:var(--accent);background:color-mix(in oklab,var(--accent) 10%,transparent);font-weight:700;}
+.onb-ov .onb-sw-add > span:nth-child(2){flex:1 1 auto;text-align:left;font-size:13.5px;font-weight:600;color:var(--text-mid);}
+.onb-ov .onb-sw-link{display:block;width:100%;text-align:center;background:none;border:none;color:var(--accent);font:600 13px/1 Inter,sans-serif;padding:14px 0 4px;cursor:pointer;}
+.onb-ov .onb-sw-link:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px;}
+
