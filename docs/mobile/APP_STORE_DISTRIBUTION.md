@@ -10,6 +10,34 @@ This document is the strategy + cost + effort scope for iOS App Store and Mac Ap
 
 ---
 
+## 🚦 GO-LIVE: flip the onboarding flow ON (do this at launch — easy to forget)
+
+The full onboarding flow (welcome → sign-up → first-run diagnostic → activation → home, plus the Pro upsell) is **built, deployed, and live in prod since v7.32.0 — but gated OFF**. Real users see no onboarding until you flip one switch in Supabase. **Nothing else turns it on**, so it's easy to forget at launch.
+
+**When:** at launch — once you're ready to bring the app to Apple / go live to real users.
+
+**The flip** — run in the Supabase SQL editor against the **Primary (prod) database**:
+
+```sql
+update public.app_config set enabled = true, updated_at = now() where key = 'onboarding_enabled';
+```
+
+Onboarding engages for non-activated users within one page load (the gate is read at boot, cached, and refreshed each load).
+
+**Verify first (read-only, safe):** open prod in an **incognito** window with `?onb=1` (a dev override) and confirm the flow renders. Do **not** walk the full first-run diagnostic on a real prod account — it writes activation telemetry (`metadata.activated`) to that profile.
+
+**Kill-switch (instant rollback, no redeploy):**
+
+```sql
+update public.app_config set enabled = false, updated_at = now() where key = 'onboarding_enabled';
+```
+
+Every client reverts to no-onboarding on its next load.
+
+**Background:** rollout-gate + telemetry shipped as PR #429 (v7.32.0). Mechanism + activation/skip metric queries → `docs/planning/ONBOARDING_ROLLOUT_GATE_PLAN.md`. Locked strategy → `docs/planning/ONBOARDING_ACTIVATION_DECISIONS.md`.
+
+---
+
 ## Part 1 — Why App Store at all (vs PWA-only)
 
 The cert app already works as a PWA — A2HS install + standalone mode (v4.99.31). Why bother with App Store?

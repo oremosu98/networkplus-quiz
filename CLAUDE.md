@@ -5,6 +5,7 @@
 ## Context
 - **Single-user app currently** (the user is the student prepping for real N10-009). Explains why items like per-user API cost telemetry are deferred.
 - **Future pivot**: paid multi-cert SaaS. Anything tagged `saas-gated` is **frozen** until that trigger fires (see Decision rules).
+- **⏳ PENDING GO-LIVE — onboarding flow**: built + deployed (v7.32.0) but gated **OFF** via Supabase `app_config.onboarding_enabled=false`. The ONLY thing that turns it on for real users is a manual SQL flip in Supabase (easy to forget). At launch / Apple submission, run the flip per [docs/mobile/APP_STORE_DISTRIBUTION.md](docs/mobile/APP_STORE_DISTRIBUTION.md) (§GO-LIVE). Kill-switch = set it back to false. **If the user mentions launching / going live / Apple submission, remind them of this flip.**
 - **Origin**: Notion-native flashcard quiz (2026-03-28) → standalone web app (2026-04-02). **Notion sync is not on the roadmap — do not re-propose.**
 - **External reviewer**: user periodically pastes OpenAI Codex feedback as a product-review signal.
 
