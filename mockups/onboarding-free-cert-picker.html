@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CertAnvil · Pick your exam (Free)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  /* ── Forged-bronze tokens (matches dg-system.css + the onboarding mockups). ── */
+  :root {
+    --bg: oklch(0.15 0.010 275); --surface: oklch(0.205 0.009 275); --surface-2: oklch(0.255 0.010 275);
+    --ink: oklch(0.97 0.006 275); --ink-soft: oklch(0.80 0.010 275); --muted: oklch(0.62 0.013 275);
+    --border: oklch(0.34 0.009 275);
+    --accent: oklch(0.82 0.150 66); --accent-bright: oklch(0.88 0.140 72); --accent-deep: oklch(0.72 0.150 62);
+    --on-accent: oklch(0.18 0.020 275); --pass: oklch(0.78 0.150 152); --track: oklch(0.30 0.010 275);
+    --page-bg: oklch(0.22 0.012 275); --page-ink: oklch(0.92 0.008 275); --page-dim: oklch(0.66 0.012 275);
+  }
+  [data-theme="light"] {
+    --bg: oklch(0.975 0.007 85); --surface: oklch(0.955 0.009 84); --surface-2: oklch(0.92 0.010 84);
+    --ink: oklch(0.22 0.015 280); --ink-soft: oklch(0.38 0.014 280); --muted: oklch(0.52 0.013 280);
+    --border: oklch(0.85 0.010 85);
+    --accent: oklch(0.55 0.155 55); --accent-bright: oklch(0.62 0.150 58); --accent-deep: oklch(0.46 0.150 52);
+    --on-accent: oklch(0.99 0.008 85); --pass: oklch(0.52 0.13 150); --track: oklch(0.88 0.010 85);
+    --page-bg: oklch(0.93 0.010 84); --page-ink: oklch(0.28 0.015 280); --page-dim: oklch(0.46 0.013 280);
+  }
+  :root { --ease: cubic-bezier(0.16,1,0.3,1); --ease-drawer: cubic-bezier(0.32,0.72,0,1); }
+
+  * { box-sizing: border-box; }
+  html { color-scheme: light dark; }
+  body { margin: 0; background: var(--page-bg); color: var(--page-ink);
+    font: 15px/1.55 Inter, -apple-system, BlinkMacSystemFont, sans-serif; padding: 30px 20px 64px;
+    transition: background .35s var(--ease), color .35s var(--ease); }
+  .stage { max-width: 520px; margin: 0 auto; }
+  .stage-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 24px; }
+  .stage-eyebrow { font-size: 10.5px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; color: var(--accent-bright); margin: 0 0 7px; }
+  .stage-title { font-family: Fraunces, Georgia, serif; font-weight: 600; font-size: 24px; letter-spacing: -0.012em; margin: 0; color: var(--page-ink); }
+  .stage-sub { color: var(--page-dim); font-size: 13px; margin: 7px 0 0; max-width: 48ch; line-height: 1.5; }
+  .theme-toggle { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 7px; font: 600 12px/1 Inter, sans-serif; color: var(--accent-bright);
+    background: transparent; border: 1px solid color-mix(in oklab, var(--accent-bright) 38%, var(--page-dim)); border-radius: 999px; padding: 8px 13px; cursor: pointer; transition: transform .15s var(--ease), background .2s; }
+  .theme-toggle svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+  .theme-toggle:active { transform: scale(0.97); }
+
+  .phone-wrap { display: flex; flex-direction: column; align-items: center; }
+  .phone { width: 390px; height: 844px; border-radius: 52px; padding: 11px; flex: 0 0 auto;
+    background: linear-gradient(165deg, #23262f, #0c0d11); box-shadow: 0 40px 90px -34px rgba(0,0,0,0.6), 0 0 0 1.5px rgba(255,255,255,0.06) inset; }
+  .screen { width: 100%; height: 100%; border-radius: 42px; overflow: hidden; position: relative; background: var(--bg); color: var(--ink);
+    display: flex; flex-direction: column; transition: background .35s var(--ease), color .35s var(--ease); }
+  .notch { position: absolute; top: 9px; left: 50%; transform: translateX(-50%); width: 122px; height: 32px; background: #07080b; border-radius: 18px; z-index: 6; }
+  .statusbar { display: flex; align-items: center; justify-content: space-between; padding: 14px 26px 0; font: 700 13px/1 Inter, sans-serif; color: var(--ink); }
+  .sb-icons { display: inline-flex; gap: 6px; align-items: center; }
+  .sb-icons svg { width: 17px; height: 12px; fill: var(--ink); }
+
+  .hdr { display: flex; align-items: center; gap: 11px; padding: 14px 22px 10px; }
+  .hdr .back { width: 36px; height: 36px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface); display: grid; place-items: center; cursor: pointer; color: var(--ink-soft); transition: transform .14s var(--ease), border-color .18s; }
+  .hdr .back:active { transform: scale(0.94); }
+  @media (hover:hover) and (pointer:fine) { .hdr .back:hover { border-color: color-mix(in oklab, var(--accent) 36%, var(--border)); } }
+  .hdr .back svg { width: 17px; height: 17px; stroke: currentColor; fill: none; stroke-width: 2.1; stroke-linecap: round; stroke-linejoin: round; }
+  .hdr h1 { font-family: Fraunces, Georgia, serif; font-weight: 600; font-size: 21px; letter-spacing: -0.01em; margin: 0; color: var(--ink); flex: 1; }
+  .hdr .plan-tag { font: 800 9.5px/1 Inter, sans-serif; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); background: color-mix(in oklab, var(--ink) 6%, transparent); border: 1px solid var(--border); border-radius: 999px; padding: 6px 9px; }
+
+  /* one-exam note under the header */
+  .note { display: flex; align-items: flex-start; gap: 10px; margin: 0 22px; padding: 11px 13px; border: 1px solid color-mix(in oklab, var(--accent) 26%, var(--border)); border-radius: 13px; background: color-mix(in oklab, var(--accent) 6%, var(--surface)); }
+  .note svg { flex: 0 0 auto; width: 16px; height: 16px; margin-top: 1px; stroke: var(--accent-deep); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .note p { margin: 0; font-size: 12.5px; line-height: 1.45; color: var(--ink-soft); }
+  .note b { color: var(--ink); font-weight: 650; }
+
+  .body { flex: 1; overflow-y: auto; padding: 4px 22px 16px; }
+  .body::-webkit-scrollbar { width: 0; }
+  .sect { font: 800 10px/1 Inter, sans-serif; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin: 16px 2px 10px; }
+
+  .mark { flex: 0 0 auto; width: 40px; height: 40px; border-radius: 11px; background: color-mix(in oklab, var(--accent) 13%, var(--surface-2)); color: var(--accent-deep); display: grid; place-items: center; font: 800 13px/1 Inter, sans-serif; }
+  .nm { font: 650 15px/1.1 Inter, sans-serif; color: var(--ink); }
+  .cd { font: 600 11.5px/1 'Roboto Mono', monospace; color: var(--muted); margin-top: 3px; }
+
+  /* selectable exam rows (radio behaviour) */
+  .cert-row { display: flex; align-items: center; gap: 12px; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); padding: 11px 13px; margin-bottom: 10px; cursor: pointer; transition: border-color .18s, background .18s, transform .12s var(--ease); }
+  .cert-row:active { transform: scale(0.99); }
+  @media (hover:hover) and (pointer:fine) { .cert-row:hover { border-color: color-mix(in oklab, var(--accent) 40%, var(--border)); } }
+  .cert-row .meta { flex: 1 1 auto; min-width: 0; }
+  .pick { flex: 0 0 auto; width: 22px; height: 22px; border-radius: 999px; border: 2px solid color-mix(in oklab, var(--ink) 22%, var(--border)); display: grid; place-items: center; transition: border-color .18s, background .18s; }
+  .pick svg { width: 13px; height: 13px; stroke: var(--on-accent); fill: none; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; opacity: 0; transform: scale(0.6); transition: opacity .15s var(--ease), transform .15s var(--ease); }
+  .cert-row.sel { border-color: color-mix(in oklab, var(--accent) 55%, var(--border)); background: color-mix(in oklab, var(--accent) 7%, var(--surface)); }
+  .cert-row.sel .pick { border-color: var(--accent); background: var(--accent); }
+  .cert-row.sel .pick svg { opacity: 1; transform: none; }
+
+  /* sticky commit bar */
+  .footer { flex: 0 0 auto; padding: 12px 22px calc(12px + env(safe-area-inset-bottom)); border-top: 1px solid color-mix(in oklab, var(--border) 70%, transparent); background: var(--bg); }
+  .btn-primary { width: 100%; border: none; border-radius: 13px; padding: 14px; cursor: pointer; background: var(--accent); color: var(--on-accent); font: 700 15px/1 Inter, sans-serif;
+    box-shadow: 0 10px 22px -12px color-mix(in oklab, var(--accent) 70%, transparent); transition: transform .15s var(--ease), filter .2s, opacity .2s; }
+  .btn-primary:active { transform: scale(0.985); }
+  @media (hover:hover) and (pointer:fine) { .btn-primary:hover { filter: brightness(1.05); } }
+  .btn-primary[disabled] { opacity: 0.45; box-shadow: none; cursor: default; }
+  .foot-hint { text-align: center; font-size: 11.5px; color: var(--muted); margin: 9px 0 0; }
+
+  /* lock-in confirmation sheet */
+  .scrim { position: absolute; inset: 0; background: color-mix(in oklab, #07080b 52%, transparent); opacity: 0; pointer-events: none; transition: opacity .28s var(--ease); z-index: 8; }
+  .scrim.open { opacity: 1; pointer-events: auto; }
+  .sheet { position: absolute; left: 0; right: 0; bottom: 0; z-index: 9; background: var(--surface); border-top-left-radius: 26px; border-top-right-radius: 26px;
+    border-top: 1px solid var(--border); padding: 10px 20px calc(20px + env(safe-area-inset-bottom)); transform: translateY(102%); transition: transform .34s var(--ease-drawer); will-change: transform; box-shadow: 0 -24px 50px -30px rgba(0,0,0,0.5); }
+  .sheet.open { transform: none; }
+  .grab { width: 38px; height: 4px; border-radius: 999px; background: color-mix(in oklab, var(--ink) 22%, var(--track)); margin: 4px auto 14px; }
+  .sheet-head { display: flex; align-items: center; gap: 11px; margin-bottom: 6px; }
+  .sheet-lock { flex: 0 0 auto; width: 38px; height: 38px; border-radius: 11px; display: grid; place-items: center; background: color-mix(in oklab, var(--accent) 14%, var(--surface-2)); }
+  .sheet-lock svg { width: 19px; height: 19px; stroke: var(--accent-deep); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .sheet h2 { font-family: Fraunces, Georgia, serif; font-weight: 600; font-size: 20px; letter-spacing: -0.01em; margin: 0; color: var(--ink); }
+  .sheet-intro { font-size: 13px; line-height: 1.5; color: var(--ink-soft); margin: 8px 0 14px; }
+  .terms { list-style: none; margin: 0 0 18px; padding: 0; }
+  .terms li { display: flex; align-items: flex-start; gap: 12px; padding: 11px 0; }
+  .terms li + li { border-top: 1px solid color-mix(in oklab, var(--border) 60%, transparent); }
+  .ti { flex: 0 0 auto; width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center; background: color-mix(in oklab, var(--accent) 10%, var(--surface-2)); }
+  .ti svg { width: 16px; height: 16px; stroke: var(--accent-deep); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .terms .tt { font: 650 13.5px/1.3 Inter, sans-serif; color: var(--ink); }
+  .terms .ts { font-size: 12.5px; line-height: 1.45; color: var(--ink-soft); margin-top: 3px; }
+  .terms .ts b { color: var(--ink); font-weight: 650; }
+  .sheet-actions { display: flex; flex-direction: column; gap: 9px; }
+  .btn-ghost { width: 100%; border: 1px solid var(--border); border-radius: 13px; padding: 13px; cursor: pointer; background: transparent; color: var(--ink-soft); font: 650 14px/1 Inter, sans-serif; transition: background .2s, transform .15s var(--ease); }
+  .btn-ghost:active { transform: scale(0.98); }
+  @media (hover:hover) and (pointer:fine) { .btn-ghost:hover { background: color-mix(in oklab, var(--ink) 5%, transparent); } }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .reveal { opacity: 0; transform: translateY(9px); animation: rise .5s var(--ease) forwards; }
+    .reveal:nth-child(1){animation-delay:.04s}.reveal:nth-child(2){animation-delay:.08s}.reveal:nth-child(3){animation-delay:.12s}
+    .reveal:nth-child(4){animation-delay:.16s}.reveal:nth-child(5){animation-delay:.20s}.reveal:nth-child(6){animation-delay:.24s}
+    .reveal:nth-child(7){animation-delay:.28s}.reveal:nth-child(8){animation-delay:.32s}.reveal:nth-child(9){animation-delay:.36s}.reveal:nth-child(10){animation-delay:.40s}
+    @keyframes rise { to { opacity: 1; transform: none; } }
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .sheet .terms li { opacity: 0; transform: translateY(6px); }
+    .sheet.open .terms li { animation: termIn .42s var(--ease) forwards; }
+    .sheet.open .terms li:nth-child(1) { animation-delay: .08s; }
+    .sheet.open .terms li:nth-child(2) { animation-delay: .14s; }
+    .sheet.open .terms li:nth-child(3) { animation-delay: .20s; }
+    @keyframes termIn { to { opacity: 1; transform: none; } }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .scrim, .sheet { transition: none; }
+  }
+  .hint { text-align: center; color: var(--page-dim); font-size: 12px; margin-top: 18px; }
+  @media (max-width: 440px) { .phone { transform: scale(.92); transform-origin: top center; } }
+</style>
+</head>
+<body>
+  <div class="stage">
+    <div class="stage-head">
+      <div>
+        <p class="stage-eyebrow">Free · pick your exam</p>
+        <h1 class="stage-title">Pick your exam</h1>
+        <p class="stage-sub">Where a free user lands after choosing the Free plan. Free includes one exam, so the pick is a commitment: it locks in, and switching later needs Pro.</p>
+      </div>
+      <button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle light and dark">
+        <svg id="themeIcon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path></svg>
+        <span id="themeLabel">Dark</span>
+      </button>
+    </div>
+
+    <div class="phone-wrap">
+      <div class="phone">
+        <div class="screen">
+          <div class="notch"></div>
+          <div class="statusbar">
+            <span>9:41</span>
+            <span class="sb-icons">
+              <svg viewBox="0 0 18 12" aria-hidden="true"><rect x="0" y="7" width="3" height="5" rx="1"/><rect x="5" y="4" width="3" height="8" rx="1"/><rect x="10" y="1" width="3" height="11" rx="1" opacity="0.4"/></svg>
+              <svg viewBox="0 0 18 12" aria-hidden="true"><rect x="1" y="2" width="14" height="8" rx="2.4" fill="none" stroke="currentColor" stroke-width="1.4"/><rect x="2.6" y="3.6" width="9" height="4.8" rx="1.2"/><rect x="16" y="4.6" width="1.4" height="2.8" rx="0.7"/></svg>
+            </span>
+          </div>
+
+          <div class="hdr">
+            <button class="back" type="button" aria-label="Back"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6"></path></svg></button>
+            <h1>Pick your exam</h1>
+            <span class="plan-tag">Free</span>
+          </div>
+
+          <div class="note">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>
+            <p>Free covers <b>one full exam</b>. Focusing on one is the fastest way to pass, so start with the exam you're sitting next. You can add the rest with Pro.</p>
+          </div>
+
+          <div class="body" id="examList">
+            <div class="sect">Choose one to study</div>
+            <div class="cert-row sel reveal" data-cert="netplus" data-name="Network+"><span class="mark">N+</span><div class="meta"><div class="nm">Network+</div><div class="cd">N10-009</div></div><span class="pick"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6L9 17l-5-5"></path></svg></span></div>
+            <div class="cert-row reveal" data-cert="secplus" data-name="Security+"><span class="mark">S+</span><div class="meta"><div class="nm">Security+</div><div class="cd">SY0-701</div></div><span class="pick"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6L9 17l-5-5"></path></svg></span></div>
+            <div class="cert-row reveal" data-cert="aplus-core1" data-name="A+ Core 1"><span class="mark">A+</span><div class="meta"><div class="nm">A+ Core 1</div><div class="cd">220-1101</div></div><span class="pick"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6L9 17l-5-5"></path></svg></span></div>
+            <div class="cert-row reveal" data-cert="aplus-core2" data-name="A+ Core 2"><span class="mark">A+</span><div class="meta"><div class="nm">A+ Core 2</div><div class="cd">220-1102</div></div><span class="pick"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6L9 17l-5-5"></path></svg></span></div>
+            <div class="cert-row reveal" data-cert="az900" data-name="Azure Fundamentals"><span class="mark">AZ</span><div class="meta"><div class="nm">Azure Fundamentals</div><div class="cd">AZ-900</div></div><span class="pick"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6L9 17l-5-5"></path></svg></span></div>
+            <div class="cert-row reveal" data-cert="ai900" data-name="Azure AI Fundamentals"><span class="mark">AI</span><div class="meta"><div class="nm">Azure AI Fundamentals</div><div class="cd">AI-900</div></div><span class="pick"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6L9 17l-5-5"></path></svg></span></div>
+            <div class="cert-row reveal" data-cert="sc900" data-name="Security Fundamentals"><span class="mark">SC</span><div class="meta"><div class="nm">Security Fundamentals</div><div class="cd">SC-900</div></div><span class="pick"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6L9 17l-5-5"></path></svg></span></div>
+            <div class="cert-row reveal" data-cert="clfc02" data-name="Cloud Practitioner"><span class="mark">CLF</span><div class="meta"><div class="nm">Cloud Practitioner</div><div class="cd">CLF-C02</div></div><span class="pick"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6L9 17l-5-5"></path></svg></span></div>
+          </div>
+
+          <div class="footer">
+            <button class="btn-primary" id="lockBtn" type="button">Lock in Network+</button>
+            <p class="foot-hint">You can change your mind right up until you lock in.</p>
+          </div>
+
+          <!-- lock-in confirmation -->
+          <div class="scrim" id="scrim"></div>
+          <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+            <div class="grab"></div>
+            <div class="sheet-head">
+              <span class="sheet-lock"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg></span>
+              <h2 id="sheetTitle">Lock in Network+?</h2>
+            </div>
+            <p class="sheet-intro" id="sheetIntro">Free is built around one exam, so make sure Network+ is the one you want to focus on first.</p>
+            <ul class="terms">
+              <li>
+                <span class="ti"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg></span>
+                <div><div class="tt">One exam, your full focus</div><div class="ts" id="termLock">You're choosing <b>Network+</b> as your exam. Free stays on this one. Adding or switching comes with Pro.</div></div>
+              </li>
+              <li>
+                <span class="ti"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2L3 14h7l-1 8 10-12h-7z"></path></svg></span>
+                <div><div class="tt">20 questions a day</div><div class="ts"><b>15 new practice</b> questions plus <b>5 Daily Review</b> cards.</div></div>
+              </li>
+              <li>
+                <span class="ti"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 1 1-3-6.7"></path><path d="M21 4v4h-4"></path></svg></span>
+                <div><div class="tt">A fresh set each morning</div><div class="ts">Your streak and progress are always yours. A new 20 unlocks every day.</div></div>
+              </li>
+            </ul>
+            <div class="sheet-actions">
+              <button class="btn-primary" id="confirmBtn" type="button">Lock in Network+</button>
+              <button class="btn-ghost" id="cancelBtn" type="button">Go back</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="hint">Tap an exam to choose it, then Lock in to see the free-plan terms.</p>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      var html = document.documentElement, label = document.getElementById('themeLabel'), icon = document.getElementById('themeIcon');
+      var sun = '<circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path>';
+      var moon = '<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"></path>';
+      function paint(){ var dark = html.getAttribute('data-theme') !== 'light'; label.textContent = dark ? 'Light' : 'Dark'; icon.innerHTML = dark ? moon : sun; }
+      document.getElementById('themeToggle').addEventListener('click', function(){ html.setAttribute('data-theme', html.getAttribute('data-theme') === 'light' ? 'dark' : 'light'); paint(); });
+      paint();
+
+      // exam selection (single-choice)
+      var list = document.getElementById('examList');
+      var lockBtn = document.getElementById('lockBtn');
+      var confirmBtn = document.getElementById('confirmBtn');
+      var sheetTitle = document.getElementById('sheetTitle');
+      var sheetIntro = document.getElementById('sheetIntro');
+      var termLock = document.getElementById('termLock');
+      var selected = 'Network+';
+
+      function setSelected(name){
+        selected = name;
+        lockBtn.textContent = 'Lock in ' + name;
+        confirmBtn.textContent = 'Lock in ' + name;
+        sheetTitle.textContent = 'Lock in ' + name + '?';
+        sheetIntro.textContent = 'Free is built around one exam, so make sure ' + name + ' is the one you want to focus on first.';
+        termLock.innerHTML = "You're choosing <b>" + name + "</b> as your exam. Free stays on this one. Adding or switching comes with Pro.";
+      }
+
+      list.addEventListener('click', function(e){
+        var row = e.target.closest('.cert-row'); if (!row) return;
+        list.querySelectorAll('.cert-row').forEach(function(r){ r.classList.remove('sel'); });
+        row.classList.add('sel');
+        setSelected(row.getAttribute('data-name'));
+      });
+
+      // sheet open/close
+      var scrim = document.getElementById('scrim'), sheet = document.getElementById('sheet');
+      function openSheet(){ scrim.classList.add('open'); sheet.classList.add('open'); }
+      function closeSheet(){ scrim.classList.remove('open'); sheet.classList.remove('open'); }
+      lockBtn.addEventListener('click', openSheet);
+      scrim.addEventListener('click', closeSheet);
+      document.getElementById('cancelBtn').addEventListener('click', closeSheet);
+      confirmBtn.addEventListener('click', function(){ closeSheet(); /* mockup: real flow would write freeCertId + route to home */ });
+    })();
+  </script>
+</body>
+</html>
