@@ -79,6 +79,19 @@ const openCustomQuizModal = async ({ page }) => {
   });
 };
 
+// v7.35.0: Practice / Exam / Drill sections collapse by default on phones
+// (≤620px). Expand before interacting so button clicks reach visible elements.
+// No-op on desktop (section never gets .home-collapsed). Safe if
+// _initHomeCollapse() hasn't run yet (count() returns 0 → skip).
+async function expandHomeSection(page, cellClass) {
+  if (await page.locator(`.${cellClass}.home-collapsed`).count()) {
+    await page.locator(`.${cellClass} .tile-head`).first().click();
+    await page.locator(`.${cellClass}.home-collapsed`)
+      .waitFor({ state: 'detached', timeout: 2000 })
+      .catch(() => {});
+  }
+}
+
 test.describe('App Load & Setup Page', () => {
   test('loads and shows the setup page', async ({ page }) => {
     await page.goto('/');
@@ -399,6 +412,7 @@ test.describe('Exam Button Validation', () => {
   test('signed-in user with empty API key — exam start does NOT show BYOK error', async ({ page }) => {
     await page.goto('/');
     await page.evaluate(() => localStorage.setItem('nplus_key', ''));
+    await expandHomeSection(page, 'cell-exam'); // v7.35.0: expand if collapsed on phones
     await page.locator('#page-setup button:has-text("Full Exam Simulator")').click();
     const err = page.locator('#setup-err');
     await expect(err).not.toBeVisible({ timeout: 1500 });
@@ -410,6 +424,7 @@ test.describe('Exam Button Validation', () => {
       const el = document.getElementById('api-key');
       if (el) el.value = 'bad-key';
     });
+    await expandHomeSection(page, 'cell-exam'); // v7.35.0: expand if collapsed on phones
     await page.locator('#page-setup button:has-text("Full Exam Simulator")').click();
     const err = page.locator('#setup-err');
     await expect(err).not.toBeVisible({ timeout: 1500 });
