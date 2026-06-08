@@ -1726,7 +1726,7 @@ if ('serviceWorker' in navigator) {
     try { console.info('[sw] new version detected (' + reason + ') — showing update banner'); } catch (_) {}
     try {
       const banner = document.createElement('div');
-      banner.className = 'sw-update-banner';
+      banner.className = 'sw-update-banner sw-update-strip';
       banner.setAttribute('role', 'status');
       banner.setAttribute('aria-live', 'polite');
       // v5.5.9: brand sync-arrows (18_sync_arrows.svg, trimmed — namespaced
@@ -1743,7 +1743,7 @@ if ('serviceWorker' in navigator) {
         '</span>' +
         '<button type="button" class="sw-banner-cta">Refresh</button>' +
         '<button type="button" class="sw-banner-dismiss" aria-label="Dismiss">×</button>';
-      document.body.appendChild(banner);
+      document.body.insertBefore(banner, document.body.firstChild);
       const refreshBtn = banner.querySelector('.sw-banner-cta');
       const dismissBtn = banner.querySelector('.sw-banner-dismiss');
       if (refreshBtn) refreshBtn.addEventListener('click', () => {

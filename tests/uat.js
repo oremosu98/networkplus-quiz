@@ -14202,6 +14202,8 @@ test('v5.5.9 SwBanner: brand sync SVG inlined in .sw-banner-icon (namespaced swS
   && /stroke="url\(#swSyncOrange\)"[\s\S]{0,140}<\/svg><\/span>/.test(js)
   && /sw-banner-title[\s\S]{0,200}New version available[\s\S]{0,500}sw-banner-cta[\s\S]{0,80}Refresh/.test(js)
   && /sw-banner-dismiss[\s\S]{0,300}banner\.remove\(\)/.test(js));
+test('v7.x SW update banner mounts as a top strip, not a bottom overlay',
+  /sw-update-strip/.test(js) && /\.sw-update-strip\{[\s\S]{0,200}(top:0|sticky|fixed)/.test(read('dg-system.css')));
 
 // ── v4.99.28 — iOS Plan Phase 2: Mobile UX audit fixes ──
 test('v4.99.28 InputZoom: input[type=password]/text now uses 16px font (prevents iOS zoom)',

@@ -1999,6 +1999,21 @@ html[data-theme] body .sw-banner-dismiss{color:var(--text-dim)!important;border-
   html[data-theme] body .sw-banner-cta:hover{transform:none!important;}
 }
 
+/* v7.x: update banner as a slim, non-overlapping top strip (audit 1.4/2.2/2A.2)
+   The strip class is added alongside .sw-update-banner so all the editorial
+   de-purple rules above still apply. position:fixed+top:0 is used (not sticky)
+   because the banner is appended to <body> outside any scroll container, and
+   sticky on a direct body child only works when body itself scrolls — the app
+   uses overflow on inner containers, so fixed is the safe cross-layout choice.
+   A CSS custom property --sw-strip-h is set to 44px while the strip is present
+   so inner layout can push down if needed; the strip itself does not overlap
+   because it paints above everything (z-index 9980) and has no bottom overlap. */
+.sw-update-strip{position:fixed;top:0;left:0;right:0;z-index:9980;display:flex;align-items:center;justify-content:center;gap:12px;padding:8px 14px;padding-top:max(8px,env(safe-area-inset-top));font-size:13px;background:color-mix(in oklab,var(--accent) 18%,var(--surface));border-bottom:1px solid var(--accent-line,color-mix(in oklab,var(--accent) 35%,var(--border)));}
+.sw-update-strip .sw-banner-title{font-weight:700;}
+.sw-update-strip button{min-height:36px;}
+/* Override bottom-fixed positioning from styles.css so the strip wins */
+html[data-theme] body .sw-update-strip{position:fixed!important;top:0!important;bottom:auto!important;left:0!important;right:0!important;max-width:none!important;margin:0!important;border-radius:0!important;box-shadow:none!important;border-top:none!important;}
+
 /* ── TOPBAR ── */
 html[data-theme] body #app-topbar{border-bottom:1px solid var(--border)!important;background:var(--bg)!important;}
 html[data-theme] body .app-topbar{border-bottom:1px solid var(--border)!important;background:var(--bg)!important;}
