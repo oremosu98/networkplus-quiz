@@ -601,7 +601,9 @@ html[data-theme] body #custom-quiz-section .cq-summary-cta:hover{filter:brightne
    overlay, sticky Generate footer, restraint. */
 #custom-quiz-section{--t-1:12px;--t0:14px;--t1:18px;--t2:23px;--t3:30px;--t4:42px;--dgh-ease:cubic-bezier(0.16,1,0.3,1);}
 html body #custom-quiz-section{display:none;}
-html body #custom-quiz-section[open]{display:flex;flex-direction:column;align-items:center;justify-content:center;position:fixed;inset:0;z-index:140;margin:0;padding:clamp(16px,4vh,46px);background:color-mix(in oklab,var(--bg) 70%,transparent);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);border:0;border-radius:0;box-shadow:none;overflow:auto;animation:cqModalFade .2s cubic-bezier(0.16,1,0.3,1);}
+html body #custom-quiz-section[open]{display:flex;flex-direction:column;align-items:center;justify-content:center;position:fixed;inset:0;z-index:140;margin:0;padding:clamp(16px,4vh,46px);background:color-mix(in oklab,var(--bg) 70%,transparent);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);border:0;border-radius:0;box-shadow:none;overflow:auto;animation:cqModalFade .2s cubic-bezier(0.16,1,0.3,1);pointer-events:none;}
+/* Restore pointer-events on the actual modal panel content so taps work inside the overlay */
+html body #custom-quiz-section[open]>.custom-quiz-summary,html body #custom-quiz-section[open]>.custom-quiz-body{pointer-events:auto;}
 @keyframes cqModalFade{from{opacity:0}to{opacity:1}}
 #custom-quiz-section[open]>.custom-quiz-summary,#custom-quiz-section[open]>.custom-quiz-body{width:min(1040px,calc(100vw - clamp(28px,7vw,84px)));flex:none;animation:cqModalPanel .24s cubic-bezier(0.16,1,0.3,1);}
 @keyframes cqModalPanel{from{opacity:0;transform:scale(0.96)}to{opacity:1;transform:none}}

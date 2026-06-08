@@ -20003,6 +20003,15 @@ console.log('\n\x1b[1m── Security Phase 7 — CSP script-src unsafe-inline r
     /hover:none[\s\S]{0,2000}a2hs-banner-dismiss/.test(dg));
 })();
 
+// ── v7.x Custom Quiz panel pointer-events fix ──
+(function(){
+  const dg = read('dg-system.css');
+  test('v7.x Custom Quiz overlay does not intercept taps (pointer-events:none on fixed backdrop)',
+    /custom-quiz-section\[open\][^}]*pointer-events\s*:\s*none/.test(dg));
+  test('v7.x Custom Quiz modal panel children restore pointer-events:auto',
+    /custom-quiz-section\[open\]\s*>\s*\.custom-quiz-(?:summary|body)[^}]*pointer-events\s*:\s*auto/.test(dg));
+})();
+
 // ── Summary ──
 console.log('\n' + '═'.repeat(50));
 const total = results.pass + results.fail;
