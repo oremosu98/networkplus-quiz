@@ -18782,6 +18782,28 @@ function renderBentoRecommended() {
   }
 
   _renderHomeForecast(false);    // #6 — no reviews due, hide the strip
+
+  // v7.x: new user has no weak-spot data — show a friendly first-quiz CTA instead.
+  const _isNewUser = (typeof loadHistory === 'function') && loadHistory().length === 0;
+  if (_isNewUser) {
+    if (minEl) minEl.textContent = '10';
+    if (titleEl) titleEl.textContent = 'Start your first quiz';
+    if (metaEl) metaEl.textContent = '10 questions · mixed · ~10 min';
+    if (launchEl) launchEl.onclick = function () {
+      if (typeof applyPreset === 'function') {
+        // 'warmup' is 5-Q Foundational; set globals for a 10-Q mixed Exam Level warm-up
+        // then call startQuiz directly (same path applyPreset uses).
+        topic = MIXED_TOPIC; diff = 'Exam Level'; qCount = 10;
+        document.querySelectorAll('#topic-group .chip').forEach(function (c) { c.classList.toggle('on', c.dataset.v === topic); });
+        document.querySelectorAll('#diff-group .chip').forEach(function (c) { c.classList.toggle('on', c.dataset.v === diff); });
+        document.querySelectorAll('#count-group .chip').forEach(function (c) { c.classList.toggle('on', c.dataset.v === String(qCount)); });
+        if (typeof syncChipAriaPressed === 'function') { syncChipAriaPressed('#topic-group'); syncChipAriaPressed('#diff-group'); syncChipAriaPressed('#count-group'); }
+        if (typeof startQuiz === 'function') startQuiz();
+      }
+    };
+    return;
+  }
+
   if (minEl) minEl.textContent = '15';
   if (titleEl) titleEl.textContent = '15-min Weak Spots';
   if (metaEl) {

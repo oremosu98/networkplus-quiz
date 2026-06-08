@@ -20050,6 +20050,12 @@ console.log('\n\x1b[1m── Security Phase 7 — CSP script-src unsafe-inline r
     /matchMedia\(['"]\(max-width:\s*620px\)['"]\)/.test(js) || /@media\s*\(max-width:620px\)[\s\S]{0,800}home-collaps/.test(dg.replace(/\n/g,' ')));
 })();
 
+// ── audit 10: new-user Start tile shows "Start your first quiz" (10-Q mixed warm-up) ──
+(function(){
+  test('v7.x New-user Start = first-quiz 10-Q mixed (not weak-spots)',
+    /loadHistory\(\)\.length\s*===\s*0/.test(js) && /Start your first quiz/.test(js));
+})();
+
 // ── Summary ──
 console.log('\n' + '═'.repeat(50));
 const total = results.pass + results.fail;
