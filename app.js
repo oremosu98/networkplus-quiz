@@ -2081,6 +2081,13 @@ window.addEventListener('DOMContentLoaded', () => {
   // Restore Hardcore exam preference (#48)
   const hcCheckbox = document.getElementById('hardcore-checkbox');
   if (hcCheckbox) hcCheckbox.checked = localStorage.getItem(STORAGE.HARDCORE_EXAM) === '1';
+  // v7.34.1: initialise phone home-collapse on first load. goSetup() calls
+  // _initHomeCollapse() when navigating back from quiz/exam, but on a raw
+  // page load the DOMContentLoaded handler renders the setup/bento content
+  // directly and never calls goSetup(). _initHomeCollapse() is idempotent
+  // (guards each cell with home-collapsible) and self-gates on ≤620 px, so
+  // this call is a no-op on desktop and safe to duplicate.
+  if (typeof _initHomeCollapse === 'function') _initHomeCollapse();
 });
 
 // Persist hardcore-mode preference (#48). The exam page reads `examHardcore`

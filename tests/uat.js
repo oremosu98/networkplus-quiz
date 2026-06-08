@@ -8256,6 +8256,8 @@ test('v4.81.1: DOMContentLoaded calls renderSrReviewCard on first paint',
   /DOMContentLoaded[\s\S]{0,3500}renderSrReviewCard\b/.test(js));
 test('v4.81.1: DOMContentLoaded calls renderDiagnosticSurface on first paint',
   /DOMContentLoaded[\s\S]{0,3500}renderDiagnosticSurface\b/.test(js));
+test('v7.34.1: DOMContentLoaded calls _initHomeCollapse on first load (phone collapse bug fix)',
+  /DOMContentLoaded[\s\S]{0,6000}_initHomeCollapse\b/.test(js));
 
 // ──────────────────────────────────────────────────────────
 // v4.81.2: Auto-backup safety net
