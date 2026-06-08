@@ -185,12 +185,15 @@
 
   // cert-app redesign cards (Phase 1: the core loop in the iOS language)
   var CERT_MOCKS = [
-    ['cert-ios-home.html','Cert Home','Readiness, one session, pass-mark confetti.'],
-    ['cert-ios-quiz.html','Quiz','Question, then the answer reveal.'],
-    ['cert-ios-results.html','Results','The score and the readiness jump.'],
-    ['cert-ios-progress.html','Progress','Topic mastery across the 5 domains.'],
-    ['cert-ios-analytics.html','Analytics','The readiness story and next points.'],
-    ['cert-ios-settings.html','Settings','Study cadence, data, danger zone.']
+    ['cert-ios-hub.html','Hub','The lobby: my certs, settings, go Pro.'],
+    ['cert-ios-home.html','Cert Home','Collapsible home + new-user state, confetti.'],
+    ['cert-ios-quiz.html','Quiz','Generating, question, answer reveal.'],
+    ['cert-ios-results.html','Results','Scaled score, stats, every-answer review.'],
+    ['cert-ios-progress.html','Progress','Topic mastery, swipe by domain.'],
+    ['cert-ios-analytics.html','Analytics','Readiness story, swipe through fields.'],
+    ['cert-ios-custom-quiz.html','Custom Quiz','Pick topic, difficulty, count.'],
+    ['cert-ios-settings.html','Settings','Study cadence, data, danger zone.'],
+    ['cert-ios-cross-cert.html','Cross-cert analytics','Every cert side by side (Pro).']
   ];
   var cwrap = $('sbx-cert-cards');
   CERT_MOCKS.forEach(function(m){

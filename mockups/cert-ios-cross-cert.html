@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CertAnvil · Cross-cert analytics (iOS)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&family=Roboto+Mono:wght@500;600;700&display=swap" rel="stylesheet" />
+<style>
+  /* Forged-bronze tokens (matches dg-system.css + the cert-ios mockups). */
+  :root {
+    --bg: oklch(0.15 0.010 275); --surface: oklch(0.205 0.009 275); --surface-2: oklch(0.255 0.010 275);
+    --ink: oklch(0.97 0.006 275); --ink-soft: oklch(0.80 0.010 275); --muted: oklch(0.62 0.013 275);
+    --border: oklch(0.34 0.009 275);
+    --accent: oklch(0.82 0.150 66); --accent-bright: oklch(0.88 0.140 72); --accent-deep: oklch(0.72 0.150 62);
+    --on-accent: oklch(0.18 0.020 275); --pass: oklch(0.78 0.150 152); --track: oklch(0.30 0.010 275);
+    --page-bg: oklch(0.22 0.012 275); --page-ink: oklch(0.92 0.008 275); --page-dim: oklch(0.66 0.012 275);
+  }
+  [data-theme="light"] {
+    --bg: oklch(0.975 0.007 85); --surface: oklch(0.955 0.009 84); --surface-2: oklch(0.92 0.010 84);
+    --ink: oklch(0.22 0.015 280); --ink-soft: oklch(0.38 0.014 280); --muted: oklch(0.52 0.013 280);
+    --border: oklch(0.85 0.010 85);
+    --accent: oklch(0.55 0.155 55); --accent-bright: oklch(0.62 0.150 58); --accent-deep: oklch(0.46 0.150 52);
+    --on-accent: oklch(0.99 0.008 85); --pass: oklch(0.52 0.13 150); --track: oklch(0.88 0.010 85);
+    --page-bg: oklch(0.93 0.010 84); --page-ink: oklch(0.28 0.015 280); --page-dim: oklch(0.46 0.013 280);
+  }
+  :root { --ease: cubic-bezier(0.16,1,0.3,1); --ease-drawer: cubic-bezier(0.32,0.72,0,1); }
+
+  * { box-sizing: border-box; }
+  html { color-scheme: light dark; }
+  body { margin: 0; background: var(--page-bg); color: var(--page-ink);
+    font: 15px/1.55 Inter, -apple-system, BlinkMacSystemFont, sans-serif; padding: 30px 20px 64px;
+    transition: background .35s var(--ease), color .35s var(--ease); }
+  .stage { max-width: 520px; margin: 0 auto; }
+  .stage-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 24px; }
+  .stage-eyebrow { font-size: 10.5px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; color: var(--accent-bright); margin: 0 0 7px; }
+  .stage-title { font-family: Fraunces, Georgia, serif; font-weight: 600; font-size: 24px; letter-spacing: -0.012em; margin: 0; color: var(--page-ink); }
+  .stage-sub { color: var(--page-dim); font-size: 13px; margin: 7px 0 0; max-width: 48ch; line-height: 1.5; }
+  .theme-toggle { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 7px; font: 600 12px/1 Inter, sans-serif; color: var(--accent-bright);
+    background: transparent; border: 1px solid color-mix(in oklab, var(--accent-bright) 38%, var(--page-dim)); border-radius: 999px; padding: 8px 13px; cursor: pointer; transition: transform .15s var(--ease), background .2s; }
+  .theme-toggle svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+  .theme-toggle:active { transform: scale(0.97); }
+
+  .phone-wrap { display: flex; flex-direction: column; align-items: center; }
+  .phone { width: 390px; height: 844px; border-radius: 52px; padding: 11px; flex: 0 0 auto;
+    background: linear-gradient(165deg, #23262f, #0c0d11); box-shadow: 0 40px 90px -34px rgba(0,0,0,0.6), 0 0 0 1.5px rgba(255,255,255,0.06) inset; }
+  .screen { width: 100%; height: 100%; border-radius: 42px; overflow: hidden; position: relative; background: var(--bg); color: var(--ink);
+    display: flex; flex-direction: column; transition: background .35s var(--ease), color .35s var(--ease); }
+  .notch { position: absolute; top: 9px; left: 50%; transform: translateX(-50%); width: 122px; height: 32px; background: #07080b; border-radius: 18px; z-index: 6; }
+  .statusbar { display: flex; align-items: center; justify-content: space-between; padding: 14px 26px 0; font: 700 13px/1 Inter, sans-serif; color: var(--ink); }
+  .sb-icons { display: inline-flex; gap: 6px; align-items: center; }
+  .sb-icons svg { width: 17px; height: 12px; fill: var(--ink); }
+
+  /* cross-cert header: back arrow, title, theme toggle (no per-cert tab bar) */
+  .xhead { display: flex; align-items: center; gap: 11px; padding: 12px 16px 8px; }
+  .x-back { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 5px; font: 700 13px/1 Inter, sans-serif; color: var(--accent-deep);
+    background: none; border: none; cursor: pointer; padding: 6px 6px 6px 2px; transition: transform .14s var(--ease); }
+  .x-back:active { transform: scale(0.95); }
+  .x-back svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+  .x-title { flex: 1 1 auto; min-width: 0; }
+  .x-title b { display: block; font: 650 16px/1.1 Inter, sans-serif; color: var(--ink); }
+  .x-title span { display: block; font: 700 9px/1 Inter, sans-serif; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent-deep); margin-bottom: 3px; }
+  .app-theme { flex:0 0 auto; width:34px; height:34px; border-radius:10px; border:1px solid var(--border); background:var(--surface); display:grid; place-items:center; cursor:pointer; color:var(--ink-soft); transition:transform .14s var(--ease), border-color .18s; }
+  .app-theme:active{ transform:scale(.94); }
+  @media (hover:hover) and (pointer:fine){ .app-theme:hover{ border-color:color-mix(in oklab,var(--accent) 36%,var(--border)); } }
+  .app-theme svg{ width:17px; height:17px; stroke:currentColor; fill:none; stroke-width:1.9; stroke-linecap:round; stroke-linejoin:round; }
+
+  /* pro badge under the title row */
+  .xpro { display: flex; align-items: center; gap: 8px; padding: 0 18px 6px; }
+  .xpro .pill { display: inline-flex; align-items: center; gap: 5px; font: 800 9px/1 Inter, sans-serif; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent-deep);
+    background: color-mix(in oklab, var(--accent) 13%, transparent); border: 1px solid color-mix(in oklab, var(--accent) 32%, var(--border)); border-radius: 999px; padding: 5px 9px; }
+  .xpro .pill svg { width: 11px; height: 11px; stroke: currentColor; fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+  .xpro .note { font: 500 11px/1.3 Inter, sans-serif; color: var(--muted); }
+
+  /* swipe-paged segmented control (chip row) - exact pattern from cert-ios-analytics */
+  .seg { flex:0 0 auto; display:flex; gap:8px; overflow-x:auto; padding:8px 16px 10px; scrollbar-width:none; }
+  .seg::-webkit-scrollbar{ display:none; }
+  .chip { flex:0 0 auto; font:700 12px/1 Inter,sans-serif; padding:8px 13px; border-radius:999px; border:1px solid var(--border); background:var(--surface); color:var(--ink-soft); cursor:pointer; white-space:nowrap; transition:background .2s, color .2s, border-color .2s, transform .14s var(--ease); }
+  .chip:active{ transform:scale(.96); }
+  .chip.on { background:color-mix(in oklab,var(--accent) 12%,var(--surface)); border-color:color-mix(in oklab,var(--accent) 45%,var(--border)); color:var(--accent-deep); }
+
+  /* horizontal scroll-snap pager - exact pattern from cert-ios-analytics */
+  .pager { flex:1 1 auto; display:flex; overflow-x:auto; overflow-y:hidden; scroll-snap-type:x mandatory; -webkit-overflow-scrolling:touch; scrollbar-width:none; }
+  .pager::-webkit-scrollbar{ display:none; }
+  .page { flex:0 0 100%; scroll-snap-align:start; overflow-y:auto; padding:6px 18px 18px; }
+  .page::-webkit-scrollbar{ display:none; }
+
+  /* shared bar (same .bar style used everywhere) */
+  .bar { height: 8px; border-radius: 999px; background: var(--track); position: relative; overflow: hidden; margin-bottom: 6px; }
+  .bar > span { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 999px; background: var(--accent); transition: width .9s var(--ease), background .4s ease; }
+  .bar .tick { position: absolute; top: -2px; bottom: -2px; width: 2px; background: color-mix(in oklab, var(--ink) 45%, var(--track)); z-index: 1; }
+  .bar.passbar > span { background: var(--pass); }
+
+  /* group header */
+  .ghead { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin: 16px 2px 10px; }
+  .ghead:first-child { margin-top: 4px; }
+  .ghead .gt { font: 800 10px/1 Inter, sans-serif; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+  .ghead .gc { font: 700 10px/1 'Roboto Mono', monospace; color: var(--accent-deep); }
+
+  /* cert row (readiness page) */
+  .cert { display: flex; gap: 12px; border: 1px solid var(--border); border-radius: 15px; background: var(--surface); padding: 13px 14px; margin-bottom: 9px; }
+  .cert.passed { border-color: color-mix(in oklab, var(--pass) 36%, var(--border)); background: color-mix(in oklab, var(--pass) 5%, var(--surface)); }
+  .cert-mark { flex: 0 0 auto; width: 40px; height: 40px; border-radius: 11px; display: grid; place-items: center; text-align: center;
+    background: color-mix(in oklab, var(--accent) 13%, var(--surface-2)); color: var(--accent-deep); font: 800 12px/1 Inter, sans-serif; letter-spacing: -0.02em; }
+  .cert.passed .cert-mark { background: color-mix(in oklab, var(--pass) 14%, var(--surface-2)); color: var(--pass); }
+  .cert-body { flex: 1 1 auto; min-width: 0; }
+  .cert-top { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+  .cert-nm { font: 650 14px/1.15 Inter, sans-serif; color: var(--ink); }
+  .cert-tag { font: 800 8.5px/1 Inter, sans-serif; letter-spacing: 0.07em; text-transform: uppercase; color: var(--accent-deep);
+    background: color-mix(in oklab, var(--accent) 12%, transparent); border: 1px solid color-mix(in oklab, var(--accent) 28%, transparent); border-radius: 999px; padding: 4px 7px; }
+  .cert.passed .cert-tag { color: var(--pass); background: color-mix(in oklab, var(--pass) 13%, transparent); border-color: color-mix(in oklab, var(--pass) 32%, transparent); }
+  .cert-desc { font: 500 11.5px/1.4 Inter, sans-serif; color: var(--muted); margin: 5px 0 9px; }
+  .cert-bar-row { display: flex; align-items: center; gap: 10px; }
+  .cert-bar-row .bar { flex: 1 1 auto; margin-bottom: 0; }
+  .cert-score { flex: 0 0 auto; font: 700 11px/1 'Roboto Mono', monospace; color: var(--ink-soft); font-variant-numeric: lining-nums tabular-nums; }
+  .cert.passed .cert-score { color: var(--pass); }
+  .cert-score .dim { color: var(--muted); }
+  .cert-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 9px; }
+  .cert-when { font: 600 10px/1.3 'Roboto Mono', monospace; color: var(--muted); }
+  .cert-when .pc { color: var(--pass); }
+  .cbtn { flex: 0 0 auto; font: 700 11px/1 Inter, sans-serif; border-radius: 999px; padding: 8px 14px; cursor: pointer; border: 1px solid var(--border); background: var(--surface-2); color: var(--ink); transition: transform .14s var(--ease), border-color .18s, background .2s; }
+  .cbtn:active { transform: scale(0.96); }
+  @media (hover:hover) and (pointer:fine) { .cbtn:hover { border-color: color-mix(in oklab, var(--accent) 40%, var(--border)); } }
+  .cbtn.primary { background: var(--accent); color: var(--on-accent); border-color: transparent; }
+  @media (hover:hover) and (pointer:fine) { .cbtn.primary:hover { background: var(--accent-deep); } }
+
+  .footnote { display: flex; gap: 8px; align-items: flex-start; font: 500 11px/1.45 Inter, sans-serif; color: var(--muted); margin: 14px 4px 2px; }
+  .footnote .ftick { flex: 0 0 auto; width: 14px; height: 0; border-top: 2px solid color-mix(in oklab, var(--ink) 45%, var(--track)); margin-top: 8px; transform: rotate(90deg); }
+
+  /* overlap page */
+  .lead { font: 500 12px/1.5 Inter, sans-serif; color: var(--ink-soft); margin: 4px 4px 14px; }
+  .ov { display: flex; flex-direction: column; gap: 12px; border: 1px solid var(--border); border-radius: 16px; background: var(--surface); padding: 14px 15px; margin-bottom: 11px; cursor: pointer; transition: transform .14s var(--ease), border-color .2s; }
+  .ov:active { transform: scale(0.992); }
+  @media (hover:hover) and (pointer:fine) { .ov:hover { border-color: color-mix(in oklab, var(--accent) 36%, var(--border)); } }
+  .ov-top { display: flex; align-items: center; gap: 11px; }
+  .ov-pair { flex: 1 1 auto; display: flex; align-items: center; gap: 8px; min-width: 0; }
+  .ov-mk { flex: 0 0 auto; width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center;
+    background: color-mix(in oklab, var(--accent) 12%, var(--surface-2)); color: var(--accent-deep); font: 800 10.5px/1 Inter, sans-serif; letter-spacing: -0.02em; }
+  .ov-arrow { flex: 0 0 auto; color: var(--muted); }
+  .ov-arrow svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; display: block; }
+  .ov-names { flex: 1 1 auto; min-width: 0; font: 600 11px/1.3 Inter, sans-serif; color: var(--muted); }
+  .ov-names b { display: block; color: var(--ink); font-weight: 650; font-size: 12.5px; }
+  .ov-pct { flex: 0 0 auto; font: 600 30px/1 Fraunces, serif; color: var(--accent-deep); font-variant-numeric: lining-nums tabular-nums; letter-spacing: -0.01em; }
+  .ov-mean { font: 500 12px/1.45 Inter, sans-serif; color: var(--ink-soft); }
+  .ov-shared { display: flex; align-items: center; gap: 9px; }
+  .ov-shared .bar { flex: 1 1 auto; height: 6px; margin-bottom: 0; }
+  .ov-shared .sx { flex: 0 0 auto; font: 600 10px/1 'Roboto Mono', monospace; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
+  .ov-cta { display: inline-flex; align-items: center; gap: 5px; font: 700 10.5px/1 Inter, sans-serif; color: var(--accent-deep); }
+  .ov-cta svg { width: 13px; height: 13px; stroke: currentColor; fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+
+  /* next page - top recommendation */
+  .toprec { border: 1px solid color-mix(in oklab, var(--accent) 30%, var(--border)); border-radius: 18px; background: color-mix(in oklab, var(--accent) 7%, var(--surface)); padding: 16px 16px; margin-bottom: 13px; }
+  .toprec .tr-kick { display: inline-flex; align-items: center; gap: 6px; font: 800 9.5px/1 Inter, sans-serif; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent-deep); margin-bottom: 11px; }
+  .toprec .tr-kick svg { width: 13px; height: 13px; stroke: currentColor; fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+  .toprec .tr-act { font: 600 19px/1.25 Fraunces, serif; color: var(--ink); letter-spacing: -0.01em; margin: 0 0 12px; }
+  .tr-list { display: flex; flex-direction: column; gap: 11px; margin-bottom: 15px; }
+  .tr-row { display: flex; gap: 10px; font: 500 12px/1.45 Inter, sans-serif; color: var(--ink-soft); }
+  .tr-row b { color: var(--ink); font-weight: 650; }
+  .tr-mark { flex: 0 0 auto; margin-top: 1px; color: var(--accent-deep); }
+  .tr-mark svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+  .tr-go { display: flex; align-items: center; justify-content: center; gap: 7px; width: 100%; font: 700 13.5px/1 Inter, sans-serif;
+    background: var(--accent); color: var(--on-accent); border: none; border-radius: 13px; padding: 14px; cursor: pointer; transition: transform .14s var(--ease), background .2s; }
+  .tr-go:active { transform: scale(0.985); }
+  @media (hover:hover) and (pointer:fine) { .tr-go:hover { background: var(--accent-deep); } }
+  .tr-go svg { width: 17px; height: 17px; stroke: currentColor; fill: none; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+
+  /* other options */
+  .opt { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); padding: 12px 14px; margin-bottom: 9px; cursor: pointer; transition: border-color .18s, transform .12s var(--ease); }
+  .opt:active { transform: scale(0.99); }
+  @media (hover:hover) and (pointer:fine) { .opt:hover { border-color: color-mix(in oklab, var(--accent) 36%, var(--border)); } }
+  .opt .om { flex: 0 0 auto; width: 38px; height: 38px; border-radius: 11px; background: color-mix(in oklab, var(--accent) 10%, var(--surface-2)); color: var(--accent-deep); display: grid; place-items: center; font: 800 11px/1 Inter, sans-serif; letter-spacing: -0.02em; }
+  .opt .ot { flex: 1 1 auto; min-width: 0; }
+  .opt .ot b { display: block; font: 650 14px/1.15 Inter, sans-serif; color: var(--ink); }
+  .opt .ot span { display: block; font: 500 11px/1.35 Inter, sans-serif; color: var(--muted); margin-top: 3px; }
+  .opt .ol { flex: 0 0 auto; font: 700 11px/1 Inter, sans-serif; color: var(--accent-deep); }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .reveal { opacity: 0; transform: translateY(9px); animation: rise .5s var(--ease) forwards; }
+    .reveal:nth-child(1){animation-delay:.04s}.reveal:nth-child(2){animation-delay:.09s}.reveal:nth-child(3){animation-delay:.14s}
+    .reveal:nth-child(4){animation-delay:.19s}.reveal:nth-child(5){animation-delay:.24s}.reveal:nth-child(6){animation-delay:.29s}
+    .reveal:nth-child(7){animation-delay:.34s}.reveal:nth-child(8){animation-delay:.39s}.reveal:nth-child(9){animation-delay:.44s}
+    .reveal:nth-child(n+10){animation-delay:.48s}
+    @keyframes rise { to { opacity: 1; transform: none; } }
+  }
+  .hint { text-align: center; color: var(--page-dim); font-size: 12px; margin-top: 18px; }
+  @media (max-width: 440px) { .phone { transform: scale(.92); transform-origin: top center; } }
+</style>
+</head>
+<body>
+  <div class="stage">
+    <div class="stage-head">
+      <div>
+        <p class="stage-eyebrow">Cert app · iOS</p>
+        <h1 class="stage-title">Cross-cert analytics</h1>
+        <p class="stage-sub">One Pro dashboard across every cert you study. Where each one stands against its pass mark, what skills carry between them, and the single move that earns the most next.</p>
+      </div>
+      <button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle light and dark">
+        <svg id="themeIcon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path></svg>
+        <span id="themeLabel">Dark</span>
+      </button>
+    </div>
+
+    <div class="phone-wrap">
+      <div class="phone">
+        <div class="screen">
+          <div class="notch"></div>
+          <div class="statusbar">
+            <span>9:41</span>
+            <span class="sb-icons">
+              <svg viewBox="0 0 18 12" aria-hidden="true"><rect x="0" y="7" width="3" height="5" rx="1"/><rect x="5" y="4" width="3" height="8" rx="1"/><rect x="10" y="1" width="3" height="11" rx="1" opacity="0.4"/></svg>
+              <svg viewBox="0 0 18 12" aria-hidden="true"><rect x="1" y="2" width="14" height="8" rx="2.4" fill="none" stroke="currentColor" stroke-width="1.4"/><rect x="2.6" y="3.6" width="9" height="4.8" rx="1.2"/><rect x="16" y="4.6" width="1.4" height="2.8" rx="0.7"/></svg>
+            </span>
+          </div>
+
+          <!-- CROSS-CERT HEADER: back to Hub, title, theme toggle (no per-cert tab bar) -->
+          <div class="xhead">
+            <button class="x-back" type="button" aria-label="Back to Hub"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6"></path></svg>Hub</button>
+            <span class="x-title"><span>Pro</span><b>Cross-cert analytics</b></span>
+            <button class="app-theme" id="appTheme" type="button" aria-label="Switch theme"><svg id="appThemeIcon" viewBox="0 0 24 24" aria-hidden="true"></svg></button>
+          </div>
+          <div class="xpro">
+            <span class="pill"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l2.4 6.9H22l-6 4.6 2.3 7L12 16.9 5.7 20.5l2.3-7-6-4.6h7.6L12 2z"></path></svg>Pro</span>
+            <span class="note">Spans all 8 of your certs. Recomputes after every quiz.</span>
+          </div>
+
+          <!-- SWIPE-PAGED SEGMENTED CONTROL -->
+          <div class="seg" id="seg" role="tablist" aria-label="Cross-cert sections">
+            <button class="chip on" type="button" role="tab" aria-selected="true" data-page="0">Readiness</button>
+            <button class="chip" type="button" role="tab" aria-selected="false" data-page="1">Overlap</button>
+            <button class="chip" type="button" role="tab" aria-selected="false" data-page="2">Next</button>
+          </div>
+
+          <!-- HORIZONTAL SCROLL-SNAP PAGER -->
+          <div class="pager" id="pager">
+
+            <!-- PAGE 1 · READINESS -->
+            <section class="page" role="tabpanel" aria-label="Readiness">
+
+              <div class="ghead reveal"><span class="gt">Passed</span><span class="gc">2 certs</span></div>
+
+              <div class="cert passed reveal">
+                <span class="cert-mark">N+</span>
+                <div class="cert-body">
+                  <div class="cert-top"><span class="cert-nm">Network+</span><span class="cert-tag">Passed</span></div>
+                  <div class="cert-bar-row">
+                    <div class="bar passbar"><span style="width:85.2%"></span><span class="tick" style="left:80%"></span></div>
+                    <span class="cert-score">767<span class="dim"> / 900</span></span>
+                  </div>
+                  <div class="cert-foot">
+                    <span class="cert-when"><span class="pc">Passed 5 May</span> · cutoff 720</span>
+                    <button class="cbtn" type="button">Open</button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="cert passed reveal">
+                <span class="cert-mark">AZ</span>
+                <div class="cert-body">
+                  <div class="cert-top"><span class="cert-nm">Azure Fundamentals</span><span class="cert-tag">Passed</span></div>
+                  <div class="cert-bar-row">
+                    <div class="bar passbar"><span style="width:81.2%"></span><span class="tick" style="left:70%"></span></div>
+                    <span class="cert-score">812<span class="dim"> / 1000</span></span>
+                  </div>
+                  <div class="cert-foot">
+                    <span class="cert-when"><span class="pc">Passed 19 Nov</span> · cutoff 700</span>
+                    <button class="cbtn" type="button">Open</button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="ghead reveal"><span class="gt">Currently studying</span><span class="gc">6 certs</span></div>
+
+              <div class="cert reveal">
+                <span class="cert-mark">S+</span>
+                <div class="cert-body">
+                  <div class="cert-top"><span class="cert-nm">Security+</span><span class="cert-tag">Active</span></div>
+                  <p class="cert-desc">Builds on Network+, 65% knowledge transfer.</p>
+                  <div class="cert-bar-row">
+                    <div class="bar"><span style="width:43%"></span><span class="tick" style="left:75%"></span></div>
+                    <span class="cert-score"><span class="dim">cutoff 750</span></span>
+                  </div>
+                  <div class="cert-foot">
+                    <span class="cert-when">Readiness building</span>
+                    <button class="cbtn primary" type="button">Resume</button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="cert reveal">
+                <span class="cert-mark">A+</span>
+                <div class="cert-body">
+                  <div class="cert-top"><span class="cert-nm">CompTIA A+ Core 1</span><span class="cert-tag">Active</span></div>
+                  <p class="cert-desc">Hardware, networking, mobile devices.</p>
+                  <div class="cert-bar-row">
+                    <div class="bar"><span style="width:0%"></span><span class="tick" style="left:67.5%"></span></div>
+                    <span class="cert-score"><span class="dim">cutoff 675</span></span>
+                  </div>
+                  <div class="cert-foot">
+                    <span class="cert-when">No readiness data yet</span>
+                    <button class="cbtn" type="button">Open</button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="cert reveal">
+                <span class="cert-mark">A+</span>
+                <div class="cert-body">
+                  <div class="cert-top"><span class="cert-nm">CompTIA A+ Core 2</span><span class="cert-tag">Active</span></div>
+                  <p class="cert-desc">OS, security, operational procedures.</p>
+                  <div class="cert-bar-row">
+                    <div class="bar"><span style="width:0%"></span><span class="tick" style="left:70%"></span></div>
+                    <span class="cert-score"><span class="dim">cutoff 700</span></span>
+                  </div>
+                  <div class="cert-foot">
+                    <span class="cert-when">No readiness data yet</span>
+                    <button class="cbtn" type="button">Open</button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="cert reveal">
+                <span class="cert-mark">AI</span>
+                <div class="cert-body">
+                  <div class="cert-top"><span class="cert-nm">Azure AI Fundamentals</span><span class="cert-tag">Active</span></div>
+                  <p class="cert-desc">AI and ML fundamentals, builds on AZ-900.</p>
+                  <div class="cert-bar-row">
+                    <div class="bar"><span style="width:0%"></span><span class="tick" style="left:70%"></span></div>
+                    <span class="cert-score"><span class="dim">cutoff 700</span></span>
+                  </div>
+                  <div class="cert-foot">
+                    <span class="cert-when">No readiness data yet</span>
+                    <button class="cbtn" type="button">Open</button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="cert reveal">
+                <span class="cert-mark">SC</span>
+                <div class="cert-body">
+                  <div class="cert-top"><span class="cert-nm">Microsoft SC-900</span><span class="cert-tag">Active</span></div>
+                  <p class="cert-desc">Security, compliance, identity. 35% transfer from Security+.</p>
+                  <div class="cert-bar-row">
+                    <div class="bar"><span style="width:0%"></span><span class="tick" style="left:70%"></span></div>
+                    <span class="cert-score"><span class="dim">cutoff 700</span></span>
+                  </div>
+                  <div class="cert-foot">
+                    <span class="cert-when">No readiness data yet</span>
+                    <button class="cbtn" type="button">Open</button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="cert reveal">
+                <span class="cert-mark">AWS</span>
+                <div class="cert-body">
+                  <div class="cert-top"><span class="cert-nm">AWS Cloud Practitioner</span><span class="cert-tag">Active</span></div>
+                  <p class="cert-desc">Cloud fundamentals, overlap with AZ-900.</p>
+                  <div class="cert-bar-row">
+                    <div class="bar"><span style="width:0%"></span><span class="tick" style="left:70%"></span></div>
+                    <span class="cert-score"><span class="dim">cutoff 700</span></span>
+                  </div>
+                  <div class="cert-foot">
+                    <span class="cert-when">No readiness data yet</span>
+                    <button class="cbtn" type="button">Open</button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="footnote reveal"><span class="ftick"></span><span>The mark on each bar is the exam pass cutoff for that cert.</span></div>
+            </section>
+
+            <!-- PAGE 2 · OVERLAP -->
+            <section class="page" role="tabpanel" aria-label="Overlap">
+              <p class="lead reveal">Skills you have already earned carry into the next cert. Tap a pair to see the shared topics.</p>
+
+              <div class="ov reveal" role="button" tabindex="0">
+                <div class="ov-top">
+                  <div class="ov-pair">
+                    <span class="ov-mk">N+</span>
+                    <span class="ov-arrow"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"></path></svg></span>
+                    <span class="ov-mk">S+</span>
+                    <span class="ov-names"><b>Network+</b>to Security+</span>
+                  </div>
+                  <span class="ov-pct">65%</span>
+                </div>
+                <p class="ov-mean">Strong feed into Security+.</p>
+                <div class="ov-shared">
+                  <div class="bar"><span style="width:66.7%"></span></div>
+                  <span class="sx">8 of 12 shared</span>
+                </div>
+                <span class="ov-cta">See shared topics<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></span>
+              </div>
+
+              <div class="ov reveal" role="button" tabindex="0">
+                <div class="ov-top">
+                  <div class="ov-pair">
+                    <span class="ov-mk">AZ</span>
+                    <span class="ov-arrow"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"></path></svg></span>
+                    <span class="ov-mk">S+</span>
+                    <span class="ov-names"><b>Azure Fundamentals</b>to Security+</span>
+                  </div>
+                  <span class="ov-pct">40%</span>
+                </div>
+                <p class="ov-mean">Azure platform and identity transfers.</p>
+                <div class="ov-shared">
+                  <div class="bar"><span style="width:43.75%"></span></div>
+                  <span class="sx">7 of 16 shared</span>
+                </div>
+                <span class="ov-cta">See shared topics<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></span>
+              </div>
+
+              <div class="ov reveal" role="button" tabindex="0">
+                <div class="ov-top">
+                  <div class="ov-pair">
+                    <span class="ov-mk">AZ</span>
+                    <span class="ov-arrow"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"></path></svg></span>
+                    <span class="ov-mk">A+</span>
+                    <span class="ov-names"><b>Azure Fundamentals</b>to A+</span>
+                  </div>
+                  <span class="ov-pct">38%</span>
+                </div>
+                <p class="ov-mean">Shared Azure platform foundation.</p>
+                <div class="ov-shared">
+                  <div class="bar"><span style="width:37.5%"></span></div>
+                  <span class="sx">6 of 16 shared</span>
+                </div>
+                <span class="ov-cta">See shared topics<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></span>
+              </div>
+
+              <div class="ov reveal" role="button" tabindex="0">
+                <div class="ov-top">
+                  <div class="ov-pair">
+                    <span class="ov-mk">AZ</span>
+                    <span class="ov-arrow"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"></path></svg></span>
+                    <span class="ov-mk">AI</span>
+                    <span class="ov-names"><b>Azure Fundamentals</b>to Azure AI</span>
+                  </div>
+                  <span class="ov-pct">38%</span>
+                </div>
+                <p class="ov-mean">Cloud fundamentals transfer across AWS and Azure.</p>
+                <div class="ov-shared">
+                  <div class="bar"><span style="width:37.5%"></span></div>
+                  <span class="sx">6 of 16 shared</span>
+                </div>
+                <span class="ov-cta">See shared topics<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></span>
+              </div>
+            </section>
+
+            <!-- PAGE 3 · NEXT -->
+            <section class="page" role="tabpanel" aria-label="Next">
+
+              <div class="toprec reveal">
+                <span class="tr-kick"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2L4.5 13H11l-1 9 8.5-11H12l1-9z"></path></svg>Study this next</span>
+                <p class="tr-act">Take a 20-Q quiz on Security+ to seed your readiness.</p>
+                <div class="tr-list">
+                  <div class="tr-row">
+                    <span class="tr-mark"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6L9 17l-5-5"></path></svg></span>
+                    <span><b>Network+ overlap saves about 28 hours of re-study.</b> Spend the time on the new 35% instead.</span>
+                  </div>
+                  <div class="tr-row">
+                    <span class="tr-mark"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg></span>
+                    <span><b>No exam booked yet.</b> Set a date in the cert app to get pace targets.</span>
+                  </div>
+                </div>
+                <button class="tr-go" type="button">Continue Security+<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"></path></svg></button>
+              </div>
+
+              <div class="ghead reveal"><span class="gt">Other high-impact options</span></div>
+
+              <button class="opt reveal" type="button">
+                <span class="om">A+</span>
+                <span class="ot"><b>Continue A+ Core 1</b><span>No readiness data yet, take a quiz to seed.</span></span>
+                <span class="ol">Start</span>
+              </button>
+              <button class="opt reveal" type="button">
+                <span class="om">A+</span>
+                <span class="ot"><b>Continue A+ Core 2</b><span>No readiness data yet, take a quiz to seed.</span></span>
+                <span class="ol">Start</span>
+              </button>
+              <button class="opt reveal" type="button">
+                <span class="om">AI</span>
+                <span class="ot"><b>Continue Azure AI Fundamentals</b><span>No readiness data yet, take a quiz to seed.</span></span>
+                <span class="ol">Start</span>
+              </button>
+            </section>
+
+          </div>
+
+        </div>
+      </div>
+      <p class="hint">Phase 1 mockup. Swipe through: Readiness · Overlap · Next.</p>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      var html = document.documentElement, label = document.getElementById('themeLabel'), icon = document.getElementById('themeIcon');
+      var appIcon = document.getElementById('appThemeIcon');
+      var SUN = '<circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path>';
+      var MOON = '<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"></path>';
+      var sun = SUN, moon = MOON;
+      try { var saved = localStorage.getItem('ca-theme'); if (saved) html.setAttribute('data-theme', saved); } catch (e) {}
+      function paint(){
+        var light = html.getAttribute('data-theme') === 'light';
+        label.textContent = light ? 'Dark' : 'Light';
+        icon.innerHTML = light ? sun : moon;
+        if (appIcon) appIcon.innerHTML = light ? MOON : SUN;
+      }
+      function toggleTheme(){
+        var next = html.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+        html.setAttribute('data-theme', next);
+        try { localStorage.setItem('ca-theme', next); } catch (e) {}
+        paint();
+      }
+      document.getElementById('themeToggle').addEventListener('click', toggleTheme);
+      document.getElementById('appTheme').addEventListener('click', toggleTheme);
+      paint();
+
+      var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      // Swipe pager: chips drive the pager, the pager drives the active chip.
+      var pager = document.getElementById('pager');
+      var seg = document.getElementById('seg');
+      var chips = Array.prototype.slice.call(seg.querySelectorAll('.chip'));
+      var pages = Array.prototype.slice.call(pager.querySelectorAll('.page'));
+
+      function setActive(idx){
+        chips.forEach(function (c, i) {
+          var on = i === idx;
+          c.classList.toggle('on', on);
+          c.setAttribute('aria-selected', on ? 'true' : 'false');
+        });
+      }
+
+      // Tap a chip -> jump that page into view.
+      chips.forEach(function (chip) {
+        chip.addEventListener('click', function () {
+          var idx = parseInt(chip.getAttribute('data-page'), 10) || 0;
+          var page = pages[idx];
+          if (!page) return;
+          pager.scrollTo({ left: page.offsetLeft, behavior: reduce ? 'auto' : 'smooth' });
+          setActive(idx);
+        });
+      });
+
+      // Swipe the pager -> light the matching chip and scroll it into view (no scroll listeners).
+      if ('IntersectionObserver' in window) {
+        var io = new IntersectionObserver(function (entries) {
+          entries.forEach(function (entry) {
+            if (!entry.isIntersecting) return;
+            var idx = pages.indexOf(entry.target);
+            if (idx < 0) return;
+            setActive(idx);
+            var chip = chips[idx];
+            if (chip) chip.scrollIntoView({ inline: 'center', block: 'nearest' });
+          });
+        }, { root: pager, threshold: 0.6 });
+        pages.forEach(function (p) { io.observe(p); });
+      }
+    })();
+  </script>
+</body>
+</html>
