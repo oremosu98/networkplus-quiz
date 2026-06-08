@@ -6,7 +6,7 @@
 <title>CertAnvil · Cert Home (iOS)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&family=Roboto+Mono:wght@500;600&display=swap" rel="stylesheet" />
 <style>
   /* Forged-bronze tokens (matches dg-system.css + the onboarding mockups). */
   :root {
@@ -110,38 +110,99 @@
   .rd-insight { font-size: 12.5px; line-height: 1.45; color: var(--ink-soft); margin: 11px 0 0; }
   .rd-insight b { color: var(--ink); font-weight: 650; }
 
-  /* primary session card */
-  .session { display: flex; align-items: center; gap: 13px; width: 100%; text-align: left; border: none; cursor: pointer; margin-top: 13px;
-    border-radius: 16px; background: var(--accent); color: var(--on-accent); padding: 15px 16px;
-    box-shadow: 0 12px 26px -14px color-mix(in oklab, var(--accent) 72%, transparent); transition: transform .15s var(--ease), filter .2s; }
-  .session:active { transform: scale(0.985); }
-  @media (hover:hover) and (pointer:fine) { .session:hover { filter: brightness(1.04); } }
-  .session .sc-txt { flex: 1 1 auto; min-width: 0; }
-  .session .sc-kick { display: block; font: 800 9.5px/1 Inter, sans-serif; letter-spacing: 0.12em; text-transform: uppercase; opacity: 0.82; }
-  .session .sc-title { display: block; font: 700 17px/1.1 Inter, sans-serif; margin: 5px 0 4px; }
-  .session .sc-sub { display: block; font: 500 12px/1.35 Inter, sans-serif; opacity: 0.86; }
-  .session .sc-go { flex: 0 0 auto; width: 38px; height: 38px; border-radius: 12px; background: color-mix(in oklab, var(--on-accent) 14%, transparent); display: grid; place-items: center; }
-  .session .sc-go svg { width: 19px; height: 19px; stroke: currentColor; fill: none; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+  /* recommended next (the daily SR lead) */
+  .rec { display: flex; align-items: center; gap: 13px; width: 100%; text-align: left; cursor: pointer; margin-top: 13px;
+    border: 1px solid color-mix(in oklab, var(--accent) 30%, var(--border)); border-radius: 16px;
+    background: color-mix(in oklab, var(--accent) 8%, var(--surface)); padding: 14px 15px;
+    transition: transform .15s var(--ease), border-color .2s; }
+  .rec:active { transform: scale(0.99); }
+  @media (hover:hover) and (pointer:fine) { .rec:hover { border-color: color-mix(in oklab, var(--accent) 50%, var(--border)); } }
+  .rec .rc-badge { flex: 0 0 auto; width: 48px; height: 48px; border-radius: 13px; display: grid; place-items: center; text-align: center;
+    background: color-mix(in oklab, var(--accent) 16%, var(--surface-2)); color: var(--accent-deep);
+    font: 800 13px/0.95 'Roboto Mono', monospace; letter-spacing: -0.02em; }
+  .rec .rc-badge small { display: block; font: 800 7.5px/1 Inter, sans-serif; letter-spacing: 0.1em; margin-top: 2px; }
+  .rec .rc-txt { flex: 1 1 auto; min-width: 0; }
+  .rec .rc-kick { display: block; font: 800 9.5px/1 Inter, sans-serif; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent-deep); }
+  .rec .rc-title { display: block; font: 700 16px/1.1 Inter, sans-serif; color: var(--ink); margin: 5px 0 4px; }
+  .rec .rc-sub { display: block; font: 500 12px/1.35 Inter, sans-serif; color: var(--muted); }
+  .rec .rc-go { flex: 0 0 auto; color: var(--accent-deep); }
+  .rec .rc-go svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
 
-  /* today's plan chips */
-  .plan { display: flex; gap: 9px; margin-top: 11px; }
-  .plan-chip { flex: 1 1 0; border: 1px solid var(--border); border-radius: 13px; background: var(--surface); padding: 11px 12px; }
-  .plan-chip .pn { font: 600 30px/1 Fraunces, serif; color: var(--ink); font-variant-numeric: lining-nums; font-feature-settings: "lnum"; }
-  .plan-chip .pl { display: block; font: 600 11px/1.3 Inter, sans-serif; color: var(--muted); margin-top: 5px; }
+  /* coming up - next 7 days */
+  .week { border: 1px solid var(--border); border-radius: 15px; background: var(--surface); padding: 13px 13px 11px; margin-top: 11px; }
+  .week-row { display: flex; gap: 6px; }
+  .day { flex: 1 1 0; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .day-cell { width: 100%; height: 44px; border-radius: 9px; background: var(--surface-2); border: 1px solid var(--border);
+    display: flex; flex-direction: column; align-items: center; justify-content: flex-end; padding-bottom: 5px; overflow: hidden; position: relative; }
+  .day-cell .fillbar { width: 100%; background: color-mix(in oklab, var(--accent) 22%, var(--surface-2)); position: absolute; left: 0; bottom: 0;
+    transition: height .6s var(--ease); }
+  .day.today .day-cell { border-color: color-mix(in oklab, var(--accent) 50%, var(--border)); }
+  .day.today .day-cell .fillbar { background: var(--accent); }
+  .day-cell b { position: relative; z-index: 1; font: 700 12px/1 'Roboto Mono', monospace; color: var(--ink); }
+  .day.empty .day-cell b { color: var(--muted); }
+  .day.today .day-cell b { color: var(--on-accent); }
+  .day-name { font: 700 9px/1 Inter, sans-serif; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+  .day.today .day-name { color: var(--accent-deep); }
+  .day-due { font: 600 8.5px/1 Inter, sans-serif; color: var(--muted); }
 
-  .sect { font: 800 10px/1 Inter, sans-serif; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin: 20px 2px 11px; }
+  /* today's momentum (goal ring) */
+  .momentum { display: flex; align-items: center; gap: 15px; border: 1px solid var(--border); border-radius: 16px; background: var(--surface); padding: 15px 16px; margin-top: 11px; }
+  .ring { flex: 0 0 auto; position: relative; width: 66px; height: 66px; }
+  .ring svg { width: 66px; height: 66px; transform: rotate(-90deg); }
+  .ring .track-c { stroke: var(--track); }
+  .ring .fill-c { stroke: var(--accent); stroke-linecap: round; transition: stroke-dashoffset .8s var(--ease); }
+  .ring .rg-num { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .ring .rg-num b { font: 600 19px/1 Fraunces, serif; color: var(--ink); font-variant-numeric: tabular-nums; }
+  .ring .rg-num span { font: 700 8px/1 Inter, sans-serif; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-top: 2px; }
+  .mo-txt { flex: 1 1 auto; min-width: 0; }
+  .mo-txt .mo-goal { font: 700 14px/1.2 Inter, sans-serif; color: var(--ink); }
+  .mo-txt .mo-streak { display: block; font: 600 11.5px/1.35 Inter, sans-serif; color: var(--muted); margin-top: 4px; }
+  .mo-pick { display: block; margin-top: 9px; font: 500 11.5px/1.3 Inter, sans-serif; color: var(--ink-soft); }
+  .mo-pick b { color: var(--accent-deep); font-weight: 700; }
 
-  /* study cards */
-  .study { display: flex; align-items: center; gap: 13px; border: 1px solid var(--border); border-radius: 15px; background: var(--surface); padding: 13px 14px; margin-bottom: 10px; cursor: pointer; transition: border-color .18s, transform .12s var(--ease); }
-  .study:active { transform: scale(0.99); }
-  @media (hover:hover) and (pointer:fine) { .study:hover { border-color: color-mix(in oklab, var(--accent) 38%, var(--border)); } }
-  .study .si { flex: 0 0 auto; width: 40px; height: 40px; border-radius: 12px; background: color-mix(in oklab, var(--accent) 10%, var(--surface-2)); display: grid; place-items: center; }
-  .study .si svg { width: 20px; height: 20px; stroke: var(--accent-deep); fill: none; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
-  .study .st { flex: 1 1 auto; min-width: 0; }
-  .study .st b { display: block; font: 650 15px/1.1 Inter, sans-serif; color: var(--ink); }
-  .study .st span { display: block; font: 500 12px/1.3 Inter, sans-serif; color: var(--muted); margin-top: 3px; }
-  .study .sg { flex: 0 0 auto; color: var(--muted); }
-  .study .sg svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+  /* section header + small sub */
+  .sect { font: 800 10px/1 Inter, sans-serif; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin: 22px 2px 4px; }
+  .sect-sub { font: 500 11.5px/1.4 Inter, sans-serif; color: var(--muted); margin: 0 2px 11px; }
+
+  /* option rows (quick start / practice / exam) */
+  .opt { display: flex; align-items: center; gap: 13px; width: 100%; text-align: left; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); padding: 12px 14px; margin-bottom: 9px; cursor: pointer; transition: border-color .18s, transform .12s var(--ease); }
+  .opt:active { transform: scale(0.99); }
+  @media (hover:hover) and (pointer:fine) { .opt:hover { border-color: color-mix(in oklab, var(--accent) 38%, var(--border)); } }
+  .opt .oi { flex: 0 0 auto; width: 38px; height: 38px; border-radius: 11px; background: color-mix(in oklab, var(--accent) 10%, var(--surface-2)); display: grid; place-items: center; }
+  .opt .oi svg { width: 19px; height: 19px; stroke: var(--accent-deep); fill: none; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+  .opt .ot { flex: 1 1 auto; min-width: 0; }
+  .opt .ot b { display: block; font: 650 14.5px/1.1 Inter, sans-serif; color: var(--ink); }
+  .opt .ot span { display: block; font: 500 11.5px/1.3 Inter, sans-serif; color: var(--muted); margin-top: 3px; }
+  .opt .om { flex: 0 0 auto; font: 700 10px/1 'Roboto Mono', monospace; color: var(--accent-deep); text-align: right; }
+  .opt .og { flex: 0 0 auto; color: var(--muted); }
+  .opt .og svg { width: 17px; height: 17px; stroke: currentColor; fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+
+  /* exam simulation accent on the lead row */
+  .opt.exam-lead { border-color: color-mix(in oklab, var(--accent) 28%, var(--border)); background: color-mix(in oklab, var(--accent) 6%, var(--surface)); }
+
+  /* build a custom quiz */
+  .custom { display: flex; align-items: center; gap: 13px; width: 100%; text-align: left; border: 1px dashed color-mix(in oklab, var(--accent) 40%, var(--border)); border-radius: 14px; background: transparent; padding: 13px 14px; margin-top: 2px; cursor: pointer; transition: border-color .18s, transform .12s var(--ease); }
+  .custom:active { transform: scale(0.99); }
+  @media (hover:hover) and (pointer:fine) { .custom:hover { border-color: var(--accent); } }
+  .custom .ci { flex: 0 0 auto; width: 38px; height: 38px; border-radius: 11px; background: color-mix(in oklab, var(--accent) 12%, var(--surface-2)); display: grid; place-items: center; }
+  .custom .ci svg { width: 19px; height: 19px; stroke: var(--accent-deep); fill: none; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+  .custom .ct { flex: 1 1 auto; min-width: 0; }
+  .custom .ct b { display: block; font: 650 14.5px/1.1 Inter, sans-serif; color: var(--ink); }
+  .custom .ct span { display: block; font: 500 11.5px/1.3 Inter, sans-serif; color: var(--muted); margin-top: 3px; }
+  .custom .cg { flex: 0 0 auto; font: 700 10px/1 Inter, sans-serif; letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent-deep); }
+
+  /* drill by domain */
+  .domain { border: 1px solid var(--border); border-radius: 14px; background: var(--surface); padding: 12px 14px; margin-bottom: 9px; cursor: pointer; transition: border-color .18s, transform .12s var(--ease); }
+  .domain:active { transform: scale(0.995); }
+  @media (hover:hover) and (pointer:fine) { .domain:hover { border-color: color-mix(in oklab, var(--accent) 34%, var(--border)); } }
+  .domain-top { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+  .domain-top b { font: 650 13.5px/1.2 Inter, sans-serif; color: var(--ink); }
+  .domain-wt { flex: 0 0 auto; font: 600 10px/1 'Roboto Mono', monospace; color: var(--muted); }
+  .domain-bar { height: 6px; border-radius: 999px; background: var(--track); overflow: hidden; margin-top: 8px; position: relative; }
+  .domain-bar > span { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 999px; background: var(--accent); transition: width .7s var(--ease); }
+  .domain-bar.full > span { background: var(--pass); }
+  .domain-mast { font: 600 9.5px/1 Inter, sans-serif; color: var(--muted); margin-top: 6px; }
+  .domain-mast b { color: var(--ink-soft); font-weight: 700; }
 
   /* bottom tab bar */
   .tabbar { flex: 0 0 auto; display: flex; border-top: 1px solid color-mix(in oklab, var(--border) 70%, transparent); background: color-mix(in oklab, var(--bg) 86%, var(--surface)); padding: 8px 8px calc(8px + env(safe-area-inset-bottom)); }
@@ -155,7 +216,9 @@
     .reveal { opacity: 0; transform: translateY(9px); animation: rise .5s var(--ease) forwards; }
     .reveal:nth-child(1){animation-delay:.04s}.reveal:nth-child(2){animation-delay:.08s}.reveal:nth-child(3){animation-delay:.12s}
     .reveal:nth-child(4){animation-delay:.16s}.reveal:nth-child(5){animation-delay:.20s}.reveal:nth-child(6){animation-delay:.24s}
-    .reveal:nth-child(7){animation-delay:.28s}.reveal:nth-child(8){animation-delay:.32s}
+    .reveal:nth-child(7){animation-delay:.28s}.reveal:nth-child(8){animation-delay:.32s}.reveal:nth-child(9){animation-delay:.36s}
+    .reveal:nth-child(10){animation-delay:.40s}.reveal:nth-child(11){animation-delay:.44s}.reveal:nth-child(12){animation-delay:.48s}
+    .reveal:nth-child(n+13){animation-delay:.52s}
     @keyframes rise { to { opacity: 1; transform: none; } }
   }
   .hint { text-align: center; color: var(--page-dim); font-size: 12px; margin-top: 18px; }
@@ -168,7 +231,7 @@
       <div>
         <p class="stage-eyebrow">Cert app · iOS</p>
         <h1 class="stage-title">Cert Home</h1>
-        <p class="stage-sub">The daily landing for a cert, rebuilt in the onboarding language. Same capabilities as the live home, organised around one clear next action and a calmer readiness read.</p>
+        <p class="stage-sub">The daily landing for a cert, rebuilt in the onboarding language. Every capability of the live home, organised around one clear next action and a steadier readiness read.</p>
       </div>
       <button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle light and dark">
         <svg id="themeIcon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path></svg>
@@ -199,40 +262,152 @@
           <div class="body">
             <p class="greeting reveal">Tuesday morning. Pick up where you left off.</p>
 
-            <div class="rd reveal" id="rdCard" role="button" tabindex="0" aria-label="Readiness 465 of 900. Tap to preview the pass celebration.">
+            <div class="rd reveal" id="rdCard" role="button" tabindex="0" aria-label="Readiness 553 of 900. Tap to preview the pass celebration.">
               <span class="rd-stamp"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6L9 17l-5-5"></path></svg>Pass ready</span>
               <div class="rd-top"><span class="rd-eyebrow">Readiness</span><span class="rd-tier" id="rdTier">On track</span></div>
-              <div class="rd-score"><span class="rd-num" id="rdNum">465</span><span class="rd-of">/ 900</span></div>
-              <div class="bar"><span id="rdFill" style="width:51.6%"></span><span class="tick" style="left:80%"></span></div>
+              <div class="rd-score"><span class="rd-num" id="rdNum">553</span><span class="rd-of">/ 900</span></div>
+              <div class="bar"><span id="rdFill" style="width:61.4%"></span><span class="tick" style="left:80%"></span></div>
               <div class="rd-legend"><span>Now</span><span class="p">Pass 720</span></div>
-              <p class="rd-insight" id="rdInsight">Up <b>40</b> this week. About <b>6 focused sessions</b> to a pass.</p>
+              <p class="rd-insight" id="rdInsight">Up <b>40</b> this week. About <b>167 points</b> to a pass.</p>
             </div>
 
-            <button class="session reveal" type="button">
-              <span class="sc-txt">
-                <span class="sc-kick">Today's session</span>
-                <span class="sc-title">Start practising</span>
-                <span class="sc-sub">15 new questions and 5 reviews. Around 20 minutes.</span>
+            <!-- 1. RECOMMENDED NEXT (daily SR lead) -->
+            <button class="rec reveal" type="button">
+              <span class="rc-badge">4<small>MIN</small></span>
+              <span class="rc-txt">
+                <span class="rc-kick">Recommended next</span>
+                <span class="rc-title">Review 7 cards</span>
+                <span class="rc-sub">Spaced repetition. Re-encounter what you forgot.</span>
               </span>
-              <span class="sc-go"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></span>
+              <span class="rc-go"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></span>
             </button>
 
-            <div class="plan reveal">
-              <div class="plan-chip"><span class="pn">15</span><span class="pl">New practice</span></div>
-              <div class="plan-chip"><span class="pn">5</span><span class="pl">Reviews due</span></div>
-              <div class="plan-chip"><span class="pn">3</span><span class="pl">Weak topics</span></div>
+            <!-- 2. COMING UP - NEXT 7 DAYS -->
+            <div class="sect reveal">Coming up</div>
+            <div class="week reveal">
+              <div class="week-row">
+                <div class="day today"><div class="day-cell"><span class="fillbar" style="height:100%"></span><b>7</b></div><span class="day-name">Today</span><span class="day-due">7 due</span></div>
+                <div class="day"><div class="day-cell"><span class="fillbar" style="height:34%"></span><b>2</b></div><span class="day-name">Tue</span><span class="day-due">2 due</span></div>
+                <div class="day empty"><div class="day-cell"><span class="fillbar" style="height:0%"></span><b>0</b></div><span class="day-name">Wed</span><span class="day-due">clear</span></div>
+                <div class="day empty"><div class="day-cell"><span class="fillbar" style="height:0%"></span><b>0</b></div><span class="day-name">Thu</span><span class="day-due">clear</span></div>
+                <div class="day empty"><div class="day-cell"><span class="fillbar" style="height:0%"></span><b>0</b></div><span class="day-name">Fri</span><span class="day-due">clear</span></div>
+                <div class="day empty"><div class="day-cell"><span class="fillbar" style="height:0%"></span><b>0</b></div><span class="day-name">Sat</span><span class="day-due">clear</span></div>
+                <div class="day empty"><div class="day-cell"><span class="fillbar" style="height:0%"></span><b>0</b></div><span class="day-name">Sun</span><span class="day-due">clear</span></div>
+              </div>
             </div>
 
-            <div class="sect reveal">More ways to study</div>
-            <div class="study reveal">
-              <span class="si"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v18M3 8h18M3 16h18"></path><rect x="3" y="3" width="18" height="18" rx="3"></rect></svg></span>
-              <span class="st"><b>Exam mode</b><span>A full timed mock, 90 questions, scored like the real thing.</span></span>
-              <span class="sg"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></span>
+            <!-- 3. TODAY'S MOMENTUM -->
+            <div class="sect reveal">Today's momentum</div>
+            <div class="momentum reveal">
+              <div class="ring">
+                <svg viewBox="0 0 66 66" aria-hidden="true">
+                  <circle class="track-c" cx="33" cy="33" r="27" fill="none" stroke-width="6"></circle>
+                  <circle class="fill-c" id="goalRing" cx="33" cy="33" r="27" fill="none" stroke-width="6" stroke-dasharray="169.6" stroke-dashoffset="169.6"></circle>
+                </svg>
+                <div class="rg-num"><b>0</b><span>of 20</span></div>
+              </div>
+              <div class="mo-txt">
+                <span class="mo-goal">0 / 20 questions today</span>
+                <span class="mo-streak">1 day streak, best is 4. One short session adds another.</span>
+                <span class="mo-pick">Pick up: <b>Ethernet Basics</b>, around 46% accuracy</span>
+              </div>
             </div>
-            <div class="study reveal">
-              <span class="si"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"></path></svg></span>
-              <span class="st"><b>Drills</b><span>Subnetting, ports, and topology, in short focused reps.</span></span>
-              <span class="sg"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></span>
+
+            <!-- 4. QUICK START -->
+            <div class="sect reveal">Quick start</div>
+            <p class="sect-sub reveal">A daily habit that keeps your streak. 3 to 5 minutes.</p>
+            <button class="opt reveal" type="button">
+              <span class="oi"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2L4.5 13H11l-1 9 8.5-11H12l1-9z"></path></svg></span>
+              <span class="ot"><b>5-min Warmup</b><span>5 questions, foundational. Ease back in.</span></span>
+              <span class="om">5 Q</span>
+              <span class="og"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></span>
+            </button>
+            <button class="opt reveal" type="button">
+              <span class="oi"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l2.4 6.9H22l-6 4.6 2.3 7L12 16.9 5.7 20.5l2.3-7-6-4.6h7.6L12 2z"></path></svg></span>
+              <span class="ot"><b>Daily Challenge</b><span>1 question, about a minute. Keeps the streak, +1.</span></span>
+              <span class="om">1 Q</span>
+              <span class="og"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></span>
+            </button>
+            <button class="opt reveal" type="button">
+              <span class="oi"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"></path></svg></span>
+              <span class="ot"><b>Drill Mistakes</b><span>Clear the 9 wrong answers you have saved.</span></span>
+              <span class="om">9 saved</span>
+              <span class="og"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></span>
+            </button>
+
+            <!-- 5. PRACTICE -->
+            <div class="sect reveal">Practice</div>
+            <p class="sect-sub reveal">10 to 30 minutes. Focused study on weak spots.</p>
+            <button class="opt reveal" type="button">
+              <span class="oi"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.3-4.3"></path></svg></span>
+              <span class="ot"><b>20-min Deep Scan</b><span>20 questions, exam level, mixed topics.</span></span>
+              <span class="om">20 Q</span>
+              <span class="og"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></span>
+            </button>
+            <button class="opt reveal" type="button">
+              <span class="oi"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"></path></svg></span>
+              <span class="ot"><b>30 Questions</b><span>Marathon, mixed. Around 25 minutes.</span></span>
+              <span class="om">30 Q</span>
+              <span class="og"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></span>
+            </button>
+            <button class="opt reveal" type="button">
+              <span class="oi"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"></path></svg></span>
+              <span class="ot"><b>45 Questions</b><span>Marathon, mixed. Around 38 minutes.</span></span>
+              <span class="om">45 Q</span>
+              <span class="og"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></span>
+            </button>
+
+            <!-- 6. EXAM SIMULATION -->
+            <div class="sect reveal">Exam simulation</div>
+            <p class="sect-sub reveal">60 to 90 minutes. Pressure-test your readiness, scored 100 to 900.</p>
+            <button class="opt exam-lead reveal" type="button">
+              <span class="oi"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg></span>
+              <span class="ot"><b>60-Question SIM</b><span>Closest to the real thing. No timer.</span></span>
+              <span class="om">60 Q</span>
+              <span class="og"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></span>
+            </button>
+            <button class="opt reveal" type="button">
+              <span class="oi"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="8"></circle><path d="M12 9v4l2.5 2.5M9 2h6"></path></svg></span>
+              <span class="ot"><b>Full Exam Simulator</b><span>90 questions, 90-min timer, scored 100 to 900.</span></span>
+              <span class="om">90 Q</span>
+              <span class="og"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></span>
+            </button>
+
+            <!-- 7. BUILD A CUSTOM QUIZ -->
+            <div class="sect reveal">Build a custom quiz</div>
+            <button class="custom reveal" type="button">
+              <span class="ci"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"></path></svg></span>
+              <span class="ct"><b>Configure your own</b><span>Tune topic, difficulty and length, then launch.</span></span>
+              <span class="cg">Configure</span>
+            </button>
+
+            <!-- 8. DRILL BY DOMAIN -->
+            <div class="sect reveal">Drill by domain</div>
+            <p class="sect-sub reveal">Exam weighting, 10 questions each.</p>
+            <div class="domain reveal" role="button" tabindex="0">
+              <div class="domain-top"><b>Networking Concepts</b><span class="domain-wt">23% of exam</span></div>
+              <div class="domain-bar full"><span style="width:100%"></span></div>
+              <div class="domain-mast">Mastery <b>100%</b></div>
+            </div>
+            <div class="domain reveal" role="button" tabindex="0">
+              <div class="domain-top"><b>Network Implementation</b><span class="domain-wt">20% of exam</span></div>
+              <div class="domain-bar"><span style="width:0%"></span></div>
+              <div class="domain-mast">Mastery <b>0%</b>, untouched</div>
+            </div>
+            <div class="domain reveal" role="button" tabindex="0">
+              <div class="domain-top"><b>Network Operations</b><span class="domain-wt">19% of exam</span></div>
+              <div class="domain-bar full"><span style="width:100%"></span></div>
+              <div class="domain-mast">Mastery <b>100%</b></div>
+            </div>
+            <div class="domain reveal" role="button" tabindex="0">
+              <div class="domain-top"><b>Network Security</b><span class="domain-wt">14% of exam</span></div>
+              <div class="domain-bar"><span style="width:75%"></span></div>
+              <div class="domain-mast">Mastery <b>75%</b></div>
+            </div>
+            <div class="domain reveal" role="button" tabindex="0">
+              <div class="domain-top"><b>Network Troubleshooting</b><span class="domain-wt">24% of exam</span></div>
+              <div class="domain-bar"><span style="width:50%"></span></div>
+              <div class="domain-mast">Mastery <b>50%</b></div>
             </div>
           </div>
 
@@ -299,11 +474,11 @@
       }
       function setPassed(on){
         passed = on; rd.classList.toggle('passed', on);
-        fill.style.width = on ? '82%' : '51.6%';
+        fill.style.width = on ? '82.4%' : '61.4%';
         insight.innerHTML = on ? "You're <b>over the line</b>. Keep the streak going to stay exam sharp."
-                               : "Up <b>40</b> this week. About <b>6 focused sessions</b> to a pass.";
-        if (on){ if (reduce) num.textContent = '742'; else countUp(465, 742, 750); fireConfetti(); }
-        else { cancelAnimationFrame(raf); num.textContent = '465'; confetti.innerHTML = ''; }
+                               : "Up <b>40</b> this week. About <b>167 points</b> to a pass.";
+        if (on){ if (reduce) num.textContent = '742'; else countUp(553, 742, 750); fireConfetti(); }
+        else { cancelAnimationFrame(raf); num.textContent = '553'; confetti.innerHTML = ''; }
       }
       rd.addEventListener('click', function(){ setPassed(!passed); });
       rd.addEventListener('keydown', function(e){ if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); setPassed(!passed); } });
