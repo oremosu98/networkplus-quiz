@@ -3675,3 +3675,33 @@ html.cl-locked,html.cl-locked body{overflow:hidden;}
   #page-setup .readiness-eyebrow{margin-bottom:8px}
 }
 
+/* ── audit 9: phone-only collapsible home sections (Practice / Exam / Drill) ──
+   Gated to ≤620px. Desktop/tablet (≥621px): .home-collapsible and
+   .home-collapsed classes are never added by JS, so these rules have zero
+   effect there — sections render exactly as today (fully expanded, no
+   collapse chrome visible). Quick Start (.cell-quick) is never targeted.
+   ────────────────────────────────────────────────────────────────────────── */
+@media (max-width:620px){
+  /* Make the tile-head a visible tap target ≥44px */
+  #page-setup .home-collapsible .tile-head{
+    cursor:pointer;min-height:44px;align-items:center;
+    user-select:none;-webkit-user-select:none;
+  }
+  /* Chevron: rotate when expanded */
+  #page-setup .home-collapsible .home-collapse-chev{
+    display:inline-flex;align-items:center;flex-shrink:0;
+    margin-left:auto;color:var(--text-dim);
+    transition:transform .22s cubic-bezier(0.16,1,0.3,1);
+  }
+  #page-setup .home-collapsible:not(.home-collapsed) .home-collapse-chev{
+    transform:rotate(180deg);
+  }
+  /* Collapsed: hide everything after .tile-head */
+  #page-setup .home-collapsed .opts,
+  #page-setup .home-collapsed .ld-grid{
+    display:none;
+  }
+  /* Remove bottom padding when collapsed so tile is compact */
+  #page-setup .home-collapsed{padding-bottom:0}
+}
+

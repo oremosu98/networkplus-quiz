@@ -20041,6 +20041,15 @@ console.log('\n\x1b[1m── Security Phase 7 — CSP script-src unsafe-inline r
     /@media\s*\(max-width:620px\)[\s\S]{0,1200}cell-recommend\{order:1/.test(dg.replace(/\n/g,' ')));
 })();
 
+// ── audit 9: phone-only collapsible home sections (Practice / Exam / Drill) ──
+(function(){
+  const dg = read('dg-system.css');
+  test('v7.x Home Practice/Exam/Drill collapsible on phone (mechanism present)',
+    /home-collaps/.test(js) || /home-collaps/.test(html) || /home-collaps/.test(dg));
+  test('v7.x Home collapse is phone-gated (matchMedia 620 or max-width:620 css)',
+    /matchMedia\(['"]\(max-width:\s*620px\)['"]\)/.test(js) || /@media\s*\(max-width:620px\)[\s\S]{0,800}home-collaps/.test(dg.replace(/\n/g,' ')));
+})();
+
 // ── Summary ──
 console.log('\n' + '═'.repeat(50));
 const total = results.pass + results.fail;

@@ -2301,9 +2301,49 @@ function goSetup() {
   if (typeof renderSetupDomainGrid === 'function') renderSetupDomainGrid();
   // v4.54.0: hero v2 (display heading + dark readiness + mini cards)
   if (typeof renderHeroV2 === 'function') renderHeroV2();
+  // v7.x audit 9: collapse Practice/Exam/Drill on phones only (≤620px)
+  _initHomeCollapse();
   showPage('setup');
 }
 
+// ── audit 9: phone-only collapsible home sections ──────────────────────────
+// On phones (≤620px) Practice, Exam Simulation, and Drill by Domain start
+// collapsed. Tapping the .tile-head toggles .home-collapsed on the section.
+// Quick Start (.cell-quick) is never touched. On tablet/desktop (≥621px)
+// this function exits immediately — zero DOM or style changes.
+function _initHomeCollapse() {
+  if (!window.matchMedia('(max-width:620px)').matches) return;
+  var cells = [
+    document.querySelector('.cell-practice'),
+    document.querySelector('.cell-exam'),
+    document.querySelector('.cell-domains')
+  ];
+  cells.forEach(function(cell) {
+    if (!cell) return;
+    // Avoid double-initialising on rapid goSetup() calls
+    if (cell.classList.contains('home-collapsible')) return;
+    cell.classList.add('home-collapsible', 'home-collapsed');
+    var head = cell.querySelector('.tile-head');
+    if (!head) return;
+    head.setAttribute('role', 'button');
+    head.setAttribute('tabindex', '0');
+    head.setAttribute('aria-expanded', 'false');
+    // Inject chevron affordance
+    var chev = document.createElement('span');
+    chev.className = 'home-collapse-chev';
+    chev.setAttribute('aria-hidden', 'true');
+    chev.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>';
+    head.appendChild(chev);
+    function toggle() {
+      var collapsed = cell.classList.toggle('home-collapsed');
+      head.setAttribute('aria-expanded', String(!collapsed));
+    }
+    head.addEventListener('click', toggle);
+    head.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); }
+    });
+  });
+}
 
 // v4.41.0: Progressive disclosure — hide Marathon Mode until user has completed 1+ quiz.
 // First-run users shouldn't see "100 Question" options before they've taken 5.
