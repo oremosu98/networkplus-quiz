@@ -3,223 +3,243 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>CertAnvil — Choose your plan · Concept</title>
+<title>CertAnvil · Choose your plan · Concept</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
+  /* ── CertAnvil forged-bronze tokens (OKLCH) · light is the primary theme ── */
   :root{
-    --bg:#0e0c10; --bg2:#15131a; --surface:#1b1822; --surface2:#241f2c;
-    --hair:rgba(255,255,255,.09); --hair2:rgba(255,255,255,.16);
-    --text:#ece8f0; --text-mid:#b3adbd; --text-dim:#8b8594;
-    --accent:#caa05a; --accent-hi:#e7c98c; --accent-deep:#7a5a2a;
-    --green:#46b483; --green-dim:rgba(70,180,131,.16);
-    --radius:18px;
+    --bg:oklch(0.975 0.007 85); --surface:oklch(0.992 0.004 85); --surface-2:oklch(0.965 0.010 84);
+    --text:oklch(0.22 0.015 280); --text-mid:oklch(0.36 0.014 280); --text-dim:oklch(0.50 0.013 280);
+    --border:oklch(0.86 0.008 85); --border-soft:oklch(0.91 0.006 85);
+    --accent:oklch(0.50 0.155 55); --accent-bright:oklch(0.80 0.155 64); --accent-deep:oklch(0.42 0.150 52);
+    --on-accent:oklch(0.985 0.010 85); --pass:oklch(0.52 0.13 150);
+    --ease:cubic-bezier(0.16,1,0.3,1);
+    --r-card:16px; --r-btn:12px;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --bg:oklch(0.16 0.009 275); --surface:oklch(0.205 0.009 275); --surface-2:oklch(0.185 0.009 275);
+      --text:oklch(0.96 0.006 275); --text-mid:oklch(0.78 0.010 275); --text-dim:oklch(0.60 0.013 275);
+      --border:oklch(0.30 0.008 275); --border-soft:oklch(0.26 0.008 275);
+      --accent:oklch(0.80 0.155 64); --accent-bright:oklch(0.86 0.140 70); --accent-deep:oklch(0.70 0.150 62);
+      --on-accent:oklch(0.18 0.020 275); --pass:oklch(0.74 0.150 152);
+    }
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
   html,body{margin:0;padding:0;}
   body{
     font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
-    background:radial-gradient(120% 80% at 50% -10%, #1b1426 0%, var(--bg) 55%);
-    color:var(--text); line-height:1.5; min-height:100dvh;
-    padding:max(18px,env(safe-area-inset-top)) 18px calc(120px + env(safe-area-inset-bottom));
+    background:var(--bg); color:var(--text); line-height:1.5; min-height:100dvh;
+    padding:max(22px,env(safe-area-inset-top)) 20px calc(124px + env(safe-area-inset-bottom));
     -webkit-font-smoothing:antialiased;
   }
   .wrap{max-width:440px;margin:0 auto;}
 
-  .tagchip{display:inline-flex;align-items:center;gap:6px;font-size:10.5px;font-weight:700;letter-spacing:.12em;
-    text-transform:uppercase;color:var(--accent);background:color-mix(in oklab,var(--accent) 14%,transparent);
-    border:1px solid color-mix(in oklab,var(--accent) 30%,transparent);padding:5px 11px;border-radius:99px;margin:6px 0 14px;}
-  h1{font-family:'Fraunces',Georgia,serif;font-weight:600;font-size:clamp(28px,8vw,34px);line-height:1.08;
-    letter-spacing:-.02em;margin:0 0 8px;}
-  h1 i{font-style:italic;color:var(--accent-hi);}
-  .sub{color:var(--text-mid);font-size:14.5px;margin:0 0 18px;max-width:30em;}
+  /* ── brand mark + header ── */
+  .mark{width:46px;height:46px;color:var(--accent);margin-bottom:18px;}
+  .mark .c-slash{opacity:.55;}
+  .eyebrow{font-size:11px;font-weight:800;letter-spacing:0.14em;text-transform:uppercase;color:var(--text-dim);margin:0 0 10px;}
+  h1{font-family:'Fraunces',Georgia,serif;font-weight:600;font-size:clamp(28px,8.5vw,34px);line-height:1.1;
+    letter-spacing:-0.02em;margin:0 0 9px;}
+  h1 i{font-style:italic;}
+  .sub{color:var(--text-mid);font-size:14.5px;margin:0 0 20px;max-width:32ch;}
 
-  /* billing cadence segmented (mirrors the price cards; tapping syncs) */
-  .cards{display:flex;flex-direction:column;gap:12px;margin-top:4px;}
-  .card{position:relative;display:block;width:100%;text-align:left;cursor:pointer;
-    background:var(--surface);border:1.5px solid var(--hair);border-radius:var(--radius);
-    padding:16px 16px 16px 52px;transition:border-color .18s,background .18s,transform .12s;}
-  .card:active{transform:scale(.992);}
-  .card.sel{border-color:var(--accent);background:linear-gradient(135deg,color-mix(in oklab,var(--accent) 13%,var(--surface)),var(--surface));}
-  .card.best{border-color:color-mix(in oklab,var(--accent) 45%,var(--hair));}
-  .radio{position:absolute;left:16px;top:18px;width:22px;height:22px;border-radius:50%;
-    border:2px solid var(--hair2);display:grid;place-items:center;transition:border-color .18s;}
+  /* ── plan cards (hairline, no chrome gradients) ── */
+  .cards{display:grid;gap:12px;}
+  .card{position:relative;display:block;width:100%;text-align:left;cursor:pointer;font-family:inherit;
+    background:var(--surface);border:1.5px solid var(--border);border-radius:var(--r-card);
+    padding:16px 16px 16px 50px;color:var(--text);
+    transition:border-color .18s var(--ease),background .18s var(--ease),transform .12s var(--ease);}
+  .card.best{border-color:color-mix(in oklab,var(--accent) 42%,var(--border));}
+  .card.sel{border-color:var(--accent);background:color-mix(in oklab,var(--accent) 8%,var(--surface));}
+  .card:active{transform:scale(0.985);}
+  @media (hover:hover) and (pointer:fine){ .card:hover:not(.sel){border-color:color-mix(in oklab,var(--accent) 28%,var(--border));} }
+  .radio{position:absolute;left:16px;top:17px;width:22px;height:22px;border-radius:999px;
+    border:2px solid var(--border);display:grid;place-items:center;transition:border-color .18s var(--ease);}
   .card.sel .radio{border-color:var(--accent);}
-  .radio::after{content:"";width:11px;height:11px;border-radius:50%;background:var(--accent);
-    transform:scale(0);transition:transform .18s;}
+  .radio::after{content:"";width:11px;height:11px;border-radius:999px;background:var(--accent);
+    transform:scale(0);transition:transform .18s var(--ease);}
   .card.sel .radio::after{transform:scale(1);}
   .crow{display:flex;justify-content:space-between;align-items:baseline;gap:10px;}
-  .cname{font-size:15.5px;font-weight:800;letter-spacing:-.01em;}
-  .cprice{font-family:'Fraunces',Georgia,serif;font-weight:600;font-size:20px;white-space:nowrap;}
-  .cprice small{font-family:'Inter';font-weight:600;font-size:11.5px;color:var(--text-dim);}
-  .cmeta{font-size:12px;color:var(--text-dim);margin-top:2px;}
-  .feats{list-style:none;margin:11px 0 0;padding:0;display:flex;flex-direction:column;gap:5px;}
-  .feats li{font-size:12.5px;color:var(--text-mid);padding-left:20px;position:relative;}
-  .feats li::before{content:"✓";position:absolute;left:0;color:var(--accent);font-weight:800;}
-  .feats li.free::before{content:"·";color:var(--text-dim);font-weight:800;font-size:16px;line-height:.9;}
-  .badge{position:absolute;top:-9px;right:14px;background:linear-gradient(120deg,var(--accent),var(--accent-deep));
-    color:#1a140a;font-size:9.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;
-    padding:3px 9px;border-radius:99px;}
+  .cname{font-size:15.5px;font-weight:800;letter-spacing:-0.01em;}
+  .cprice{font-family:'Fraunces',Georgia,serif;font-weight:600;font-size:21px;white-space:nowrap;
+    font-variant-numeric:lining-nums tabular-nums;font-feature-settings:"lnum","tnum";}
+  .cprice small{font-family:'Inter',sans-serif;font-weight:600;font-size:11.5px;color:var(--text-dim);font-variant-numeric:normal;}
+  .cmeta{font-size:12px;color:var(--text-dim);margin-top:3px;}
+  .feats{list-style:none;margin:11px 0 0;padding:0;display:grid;gap:5px;}
+  .feats li{font-size:12.5px;color:var(--text-mid);padding-left:19px;position:relative;}
+  .feats li::before{content:"";position:absolute;left:0;top:6px;width:9px;height:9px;
+    border-left:2px solid var(--accent);border-bottom:2px solid var(--accent);transform:rotate(-45deg) translateY(-1px);}
+  .feats li.q::before{border:none;left:4px;top:8px;width:4px;height:4px;border-radius:999px;background:var(--text-dim);}
+  .badge{position:absolute;top:-9px;right:14px;background:var(--accent);color:var(--on-accent);
+    font-size:9.5px;font-weight:800;letter-spacing:0.05em;text-transform:uppercase;padding:3px 9px;border-radius:999px;}
 
-  .reassure{display:flex;gap:14px;flex-wrap:wrap;margin:16px 2px 0;font-size:11.5px;color:var(--text-dim);}
-  .reassure span{display:inline-flex;align-items:center;gap:5px;}
+  .reassure{display:flex;flex-wrap:wrap;gap:8px 18px;margin:16px 2px 0;font-size:11.5px;color:var(--text-dim);}
 
-  /* sticky CTA */
-  .dock{position:fixed;left:0;right:0;bottom:0;z-index:20;
-    padding:14px 18px calc(16px + env(safe-area-inset-bottom));
-    background:linear-gradient(180deg,transparent, var(--bg) 34%);}
+  /* ── sticky focal action (the single bronze fill on this surface) ── */
+  .dock{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--bg);border-top:1px solid var(--border-soft);
+    padding:13px 20px calc(15px + env(safe-area-inset-bottom));}
   .dock .inner{max-width:440px;margin:0 auto;}
-  .cta{width:100%;border:none;border-radius:14px;padding:16px;font-family:'Inter';font-weight:800;
-    font-size:16px;color:#1a140a;background:linear-gradient(120deg,var(--accent-hi),var(--accent));
-    cursor:pointer;box-shadow:0 10px 30px -12px color-mix(in oklab,var(--accent) 70%,transparent);}
-  .cta:active{transform:translateY(1px);}
-  .cta.free{background:var(--surface2);color:var(--text);border:1.5px solid var(--hair2);box-shadow:none;}
-  .skip{display:block;width:100%;text-align:center;background:none;border:none;color:var(--text-dim);
-    font-size:12.5px;font-weight:600;margin-top:9px;cursor:pointer;font-family:'Inter';}
+  .cta{width:100%;border:1px solid var(--accent-deep);border-radius:var(--r-btn);padding:16px;
+    font-family:'Inter',sans-serif;font-weight:800;font-size:16px;letter-spacing:-0.005em;
+    color:var(--on-accent);background:var(--accent);cursor:pointer;
+    transition:transform .14s var(--ease),filter .16s var(--ease);}
+  .cta.ghost{background:transparent;border:1.5px solid var(--border);color:var(--text);}
+  .cta:active{transform:scale(0.97);}
+  @media (hover:hover) and (pointer:fine){ .cta:hover{filter:brightness(1.05);} }
+  .restore{display:block;width:100%;text-align:center;background:none;border:none;color:var(--text-dim);
+    font-size:12.5px;font-weight:600;margin-top:9px;cursor:pointer;font-family:inherit;}
 
-  /* mock "what happens next" sheet */
-  .sheet-bg{position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.62);backdrop-filter:blur(3px);
+  /* ── "what happens next" sheet ── */
+  .sheet-bg{position:fixed;inset:0;z-index:60;background:color-mix(in oklab,var(--text) 52%,transparent);
     display:none;align-items:flex-end;}
   .sheet-bg.open{display:flex;}
-  .sheet{width:100%;max-width:440px;margin:0 auto;background:var(--bg2);border:1px solid var(--hair);
-    border-bottom:none;border-radius:22px 22px 0 0;padding:22px 20px calc(24px + env(safe-area-inset-bottom));
-    transform:translateY(8px);}
-  .sheet h3{font-family:'Fraunces',Georgia,serif;font-weight:600;font-size:20px;margin:4px 0 6px;}
-  .sheet p{font-size:13.5px;color:var(--text-mid);margin:0 0 8px;}
-  .sheet .step{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--hair);
-    border-radius:12px;padding:11px 13px;margin:10px 0;font-size:13px;}
-  .sheet .step b{color:var(--text);}
-  .sheet .num{width:22px;height:22px;border-radius:7px;background:color-mix(in oklab,var(--accent) 18%,transparent);
-    color:var(--accent);font-weight:800;font-size:12px;display:grid;place-items:center;flex-shrink:0;}
-  .sheet .close{width:100%;margin-top:8px;border:1.5px solid var(--hair2);background:transparent;color:var(--text);
-    border-radius:12px;padding:13px;font-weight:700;font-size:14px;font-family:'Inter';cursor:pointer;}
+  .sheet{width:100%;max-width:440px;margin:0 auto;background:var(--surface);border:1px solid var(--border);border-bottom:none;
+    border-radius:20px 20px 0 0;padding:22px 20px calc(22px + env(safe-area-inset-bottom));
+    animation:rise .34s var(--ease);}
+  .sheet.closing{animation:fall .19s var(--ease) forwards;}   /* exit faster than enter */
+  @keyframes rise{from{transform:translateY(14px);opacity:0;}to{transform:none;opacity:1;}}
+  @keyframes fall{to{transform:translateY(16px);opacity:0;}}
+  @media (prefers-reduced-motion:reduce){ .sheet,.sheet.closing{animation:none;} }
+  .sheet h3{font-family:'Fraunces',Georgia,serif;font-weight:600;font-size:20px;margin:2px 0 7px;}
+  .sheet p{font-size:13.5px;color:var(--text-mid);margin:0 0 12px;}
+  .srow{display:flex;align-items:center;gap:11px;background:var(--surface-2);border:1px solid var(--border-soft);
+    border-radius:11px;padding:11px 13px;margin:9px 0;font-size:13px;}
+  .srow b{color:var(--text);}
+  .snum{width:22px;height:22px;border-radius:7px;background:color-mix(in oklab,var(--accent) 16%,transparent);
+    color:var(--accent);font-weight:800;font-size:12px;display:grid;place-items:center;flex-shrink:0;
+    font-variant-numeric:lining-nums;}
+  .sheet .close{width:100%;margin-top:10px;border:1.5px solid var(--border);background:transparent;color:var(--text);
+    border-radius:var(--r-btn);padding:13px;font-weight:700;font-size:14px;font-family:inherit;cursor:pointer;}
+  .sheet .close:active{transform:scale(0.98);}
 
-  .concept-flag{position:fixed;left:8px;bottom:calc(8px + env(safe-area-inset-bottom));z-index:80;
-    font-size:9px;font-weight:700;letter-spacing:.05em;color:#d6b06a;background:#241a08;
-    border:1px solid #4a3a14;border-radius:7px;padding:3px 7px;text-transform:uppercase;pointer-events:none;opacity:.9;}
+  .flag{position:fixed;left:10px;bottom:calc(96px + env(safe-area-inset-bottom));z-index:80;font-size:9px;font-weight:800;
+    letter-spacing:0.06em;text-transform:uppercase;color:var(--accent);background:color-mix(in oklab,var(--accent) 12%,var(--bg));
+    border:1px solid color-mix(in oklab,var(--accent) 30%,transparent);border-radius:999px;padding:3px 8px;pointer-events:none;}
+
+  /* entrance · gated to motion-ok */
+  .rise-in{opacity:0;transform:translateY(14px);}
+  @media (prefers-reduced-motion:no-preference){
+    .rise-in{animation:enter .55s var(--ease) forwards;animation-delay:calc(var(--d,0) * 70ms);}
+  }
+  @media (prefers-reduced-motion:reduce){ .rise-in{opacity:1;transform:none;} }
+  @keyframes enter{to{opacity:1;transform:none;}}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <span class="tagchip">● You're in — welcome</span>
-  <h1>Choose your <i>plan</i></h1>
-  <p class="sub">Start free, or unlock every cert and unlimited practice with Pro. Change or cancel anytime.</p>
+  <svg class="mark rise-in" style="--d:0" viewBox="0 0 100 100" fill="none" aria-label="CertAnvil">
+    <path d="M58 12 C42 6, 16 16, 14 34 C12 52, 22 62, 42 64" stroke="currentColor" stroke-width="7" stroke-linecap="round"/>
+    <line class="c-slash" x1="30" y1="84" x2="70" y2="16" stroke="currentColor" stroke-width="5" stroke-linecap="round"/>
+    <path d="M46 88 L64 50 L82 88 M53 74 L75 74" stroke="currentColor" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>
 
-  <div class="cards" id="cards">
-    <!-- Annual (default / best value) -->
-    <button class="card best sel" data-plan="annual" aria-pressed="true">
-      <span class="badge">Best value · save 26%</span>
+  <p class="eyebrow rise-in" style="--d:1">Welcome to CertAnvil</p>
+  <h1 class="rise-in" style="--d:1">Choose your <i>plan</i></h1>
+  <p class="sub rise-in" style="--d:2">Start free, or study every cert with Pro. Cancel anytime.</p>
+
+  <div class="cards">
+    <button class="card best sel rise-in" style="--d:3" data-plan="annual" aria-pressed="true">
+      <span class="badge">Best value, save 26%</span>
       <span class="radio" aria-hidden="true"></span>
       <span class="crow">
-        <span class="cname">Pro · Annual</span>
+        <span class="cname">Pro Annual</span>
         <span class="cprice">$89<small>/yr</small></span>
       </span>
-      <span class="cmeta">That's just $7.42/mo, billed yearly</span>
+      <span class="cmeta">Billed yearly. Works out to $7.42 a month.</span>
       <ul class="feats">
-        <li>All 8 certs — switch anytime</li>
+        <li>All 8 certs, switch anytime</li>
         <li>Unlimited questions every day</li>
-        <li>Full Daily Review (spaced repetition)</li>
+        <li>Full Daily Review</li>
       </ul>
     </button>
 
-    <!-- Monthly -->
-    <button class="card" data-plan="monthly" aria-pressed="false">
+    <button class="card rise-in" style="--d:4" data-plan="monthly" aria-pressed="false">
       <span class="radio" aria-hidden="true"></span>
       <span class="crow">
-        <span class="cname">Pro · Monthly</span>
+        <span class="cname">Pro Monthly</span>
         <span class="cprice">$9.99<small>/mo</small></span>
       </span>
-      <span class="cmeta">Everything in Pro, billed monthly</span>
+      <span class="cmeta">Everything in Pro, billed monthly.</span>
       <ul class="feats">
-        <li>All 8 certs — switch anytime</li>
+        <li>All 8 certs, switch anytime</li>
         <li>Unlimited questions every day</li>
-        <li>Full Daily Review (spaced repetition)</li>
+        <li>Full Daily Review</li>
       </ul>
     </button>
 
-    <!-- Free -->
-    <button class="card" data-plan="free" aria-pressed="false">
+    <button class="card rise-in" style="--d:5" data-plan="free" aria-pressed="false">
       <span class="radio" aria-hidden="true"></span>
       <span class="crow">
         <span class="cname">Free</span>
         <span class="cprice">$0</span>
       </span>
-      <span class="cmeta">Great to start — no card needed</span>
+      <span class="cmeta">No card needed.</span>
       <ul class="feats">
-        <li class="free">20 questions a day <span style="color:var(--text-dim)">(15 practice + 5 Daily Review)</span></li>
-        <li class="free">One cert at a time — locked until you go Pro</li>
-        <li class="free">Diagnostic + core practice</li>
+        <li class="q">20 questions a day (15 practice, 5 review)</li>
+        <li class="q">One cert until you go Pro</li>
+        <li class="q">Diagnostic and core practice</li>
       </ul>
     </button>
   </div>
 
-  <div class="reassure">
-    <span>🔒 Cancel anytime</span>
-    <span>↩︎ Switch plans whenever</span>
-    <span>🍎 Apple Pay supported</span>
+  <div class="reassure rise-in" style="--d:6">
+    <span>Cancel anytime</span><span>Apple Pay supported</span>
   </div>
 </div>
 
-<!-- sticky CTA -->
 <div class="dock">
   <div class="inner">
-    <button class="cta" id="cta">Start Pro — $89/yr</button>
-    <button class="skip" id="skip">Restore a purchase</button>
+    <button class="cta" id="cta">Start Pro Annual</button>
+    <button class="restore" id="restore">Restore a purchase</button>
   </div>
 </div>
 
-<!-- mock "what happens next" -->
-<div class="sheet-bg" id="sheetbg">
-  <div class="sheet" id="sheet"></div>
-</div>
-
-<div class="concept-flag">Concept · billing not wired</div>
+<div class="sheet-bg" id="sheetbg"><div class="sheet" id="sheet"></div></div>
+<div class="flag">Concept · billing not wired</div>
 
 <script>
-  var sel = 'annual';
-  var cards = Array.prototype.slice.call(document.querySelectorAll('.card'));
-  var cta = document.getElementById('cta');
-  var skip = document.getElementById('skip');
-  var ctaText = { annual:'Start Pro — $89/yr', monthly:'Start Pro — $9.99/mo', free:'Continue with Free' };
-
+  var sel='annual';
+  var cards=[].slice.call(document.querySelectorAll('.card'));
+  var cta=document.getElementById('cta'), restore=document.getElementById('restore');
+  var label={annual:'Start Pro Annual',monthly:'Start Pro Monthly',free:'Continue with Free'};
   function paint(){
-    cards.forEach(function(c){
-      var on = c.dataset.plan === sel;
-      c.classList.toggle('sel', on);
-      c.setAttribute('aria-pressed', on ? 'true':'false');
-    });
-    cta.textContent = ctaText[sel];
-    cta.classList.toggle('free', sel === 'free');
-    skip.style.display = (sel === 'free') ? 'none' : 'block';
+    cards.forEach(function(c){var on=c.dataset.plan===sel;c.classList.toggle('sel',on);c.setAttribute('aria-pressed',on?'true':'false');});
+    cta.textContent=label[sel];
+    cta.classList.toggle('ghost',sel==='free');
+    restore.style.display=(sel==='free')?'none':'block';
   }
-  cards.forEach(function(c){
-    c.addEventListener('click', function(){ sel = c.dataset.plan; paint(); });
-  });
+  cards.forEach(function(c){c.addEventListener('click',function(){sel=c.dataset.plan;paint();});});
 
-  // mock the hand-off so the founder can see where each choice leads
   function sheetHTML(){
-    if (sel === 'free'){
-      return '<h3>Next: pick your cert</h3>'+
-        '<p>On Free you study <b>one cert at a time</b>. You\'ll choose it next — and you\'ll be warned it\'s locked to that cert until you upgrade.</p>'+
-        '<div class="step"><span class="num">1</span><span><b>Pick your cert</b> — Network+, Security+, A+ …</span></div>'+
-        '<div class="step"><span class="num">2</span><span><b>"Locked until Pro"</b> confirm</span></div>'+
-        '<div class="step"><span class="num">3</span><span>Optional <b>diagnostic</b> → your cert home (20 q/day)</span></div>'+
+    if(sel==='free'){
+      return '<h3>Next, pick your cert</h3>'+
+        '<p>On Free you study one cert at a time. You will choose it next, then confirm it stays locked until you upgrade.</p>'+
+        '<div class="srow"><span class="snum">1</span><span><b>Pick your cert</b> from the 8 exams</span></div>'+
+        '<div class="srow"><span class="snum">2</span><span>Confirm: <b>locked until Pro</b></span></div>'+
+        '<div class="srow"><span class="snum">3</span><span>Optional <b>diagnostic</b>, then your cert home</span></div>'+
         '<button class="close" onclick="closeSheet()">Got it</button>';
     }
-    var price = sel === 'annual' ? '$89/yr' : '$9.99/mo';
-    return '<h3>Next: payment</h3>'+
-      '<p>This is where checkout goes — <b>Apple In-App Purchase</b> in the iOS app, <b>Stripe</b> on the web. (Not wired in this concept.)</p>'+
-      '<div class="step"><span class="num">$</span><span><b>Pro · '+(sel==='annual'?'Annual':'Monthly')+'</b> — '+price+'</span></div>'+
-      '<div class="step"><span class="num">2</span><span>Pay with <b>Apple Pay</b> / card</span></div>'+
-      '<div class="step"><span class="num">3</span><span>Straight into <b>all certs, unlimited</b> — pick where to start</span></div>'+
+    var name=(sel==='annual')?'Annual':'Monthly', price=(sel==='annual')?'$89/yr':'$9.99/mo';
+    return '<h3>Next, payment</h3>'+
+      '<p>Checkout lives here: Apple In-App Purchase in the iOS app, Stripe on the web. Not wired in this concept.</p>'+
+      '<div class="srow"><span class="snum">$</span><span><b>Pro '+name+'</b>, '+price+'</span></div>'+
+      '<div class="srow"><span class="snum">2</span><span>Pay with <b>Apple Pay</b> or card</span></div>'+
+      '<div class="srow"><span class="snum">3</span><span>Straight into <b>all certs, unlimited</b></span></div>'+
       '<button class="close" onclick="closeSheet()">Got it</button>';
   }
-  function openSheet(){ document.getElementById('sheet').innerHTML = sheetHTML(); document.getElementById('sheetbg').classList.add('open'); }
-  window.closeSheet = function(){ document.getElementById('sheetbg').classList.remove('open'); };
-  cta.addEventListener('click', openSheet);
-  document.getElementById('sheetbg').addEventListener('click', function(e){ if(e.target.id==='sheetbg') closeSheet(); });
-  skip.addEventListener('click', function(){ alert('(Concept) Restore purchase — re-checks your Apple/Stripe entitlement and unlocks Pro if found.'); });
-
+  function openSheet(){document.getElementById('sheet').innerHTML=sheetHTML();document.getElementById('sheetbg').classList.add('open');}
+  window.closeSheet=function(){
+    var s=document.getElementById('sheet'), bg=document.getElementById('sheetbg');
+    var reduce=window.matchMedia('(prefers-reduced-motion:reduce)').matches;
+    if(reduce){ bg.classList.remove('open'); return; }
+    s.classList.add('closing');
+    setTimeout(function(){ bg.classList.remove('open'); s.classList.remove('closing'); },180);
+  };
+  cta.addEventListener('click',openSheet);
+  document.getElementById('sheetbg').addEventListener('click',function(e){if(e.target.id==='sheetbg')closeSheet();});
+  restore.addEventListener('click',function(){alert('Concept: Restore purchase re-checks your Apple or Stripe entitlement and turns Pro on if it finds one.');});
   paint();
 </script>
 </body>
