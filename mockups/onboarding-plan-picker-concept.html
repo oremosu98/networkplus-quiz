@@ -69,9 +69,9 @@
   .cmeta{font-size:12px;color:var(--text-dim);margin-top:3px;}
   .feats{list-style:none;margin:11px 0 0;padding:0;display:grid;gap:5px;}
   .feats li{font-size:12.5px;color:var(--text-mid);padding-left:19px;position:relative;}
-  .feats li::before{content:"";position:absolute;left:0;top:6px;width:9px;height:9px;
-    border-left:2px solid var(--accent);border-bottom:2px solid var(--accent);transform:rotate(-45deg) translateY(-1px);}
-  .feats li.q::before{border:none;left:4px;top:8px;width:4px;height:4px;border-radius:999px;background:var(--text-dim);}
+  .feats li::before{content:"";position:absolute;left:3px;top:2px;width:5px;height:9px;
+    border-right:2.2px solid var(--accent);border-bottom:2.2px solid var(--accent);transform:rotate(45deg);}
+  .feats li.q::before{border:none;transform:none;left:3px;top:8px;width:4px;height:4px;border-radius:999px;background:var(--text-dim);}
   .badge{position:absolute;top:-9px;right:14px;background:var(--accent);color:var(--on-accent);
     font-size:9.5px;font-weight:800;letter-spacing:0.05em;text-transform:uppercase;padding:3px 9px;border-radius:999px;}
 
@@ -149,7 +149,7 @@
       </span>
       <span class="cmeta">Billed yearly. Works out to $7.42 a month.</span>
       <ul class="feats">
-        <li>All 8 certs, switch anytime</li>
+        <li>All certs, switch anytime</li>
         <li>Unlimited questions every day</li>
         <li>Full Daily Review</li>
       </ul>
@@ -163,7 +163,7 @@
       </span>
       <span class="cmeta">Everything in Pro, billed monthly.</span>
       <ul class="feats">
-        <li>All 8 certs, switch anytime</li>
+        <li>All certs, switch anytime</li>
         <li>Unlimited questions every day</li>
         <li>Full Daily Review</li>
       </ul>
@@ -175,7 +175,7 @@
         <span class="cname">Free</span>
         <span class="cprice">$0</span>
       </span>
-      <span class="cmeta">No card needed.</span>
+      <span class="cmeta">No card needed. Upgrade anytime.</span>
       <ul class="feats">
         <li class="q">20 questions a day (15 practice, 5 review)</li>
         <li class="q">One cert until you go Pro</li>
@@ -216,7 +216,7 @@
     if(sel==='free'){
       return '<h3>Next, pick your cert</h3>'+
         '<p>On Free you study one cert at a time. You will choose it next, then confirm it stays locked until you upgrade.</p>'+
-        '<div class="srow"><span class="snum">1</span><span><b>Pick your cert</b> from the 8 exams</span></div>'+
+        '<div class="srow"><span class="snum">1</span><span><b>Pick your cert</b> from the list</span></div>'+
         '<div class="srow"><span class="snum">2</span><span>Confirm: <b>locked until Pro</b></span></div>'+
         '<div class="srow"><span class="snum">3</span><span>Optional <b>diagnostic</b>, then your cert home</span></div>'+
         '<button class="close" onclick="closeSheet()">Got it</button>';
