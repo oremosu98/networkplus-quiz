@@ -3033,6 +3033,24 @@ html[data-theme] body #page-setup .tile-title{font:600 17px/1.15 'Fraunces',Geor
 #page-setup .tile-eyebrow{font:600 10px/1 'Roboto Mono',monospace;letter-spacing:.16em;text-transform:uppercase;color:var(--text-dim)}
 
 #page-setup .cell-hero .readiness-card{height:100%}
+/* v7.34.0: compress the readiness hero on desktop while there's no score yet
+   (first-quiz-pending state, flagged by .is-pending in renderReadinessCardV2).
+   Without this the empty card stretches across 2 grid rows and reads as a tall
+   dead box. Here it drops to a single row at its natural height and the giant
+   placeholder dash + empty meter spacing shrink. Tablet/phone already lay the
+   hero out 1-row (<=980px), and a populated card has no .is-pending, so the full
+   2-row hero returns the moment a real score exists. Desktop-only. */
+@media (min-width:981px){
+  #page-setup .cell-hero:has(.readiness-card.is-pending){grid-row:span 1}
+  #page-setup .cell-hero .readiness-card.is-pending{height:auto;padding:18px 24px;display:flex;flex-direction:column;justify-content:center}
+  #page-setup .readiness-card.is-pending .readiness-eyebrow{margin-bottom:6px}
+  #page-setup .readiness-card.is-pending .readiness-score #rc-v2-num{font-size:clamp(40px,4vw,52px)}
+  #page-setup .readiness-card.is-pending .readiness-score span:not(#rc-v2-num){margin-top:4px}
+  /* hide the empty progress meter while there's no score — it's a bare track
+     for a first-time user; the pass mark still shows in the range row below */
+  #page-setup .readiness-card.is-pending .readiness-bar-track{display:none}
+  #page-setup .readiness-card.is-pending .readiness-range{margin-top:10px}
+}
 
 /* recommended-next (prominent) */
 html[data-theme] body #page-setup .tile-recommend{flex-direction:row;align-items:center;gap:18px;cursor:pointer;text-align:left;width:100%;

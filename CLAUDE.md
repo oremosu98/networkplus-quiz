@@ -112,6 +112,7 @@ npx playwright test              # E2E (tests/e2e/app.spec.js)
 
 | Version | Features Added |
 |---|---|
+| v7.34.0 | Desktop home polish — compress empty readiness hero (no-score state) + hide PROD badge from live users |
 | v7.33.0 | Free-tier cert lock: one cert until Pro (web + native) |
 | v7.32.0 | Onboarding rollout gate (app_config) + activation telemetry — shipped OFF |
 | v7.31.0 | admin=Pro + console cert switcher + setup walkthrough tour (gated, ?onb=1) |

@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v7.33.0
+// Network+ AI Quiz — app.js  v7.34.0
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '7.33.0';
+const APP_VERSION = '7.34.0';
 // v4.99.45 (Phase 6b): expose APP_VERSION on window so the web-vitals
 // collector (lib/web-vitals-collector.js, loaded BEFORE app.js so its
 // PerformanceObservers attach earlier) can stamp this version onto every
@@ -11801,6 +11801,11 @@ function _renderEnvBadge() {
   try {
     if (document.getElementById('env-badge')) return; // already mounted
     const isProd = _isProdHost();
+    // v7.34.0: don't surface the PROD tag to real end-users on the live site.
+    // The badge stays a dev/preview safety aid — the DEV pill still mounts on
+    // previews + localhost; production users no longer see it. (.env-badge*
+    // CSS is intentionally retained for the preview/DEV pill.)
+    if (isProd) return;
     const badge = document.createElement('div');
     badge.id = 'env-badge';
     badge.className = isProd ? 'env-badge env-badge-prod' : 'env-badge env-badge-dev';
@@ -18842,6 +18847,10 @@ function renderReadinessCardV2() {
   const trajEl = document.getElementById('rc-v2-trajectory');
 
   if (!numEl || !barEl || !deltaEl || !card) return;
+  // v7.34.0: styling-only hook for the no-score state (compresses the desktop
+  // hero so the empty card isn't a 2-row dead box - see dg-system.css). Cleared
+  // by default; re-added below only when there's no quiz history yet.
+  card.classList.remove('is-pending');
   const history = (typeof loadHistory === 'function') ? loadHistory() : [];
   if (history.length === 0 || typeof getReadinessScore !== 'function') {
     numEl.textContent = '\u2014';
@@ -18850,6 +18859,7 @@ function renderReadinessCardV2() {
     if (predEl) predEl.hidden = true;
     if (whatIfEl) whatIfEl.hidden = true;
     if (trajEl) trajEl.hidden = true;
+    card.classList.add('is-pending');
     return;
   }
   try {
