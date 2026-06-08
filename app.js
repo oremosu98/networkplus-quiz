@@ -1744,13 +1744,16 @@ if ('serviceWorker' in navigator) {
         '<button type="button" class="sw-banner-cta">Refresh</button>' +
         '<button type="button" class="sw-banner-dismiss" aria-label="Dismiss">×</button>';
       document.body.insertBefore(banner, document.body.firstChild);
+      try { document.body.classList.add('has-sw-strip'); } catch (_) {}
       const refreshBtn = banner.querySelector('.sw-banner-cta');
       const dismissBtn = banner.querySelector('.sw-banner-dismiss');
       if (refreshBtn) refreshBtn.addEventListener('click', () => {
+        try { document.body.classList.remove('has-sw-strip'); } catch (_) {}
         try { window.location.reload(); } catch (_) {}
       });
       if (dismissBtn) dismissBtn.addEventListener('click', () => {
         try { banner.remove(); } catch (_) {}
+        try { document.body.classList.remove('has-sw-strip'); } catch (_) {}
       });
     } catch (_) {}
   }
