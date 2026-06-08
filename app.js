@@ -18795,12 +18795,13 @@ function renderBentoRecommended() {
   if (_isNewUser) {
     if (minEl) minEl.textContent = '10';
     if (titleEl) titleEl.textContent = 'Start your first quiz';
-    if (metaEl) metaEl.textContent = '10 questions · mixed · ~10 min';
+    if (metaEl) metaEl.textContent = '10 questions · easy mix · ~10 min';
     if (launchEl) launchEl.onclick = function () {
       if (typeof applyPreset === 'function') {
-        // 'warmup' is 5-Q Foundational; set globals for a 10-Q mixed Exam Level warm-up
-        // then call startQuiz directly (same path applyPreset uses).
-        topic = MIXED_TOPIC; diff = 'Exam Level'; qCount = 10;
+        // v7.x: first-ever quiz is a gentle 10-Q mixed Foundational warm-up (no
+        // weak-spot data yet, and Exam Level is discouraging on question one).
+        // Set globals then call startQuiz directly (same path applyPreset uses).
+        topic = MIXED_TOPIC; diff = 'Foundational'; qCount = 10;
         document.querySelectorAll('#topic-group .chip').forEach(function (c) { c.classList.toggle('on', c.dataset.v === topic); });
         document.querySelectorAll('#diff-group .chip').forEach(function (c) { c.classList.toggle('on', c.dataset.v === diff); });
         document.querySelectorAll('#count-group .chip').forEach(function (c) { c.classList.toggle('on', c.dataset.v === String(qCount)); });
