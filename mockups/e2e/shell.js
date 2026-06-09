@@ -74,10 +74,10 @@
     'free-cert-picker' : [ {sel:'#confirmBtn',  to:'free-home-day0'},
                            {sel:'#lockBtn',     to:'free-home-day0'} ],
     'free-home-day0'   : [ {sel:'.btn-primary', to:'home'} ],
-    // home is a dashboard (tab bar + cert switcher). TODO Phase 2b: wire its
-    // tab bar + cert-switcher to nav once verified visually (avoid binding the
-    // whole .topbar — the theme toggle lives inside it).
-    'home'             : [],
+    // home dashboard: cert name -> hub (cert switcher), gear -> settings.
+    // The 4-tab bar (Home/Drills/Progress/Account) is wired generically below.
+    'home'             : [ {sel:'.tb-name', to:'hub'},
+                           {sel:'.tb-set',  to:'settings'} ],
     // hub: tapping a locked cert opens the upsell sheet (mockup JS); the sheet's
     // "Unlock with Pro" and the "Go Pro" CTA drive the paywall arc
     // .pro-cta / tapping a locked cert opens the mockup's own upsell sheet;
@@ -98,6 +98,10 @@
     'exam-results'     : [ {sel:'.btn-primary', to:'home'} ]
   };
   var BACK_SEL = '.back, .btn-back, [data-act="back"], [data-nav="back"]';
+
+  // The dashboard tab bar (Home/Drills/Progress/Account) recurs across screens.
+  // Wire it generically by label so every screen that has it navigates.
+  var TABS = { 'Home':'home', 'Drills':'quiz', 'Progress':'progress', 'Account':'settings' };
 
   // ── Injected CSS: strip the gallery frame, render .screen full-bleed ────
   //    (D8 — the live app is the inner .screen, minus bezel + caption)
@@ -161,6 +165,15 @@
               else push(rule.to);
             }, 90);
           });
+        });
+      });
+      // generic dashboard tab bar (recurs across home/progress/settings/…)
+      doc.querySelectorAll('.tabbar .tab').forEach(function (tab) {
+        if (tab.__e2e_bound) return; tab.__e2e_bound = 1;
+        var to = TABS[(tab.textContent || '').trim()];
+        if (!to || to === id) return;          // skip unknown / current tab
+        tab.addEventListener('click', function () {
+          setTimeout(function () { push(to); }, 90);
         });
       });
     } catch (e) { /* fail soft */ }
