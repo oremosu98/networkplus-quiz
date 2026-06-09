@@ -41,6 +41,7 @@
     'report'            : 'cert-ios-report.html',
     'cross-cert'        : 'cert-ios-cross-cert.html',
     'settings'          : 'cert-ios-settings.html',
+    'log-result'        : 'cert-ios-log-result.html',
     'free-capped-home'  : 'onboarding-free-capped-home.html',
     'upgrade-sheet'     : 'onboarding-upgrade-sheet.html',
     'pro-iap'           : 'onboarding-pro-iap.html',
@@ -105,7 +106,9 @@
                            {text:'Drill my 3 mistakes',  to:'quiz'},
                            {text:'Back to menu',         to:'home'} ],
     'exam-results'     : [ {text:'Drill the gap', to:'quiz'},
-                           {text:'Menu',          to:'home'} ]
+                           {text:'Menu',          to:'home'} ],
+    // log-result: after saving, "See it in your hub" -> hub (Passed state)
+    'log-result'       : [ {sel:'#toHub', to:'hub'} ]
   };
   var BACK_SEL = '.back, .btn-back, [data-act="back"], [data-nav="back"]';
 
