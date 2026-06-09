@@ -80,10 +80,17 @@
     // home dashboard: cert name -> hub (cert switcher), gear -> settings.
     // The 4-tab bar (Home/Drills/Progress/Account) is wired generically below.
     // "Review 7 cards" (returning) -> spaced-repetition session; first-quiz lead -> quiz.
+    //  Study menus already exist on home; wire them. Order matters (first rule
+    //  that matches an element wins): exam launchers before the generic .opt.
     'home'             : [ {sel:'.tb-name', to:'hub'},
                            {sel:'.tb-set',  to:'settings'},
                            {sel:'.rec.only-returning', to:'review'},
-                           {sel:'.rec.only-new', to:'quiz'} ],
+                           {sel:'.rec.only-new', to:'quiz'},
+                           {sel:'.exam-lead', to:'exam'},          // 60Q SIM
+                           {text:'Full Exam', to:'exam'},          // 90Q full simulator
+                           {sel:'.opt', to:'quiz'},                // remaining practice options
+                           {sel:'.custom', to:'custom-quiz'},      // Build a custom quiz
+                           {sel:'.domain', to:'quiz'} ],           // drill-by-domain (stand-in)
     'review'           : [ {sel:'#toHome', to:'home'} ],
     // report is a sheet; its X / Cancel close it (pop back to the previous screen)
     'report'           : [ {sel:'#closeBtn', to:'pop'}, {sel:'#cancelBtn', to:'pop'} ],
@@ -91,6 +98,10 @@
     // account deletion -> back to the welcome screen.
     'restore-purchase' : [ {text:'Continue to CertAnvil', to:'home'} ],
     'account-deletion' : [ {sel:'#restartBtn', to:'native-welcome'} ],
+    // settings Account section -> the Apple lifecycle screens
+    'settings'         : [ {sel:'#setManageSub',  to:'manage-sub'},
+                           {sel:'#setRestore',    to:'restore-purchase'},
+                           {sel:'#setDeleteAcct', to:'account-deletion'} ],
     // hub: tapping a locked cert opens the upsell sheet (mockup JS); the sheet's
     // "Unlock with Pro" and the "Go Pro" CTA drive the paywall arc
     // .pro-cta / tapping a locked cert opens the mockup's own upsell sheet;
@@ -133,7 +144,8 @@
 
   // The dashboard tab bar (Home/Drills/Progress/Account) recurs across screens.
   // Wire it generically by label so every screen that has it navigates.
-  var TABS = { 'Home':'home', 'Drills':'quiz', 'Progress':'progress', 'Account':'settings' };
+  var TABS = { 'Home':'home', 'Drills':'quiz', 'Progress':'progress', 'Account':'settings',
+               'Analytics':'analytics', 'Settings':'settings' };
 
   // ── Injected CSS: strip the gallery frame, render .screen full-bleed ────
   //    (D8 — the live app is the inner .screen, minus bezel + caption)
