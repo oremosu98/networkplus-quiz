@@ -241,6 +241,11 @@
       if (note) note.style.display = demoPro ? 'none' : '';
       doc.querySelectorAll('[data-overcap]').forEach(function (el) { el.style.opacity = demoPro ? '' : '0.5'; });
     }
+    if (id === 'home') {
+      // daily-review count: free does 5/day, Pro clears all due (7)
+      var rc = doc.querySelector('.rec.only-returning .rc-title');
+      if (rc) rc.textContent = demoPro ? 'Review 7 cards' : 'Review 5 cards';
+    }
   }
 
   function fit() {

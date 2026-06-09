@@ -269,9 +269,14 @@
       { q: 'Which port does SSH use?', topic: 'Ports — SSH (22)', opts: ['23', '22', '443', '3389'], a: 1, why: 'Missed 3 days ago', ex: 'SSH runs on TCP 22; Telnet (insecure) is 23.', up: 'back in 8 days', down: 'back tomorrow' },
       { q: 'Which record type maps a hostname to an IPv6 address?', topic: 'DNS — AAAA records', opts: ['A', 'CNAME', 'AAAA', 'MX'], a: 2, why: 'New to your review queue', ex: 'AAAA ("quad-A") holds an IPv6 address; A holds IPv4.', up: 'back in 5 days', down: 'back tomorrow' }
     ];
-    var TOTAL = DECK.length;
+    // Free studies 5 reviews a day; Pro clears everything that's due. The
+    // demo-Pro flag is the same key the shell's bypass toggles.
+    var PRO = false; try { PRO = localStorage.getItem('e2e_demo_pro') === '1'; } catch (e) {}
+    var FREE_DAILY = 5;
+    var fullDue = DECK.length;                       // total cards due today
+    var TOTAL = PRO ? fullDue : Math.min(FREE_DAILY, fullDue);
     var keys = ['A', 'B', 'C', 'D'];
-    var queue = DECK.slice();      // active queue (supports retry of missed)
+    var queue = DECK.slice(0, TOTAL);                // free is capped to its daily 5
     var idx = 0, reviewed = 0, right = 0, missed = 0, answered = false, isRetry = false;
 
     var els = {
@@ -359,7 +364,8 @@
       document.getElementById('nextWhen').textContent = 'Next review: tomorrow morning';
       document.getElementById('nextFc').textContent =
         'Exam in ' + daysToExam + ' days, so cards come back sooner. About ' + nextN + ' due tomorrow'
-        + (missed > 0 ? ', plus the ' + missed + ' you missed today.' : '.');
+        + (missed > 0 ? ', plus the ' + missed + ' you missed today.' : '.')
+        + (!PRO && fullDue > TOTAL ? ' Free reviews ' + FREE_DAILY + ' a day; Pro clears all that are due.' : '');
 
       els.pbar.style.width = '100%';
       els.done.classList.add('show');
