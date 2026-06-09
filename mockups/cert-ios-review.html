@@ -133,6 +133,14 @@
   .next .ni svg { width: 17px; height: 17px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
   .next b { font: 700 13.5px/1.2 Inter, sans-serif; color: var(--ink); }
   .next span { font-size: 12px; color: var(--muted); }
+  .next.exam .ni { background: color-mix(in oklab, var(--accent) 18%, var(--surface-2)); }
+  .next.exam .ni svg { stroke: var(--accent-deep); }
+  /* what to revisit */
+  .revisit { text-align: left; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 13px 14px; margin-bottom: 12px; }
+  .revisit .rv-h { font: 800 10px/1 Inter, sans-serif; letter-spacing: 0.1em; text-transform: uppercase; color: var(--miss); margin-bottom: 10px; }
+  .rv-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 9px; }
+  .rv-list li { display: flex; align-items: center; gap: 10px; font: 600 13px/1.3 Inter, sans-serif; color: var(--ink); }
+  .rv-list li .dot { flex: 0 0 auto; width: 7px; height: 7px; border-radius: 50%; background: var(--miss); }
   .done .footer { border-top: 1px solid color-mix(in oklab, var(--border) 70%, transparent); }
   .ghost { width: 100%; margin-top: 9px; background: transparent; border: 1.5px solid var(--border); color: var(--ink); border-radius: 13px; padding: 13px; font: 700 14px/1 Inter, sans-serif; cursor: pointer; transition: transform .14s var(--ease), border-color .18s; }
   .ghost:active { transform: scale(0.985); }
@@ -206,8 +214,12 @@
                 <div class="stat"><b id="stRight">6</b><span>Got right</span></div>
                 <div class="stat miss"><b id="stMiss">1</b><span>To retry</span></div>
               </div>
+              <div class="revisit" id="revisit" hidden>
+                <div class="rv-h">What to revisit</div>
+                <ul class="rv-list" id="rvList"></ul>
+              </div>
               <div class="next"><span class="ni"><svg viewBox="0 0 24 24"><path d="M3 12h18M3 6h18M3 18h18"/></svg></span><span><b>Review streak · 13 days</b><span>Today's review counts toward your streak.</span></span></div>
-              <div class="next"><span class="ni"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></span><span><b>Next review: tomorrow</b><span id="nextFc">2 cards due, plus anything you missed today.</span></span></div>
+              <div class="next exam"><span class="ni"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></span><span><b id="nextWhen">Next review: tomorrow morning</b><span id="nextFc">Exam in 18 days, so reviews are tightening. ~9 cards due, plus today's misses.</span></span></div>
             </div>
             <div class="footer">
               <button class="cta" id="toHome" type="button">Back to home</button>
@@ -249,13 +261,13 @@
   /* spaced-repetition session — sample due deck */
   (function () {
     var DECK = [
-      { q: 'Which port does HTTPS use?', opts: ['443', '80', '22', '53'], a: 0, why: 'Missed 6 days ago', ex: 'HTTPS is HTTP over TLS, on TCP port 443.', up: 'back in 9 days', down: 'back tomorrow' },
-      { q: 'Which protocol resolves an IP address to a MAC address on a LAN?', opts: ['DNS', 'ARP', 'DHCP', 'ICMP'], a: 1, why: 'Due for its 3rd review', ex: 'ARP maps a known IP to its MAC on the local segment.', up: 'back in 16 days', down: 'back tomorrow' },
-      { q: 'How many usable hosts does a /26 subnet provide?', opts: ['30', '62', '64', '126'], a: 1, why: 'You got this wrong last time', ex: '/26 = 64 addresses minus network and broadcast = 62 usable.', up: 'back in 4 days', down: 'back tomorrow' },
-      { q: 'Which device makes forwarding decisions at Layer 3?', opts: ['Switch', 'Hub', 'Router', 'Bridge'], a: 2, why: 'Last seen 11 days ago', ex: 'A router forwards by IP (Layer 3); a switch works at Layer 2.', up: 'back in 21 days', down: 'back in 2 days' },
-      { q: 'What is the first message a DHCP client sends?', opts: ['DHCPOFFER', 'DHCPREQUEST', 'DHCPDISCOVER', 'DHCPACK'], a: 2, why: 'Due for its 2nd review', ex: 'The DORA handshake starts with the client broadcasting DISCOVER.', up: 'back in 12 days', down: 'back tomorrow' },
-      { q: 'Which port does SSH use?', opts: ['23', '22', '443', '3389'], a: 1, why: 'Missed 3 days ago', ex: 'SSH runs on TCP 22; Telnet (insecure) is 23.', up: 'back in 8 days', down: 'back tomorrow' },
-      { q: 'Which record type maps a hostname to an IPv6 address?', opts: ['A', 'CNAME', 'AAAA', 'MX'], a: 2, why: 'New to your review queue', ex: 'AAAA ("quad-A") holds an IPv6 address; A holds IPv4.', up: 'back in 5 days', down: 'back tomorrow' }
+      { q: 'Which port does HTTPS use?', topic: 'Ports — HTTPS (443)', opts: ['443', '80', '22', '53'], a: 0, why: 'Missed 6 days ago', ex: 'HTTPS is HTTP over TLS, on TCP port 443.', up: 'back in 9 days', down: 'back tomorrow' },
+      { q: 'Which protocol resolves an IP address to a MAC address on a LAN?', topic: 'Addressing — ARP', opts: ['DNS', 'ARP', 'DHCP', 'ICMP'], a: 1, why: 'Due for its 3rd review', ex: 'ARP maps a known IP to its MAC on the local segment.', up: 'back in 16 days', down: 'back tomorrow' },
+      { q: 'How many usable hosts does a /26 subnet provide?', topic: 'Subnetting — /26 hosts', opts: ['30', '62', '64', '126'], a: 1, why: 'You got this wrong last time', ex: '/26 = 64 addresses minus network and broadcast = 62 usable.', up: 'back in 4 days', down: 'back tomorrow' },
+      { q: 'Which device makes forwarding decisions at Layer 3?', topic: 'OSI — Layer 3 devices', opts: ['Switch', 'Hub', 'Router', 'Bridge'], a: 2, why: 'Last seen 11 days ago', ex: 'A router forwards by IP (Layer 3); a switch works at Layer 2.', up: 'back in 21 days', down: 'back in 2 days' },
+      { q: 'What is the first message a DHCP client sends?', topic: 'DHCP — DORA order', opts: ['DHCPOFFER', 'DHCPREQUEST', 'DHCPDISCOVER', 'DHCPACK'], a: 2, why: 'Due for its 2nd review', ex: 'The DORA handshake starts with the client broadcasting DISCOVER.', up: 'back in 12 days', down: 'back tomorrow' },
+      { q: 'Which port does SSH use?', topic: 'Ports — SSH (22)', opts: ['23', '22', '443', '3389'], a: 1, why: 'Missed 3 days ago', ex: 'SSH runs on TCP 22; Telnet (insecure) is 23.', up: 'back in 8 days', down: 'back tomorrow' },
+      { q: 'Which record type maps a hostname to an IPv6 address?', topic: 'DNS — AAAA records', opts: ['A', 'CNAME', 'AAAA', 'MX'], a: 2, why: 'New to your review queue', ex: 'AAAA ("quad-A") holds an IPv6 address; A holds IPv4.', up: 'back in 5 days', down: 'back tomorrow' }
     ];
     var TOTAL = DECK.length;
     var keys = ['A', 'B', 'C', 'D'];
@@ -320,10 +332,35 @@
       document.getElementById('stRev').textContent = reviewed;
       document.getElementById('stRight').textContent = right;
       document.getElementById('stMiss').textContent = missed;
+
+      // what to revisit — the exact topics just missed
+      var missedCards = queue.filter(function (c) { return c._missed; });
+      var revisit = document.getElementById('revisit'), rvList = document.getElementById('rvList');
+      if (missedCards.length) {
+        rvList.innerHTML = missedCards.map(function (c) {
+          return '<li><span class="dot"></span>' + (c.topic || c.q) + '</li>';
+        }).join('');
+        revisit.hidden = false;
+      } else {
+        revisit.hidden = true;
+      }
+
       var retryBtn = document.getElementById('retry');
       retryBtn.style.display = missed > 0 ? 'block' : 'none';
       retryBtn.textContent = 'Retry the ' + missed + ' you missed';
       document.getElementById('doneTitle').textContent = missed === 0 ? 'Clean sweep' : 'Review done';
+      document.querySelector('.dsub').textContent = missed === 0
+        ? 'Every card correct. Nothing flagged to revisit.'
+        : "Today's cards are cleared. Here's what to circle back on.";
+
+      // exam-aware next session — cadence tightens as the exam nears (demo copy;
+      // the real interval algorithm is backend / technical-integration).
+      var daysToExam = 18, nextN = 9;
+      document.getElementById('nextWhen').textContent = 'Next review: tomorrow morning';
+      document.getElementById('nextFc').textContent =
+        'Exam in ' + daysToExam + ' days, so cards come back sooner. About ' + nextN + ' due tomorrow'
+        + (missed > 0 ? ', plus the ' + missed + ' you missed today.' : '.');
+
       els.pbar.style.width = '100%';
       els.done.classList.add('show');
     }
