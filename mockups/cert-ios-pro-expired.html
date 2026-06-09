@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>CertAnvil · Pro ended · Concept</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: oklch(0.15 0.010 275); --surface: oklch(0.205 0.009 275); --surface-2: oklch(0.255 0.010 275);
+    --ink: oklch(0.97 0.006 275); --ink-soft: oklch(0.80 0.010 275); --muted: oklch(0.62 0.013 275);
+    --border: oklch(0.34 0.009 275);
+    --accent: oklch(0.82 0.150 66); --accent-bright: oklch(0.88 0.140 72); --accent-deep: oklch(0.72 0.150 62);
+    --on-accent: oklch(0.18 0.020 275); --pass: oklch(0.78 0.150 152); --track: oklch(0.30 0.010 275);
+    --page-bg: oklch(0.22 0.012 275); --page-ink: oklch(0.92 0.008 275); --page-dim: oklch(0.66 0.012 275);
+  }
+  [data-theme="light"] {
+    --bg: oklch(0.975 0.007 85); --surface: oklch(0.955 0.009 84); --surface-2: oklch(0.92 0.010 84);
+    --ink: oklch(0.22 0.015 280); --ink-soft: oklch(0.38 0.014 280); --muted: oklch(0.52 0.013 280);
+    --border: oklch(0.85 0.010 85);
+    --accent: oklch(0.55 0.155 55); --accent-bright: oklch(0.62 0.150 58); --accent-deep: oklch(0.46 0.150 52);
+    --on-accent: oklch(0.99 0.008 85); --pass: oklch(0.52 0.13 150); --track: oklch(0.88 0.010 85);
+    --page-bg: oklch(0.93 0.010 84); --page-ink: oklch(0.28 0.015 280); --page-dim: oklch(0.46 0.013 280);
+  }
+  :root { --ease: cubic-bezier(0.16,1,0.3,1); }
+
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html { color-scheme: light dark; }
+  body { margin: 0; background: var(--page-bg); color: var(--page-ink);
+    font: 15px/1.55 Inter, -apple-system, BlinkMacSystemFont, sans-serif; padding: 30px 20px 64px;
+    transition: background .35s var(--ease), color .35s var(--ease); }
+  .stage { max-width: 520px; margin: 0 auto; }
+  .stage-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 24px; }
+  .stage-eyebrow { font-size: 10.5px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; color: var(--accent-bright); margin: 0 0 7px; }
+  .stage-title { font-family: Fraunces, Georgia, serif; font-weight: 600; font-size: 24px; letter-spacing: -0.012em; margin: 0; color: var(--page-ink); }
+  .stage-sub { color: var(--page-dim); font-size: 13px; margin: 7px 0 0; max-width: 48ch; line-height: 1.5; }
+  .theme-toggle { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 7px; font: 600 12px/1 Inter, sans-serif; color: var(--accent-bright);
+    background: transparent; border: 1px solid color-mix(in oklab, var(--accent-bright) 38%, var(--page-dim)); border-radius: 999px; padding: 8px 13px; cursor: pointer; transition: transform .15s var(--ease), background .2s; }
+  .theme-toggle svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+  .theme-toggle:active { transform: scale(0.97); }
+
+  .phone-wrap { display: flex; flex-direction: column; align-items: center; }
+  .phone { width: 390px; height: 844px; border-radius: 52px; padding: 11px; flex: 0 0 auto;
+    background: linear-gradient(165deg, #23262f, #0c0d11); box-shadow: 0 40px 90px -34px rgba(0,0,0,0.6), 0 0 0 1.5px rgba(255,255,255,0.06) inset; }
+  .screen { width: 100%; height: 100%; border-radius: 42px; overflow: hidden; position: relative; background: var(--bg); color: var(--ink);
+    display: flex; flex-direction: column; transition: background .35s var(--ease), color .35s var(--ease); }
+  .notch { position: absolute; top: 9px; left: 50%; transform: translateX(-50%); width: 122px; height: 32px; background: #07080b; border-radius: 18px; z-index: 6; }
+  .statusbar { display: flex; align-items: center; justify-content: space-between; padding: 14px 26px 0; font: 700 13px/1 Inter, sans-serif; color: var(--ink); }
+  .sb-icons { display: inline-flex; gap: 6px; align-items: center; }
+  .sb-icons svg { width: 17px; height: 12px; fill: var(--ink); }
+
+  .hdr { display: flex; align-items: center; justify-content: flex-end; padding: 12px 20px 6px; }
+  .app-theme { width: 38px; height: 38px; border-radius: 11px; border: 1px solid var(--border); background: var(--surface); display: grid; place-items: center; cursor: pointer; color: var(--ink-soft); transition: transform .14s var(--ease), border-color .18s, color .18s; }
+  .app-theme svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; transition: transform .28s var(--ease); }
+  .app-theme:active { transform: scale(0.94); }
+  .app-theme.spin svg { transform: rotate(40deg) scale(0.9); }
+  @media (hover:hover) and (pointer:fine) { .app-theme:hover { border-color: color-mix(in oklab, var(--accent) 40%, var(--border)); color: var(--accent); } }
+
+  .body { flex: 1; overflow-y: auto; padding: 16px 26px 16px; text-align: center; }
+  .body::-webkit-scrollbar { width: 0; }
+
+  .mark { width: 74px; height: 74px; border-radius: 999px; margin: 18px auto 20px; display: grid; place-items: center;
+    background: color-mix(in oklab, var(--accent) 13%, var(--surface)); }
+  .mark svg { width: 34px; height: 34px; stroke: var(--accent-deep); fill: none; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+
+  h2.t { font-family: Fraunces, Georgia, serif; font-weight: 600; font-size: 26px; line-height: 1.14; letter-spacing: -0.015em; color: var(--ink); margin: 0 0 10px; }
+  .lede { color: var(--ink-soft); font-size: 14px; line-height: 1.5; margin: 0 auto 14px; max-width: 33ch; }
+  .lede b { color: var(--ink); font-weight: 700; }
+
+  .safe { display: inline-flex; align-items: center; gap: 7px; font: 600 12px/1.3 Inter, sans-serif; color: var(--pass);
+    background: color-mix(in oklab, var(--pass) 12%, transparent); border: 1px solid color-mix(in oklab, var(--pass) 28%, transparent);
+    border-radius: 999px; padding: 7px 13px; margin: 0 0 20px; }
+  .safe svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+
+  .nowfree { text-align: left; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 14px 15px; margin: 0 auto; max-width: 330px; }
+  .nowfree .nf-h { font: 800 10px/1 Inter, sans-serif; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
+  .nowfree ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+  .nowfree li { display: flex; align-items: center; gap: 9px; font: 500 13px/1.3 Inter, sans-serif; color: var(--ink-soft); }
+  .nowfree li .d { flex: 0 0 auto; width: 6px; height: 6px; border-radius: 50%; background: var(--muted); }
+
+  .app-theme:focus-visible, .cta:focus-visible, .ghost:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+  @media (prefers-reduced-motion: reduce) { .app-theme svg { transition: none; } }
+
+  .footer { flex: 0 0 auto; padding: 12px 22px calc(12px + env(safe-area-inset-bottom)); border-top: 1px solid color-mix(in oklab, var(--border) 70%, transparent); background: var(--bg); }
+  .cta { width: 100%; border: none; border-radius: 13px; padding: 15px; cursor: pointer; background: var(--accent); color: var(--on-accent); font: 800 15.5px/1 Inter, sans-serif; letter-spacing: -0.005em;
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    box-shadow: 0 10px 22px -12px color-mix(in oklab, var(--accent) 70%, transparent); transition: transform .15s var(--ease), filter .2s; }
+  .cta svg { width: 16px; height: 16px; fill: var(--on-accent); }
+  .cta:active { transform: scale(0.985); }
+  @media (hover:hover) and (pointer:fine) { .cta:hover { filter: brightness(1.05); } }
+  .ghost { width: 100%; margin-top: 9px; background: transparent; border: 1.5px solid var(--border); color: var(--ink); border-radius: 13px; padding: 13px; font: 700 14px/1 Inter, sans-serif; cursor: pointer; transition: transform .14s var(--ease), border-color .18s; }
+  .ghost:active { transform: scale(0.985); }
+
+  .flag { position: absolute; left: 14px; bottom: 96px; z-index: 7; font: 800 9px/1 Inter, sans-serif; letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent-deep); background: color-mix(in oklab, var(--accent) 12%, var(--bg)); border: 1px solid color-mix(in oklab, var(--accent) 30%, transparent); border-radius: 999px; padding: 4px 9px; pointer-events: none; }
+
+  @media (max-width: 440px) { .phone { transform: scale(.92); transform-origin: top center; } }
+</style>
+</head>
+<body>
+  <div class="stage">
+    <div class="stage-head">
+      <div>
+        <p class="stage-eyebrow">Cert app · iOS · re-entry</p>
+        <h1 class="stage-title">Pro ended</h1>
+        <p class="stage-sub">The notice on next sign-in after a Pro subscription lapses (auto-renew was off). The user drops to Free; data is kept; one tap to renew.</p>
+      </div>
+      <button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle light and dark">
+        <svg id="themeIconA" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path></svg>
+        <span id="themeLabelA">Dark</span>
+      </button>
+    </div>
+
+    <div class="phone-wrap">
+      <div class="phone">
+        <div class="screen">
+          <div class="notch"></div>
+          <div class="statusbar">
+            <span>9:41</span>
+            <span class="sb-icons">
+              <svg viewBox="0 0 18 12" aria-hidden="true"><rect x="0" y="7" width="3" height="5" rx="1"/><rect x="5" y="4" width="3" height="8" rx="1"/><rect x="10" y="1" width="3" height="11" rx="1" opacity="0.4"/></svg>
+              <svg viewBox="0 0 18 12" aria-hidden="true"><rect x="1" y="2" width="14" height="8" rx="2.4" fill="none" stroke="currentColor" stroke-width="1.4"/><rect x="2.6" y="3.6" width="9" height="4.8" rx="1.2"/><rect x="16" y="4.6" width="1.4" height="2.8" rx="0.7"/></svg>
+            </span>
+          </div>
+
+          <div class="hdr">
+            <button class="app-theme" id="appTheme" type="button" aria-label="Switch between light and dark">
+              <svg id="themeIcon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path></svg>
+            </button>
+          </div>
+
+          <div class="body">
+            <div class="mark"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg></div>
+            <h2 class="t">Your Pro has ended</h2>
+            <p class="lede">Auto-renew was off, so your subscription lapsed on <b>Jun 4</b>. You're back on the <b>Free</b> plan.</p>
+            <p class="safe"><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"></path></svg>Your scores, streak and history are safe</p>
+
+            <div class="nowfree">
+              <div class="nf-h">On Free you keep</div>
+              <ul>
+                <li><span class="d"></span>15 practice questions a day</li>
+                <li><span class="d"></span>5 daily reviews</li>
+                <li><span class="d"></span>One cert at a time (Network+)</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="flag">Concept · subscription lapsed</div>
+
+          <div class="footer">
+            <button class="cta" id="renewBtn" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l2.4 7.4H22l-6 4.6 2.3 7.4L12 17l-6.3 4.4L8 14 2 9.4h7.6z"></path></svg>Renew Pro</button>
+            <button class="ghost" id="freeBtn" type="button">Keep using Free</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+  /* theme — shared 'ca-theme' key */
+  (function () {
+    var root = document.documentElement;
+    try { var saved = localStorage.getItem('ca-theme'); if (saved) root.setAttribute('data-theme', saved); } catch (e) {}
+    function isLight() { return root.getAttribute('data-theme') === 'light'; }
+    function sync() {
+      var light = isLight(), moon = 'M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z';
+      ['themeIcon', 'themeIconA'].forEach(function (id) {
+        var svg = document.getElementById(id); if (!svg) return;
+        svg.innerHTML = light ? '<path d="' + moon + '"></path>'
+          : '<circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path>';
+      });
+      var lab = document.getElementById('themeLabelA'); if (lab) lab.textContent = light ? 'Dark' : 'Light';
+    }
+    window.toggleTheme = function () {
+      root.setAttribute('data-theme', isLight() ? 'dark' : 'light');
+      try { localStorage.setItem('ca-theme', isLight() ? 'light' : 'dark'); } catch (e) {}
+      sync();
+      var at = document.getElementById('appTheme'); if (at) { at.classList.add('spin'); setTimeout(function () { at.classList.remove('spin'); }, 280); }
+    };
+    var a = document.getElementById('appTheme'), b = document.getElementById('themeToggle');
+    if (a) a.addEventListener('click', window.toggleTheme);
+    if (b) b.addEventListener('click', window.toggleTheme);
+    sync();
+  })();
+  /* #renewBtn and #freeBtn are wired by the shell nav-bridge; entering this
+     screen drops the user to Free (the shell clears the demo-Pro flag). */
+</script>
+</body>
+</html>

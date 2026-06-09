@@ -53,6 +53,7 @@
     'restore-purchase'  : 'onboarding-restore-purchase.html',
     'manage-sub'        : 'onboarding-manage-subscription.html',
     'account-deletion'  : 'onboarding-account-deletion.html',
+    'pro-expired'       : 'cert-ios-pro-expired.html',
     'error-states'      : 'onboarding-error-states.html',
     'loading-states'    : 'onboarding-loading-states.html'
   };
@@ -140,6 +141,8 @@
     'review-answers'   : [ {sel:'#done', to:'pop'} ],
     // free daily-limit blocker: upsell -> paywall; "do 15" -> a (free-sized) quiz
     'daily-limit'      : [ {sel:'#goPro', to:'upgrade-sheet'}, {sel:'#do15', to:'quiz'} ],
+    // lapsed-subscription re-entry: renew -> IAP; keep Free -> home
+    'pro-expired'      : [ {sel:'#renewBtn', to:'pro-iap'}, {sel:'#freeBtn', to:'home'} ],
     // log-result: after saving, "See it in your hub" -> hub (Passed state)
     'log-result'       : [ {sel:'#toHub', to:'hub'} ]
   };
@@ -341,6 +344,8 @@
           });
         });
       }
+      // pro-expired: the subscription has lapsed, so the user is now Free
+      if (id === 'pro-expired' && isDemoPro()) setDemoPro(false);
       // reflect current Pro state into this screen (e.g. unlock the hub)
       applyProState(doc, id);
     } catch (e) { /* fail soft */ }
