@@ -87,16 +87,25 @@
     'free-capped-home' : [ {sel:'.see',        to:'upgrade-sheet'},
                            {sel:'.btn-primary',to:'quiz'} ],
     'upgrade-sheet'    : [ {sel:'.btn-primary',to:'pro-iap'},
-                           {sel:'#maybeLater', to:'pop'} ],
+                           {sel:'#maybeLater', to:'pop'},
+                           {text:'Restore purchase', to:'restore-purchase'} ],
     // pro-iap purchase buttons handled by the Pro-bypass block (sets demoPro);
-    // here we only wire the cancel path.
-    'pro-iap'          : [ {sel:'#skCancel',   to:'pop'} ],
+    // here we only wire the cancel + restore paths.
+    'pro-iap'          : [ {sel:'#skCancel',   to:'pop'},
+                           {sel:'#restoreLink', to:'restore-purchase'} ],
     'pro-welcome'      : [ {sel:'.btn-primary',to:'my-certs-pro'} ],
     'my-certs-pro'     : [ {sel:'.btn-primary',to:'home'} ],
-    'quiz'             : [ {sel:'.btn-primary', to:'results'} ],
-    'exam'             : [ {sel:'.btn-primary', to:'exam-results'} ],
-    'results'          : [ {sel:'.btn-primary', to:'home'} ],
-    'exam-results'     : [ {sel:'.btn-primary', to:'home'} ]
+    // study loop: quiz advances to a session result; exam submits to exam-results
+    'quiz'             : [ {sel:'.btn-primary:not([disabled])', to:'results'} ],
+    'custom-quiz'      : [ {sel:'.btn-primary:not([disabled])', to:'results'} ],
+    'exam'             : [ {sel:'#mSubmit',  to:'exam-results'},
+                           {sel:'#endBtn',   to:'pop'},
+                           {sel:'#mAbandon', to:'pop'} ],
+    'results'          : [ {text:'New session',          to:'quiz'},
+                           {text:'Drill my 3 mistakes',  to:'quiz'},
+                           {text:'Back to menu',         to:'home'} ],
+    'exam-results'     : [ {text:'Drill the gap', to:'quiz'},
+                           {text:'Menu',          to:'home'} ]
   };
   var BACK_SEL = '.back, .btn-back, [data-act="back"], [data-nav="back"]';
 
@@ -188,9 +197,18 @@
         if (el.__e2e_bound) return; el.__e2e_bound = 1;
         el.addEventListener('click', function (e) { e.preventDefault(); pop(); });
       });
-      // per-screen forward routes
+      // per-screen forward routes (rule.sel OR rule.text label match)
       (NAV[id] || []).forEach(function (rule) {
-        doc.querySelectorAll(rule.sel).forEach(function (el) {
+        var els;
+        if (rule.text) {
+          els = [].slice.call(doc.querySelectorAll(rule.sel || 'button, a')).filter(function (e) {
+            var t = (e.textContent || '').trim();
+            return t === rule.text || t.indexOf(rule.text) === 0;
+          });
+        } else {
+          els = [].slice.call(doc.querySelectorAll(rule.sel));
+        }
+        els.forEach(function (el) {
           if (el.__e2e_bound) return; el.__e2e_bound = 1;
           el.addEventListener('click', function () {
             // let the mockup's own press animation start, then navigate
