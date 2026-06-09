@@ -78,7 +78,10 @@
                            {sel:'.btn-primary', to:'free-cert-picker'} ],
     'free-cert-picker' : [ {sel:'#confirmBtn',  to:'free-home-day0'},
                            {sel:'#lockBtn',     to:'free-home-day0'} ],
-    'free-home-day0'   : [ {sel:'.btn-primary', to:'home'} ],
+    // day-0 free home: the primary CTA places a readiness score (the 30-sec
+    // check); the secondary "Start today's 15" (ghost) launches the daily
+    // session — both handled with extra logic in the screen-specific block.
+    'free-home-day0'   : [ {sel:'.btn-primary', to:'first-run-diag'} ],
     // home dashboard: cert name -> hub (cert switcher), gear -> settings.
     // The 4-tab bar (Home/Drills/Progress/Account) is wired generically below.
     // "Review 7 cards" (returning) -> spaced-repetition session; first-quiz lead -> quiz.
@@ -103,7 +106,10 @@
     // settings Account section -> the Apple lifecycle screens
     'settings'         : [ {sel:'#setManageSub',  to:'manage-sub'},
                            {sel:'#setRestore',    to:'restore-purchase'},
-                           {sel:'#setDeleteAcct', to:'account-deletion'} ],
+                           {sel:'#setDeleteAcct', to:'account-deletion'},
+                           // free users: the locked daily-goal / daily-review upsells -> paywall
+                           {sel:'#goProGoal',     to:'upgrade-sheet'},
+                           {sel:'#goProReview',   to:'upgrade-sheet'} ],
     // hub: tapping a locked cert opens the upsell sheet (mockup JS); the sheet's
     // "Unlock with Pro" and the "Go Pro" CTA drive the paywall arc
     // .pro-cta / tapping a locked cert opens the mockup's own upsell sheet;
@@ -245,9 +251,24 @@
       doc.querySelectorAll('[data-overcap]').forEach(function (el) { el.style.opacity = demoPro ? '' : '0.5'; });
     }
     if (id === 'home') {
-      // daily-review count: free does 5/day, Pro clears all due (7)
+      // daily-review count: free is capped at 5/day; Pro reflects the size
+      // chosen in Settings (persisted), defaulting to "All due".
       var rc = doc.querySelector('.rec.only-returning .rc-title');
-      if (rc) rc.textContent = demoPro ? 'Review 7 cards' : 'Review 5 cards';
+      if (rc) {
+        if (demoPro) {
+          var rsize = '';
+          try { rsize = localStorage.getItem('e2e_review_size') || ''; } catch (_) {}
+          if (!rsize) rsize = 'All due';
+          rc.textContent = (rsize === 'All due') ? 'Review all due' : ('Review ' + rsize + ' cards');
+        } else {
+          rc.textContent = 'Review 5 cards';
+        }
+      }
+    }
+    if (id === 'settings') {
+      // free: daily goal locked at 15, review capped at 5, no top-up (Pro upsell);
+      // pro: live controls. The mockup owns the toggle via window.setPlan.
+      try { if (doc.defaultView && doc.defaultView.setPlan) doc.defaultView.setPlan(demoPro); } catch (_) {}
     }
   }
 
@@ -282,6 +303,25 @@
         if (el.__e2e_bound) return; el.__e2e_bound = 1;
         el.addEventListener('click', function (e) { e.preventDefault(); pop(); });
       });
+      // ── conditional routes that must PRE-EMPT the generic NAV rules ───────
+      // Flow B: a session launched as the free "today's 15" ends on the
+      // done-for-today capped home, not the normal results recap. Claim the
+      // submit button here (sets __e2e_bound) so the generic quiz rule skips it.
+      if (id === 'quiz') {
+        var isDaily15 = false;
+        try { isDaily15 = localStorage.getItem('e2e_daily15') === '1'; } catch (_) {}
+        if (isDaily15) {
+          doc.querySelectorAll('.btn-primary').forEach(function (el) {
+            if (el.__e2e_bound) return; el.__e2e_bound = 1;
+            el.addEventListener('click', function () {
+              if (el.disabled) return;
+              try { localStorage.removeItem('e2e_daily15'); } catch (_) {}
+              setTimeout(function () { push('free-capped-home'); }, 90);
+            });
+          });
+        }
+      }
+
       // per-screen forward routes (rule.sel OR rule.text label match)
       (NAV[id] || []).forEach(function (rule) {
         var els;
@@ -344,6 +384,53 @@
           });
         });
       }
+      // free-home-day0: the secondary "Start today's 15" ghost button launches
+      // the free daily session. Flag it so finishing the session lands on the
+      // "done for today" capped home (see the quiz pre-empt block above).
+      if (id === 'free-home-day0') {
+        var go15 = doc.querySelector('.btn-ghost');
+        if (go15 && !go15.__e2e_bound) { go15.__e2e_bound = 1;
+          go15.addEventListener('click', function () {
+            try { localStorage.setItem('e2e_daily15', '1'); } catch (_) {}
+            setTimeout(function () { push('quiz'); }, 90);
+          });
+        }
+      }
+
+      // first-run-diag: the mockup is a designer two-pane (tab-toggle between
+      // "The check" and "Your readiness"). In the live flow it's a sequence:
+      // hide the designer tabs, run a short check, then reveal readiness.
+      if (id === 'first-run-diag') {
+        var momentsWrap = doc.querySelector('.moments-wrap');
+        if (momentsWrap) momentsWrap.style.display = 'none';   // not real app chrome
+        var chipB   = doc.getElementById('chipB');
+        var qcount  = doc.querySelector('#momentA .q-count');
+        var qbar    = doc.querySelector('#momentA .qbar span');
+        var TOTAL_Q = 5, qn = 1;
+        if (qcount) qcount.textContent = 'Question 1 of ' + TOTAL_Q;
+        if (qbar)   qbar.style.width = (100 / TOTAL_Q) + '%';
+        // "Next question" walks the short check, then flips to the reveal
+        var nextQ = doc.querySelector('#momentA .btn-primary');
+        if (nextQ && !nextQ.__e2e_bound) { nextQ.__e2e_bound = 1;
+          nextQ.addEventListener('click', function () {
+            qn++;
+            if (qn > TOTAL_Q) { if (chipB) chipB.click(); return; }  // -> readiness reveal
+            if (qcount) qcount.textContent = 'Question ' + qn + ' of ' + TOTAL_Q;
+            if (qbar)   qbar.style.width = ((qn / TOTAL_Q) * 100) + '%';
+          });
+        }
+        // "Skip the check" -> straight to home (no score placed; full quota waits)
+        var skipChk = doc.querySelector('#momentA .btn-text');
+        if (skipChk && !skipChk.__e2e_bound) { skipChk.__e2e_bound = 1;
+          skipChk.addEventListener('click', function () { setTimeout(function () { push('home'); }, 90); });
+        }
+        // "Start practising" (on the readiness reveal) -> home with the score placed
+        var startPr = doc.querySelector('#momentB .btn-primary');
+        if (startPr && !startPr.__e2e_bound) { startPr.__e2e_bound = 1;
+          startPr.addEventListener('click', function () { setTimeout(function () { push('home'); }, 90); });
+        }
+      }
+
       // pro-expired: the subscription has lapsed, so the user is now Free
       if (id === 'pro-expired' && isDemoPro()) setDemoPro(false);
       // reflect current Pro state into this screen (e.g. unlock the hub)
@@ -436,8 +523,10 @@
     syncThemeHud();
     var hudReset = document.getElementById('hud-reset');
     if (hudReset) hudReset.addEventListener('click', function () {
-      // clear demo-only state (logged result + Pro bypass), keep theme, go to start
-      try { localStorage.removeItem('ca-exam-result'); } catch (_) {}
+      // clear demo-only state (logged result, daily-15 flag, persisted Pro
+      // settings), keep theme, go to start
+      ['ca-exam-result', 'e2e_daily15', 'e2e_overcap', 'e2e_daily_goal', 'e2e_review_size', 'e2e_topup']
+        .forEach(function (k) { try { localStorage.removeItem(k); } catch (_) {} });
       setDemoPro(false);
       resetTo(HAPPY_PATH[0]);
     });

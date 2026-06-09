@@ -107,6 +107,26 @@
   .btn-save:active { transform: scale(0.985); }
   @media (hover:hover) and (pointer:fine) { .btn-save:hover { filter: brightness(1.05); } }
 
+  /* free/pro plan visibility — free users see locked values + a Pro upsell;
+     Pro users get the live controls. Driven by .plan-free / .plan-pro on .screen */
+  .screen.plan-free .pro-only { display: none !important; }
+  .screen.plan-pro  .free-only { display: none !important; }
+  .pro-lock { font: 800 9px/1 Inter, sans-serif; letter-spacing: 0.12em; color: var(--accent-deep);
+    background: color-mix(in oklab, var(--accent) 14%, transparent); border: 1px solid color-mix(in oklab, var(--accent) 32%, var(--border));
+    border-radius: 999px; padding: 4px 8px; display: inline-flex; align-items: center; gap: 4px; }
+  .pro-lock svg { width: 10px; height: 10px; stroke: currentColor; fill: none; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+  .lock-note { display: flex; align-items: flex-start; gap: 9px; margin-top: 13px; padding: 11px 13px;
+    border: 1px solid color-mix(in oklab, var(--accent) 22%, var(--border)); border-radius: 13px; background: color-mix(in oklab, var(--accent) 5%, var(--surface));
+    font-size: 12.5px; line-height: 1.45; color: var(--ink-soft); }
+  .lock-note b { color: var(--ink); font-weight: 700; }
+  .lock-note svg { flex: 0 0 auto; width: 15px; height: 15px; stroke: var(--accent-deep); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; margin-top: 1px; }
+  .btn-pro { width: 100%; margin-top: 11px; border: none; border-radius: 12px; padding: 13px; cursor: pointer; background: var(--accent); color: var(--on-accent);
+    font: 700 14px/1 Inter, sans-serif; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    box-shadow: 0 10px 22px -13px color-mix(in oklab, var(--accent) 70%, transparent); transition: transform .15s var(--ease), filter .2s; }
+  .btn-pro svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+  .btn-pro:active { transform: scale(0.985); }
+  @media (hover:hover) and (pointer:fine) { .btn-pro:hover { filter: brightness(1.05); } }
+
   /* paired action buttons (export/import, snapshot footer) */
   .pair { display: flex; gap: 9px; }
   .btn-ghost { flex: 1 1 0; border: 1px solid var(--border); border-radius: 12px; padding: 12px; cursor: pointer; background: transparent; color: var(--ink-soft); font: 650 13.5px/1 Inter, sans-serif; transition: background .2s, border-color .18s, transform .15s var(--ease); }
@@ -187,7 +207,7 @@
 
     <div class="phone-wrap">
       <div class="phone">
-        <div class="screen">
+        <div class="screen plan-free">
           <div class="notch"></div>
           <div class="statusbar">
             <span>9:41</span>
@@ -220,11 +240,11 @@
               </div>
               <div class="glance ok">
                 <span class="gdot"></span>
-                <span class="gtxt"><span class="gl">Daily goal</span><span class="gv">20 questions a day.</span></span>
+                <span class="gtxt"><span class="gl">Daily goal</span><span class="gv" id="glanceGoal">15 questions a day.</span></span>
               </div>
               <div class="glance">
                 <span class="gdot"></span>
-                <span class="gtxt"><span class="gl">Today</span><span class="gv">0 of 20 questions, 0%.</span></span>
+                <span class="gtxt"><span class="gl">Today</span><span class="gv" id="glanceToday">0 of 15 questions, 0%.</span></span>
               </div>
             </div>
 
@@ -235,31 +255,42 @@
             </div>
 
             <div class="card reveal">
-              <div class="card-head"><span class="card-title">Daily goal</span></div>
-              <div class="bignum"><span class="bn">20</span><span class="bl">questions per day</span></div>
-              <div class="seg" role="group" aria-label="Daily goal preset">
+              <div class="card-head"><span class="card-title">Daily goal</span><span class="pro-lock free-only"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>Pro</span></div>
+              <div class="bignum"><span class="bn" id="goalBn">15</span><span class="bl">questions per day</span></div>
+              <div class="seg pro-only" role="group" aria-label="Daily goal preset">
                 <button type="button" aria-pressed="false">10</button>
                 <button type="button" aria-pressed="true">20</button>
                 <button type="button" aria-pressed="false">30</button>
                 <button type="button" aria-pressed="false">50</button>
               </div>
-              <button class="btn-save" type="button">Save</button>
-              <p class="card-note">The count behind the Today card on your home page. Aim for something you can hit every day without burning out.</p>
+              <button class="btn-save pro-only" type="button">Save</button>
+              <p class="card-note pro-only">The count behind the Today card on your home page. Aim for something you can hit every day without burning out.</p>
+              <div class="lock-note free-only">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v4l3 2"></path></svg>
+                <p>Free is fixed at <b>15 questions a day</b> — that's your daily allowance. Go Pro to set a higher goal.</p>
+              </div>
+              <button class="btn-pro free-only" id="goProGoal" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2.5 5.5L20 9l-4 4 1 6-5-3-5 3 1-6-4-4 5.5-.5z"></path></svg>Go Pro to raise your goal</button>
             </div>
 
             <div class="card reveal">
-              <div class="card-head"><span class="card-title">Daily Review</span></div>
-              <div class="seg" role="group" aria-label="Daily review size">
+              <div class="card-head"><span class="card-title">Daily Review</span><span class="pro-lock free-only"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>Pro</span></div>
+              <div class="seg pro-only" role="group" aria-label="Daily review size">
                 <button type="button" aria-pressed="false">10</button>
                 <button type="button" aria-pressed="false">20</button>
-                <button type="button" aria-pressed="true">30</button>
-                <button type="button" aria-pressed="false">All due</button>
+                <button type="button" aria-pressed="false">30</button>
+                <button type="button" aria-pressed="true">All due</button>
               </div>
-              <div class="toggle-row">
+              <div class="toggle-row pro-only">
                 <span class="tr-txt"><span class="tr-l">Top up on light days</span></span>
                 <button class="switch" type="button" role="switch" aria-pressed="true" aria-label="Top up on light days"></button>
               </div>
-              <p class="card-note">When few cards are due, offer extra practice on your weakest topics.</p>
+              <p class="card-note pro-only">When few cards are due, offer extra practice on your weakest topics.</p>
+              <div class="bignum free-only"><span class="bn">5</span><span class="bl">cards a day</span></div>
+              <div class="lock-note free-only">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v4l3 2"></path></svg>
+                <p>Free review is capped at <b>5 cards a day</b>, with no light-day top-ups. Go Pro for custom sizes, All-due sessions, and top-ups.</p>
+              </div>
+              <button class="btn-pro free-only" id="goProReview" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2.5 5.5L20 9l-4 4 1 6-5-3-5 3 1-6-4-4 5.5-.5z"></path></svg>Go Pro for full review control</button>
             </div>
 
             <!-- ── Data and backups ── -->
@@ -387,21 +418,77 @@
       document.getElementById('appTheme').addEventListener('click', toggleTheme);
       paint();
 
-      // segmented preset controls (single selection per group)
-      var groups = document.querySelectorAll('.seg');
-      groups.forEach(function(grp){
-        grp.addEventListener('click', function(e){
-          var btn = e.target.closest('button'); if (!btn) return;
-          grp.querySelectorAll('button').forEach(function(b){ b.setAttribute('aria-pressed', b === btn ? 'true' : 'false'); });
-          var big = grp.parentNode.querySelector('.bignum .bn');
-          if (big) big.textContent = btn.textContent.trim();
-        });
+      // segmented preset controls — Pro only. Selections persist across screens
+      // via localStorage and rehydrate on load, so a chosen value sticks.
+      var glanceGoal = document.getElementById('glanceGoal'), glanceToday = document.getElementById('glanceToday');
+      function setGlance(v){
+        if (glanceGoal) glanceGoal.textContent = v + ' questions a day.';
+        if (glanceToday) glanceToday.textContent = '0 of ' + v + ' questions, 0%.';
+      }
+      function lsGet(k, d){ try { var v = localStorage.getItem(k); return v === null ? d : v; } catch (e) { return d; } }
+      function lsSet(k, v){ try { localStorage.setItem(k, v); } catch (e) {} }
+
+      var goalSeg    = document.querySelector('.seg[aria-label="Daily goal preset"]');
+      var reviewSeg  = document.querySelector('.seg[aria-label="Daily review size"]');
+      var topupSwitch = document.querySelector('.toggle-row .switch');
+      var goalBnEl   = document.getElementById('goalBn');
+
+      function pressInSeg(seg, value){
+        if (!seg) return;
+        seg.querySelectorAll('button').forEach(function(b){ b.setAttribute('aria-pressed', b.textContent.trim() === value ? 'true' : 'false'); });
+      }
+      // rehydrate the Pro controls from storage; returns the stored daily goal
+      function hydrateControls(){
+        var goal = lsGet('e2e_daily_goal', '20');
+        pressInSeg(goalSeg, goal);
+        pressInSeg(reviewSeg, lsGet('e2e_review_size', 'All due'));
+        if (topupSwitch) topupSwitch.setAttribute('aria-pressed', lsGet('e2e_topup', '1') === '1' ? 'true' : 'false');
+        return goal;
+      }
+
+      if (goalSeg) goalSeg.addEventListener('click', function(e){
+        var btn = e.target.closest('button'); if (!btn) return;
+        var v = btn.textContent.trim();
+        pressInSeg(goalSeg, v);
+        if (goalBnEl) goalBnEl.textContent = v;
+        setGlance(v);
+        lsSet('e2e_daily_goal', v);
+      });
+      if (reviewSeg) reviewSeg.addEventListener('click', function(e){
+        var btn = e.target.closest('button'); if (!btn) return;
+        var v = btn.textContent.trim();
+        pressInSeg(reviewSeg, v);
+        lsSet('e2e_review_size', v);
+      });
+      if (topupSwitch) topupSwitch.addEventListener('click', function(){
+        var on = topupSwitch.getAttribute('aria-pressed') !== 'true';
+        topupSwitch.setAttribute('aria-pressed', on ? 'true' : 'false');
+        lsSet('e2e_topup', on ? '1' : '0');
       });
 
-      // toggle switches
-      document.querySelectorAll('.switch').forEach(function(sw){
-        sw.addEventListener('click', function(){ sw.setAttribute('aria-pressed', sw.getAttribute('aria-pressed') === 'true' ? 'false' : 'true'); });
-      });
+      // ── Free/Pro plan state ──────────────────────────────────────────────
+      //  Free: daily goal locked at 15/day, daily review capped at 5/day, no
+      //  top-up — all customisation behind Pro. Pro: live controls that persist.
+      //  The shell shares the demo-pro flag via localStorage and also calls
+      //  setPlan() on toggle (see shell.js applyProState).
+      function setPlan(isPro){
+        var screen = document.querySelector('.screen');
+        if (!screen) return;
+        screen.classList.toggle('plan-pro', !!isPro);
+        screen.classList.toggle('plan-free', !isPro);
+        if (isPro){
+          var goal = hydrateControls();
+          if (goalBnEl) goalBnEl.textContent = goal;
+          setGlance(goal);
+        } else {
+          if (goalBnEl) goalBnEl.textContent = '15';
+          setGlance('15');
+        }
+      }
+      window.setPlan = setPlan;   // let the shell flip plan state on the Pro toggle
+      var startPro = false;
+      try { startPro = localStorage.getItem('e2e_demo_pro') === '1'; } catch (e) {}
+      setPlan(startPro);
     })();
   </script>
 </body>
