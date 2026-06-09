@@ -84,7 +84,8 @@
     // .pro-cta / tapping a locked cert opens the mockup's own upsell sheet;
     // the sheet's "Unlock with Pro" (#sheetGoPro) is the real nav to the IAP.
     'hub'              : [ {sel:'#sheetGoPro', to:'pro-iap'},
-                           {sel:'#sheetClose', to:'pop'} ],
+                           {sel:'#sheetClose', to:'pop'},
+                           {sel:'#logResultLink', to:'log-result'} ],
     'free-capped-home' : [ {sel:'.see',        to:'upgrade-sheet'},
                            {sel:'.btn-primary',to:'quiz'} ],
     'upgrade-sheet'    : [ {sel:'.btn-primary',to:'pro-iap'},
