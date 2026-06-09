@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>CertAnvil · Daily Review · Concept</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: oklch(0.15 0.010 275); --surface: oklch(0.205 0.009 275); --surface-2: oklch(0.255 0.010 275);
+    --ink: oklch(0.97 0.006 275); --ink-soft: oklch(0.80 0.010 275); --muted: oklch(0.62 0.013 275);
+    --border: oklch(0.34 0.009 275);
+    --accent: oklch(0.82 0.150 66); --accent-bright: oklch(0.88 0.140 72); --accent-deep: oklch(0.72 0.150 62);
+    --on-accent: oklch(0.18 0.020 275); --pass: oklch(0.78 0.150 152); --miss: oklch(0.66 0.17 25); --track: oklch(0.30 0.010 275);
+    --page-bg: oklch(0.22 0.012 275); --page-ink: oklch(0.92 0.008 275); --page-dim: oklch(0.66 0.012 275);
+  }
+  [data-theme="light"] {
+    --bg: oklch(0.975 0.007 85); --surface: oklch(0.955 0.009 84); --surface-2: oklch(0.92 0.010 84);
+    --ink: oklch(0.22 0.015 280); --ink-soft: oklch(0.38 0.014 280); --muted: oklch(0.52 0.013 280);
+    --border: oklch(0.85 0.010 85);
+    --accent: oklch(0.55 0.155 55); --accent-bright: oklch(0.62 0.150 58); --accent-deep: oklch(0.46 0.150 52);
+    --on-accent: oklch(0.99 0.008 85); --pass: oklch(0.52 0.13 150); --miss: oklch(0.55 0.19 25); --track: oklch(0.88 0.010 85);
+    --page-bg: oklch(0.93 0.010 84); --page-ink: oklch(0.28 0.015 280); --page-dim: oklch(0.46 0.013 280);
+  }
+  :root { --ease: cubic-bezier(0.16,1,0.3,1); }
+
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html { color-scheme: light dark; }
+  body { margin: 0; background: var(--page-bg); color: var(--page-ink);
+    font: 15px/1.55 Inter, -apple-system, BlinkMacSystemFont, sans-serif; padding: 30px 20px 64px;
+    transition: background .35s var(--ease), color .35s var(--ease); }
+  .stage { max-width: 520px; margin: 0 auto; }
+  .stage-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 24px; }
+  .stage-eyebrow { font-size: 10.5px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; color: var(--accent-bright); margin: 0 0 7px; }
+  .stage-title { font-family: Fraunces, Georgia, serif; font-weight: 600; font-size: 24px; letter-spacing: -0.012em; margin: 0; color: var(--page-ink); }
+  .stage-sub { color: var(--page-dim); font-size: 13px; margin: 7px 0 0; max-width: 48ch; line-height: 1.5; }
+  .theme-toggle { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 7px; font: 600 12px/1 Inter, sans-serif; color: var(--accent-bright);
+    background: transparent; border: 1px solid color-mix(in oklab, var(--accent-bright) 38%, var(--page-dim)); border-radius: 999px; padding: 8px 13px; cursor: pointer; transition: transform .15s var(--ease), background .2s; }
+  .theme-toggle svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+  .theme-toggle:active { transform: scale(0.97); }
+
+  .phone-wrap { display: flex; flex-direction: column; align-items: center; }
+  .phone { width: 390px; height: 844px; border-radius: 52px; padding: 11px; flex: 0 0 auto;
+    background: linear-gradient(165deg, #23262f, #0c0d11); box-shadow: 0 40px 90px -34px rgba(0,0,0,0.6), 0 0 0 1.5px rgba(255,255,255,0.06) inset; }
+  .screen { width: 100%; height: 100%; border-radius: 42px; overflow: hidden; position: relative; background: var(--bg); color: var(--ink);
+    display: flex; flex-direction: column; transition: background .35s var(--ease), color .35s var(--ease); }
+  .notch { position: absolute; top: 9px; left: 50%; transform: translateX(-50%); width: 122px; height: 32px; background: #07080b; border-radius: 18px; z-index: 6; }
+  .statusbar { display: flex; align-items: center; justify-content: space-between; padding: 14px 26px 0; font: 700 13px/1 Inter, sans-serif; color: var(--ink); }
+  .sb-icons { display: inline-flex; gap: 6px; align-items: center; }
+  .sb-icons svg { width: 17px; height: 12px; fill: var(--ink); }
+
+  .hdr { display: flex; align-items: center; gap: 11px; padding: 12px 20px 4px; }
+  .hdr .back { width: 36px; height: 36px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface); display: grid; place-items: center; cursor: pointer; color: var(--ink-soft); transition: transform .14s var(--ease), border-color .18s; }
+  .hdr .back svg { width: 17px; height: 17px; stroke: currentColor; fill: none; stroke-width: 2.1; stroke-linecap: round; stroke-linejoin: round; }
+  .hdr .back:active { transform: scale(0.94); }
+  .hdr h1 { font-family: Fraunces, Georgia, serif; font-weight: 600; font-size: 20px; letter-spacing: -0.01em; margin: 0; color: var(--ink); flex: 1; }
+  .hdr .streak { display: inline-flex; align-items: center; gap: 5px; font: 800 12px/1 Inter, sans-serif; color: var(--accent-deep); background: color-mix(in oklab, var(--accent) 12%, transparent); border: 1px solid color-mix(in oklab, var(--accent) 28%, var(--border)); border-radius: 999px; padding: 6px 10px; }
+  .app-theme { width: 38px; height: 38px; border-radius: 11px; border: 1px solid var(--border); background: var(--surface); display: grid; place-items: center; cursor: pointer; color: var(--ink-soft); transition: transform .14s var(--ease), border-color .18s, color .18s; }
+  .app-theme svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; transition: transform .28s var(--ease); }
+  .app-theme:active { transform: scale(0.94); }
+  .app-theme.spin svg { transform: rotate(40deg) scale(0.9); }
+  @media (hover:hover) and (pointer:fine) { .app-theme:hover, .hdr .back:hover { border-color: color-mix(in oklab, var(--accent) 40%, var(--border)); color: var(--accent); } }
+
+  /* progress */
+  .prog { padding: 6px 22px 0; }
+  .prog-row { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 7px; }
+  .prog-row .n { font: 700 12px/1 Inter, sans-serif; color: var(--muted); }
+  .prog-row .due { font: 700 11px/1 Inter, sans-serif; letter-spacing: 0.04em; text-transform: uppercase; color: var(--accent-deep); }
+  .pbar { height: 5px; border-radius: 999px; background: var(--track); overflow: hidden; }
+  .pbar span { display: block; height: 100%; background: var(--accent); border-radius: 999px; width: 0; transition: width .4s var(--ease); }
+
+  .body { flex: 1; overflow-y: auto; padding: 14px 22px 16px; }
+  .body::-webkit-scrollbar { width: 0; }
+
+  /* why-due chip */
+  .why { display: inline-flex; align-items: center; gap: 7px; font: 600 11.5px/1 Inter, sans-serif; color: var(--muted);
+    background: var(--surface-2); border: 1px solid var(--border-soft, var(--border)); border-radius: 999px; padding: 7px 11px; margin-bottom: 16px; }
+  .why svg { width: 13px; height: 13px; stroke: var(--accent-deep); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+  .q { font-family: Fraunces, Georgia, serif; font-weight: 600; font-size: 21px; line-height: 1.25; letter-spacing: -0.01em; color: var(--ink); margin: 0 0 18px; }
+
+  .opts { display: grid; gap: 9px; }
+  .opt { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; cursor: pointer; font: 600 14.5px/1.3 Inter, sans-serif; color: var(--ink);
+    background: var(--surface); border: 1.5px solid var(--border); border-radius: 13px; padding: 14px 15px; transition: border-color .16s var(--ease), background .16s var(--ease), transform .1s var(--ease); }
+  .opt:active { transform: scale(0.99); }
+  @media (hover:hover) and (pointer:fine) { .opt:not(:disabled):hover { border-color: color-mix(in oklab, var(--accent) 30%, var(--border)); } }
+  .opt .key { flex: 0 0 auto; width: 24px; height: 24px; border-radius: 7px; background: var(--surface-2); color: var(--muted); font: 800 12px/1 Inter, sans-serif; display: grid; place-items: center; }
+  .opt.correct { border-color: var(--pass); background: color-mix(in oklab, var(--pass) 12%, var(--surface)); }
+  .opt.correct .key { background: var(--pass); color: var(--on-accent); }
+  .opt.wrong { border-color: var(--miss); background: color-mix(in oklab, var(--miss) 11%, var(--surface)); }
+  .opt.wrong .key { background: var(--miss); color: #fff; }
+  .opt:disabled { cursor: default; }
+
+  /* feedback */
+  .fb { margin-top: 16px; border-radius: 13px; padding: 13px 15px; font-size: 13px; line-height: 1.45; opacity: 0; transform: translateY(6px); transition: opacity .25s var(--ease), transform .25s var(--ease); }
+  .fb.show { opacity: 1; transform: none; }
+  .fb.ok { background: color-mix(in oklab, var(--pass) 12%, var(--surface)); border: 1px solid color-mix(in oklab, var(--pass) 30%, transparent); }
+  .fb.no { background: color-mix(in oklab, var(--miss) 11%, var(--surface)); border: 1px solid color-mix(in oklab, var(--miss) 28%, transparent); }
+  .fb b { display: block; font-weight: 800; font-size: 13.5px; margin-bottom: 3px; }
+  .fb.ok b { color: var(--pass); }
+  .fb.no b { color: var(--miss); }
+  .fb .sched { display: block; margin-top: 6px; font-size: 12px; color: var(--muted); }
+
+  .opt:focus-visible, .back:focus-visible, .app-theme:focus-visible, .cta:focus-visible, .ghost:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+  @media (prefers-reduced-motion: reduce) { .app-theme svg, .fb, .pbar span { transition: none; } }
+
+  .footer { flex: 0 0 auto; padding: 12px 22px calc(12px + env(safe-area-inset-bottom)); border-top: 1px solid color-mix(in oklab, var(--border) 70%, transparent); background: var(--bg); }
+  .cta { width: 100%; border: none; border-radius: 13px; padding: 15px; cursor: pointer; background: var(--accent); color: var(--on-accent); font: 800 15.5px/1 Inter, sans-serif; letter-spacing: -0.005em;
+    box-shadow: 0 10px 22px -12px color-mix(in oklab, var(--accent) 70%, transparent); transition: transform .15s var(--ease), filter .2s, opacity .2s; }
+  .cta:disabled { opacity: 0.4; cursor: default; box-shadow: none; }
+  .cta:active:not(:disabled) { transform: scale(0.985); }
+
+  /* complete recap */
+  .done { position: absolute; inset: 0; z-index: 9; background: var(--bg); display: flex; flex-direction: column; padding: 0; opacity: 0; pointer-events: none; transition: opacity .3s var(--ease); }
+  .done.show { opacity: 1; pointer-events: auto; }
+  .done .dwrap { flex: 1; overflow-y: auto; padding: 40px 26px 16px; text-align: center; }
+  .done .seal { width: 72px; height: 72px; border-radius: 999px; background: color-mix(in oklab, var(--pass) 16%, var(--surface)); display: grid; place-items: center; margin: 0 auto 18px; transform: scale(0.6); opacity: 0; }
+  .done.show .seal { animation: pop .5s var(--ease) .06s forwards; }
+  @keyframes pop { to { transform: scale(1); opacity: 1; } }
+  @media (prefers-reduced-motion: reduce) { .done.show .seal { animation: none; transform: scale(1); opacity: 1; } }
+  .done .seal svg { width: 34px; height: 34px; stroke: var(--pass); fill: none; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
+  .done h2 { font-family: Fraunces, Georgia, serif; font-weight: 600; font-size: 25px; letter-spacing: -0.015em; margin: 0 0 6px; color: var(--ink); }
+  .done .dsub { color: var(--ink-soft); font-size: 14px; margin: 0 0 22px; }
+  .stats { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 9px; margin-bottom: 18px; }
+  .stat { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 13px 8px; }
+  .stat b { display: block; font-family: Fraunces, Georgia, serif; font-weight: 600; font-size: 24px; color: var(--ink); font-variant-numeric: lining-nums; }
+  .stat.miss b { color: var(--miss); }
+  .stat span { font: 700 9.5px/1.2 Inter, sans-serif; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+  .next { display: flex; align-items: center; gap: 11px; text-align: left; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 13px 14px; margin-bottom: 10px; }
+  .next .ni { flex: 0 0 auto; width: 32px; height: 32px; border-radius: 9px; background: color-mix(in oklab, var(--accent) 12%, var(--surface-2)); color: var(--accent-deep); display: grid; place-items: center; }
+  .next .ni svg { width: 17px; height: 17px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .next b { font: 700 13.5px/1.2 Inter, sans-serif; color: var(--ink); }
+  .next span { font-size: 12px; color: var(--muted); }
+  .done .footer { border-top: 1px solid color-mix(in oklab, var(--border) 70%, transparent); }
+  .ghost { width: 100%; margin-top: 9px; background: transparent; border: 1.5px solid var(--border); color: var(--ink); border-radius: 13px; padding: 13px; font: 700 14px/1 Inter, sans-serif; cursor: pointer; transition: transform .14s var(--ease), border-color .18s; }
+  .ghost:active { transform: scale(0.985); }
+
+  .flag { position: absolute; left: 14px; bottom: 96px; z-index: 7; font: 800 9px/1 Inter, sans-serif; letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent-deep); background: color-mix(in oklab, var(--accent) 12%, var(--bg)); border: 1px solid color-mix(in oklab, var(--accent) 30%, transparent); border-radius: 999px; padding: 4px 9px; pointer-events: none; }
+
+  @media (max-width: 440px) { .phone { transform: scale(.92); transform-origin: top center; } }
+</style>
+</head>
+<body>
+  <div class="stage">
+    <div class="stage-head">
+      <div>
+        <p class="stage-eyebrow">Cert app · iOS</p>
+        <h1 class="stage-title">Daily Review</h1>
+        <p class="stage-sub">The spaced-repetition session behind "Review 7 cards" on home. Due cards only, with why-it's-due context and the next interval after each answer.</p>
+      </div>
+      <button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle light and dark">
+        <svg id="themeIconA" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path></svg>
+        <span id="themeLabelA">Dark</span>
+      </button>
+    </div>
+
+    <div class="phone-wrap">
+      <div class="phone">
+        <div class="screen">
+          <div class="notch"></div>
+          <div class="statusbar">
+            <span>9:41</span>
+            <span class="sb-icons">
+              <svg viewBox="0 0 18 12" aria-hidden="true"><rect x="0" y="7" width="3" height="5" rx="1"/><rect x="5" y="4" width="3" height="8" rx="1"/><rect x="10" y="1" width="3" height="11" rx="1" opacity="0.4"/></svg>
+              <svg viewBox="0 0 18 12" aria-hidden="true"><rect x="1" y="2" width="14" height="8" rx="2.4" fill="none" stroke="currentColor" stroke-width="1.4"/><rect x="2.6" y="3.6" width="9" height="4.8" rx="1.2"/><rect x="16" y="4.6" width="1.4" height="2.8" rx="0.7"/></svg>
+            </span>
+          </div>
+
+          <div class="hdr">
+            <button class="back" type="button" aria-label="Back"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6"></path></svg></button>
+            <h1>Daily Review</h1>
+            <span class="streak" title="Review streak">🔥 12</span>
+            <button class="app-theme" id="appTheme" type="button" aria-label="Switch between light and dark">
+              <svg id="themeIcon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path></svg>
+            </button>
+          </div>
+
+          <div class="prog">
+            <div class="prog-row"><span class="n" id="progN">Card 1 of 7</span><span class="due">Due today</span></div>
+            <div class="pbar"><span id="pbar"></span></div>
+          </div>
+
+          <div class="body" id="body">
+            <div class="why" id="why"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 2"/></svg><span id="whyText">Last seen 6 days ago</span></div>
+            <h2 class="q" id="q">Loading review…</h2>
+            <div class="opts" id="opts"></div>
+            <div class="fb" id="fb"><b id="fbTitle"></b><span id="fbBody"></span><span class="sched" id="fbSched"></span></div>
+          </div>
+
+          <div class="flag">Concept · sample due cards</div>
+
+          <div class="footer">
+            <button class="cta" id="next" type="button" disabled>Answer to continue</button>
+          </div>
+
+          <!-- complete recap -->
+          <div class="done" id="done">
+            <div class="dwrap">
+              <div class="seal"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6L9 17l-5-5"></path></svg></div>
+              <h2 id="doneTitle">Review done</h2>
+              <p class="dsub">Today's due cards are cleared. Your streak keeps climbing.</p>
+              <div class="stats">
+                <div class="stat"><b id="stRev">7</b><span>Reviewed</span></div>
+                <div class="stat"><b id="stRight">6</b><span>Got right</span></div>
+                <div class="stat miss"><b id="stMiss">1</b><span>To retry</span></div>
+              </div>
+              <div class="next"><span class="ni"><svg viewBox="0 0 24 24"><path d="M3 12h18M3 6h18M3 18h18"/></svg></span><span><b>Review streak · 13 days</b><span>Today's review counts toward your streak.</span></span></div>
+              <div class="next"><span class="ni"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></span><span><b>Next review: tomorrow</b><span id="nextFc">2 cards due, plus anything you missed today.</span></span></div>
+            </div>
+            <div class="footer">
+              <button class="cta" id="toHome" type="button">Back to home</button>
+              <button class="ghost" id="retry" type="button">Retry the cards you missed</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+  /* theme — shared 'ca-theme' key */
+  (function () {
+    var root = document.documentElement;
+    try { var saved = localStorage.getItem('ca-theme'); if (saved) root.setAttribute('data-theme', saved); } catch (e) {}
+    function isLight() { return root.getAttribute('data-theme') === 'light'; }
+    function sync() {
+      var light = isLight(), moon = 'M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z';
+      ['themeIcon', 'themeIconA'].forEach(function (id) {
+        var svg = document.getElementById(id); if (!svg) return;
+        svg.innerHTML = light ? '<path d="' + moon + '"></path>'
+          : '<circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path>';
+      });
+      var lab = document.getElementById('themeLabelA'); if (lab) lab.textContent = light ? 'Dark' : 'Light';
+    }
+    window.toggleTheme = function () {
+      root.setAttribute('data-theme', isLight() ? 'dark' : 'light');
+      try { localStorage.setItem('ca-theme', isLight() ? 'light' : 'dark'); } catch (e) {}
+      sync();
+      var at = document.getElementById('appTheme'); if (at) { at.classList.add('spin'); setTimeout(function () { at.classList.remove('spin'); }, 280); }
+    };
+    var a = document.getElementById('appTheme'), b = document.getElementById('themeToggle');
+    if (a) a.addEventListener('click', window.toggleTheme);
+    if (b) b.addEventListener('click', window.toggleTheme);
+    sync();
+  })();
+
+  /* spaced-repetition session — sample due deck */
+  (function () {
+    var DECK = [
+      { q: 'Which port does HTTPS use?', opts: ['443', '80', '22', '53'], a: 0, why: 'Missed 6 days ago', ex: 'HTTPS is HTTP over TLS, on TCP port 443.', up: 'back in 9 days', down: 'back tomorrow' },
+      { q: 'Which protocol resolves an IP address to a MAC address on a LAN?', opts: ['DNS', 'ARP', 'DHCP', 'ICMP'], a: 1, why: 'Due for its 3rd review', ex: 'ARP maps a known IP to its MAC on the local segment.', up: 'back in 16 days', down: 'back tomorrow' },
+      { q: 'How many usable hosts does a /26 subnet provide?', opts: ['30', '62', '64', '126'], a: 1, why: 'You got this wrong last time', ex: '/26 = 64 addresses minus network and broadcast = 62 usable.', up: 'back in 4 days', down: 'back tomorrow' },
+      { q: 'Which device makes forwarding decisions at Layer 3?', opts: ['Switch', 'Hub', 'Router', 'Bridge'], a: 2, why: 'Last seen 11 days ago', ex: 'A router forwards by IP (Layer 3); a switch works at Layer 2.', up: 'back in 21 days', down: 'back in 2 days' },
+      { q: 'What is the first message a DHCP client sends?', opts: ['DHCPOFFER', 'DHCPREQUEST', 'DHCPDISCOVER', 'DHCPACK'], a: 2, why: 'Due for its 2nd review', ex: 'The DORA handshake starts with the client broadcasting DISCOVER.', up: 'back in 12 days', down: 'back tomorrow' },
+      { q: 'Which port does SSH use?', opts: ['23', '22', '443', '3389'], a: 1, why: 'Missed 3 days ago', ex: 'SSH runs on TCP 22; Telnet (insecure) is 23.', up: 'back in 8 days', down: 'back tomorrow' },
+      { q: 'Which record type maps a hostname to an IPv6 address?', opts: ['A', 'CNAME', 'AAAA', 'MX'], a: 2, why: 'New to your review queue', ex: 'AAAA ("quad-A") holds an IPv6 address; A holds IPv4.', up: 'back in 5 days', down: 'back tomorrow' }
+    ];
+    var TOTAL = DECK.length;
+    var keys = ['A', 'B', 'C', 'D'];
+    var queue = DECK.slice();      // active queue (supports retry of missed)
+    var idx = 0, reviewed = 0, right = 0, missed = 0, answered = false, isRetry = false;
+
+    var els = {
+      progN: document.getElementById('progN'), pbar: document.getElementById('pbar'),
+      why: document.getElementById('whyText'), q: document.getElementById('q'), opts: document.getElementById('opts'),
+      fb: document.getElementById('fb'), fbTitle: document.getElementById('fbTitle'), fbBody: document.getElementById('fbBody'), fbSched: document.getElementById('fbSched'),
+      next: document.getElementById('next'), done: document.getElementById('done')
+    };
+
+    function render() {
+      var c = queue[idx];
+      answered = false;
+      els.progN.textContent = 'Card ' + (idx + 1) + ' of ' + (isRetry ? queue.length : TOTAL);
+      els.pbar.style.width = Math.round((idx / (isRetry ? queue.length : TOTAL)) * 100) + '%';
+      els.why.textContent = c.why;
+      els.q.textContent = c.q;
+      els.fb.className = 'fb';
+      els.next.disabled = true; els.next.textContent = 'Answer to continue';
+      els.opts.innerHTML = '';
+      c.opts.forEach(function (text, i) {
+        var btn = document.createElement('button');
+        btn.className = 'opt'; btn.type = 'button';
+        btn.innerHTML = '<span class="key">' + keys[i] + '</span><span>' + text + '</span>';
+        btn.addEventListener('click', function () { answer(i, c, btn); });
+        els.opts.appendChild(btn);
+      });
+    }
+
+    function answer(i, c, btn) {
+      if (answered) return;
+      answered = true;
+      var correct = i === c.a;
+      var optBtns = els.opts.querySelectorAll('.opt');
+      optBtns.forEach(function (b, j) {
+        b.disabled = true;
+        if (j === c.a) b.classList.add('correct');
+        else if (j === i) b.classList.add('wrong');
+      });
+      reviewed++;
+      if (correct) { right++; c._missed = false; } else { missed++; c._missed = true; }
+      els.fb.className = 'fb show ' + (correct ? 'ok' : 'no');
+      els.fbTitle.textContent = correct ? 'Correct' : 'Not quite';
+      els.fbBody.textContent = c.ex;
+      els.fbSched.textContent = correct
+        ? 'Scheduled ' + c.up + '.'
+        : 'No problem — we drop the interval and bring it ' + c.down + '.';
+      els.next.disabled = false;
+      els.next.textContent = (idx >= queue.length - 1) ? 'See your review' : 'Next card';
+    }
+
+    els.next.addEventListener('click', function () {
+      if (!answered) return;
+      if (idx >= queue.length - 1) { finish(); return; }
+      idx++; render();
+    });
+
+    function finish() {
+      document.getElementById('stRev').textContent = reviewed;
+      document.getElementById('stRight').textContent = right;
+      document.getElementById('stMiss').textContent = missed;
+      var retryBtn = document.getElementById('retry');
+      retryBtn.style.display = missed > 0 ? 'block' : 'none';
+      retryBtn.textContent = 'Retry the ' + missed + ' you missed';
+      document.getElementById('doneTitle').textContent = missed === 0 ? 'Clean sweep' : 'Review done';
+      els.pbar.style.width = '100%';
+      els.done.classList.add('show');
+    }
+
+    // same-session retry — re-run just the missed cards
+    document.getElementById('retry').addEventListener('click', function () {
+      var missedCards = queue.filter(function (c) { return c._missed; });
+      if (!missedCards.length) return;
+      queue = missedCards.map(function (c) { c._missed = false; c.why = 'Retrying — you missed this earlier'; return c; });
+      idx = 0; reviewed = 0; right = 0; missed = 0; isRetry = true;
+      els.done.classList.remove('show');
+      render();
+    });
+    // #toHome and header .back are wired by the shell nav-bridge
+
+    render();
+  })();
+</script>
+</body>
+</html>

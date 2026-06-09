@@ -42,6 +42,7 @@
     'cross-cert'        : 'cert-ios-cross-cert.html',
     'settings'          : 'cert-ios-settings.html',
     'log-result'        : 'cert-ios-log-result.html',
+    'review'            : 'cert-ios-review.html',
     'free-capped-home'  : 'onboarding-free-capped-home.html',
     'upgrade-sheet'     : 'onboarding-upgrade-sheet.html',
     'pro-iap'           : 'onboarding-pro-iap.html',
@@ -77,8 +78,12 @@
     'free-home-day0'   : [ {sel:'.btn-primary', to:'home'} ],
     // home dashboard: cert name -> hub (cert switcher), gear -> settings.
     // The 4-tab bar (Home/Drills/Progress/Account) is wired generically below.
+    // "Review 7 cards" (returning) -> spaced-repetition session; first-quiz lead -> quiz.
     'home'             : [ {sel:'.tb-name', to:'hub'},
-                           {sel:'.tb-set',  to:'settings'} ],
+                           {sel:'.tb-set',  to:'settings'},
+                           {sel:'.rec.only-returning', to:'review'},
+                           {sel:'.rec.only-new', to:'quiz'} ],
+    'review'           : [ {sel:'#toHome', to:'home'} ],
     // hub: tapping a locked cert opens the upsell sheet (mockup JS); the sheet's
     // "Unlock with Pro" and the "Go Pro" CTA drive the paywall arc
     // .pro-cta / tapping a locked cert opens the mockup's own upsell sheet;
