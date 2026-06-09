@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="CertAnvil" />
+<title>CertAnvil · iOS E2E</title>
+<style>
+  :root { --hud-h: 0px; }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0; height: 100%;
+    background: #06070a;
+    font-family: -apple-system, BlinkMacSystemFont, Inter, system-ui, sans-serif;
+    overscroll-behavior: none;
+  }
+  body { overflow: hidden; }
+
+  /* ── device stage: the 390x844 canvas centred + scaled to fit ────────── */
+  #e2e-stack {
+    position: fixed; inset: 0;
+    background: #06070a;
+    overflow: hidden;
+  }
+  #e2e-scaler {
+    position: absolute; top: 50%; left: 50%;
+    transform-origin: center center;
+    /* width/height set by shell.js to the canvas size; transform set by fit() */
+  }
+  .e2e-view {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    will-change: transform, opacity;
+    transition: transform .42s cubic-bezier(.32,.72,0,1), opacity .42s ease, filter .42s ease;
+    background: #000;
+  }
+  .e2e-frame {
+    width: 100%; height: 100%;
+    border: 0; display: block; background: transparent;
+  }
+  /* push/pop states */
+  .e2e-view.enter-right { transform: translateX(100%); }
+  .e2e-view.behind      { transform: translateX(-22%); filter: brightness(.62); }
+
+  /* ── dev HUD (floating; NOT part of the app — toggleable) ────────────── */
+  #hud {
+    position: fixed; left: 50%; bottom: 14px; transform: translateX(-50%);
+    z-index: 9999;
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 10px;
+    background: rgba(18,20,27,.82); backdrop-filter: blur(14px);
+    border: 1px solid rgba(255,255,255,.1); border-radius: 14px;
+    box-shadow: 0 10px 40px -12px rgba(0,0,0,.7);
+    font: 600 12px/1 Inter, -apple-system, sans-serif; color: #e7e9ee;
+    max-width: calc(100vw - 24px);
+  }
+  body.hud-collapsed #hud > :not(#hud-toggle) { display: none; }
+  #hud button, #hud select {
+    font: inherit; color: #e7e9ee;
+    background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.12);
+    border-radius: 9px; padding: 7px 11px; cursor: pointer;
+    transition: background .15s ease, transform .1s ease;
+  }
+  #hud button:hover:not(:disabled) { background: rgba(255,255,255,.15); }
+  #hud button:active:not(:disabled) { transform: scale(.96); }
+  #hud button:disabled { opacity: .38; cursor: default; }
+  #hud-crumb {
+    color: #9aa0ad; font-weight: 600; white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis; max-width: 38vw;
+    padding: 0 4px;
+  }
+  #hud-toggle { background: rgba(110,130,255,.22); border-color: rgba(120,140,255,.4); }
+  .hud-dot { width: 7px; height: 7px; border-radius: 50%; background: #6effc0; box-shadow: 0 0 8px #6effc0; }
+</style>
+</head>
+<body>
+  <div id="e2e-stack">
+    <div id="e2e-scaler"></div>
+  </div>
+
+  <div id="hud" role="toolbar" aria-label="E2E dev controls">
+    <button id="hud-toggle" title="Show / hide dev controls"><span class="hud-dot"></span></button>
+    <button id="hud-back" title="Back (pop)">‹ Back</button>
+    <button id="hud-next" title="Next in happy path">Next ›</button>
+    <span id="hud-crumb">—</span>
+    <select id="hud-jump" title="Jump to any screen"><option value="">jump to…</option></select>
+  </div>
+
+  <script src="e2e/shell.js"></script>
+</body>
+</html>
