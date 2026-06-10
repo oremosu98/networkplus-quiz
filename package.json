@@ -16,6 +16,7 @@
     "ios:sync": "npm run ios:www && npx cap sync ios",
     "ios:open": "npx cap open ios",
     "ios:run": "npm run ios:sync && npx cap run ios",
+    "ios:real": "npm run ios:sync && node scripts/cap-ios-real.cjs && npx cap run ios --no-sync",
     "serve": "npx serve . -l 3131 -s",
     "serve:dist": "npx serve dist -l 3132 -s",
     "build": "node scripts/build.js",

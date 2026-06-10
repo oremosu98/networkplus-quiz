@@ -61,6 +61,20 @@ and re-add:
 npm run ios:sync    # re-copies webDir + `cap sync ios`
 ```
 
+## Running the REAL app in the wrap (`ios:real`)
+```bash
+npm run ios:real    # sync, then point WKWebView at https://networkplus.certanvil.com, then run
+```
+`scripts/cap-ios-real.cjs` injects `server.url` into the **generated**
+`ios/App/App/capacitor.config.json` (gitignored, rewritten by every sync), so the
+tracked `capacitor.config.json` keeps the bundled mockup demo as the default.
+Real login, Supabase sync, and AI quizzes all work — it is the live site, so it
+is your real account/data: **no destructive automated testing against it** (the
+CLAUDE.md localStorage rule applies). Switch back with plain `npm run ios:run`.
+Known nit: the web PWA "Install CertAnvil · Add to Home Screen" banner shows
+inside the native wrap — hide it when `Capacitor.isNativePlatform()` (or UA
+sniff) before any store build. Verified 2026-06-10 on the iPhone 17 Pro Simulator.
+
 ## ⚠️ Fidelity on WKWebView (the open tension — do this early)
 WKWebView (what Capacitor uses) renders fonts / antialiasing / scroll-momentum /
 tap-highlight differently from Mobile Safari, so a layout pixel-identical in one may
