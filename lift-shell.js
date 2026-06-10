@@ -1,9 +1,16 @@
 /* LIFT-SHELL · Phase 0 — bottom tab bar + showPage hook.
    Companion to lift-shell.css; see the plan doc for the phase map.
    Phase 3: the Drills tab routes to the dedicated #page-drills screen,
-   rendered here from real app data (wrong bank, weak spots, domains). */
+   rendered here from real app data (wrong bank, weak spots, domains).
+   v7.36.1: the lift is VIEWPORT-GATED — this file's chrome (tab bar, seg
+   switcher, exam sheet) only acts under LIFT_MQ, mirroring the media
+   attribute on the lift-shell/lift-screens <link> tags. Desktop keeps the
+   classic layout (sidebar + native pickers); the Capacitor iOS wrap is
+   always narrow, so the native app always gets the lift. */
 (function () {
   'use strict';
+
+  var LIFT_MQ = window.matchMedia('(max-width: 899px)');
 
   var TABS = [
     { page: 'setup',    label: 'Home',     icon: '<path d="M4 11l8-7 8 7"></path><path d="M6 10v9h12v-9"></path>' },
@@ -40,6 +47,19 @@
       navTo(b.getAttribute('data-page'));
     });
     injectSeg();
+
+    /* viewport gate: lift chrome exists only under LIFT_MQ. The gated
+       stylesheets stop applying on desktop, so the injected elements must
+       hide themselves too or they'd render unstyled. */
+    function applyGate() {
+      var on = LIFT_MQ.matches;
+      bar.hidden = !on;
+      document.querySelectorAll('.lift-seg').forEach(function (s) { s.hidden = !on; });
+      document.body.classList.toggle('lift-on', on);
+    }
+    applyGate();
+    if (typeof LIFT_MQ.addEventListener === 'function') LIFT_MQ.addEventListener('change', applyGate);
+    else if (typeof LIFT_MQ.addListener === 'function') LIFT_MQ.addListener(applyGate);
 
     /* keep tab state + tab bar visibility in sync with navigation */
     if (typeof window.showPage === 'function' && !window.showPage.__liftWrapped) {
@@ -303,6 +323,7 @@
   /* capture-phase intercept: the chip's inline onclick (native showPicker)
      never fires; the clear × keeps its native updateExamDate('') path */
   document.addEventListener('click', function (ev) {
+    if (!LIFT_MQ.matches) return; /* desktop keeps the native date picker */
     if (!ev.target.closest) return;
     var row = ev.target.closest('#settings-exam-row');
     if (!row) return;
