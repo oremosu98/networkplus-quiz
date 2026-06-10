@@ -151,39 +151,34 @@ test.describe('Navigation', () => {
   test('navigates to analytics and back', async ({ page }) => {
     await page.goto('/');
 
-    // v7.36.0 (mockup lift): sidebar retired — nav via the bottom tab bar,
-    // then the Progress ⇄ Analytics seg switcher.
-    await page.locator('#lift-tabbar .lift-tab[data-page="progress"]').click();
-    await expect(page.locator('#page-progress')).toHaveClass(/active/);
-    await page.locator('#page-progress .lift-seg-chip[data-page="analytics"]').click();
+    // v4.53.0: nav via sidebar
+    await page.locator('.sb-item[data-sb-page="analytics"]').click();
     await expect(page.locator('#page-analytics')).toHaveClass(/active/);
 
-    await page.locator('#lift-tabbar .lift-tab[data-page="setup"]').click();
+    await page.locator('.sb-item[data-sb-page="setup"]').click();
     await expect(page.locator('#page-setup')).toHaveClass(/active/);
   });
 
   test('navigates to topic progress and back', async ({ page }) => {
     await page.goto('/');
 
-    // v7.36.0 (mockup lift): nav via the bottom tab bar
-    await page.locator('#lift-tabbar .lift-tab[data-page="progress"]').click();
+    // v4.53.0: nav via sidebar
+    await page.locator('.sb-item[data-sb-page="progress"]').click();
     await expect(page.locator('#page-progress')).toHaveClass(/active/);
 
-    await page.locator('#lift-tabbar .lift-tab[data-page="setup"]').click();
+    await page.locator('.sb-item[data-sb-page="setup"]').click();
     await expect(page.locator('#page-setup')).toHaveClass(/active/);
   });
 });
 
-// v7.36.0 (mockup lift): Settings is the Account tab in the bottom tab bar.
+// v4.54.1: Settings moved to its own page — navigate via sidebar first.
 async function gotoSettings(page) {
-  await page.locator('#lift-tabbar .lift-tab[data-page="settings"]').click();
+  await page.locator('.sb-item[data-sb-page="settings"]').click();
   await expect(page.locator('#page-settings')).toHaveClass(/active/);
 }
-// v7.36.0 (mockup lift): Analytics sits behind the Progress tab's seg switcher.
+// v4.54.1: Recent Performance moved to Analytics — navigate via sidebar first.
 async function gotoAnalytics(page) {
-  await page.locator('#lift-tabbar .lift-tab[data-page="progress"]').click();
-  await expect(page.locator('#page-progress')).toHaveClass(/active/);
-  await page.locator('#page-progress .lift-seg-chip[data-page="analytics"]').click();
+  await page.locator('.sb-item[data-sb-page="analytics"]').click();
   await expect(page.locator('#page-analytics')).toHaveClass(/active/);
 }
 
@@ -737,10 +732,8 @@ test.describe('Streak Badge', () => {
     await page.evaluate(() => localStorage.removeItem('nplus_streak'));
     await page.reload();
 
-    // v7.36.0 (mockup lift): sidebar retired — the streak signal lives in the
-    // Home console chip (#cb-streak), which reads 0 in the empty state.
-    await expect(page.locator('#cb-streak')).toBeVisible();
-    await expect(page.locator('#cb-streak')).toHaveText('0');
+    // v4.54.0: empty state rendered as .sb-streak-empty inside the sidebar footer
+    await expect(page.locator('.sb-streak-empty')).toBeVisible();
   });
 });
 
@@ -768,9 +761,8 @@ test.describe('Production Monitor', () => {
   test('triple-tap version badge opens monitor', async ({ page }) => {
     await page.goto('/');
 
-    // v7.36.0 (mockup lift): sidebar retired — the triple-tap gesture also
-    // binds to the topbar version pill (v4.89.7), which the lift keeps visible.
-    const badge = page.locator('#topbar-version-pill');
+    // v4.54.0: legacy #version-badge is hidden; the v4.54.0 init attaches the same triple-tap handler to .sb-brand-version in the sidebar
+    const badge = page.locator('.sb-brand-version');
     await badge.click();
     await badge.click();
     await badge.click();
@@ -783,9 +775,8 @@ test.describe('Production Monitor', () => {
     await page.goto('/');
     await page.evaluate(() => localStorage.removeItem('nplus_error_log'));
 
-    // v7.36.0 (mockup lift): sidebar retired — the triple-tap gesture also
-    // binds to the topbar version pill (v4.89.7), which the lift keeps visible.
-    const badge = page.locator('#topbar-version-pill');
+    // v4.54.0: legacy #version-badge is hidden; the v4.54.0 init attaches the same triple-tap handler to .sb-brand-version in the sidebar
+    const badge = page.locator('.sb-brand-version');
     await badge.click();
     await badge.click();
     await badge.click();
@@ -806,9 +797,8 @@ test.describe('Production Monitor', () => {
       localStorage.setItem('nplus_error_log', JSON.stringify(log));
     });
 
-    // v7.36.0 (mockup lift): sidebar retired — the triple-tap gesture also
-    // binds to the topbar version pill (v4.89.7), which the lift keeps visible.
-    const badge = page.locator('#topbar-version-pill');
+    // v4.54.0: legacy #version-badge is hidden; the v4.54.0 init attaches the same triple-tap handler to .sb-brand-version in the sidebar
+    const badge = page.locator('.sb-brand-version');
     await badge.click();
     await badge.click();
     await badge.click();
@@ -826,9 +816,8 @@ test.describe('Production Monitor', () => {
       localStorage.setItem('nplus_error_log', JSON.stringify(log));
     });
 
-    // v7.36.0 (mockup lift): sidebar retired — the triple-tap gesture also
-    // binds to the topbar version pill (v4.89.7), which the lift keeps visible.
-    const badge = page.locator('#topbar-version-pill');
+    // v4.54.0: legacy #version-badge is hidden; the v4.54.0 init attaches the same triple-tap handler to .sb-brand-version in the sidebar
+    const badge = page.locator('.sb-brand-version');
     await badge.click();
     await badge.click();
     await badge.click();
@@ -1191,7 +1180,7 @@ test.describe('Quiz Revisit — editable navigation', () => {
     await expect(page.locator('#quiz-next-arrow-btn')).toBeEnabled();
 
     // Click next-arrow → advance to Q2.
-    await page.locator('#btn-next').click(); // v7.36.0 lift: arrows hidden, footer Next advances
+    await page.locator('#quiz-next-arrow-btn').click();
     await expect(page.locator('#q-label')).toContainText('Question 2 of 3');
     await expect(page.locator('#quiz-revisit-banner')).toHaveClass(/is-hidden/);
     // Prev should be enabled now.
@@ -1231,7 +1220,7 @@ test.describe('Quiz Revisit — editable navigation', () => {
     await expect(page.locator('#live-streak')).toContainText('Streak 1');
 
     // Advance to Q2 via next-arrow.
-    await page.locator('#btn-next').click(); // v7.36.0 lift: arrows hidden, footer Next advances
+    await page.locator('#quiz-next-arrow-btn').click();
     await expect(page.locator('#q-label')).toContainText('Question 2 of 3');
 
     // Click dot for Q1 → revisit.
@@ -1403,7 +1392,7 @@ test.describe('Quiz Hot-Area — click-on-diagram PBQs', () => {
     await expect(page.locator('#live-score')).toContainText('0 / 1');
 
     // Advance to Q2
-    await page.locator('#btn-next').click(); // v7.36.0 lift: arrows hidden, footer Next advances
+    await page.locator('#quiz-next-arrow-btn').click();
     await expect(page.locator('#q-label')).toContainText('Question 2 of 2');
 
     // Click dot back to Q1
@@ -1643,5 +1632,40 @@ test.describe('bug-report drawer', () => {
     await page.click('#topbar-bug-report');
     await page.click('#br-close');
     await expect(page.locator('#topbar-bug-report')).toHaveClass(/has-queue/);
+  });
+});
+
+// ─── v7.36.1: cert-ios lift (viewport-gated) ─────────────────────────────
+// Under 900px the app renders the mockup column + bottom tab bar; desktop
+// (all suites above, Playwright's default 1280px viewport) keeps the classic
+// sidebar layout. These tests pin the gate from the narrow side.
+test.describe('Mobile lift chrome (viewport-gated)', () => {
+  test.use({ viewport: { width: 430, height: 844 } });
+
+  test('tab bar navigates Home → Progress → Analytics (seg) → Settings', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.locator('#lift-tabbar')).toBeVisible();
+    await page.locator('#lift-tabbar .lift-tab[data-page="progress"]').click();
+    await expect(page.locator('#page-progress')).toHaveClass(/active/);
+    await page.locator('#page-progress .lift-seg-chip[data-page="analytics"]').click();
+    await expect(page.locator('#page-analytics')).toHaveClass(/active/);
+    await page.locator('#lift-tabbar .lift-tab[data-page="settings"]').click();
+    await expect(page.locator('#page-settings')).toHaveClass(/active/);
+    await page.locator('#lift-tabbar .lift-tab[data-page="setup"]').click();
+    await expect(page.locator('#page-setup')).toHaveClass(/active/);
+  });
+
+  test('Drills tab opens the dedicated drills screen', async ({ page }) => {
+    await page.goto('/');
+    await page.locator('#lift-tabbar .lift-tab[data-page="drills"]').click();
+    await expect(page.locator('#page-drills')).toHaveClass(/active/);
+    await expect(page.locator('#drills-domain-list .drills-domain')).toHaveCount(5);
+  });
+
+  test('desktop viewport hides the lift chrome (sidebar owns nav)', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.goto('/');
+    await expect(page.locator('#lift-tabbar')).toBeHidden();
+    await expect(page.locator('.sb-item[data-sb-page="analytics"]')).toBeVisible();
   });
 });
