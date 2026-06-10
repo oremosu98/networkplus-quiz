@@ -1198,6 +1198,39 @@
 </div>
 
 <!-- ══════════════════════════════════════════
+     DRILLS PAGE (lift Phase 3 — net-new tab screen)
+     1:1 port of mockups/cert-ios-drills.html (cert-ios-e2e worktree).
+     Rendered by liftRenderDrills() in lift-shell.js from real data:
+     wrong bank (startWrongDrill), weak spots (computeWeakSpotScores →
+     focusTopic), DOMAIN_WEIGHTS domains (applyDomainPreset).
+══════════════════════════════════════════ -->
+<div id="page-drills" class="page">
+  <div class="drills-hdr">
+    <h1 class="drills-title">Drills</h1>
+    <span class="drills-plan-tag" id="drills-plan-tag">N10-009</span>
+  </div>
+  <p class="drills-lede">Short, repeat passes on the things you get wrong. Ten questions or fewer, scored like practice.</p>
+
+  <div class="drills-card" id="drills-mistakes-card">
+    <div class="drills-card-head"><span class="drills-card-title">Drill Mistakes</span><span class="drills-count-pill" id="drills-mistakes-pill">0 saved</span></div>
+    <p class="drills-card-note" id="drills-mistakes-note">Clear the wrong answers in your bank. Get one right twice in a row and it leaves the bank for good.</p>
+    <button type="button" class="drills-btn" id="drills-mistakes-btn" onclick="startWrongDrill()">Drill your mistakes</button>
+  </div>
+
+  <div class="drills-card" id="drills-weak-card">
+    <div class="drills-card-head"><span class="drills-card-title">Weakest topics</span></div>
+    <div class="drills-topic-chips" id="drills-weak-chips"></div>
+    <p class="drills-card-note">Your lowest-mastery topics right now. The drill leads with the weakest of them.</p>
+    <button type="button" class="drills-btn" id="drills-weak-btn">Drill weakest topics</button>
+  </div>
+
+  <div class="drills-sect">Drill by domain</div>
+  <div id="drills-domain-list"></div>
+
+  <p class="drills-foot-note">Drills don't touch your daily review queue — those cards stay scheduled.</p>
+</div>
+
+<!-- ══════════════════════════════════════════
      EXAM PAGE
 ══════════════════════════════════════════ -->
 <div id="page-exam" class="page">

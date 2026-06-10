@@ -1211,3 +1211,89 @@ html[data-theme] body #page-sr-review .sr-empty .btn-primary {
 }
 html[data-theme] body #page-sr-review .sr-empty .btn-primary:active { transform: scale(0.985); }
 html[data-theme] body #page-sr-review #sr-forecast-complete { margin: 0 0 18px !important; font-size: 12.5px !important; color: var(--text-dim) !important; }
+
+/* ─────────────────────────── DRILLS TAB (Phase 3, net-new) ─────────────────────────── */
+/* Source: cert-ios-drills.html. The page markup is the lift's own
+   (#page-drills in index.html + liftRenderDrills in lift-shell.js), so the
+   class names mirror the mockup directly — no dg-system overrides needed,
+   but selectors stay in the same scoped pattern for consistency. */
+
+#page-drills { --lift-ease: cubic-bezier(0.16, 1, 0.3, 1); }
+html[data-theme] body #page-drills { padding-top: 10px !important; }
+
+/* showPage moves focus to the page h1 for screen readers — don't draw the
+   interactive focus ring on a static heading (mockups carry no ring) */
+html[data-theme] body .page h1[tabindex="-1"]:focus,
+html[data-theme] body .page h2[tabindex="-1"]:focus { outline: none !important; box-shadow: none !important; }
+
+html[data-theme] body #page-drills .drills-hdr { display: flex; align-items: center; gap: 11px; margin: 2px 0 4px; }
+html[data-theme] body #page-drills .drills-title {
+  flex: 1; font: 600 21px/1.1 Fraunces, Georgia, serif !important; letter-spacing: -0.01em;
+  color: var(--text) !important; margin: 0 !important;
+}
+html[data-theme] body #page-drills .drills-plan-tag {
+  flex: 0 0 auto; font: 800 9.5px/1 Inter, sans-serif; letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--text-dim); background: color-mix(in oklab, var(--text) 6%, transparent);
+  border: 1px solid var(--border); border-radius: 999px; padding: 6px 9px;
+}
+html[data-theme] body #page-drills .drills-lede { font: 500 12.5px/1.5 Inter, sans-serif; color: var(--text-dim); margin: 2px 2px 14px; }
+
+html[data-theme] body #page-drills .drills-card {
+  border: 1px solid var(--border); border-radius: 16px; background: var(--surface);
+  padding: 15px 16px; margin-bottom: 11px;
+}
+html[data-theme] body #page-drills .drills-card-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+html[data-theme] body #page-drills .drills-card-title { font: 650 14.5px/1.2 Inter, sans-serif; color: var(--text); }
+html[data-theme] body #page-drills .drills-card-note { font-size: 12px; line-height: 1.45; color: var(--text-dim); margin: 9px 0 0; }
+html[data-theme] body #page-drills .drills-card-note b { color: var(--text-mid); font-weight: 650; }
+html[data-theme] body #page-drills .drills-count-pill {
+  flex: 0 0 auto; font: 700 10.5px/1 'Roboto Mono', ui-monospace, monospace; color: var(--accent);
+  border: 1px solid color-mix(in oklab, var(--accent) 38%, var(--border));
+  background: color-mix(in oklab, var(--accent) 10%, var(--surface));
+  border-radius: 999px; padding: 6px 10px;
+}
+html[data-theme] body #page-drills .drills-btn {
+  width: 100%; margin-top: 12px; border: none; border-radius: 12px; padding: 12px; cursor: pointer;
+  background: var(--accent); color: var(--on-accent, var(--bg)); font: 700 14px/1 Inter, sans-serif;
+  transition: transform .14s var(--lift-ease), filter .2s, opacity .2s;
+}
+html[data-theme] body #page-drills .drills-btn:active:not(:disabled) { transform: scale(0.985); }
+@media (hover:hover) and (pointer:fine) { html[data-theme] body #page-drills .drills-btn:hover:not(:disabled) { filter: brightness(1.06); } }
+html[data-theme] body #page-drills .drills-btn:disabled { opacity: 0.4; cursor: default; }
+
+html[data-theme] body #page-drills .drills-topic-chips { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 11px; }
+html[data-theme] body #page-drills .drills-chip {
+  font: 600 11.5px/1.3 Inter, sans-serif; color: var(--text-mid);
+  border: 1px solid var(--border); background: var(--surface3); border-radius: 999px; padding: 7px 11px;
+}
+html[data-theme] body #page-drills .drills-chip b { color: var(--red); font-weight: 700; font-variant-numeric: tabular-nums; }
+html[data-theme] body #page-drills .drills-chip-empty { color: var(--text-dim); }
+
+html[data-theme] body #page-drills .drills-sect {
+  font: 800 10px/1 Inter, sans-serif; letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--text-dim); margin: 18px 2px 11px;
+}
+html[data-theme] body #page-drills .drills-domain {
+  display: block; width: 100%; text-align: left; cursor: pointer;
+  border: 1px solid var(--border); border-radius: 14px; background: var(--surface3);
+  padding: 12px 14px; margin-bottom: 9px;
+  transition: border-color .18s, transform .12s var(--lift-ease);
+}
+html[data-theme] body #page-drills .drills-domain:active { transform: scale(0.995); }
+@media (hover:hover) and (pointer:fine) { html[data-theme] body #page-drills .drills-domain:hover { border-color: color-mix(in oklab, var(--accent) 36%, var(--border)); } }
+html[data-theme] body #page-drills .drills-domain-top { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+html[data-theme] body #page-drills .drills-domain-top b { font: 650 13.5px/1.2 Inter, sans-serif; color: var(--text); }
+html[data-theme] body #page-drills .drills-domain-wt { flex: 0 0 auto; font: 600 10px/1 'Roboto Mono', ui-monospace, monospace; color: var(--text-dim); }
+html[data-theme] body #page-drills .drills-domain-bar {
+  display: block; height: 6px; border-radius: 999px; background: var(--surface3); overflow: hidden;
+  margin-top: 8px; position: relative; border: 1px solid color-mix(in oklab, var(--border) 50%, transparent);
+}
+html[data-theme] body #page-drills .drills-domain-bar i {
+  position: absolute; left: 0; top: 0; bottom: 0; display: block; border-radius: 999px;
+  background: var(--accent); transition: width .7s var(--lift-ease);
+}
+html[data-theme] body #page-drills .drills-domain-bar.full i { background: var(--green); }
+html[data-theme] body #page-drills .drills-domain-mast { display: block; font: 600 9.5px/1.3 Inter, sans-serif; color: var(--text-dim); margin-top: 6px; }
+html[data-theme] body #page-drills .drills-domain-mast b { color: var(--text-mid); font-weight: 700; }
+
+html[data-theme] body #page-drills .drills-foot-note { font: 500 11px/1.5 Inter, sans-serif; color: var(--text-dim); text-align: center; margin: 16px 8px 4px; }
