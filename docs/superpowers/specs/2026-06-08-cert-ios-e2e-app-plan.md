@@ -1,6 +1,6 @@
 # CertAnvil iOS E2E Dummy App — Build Plan
 
-**Status:** ✅ Built — Phases 0–5 done; MVP flow verified; fidelity gate green (80 baselines). Phase 6 (Capacitor) **scaffolded** — native build pending Xcode + CocoaPods (runbook: `docs/mobile/CAPACITOR_E2E.md`). See **§11 Build log** for the as-built state (the plan §1–§10 below is preserved as original design intent).
+**Status:** ✅ Built — Phases 0–6 done; MVP flow verified; fidelity gate green (80 baselines). Phase 6 (Capacitor) **complete** — native app runs on the iOS Simulator via SPM, no CocoaPods (runbook: `docs/mobile/CAPACITOR_E2E.md`). See **§11 Build log** for the as-built state (the plan §1–§10 below is preserved as original design intent).
 **Date:** 2026-06-08 (plan) · last updated 2026-06-09 (build log)
 **Branch:** `feat/cert-ios-e2e` off `origin/main` — **not pushed, nothing merged.**
 **Author:** planning session
@@ -438,9 +438,13 @@ screens** were created (4-pass pipeline) and wired in:
   Test-side gotcha handled: `resetTo` no-ops during the boot push's `animating` lock, so
   showScreen re-issues it in a poll loop until the target screen mounts.
 
-### 11f. Phase 6 — Capacitor wrap (SCAFFOLDED, 2026-06-09)
-Toolchain-independent part done; native build pending Xcode + CocoaPods (not installed
-on this machine — full runbook: **`docs/mobile/CAPACITOR_E2E.md`**).
+### 11f. Phase 6 — Capacitor wrap (✅ COMPLETE, 2026-06-10)
+Native app **builds and runs on the iOS Simulator** (iPhone 17 Pro, iOS 26.5; Xcode 26.6
+on macOS 26.5.1) via **Swift Package Manager — CocoaPods skipped entirely** (macOS 26's
+system Ruby 2.6 can't install it; full story + the @capacitor/cli 7.6.6 `--packagemanager
+SPM` lowercase-bug workaround: **`docs/mobile/CAPACITOR_E2E.md`**). Verified on the
+Simulator: shell boots, screens navigate, Pro toggle + dark/light theme work. The native
+`ios/` project is committed (Capacitor convention); `ios:add` now pins `--packagemanager SPM`.
 - `@capacitor/{core,cli,ios}` **v7** (lockstep) in devDependencies; `capacitor.config.json`
   (`com.certanvil.e2e` / `CertAnvil E2E` / `webDir: capacitor-www`).
 - `npm run ios:www` assembles `capacitor-www/` from `mockups/` with the shell copied to
@@ -448,7 +452,6 @@ on this machine — full runbook: **`docs/mobile/CAPACITOR_E2E.md`**).
   works). `capacitor-www/` git-ignored. **Verified: the assembled bundle boots** (window.E2E
   present, screens render) — i.e. what WKWebView will load is sound.
 - npm scripts: `ios:www`, `ios:add`, `ios:sync`, `ios:open`, `ios:run`.
-- **Operator finish (needs Xcode + CocoaPods):** `npm run ios:add` then `npm run ios:run`.
 - ⚠️ Open tension: pixel-fidelity may not survive **Mobile Safari → WKWebView** (fonts,
   antialiasing, scroll, tap-highlight). The Phase-5 gate runs on Chromium today; eyeball
   the Simulator vs baselines, and consider a WebKit/Appium WKWebView gate as a follow-up.

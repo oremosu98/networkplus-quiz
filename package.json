@@ -12,7 +12,7 @@
     "test:fidelity": "npx playwright test --project=cert-ios-fidelity",
     "test": "npm run test:uat && npm run test:e2e",
     "ios:www": "rm -rf capacitor-www && cp -R mockups capacitor-www && cp capacitor-www/cert-ios-app.html capacitor-www/index.html",
-    "ios:add": "npm run ios:www && npx cap add ios",
+    "ios:add": "npm run ios:www && npx cap add ios --packagemanager SPM",
     "ios:sync": "npm run ios:www && npx cap sync ios",
     "ios:open": "npx cap open ios",
     "ios:run": "npm run ios:sync && npx cap run ios",

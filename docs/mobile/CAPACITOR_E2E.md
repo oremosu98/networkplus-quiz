@@ -4,9 +4,10 @@ Wraps the clickable E2E shell (`mockups/cert-ios-app.html` + the `cert-ios-*` /
 `onboarding-*` mockups) as a Capacitor **WKWebView** app so it runs on the iOS
 Simulator / a device — the "app on a phone" feel and the App Store bridge.
 
-**Status:** scaffold complete (toolchain-independent part). The native build needs
-**full Xcode + CocoaPods**, which weren't installed when this was set up. Once those
-are present it's two commands.
+**Status:** ✅ **COMPLETE (2026-06-10)** — the app builds and runs on the iOS
+Simulator (iPhone 17 Pro, iOS 26.5) via **Swift Package Manager — no CocoaPods**.
+Verified on-device: shell boots, screens navigate, Pro toggle + dark/light theme
+work (HUD-driven). The native `ios/` project is committed.
 
 ---
 
@@ -21,29 +22,39 @@ are present it's two commands.
   Verified: the assembled bundle boots (window.E2E present, screens render).
 - npm scripts: `ios:www`, `ios:add`, `ios:sync`, `ios:open`, `ios:run`.
 
-## Prerequisites (operator — one-time)
-1. **Xcode** (App Store, multi-GB). Then:
-   ```bash
-   sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
-   sudo xcodebuild -license accept
-   ```
-2. **CocoaPods**:
-   ```bash
-   sudo gem install cocoapods      # no Homebrew on this machine
-   ```
-3. First Simulator runtime downloads on first launch (Xcode ▸ Settings ▸ Platforms).
+## Prerequisites (one-time — done on this machine)
+1. **Xcode** in `/Applications`, selected + license accepted (done: Xcode 26.6 on macOS 26.5.1).
+2. **CocoaPods: NOT needed.** We use Capacitor's **SPM** mode. CocoaPods was
+   abandoned because macOS 26 ships Ruby 2.6.10 and CocoaPods' modern deps
+   (`ffi`, `securerandom`, …) require Ruby 3.x — `sudo gem install cocoapods`
+   fails identically (sudo doesn't change the Ruby).
+3. iOS Simulator runtime (came with Xcode 26: iOS 26.5 + iPhone 17 family).
 
-## Finish the wrap (after prerequisites)
+## How it was wrapped (SPM) + how to redo it
 ```bash
 export PATH="$HOME/.nvm/versions/node/v20.20.2/bin:$PATH"
 cd ".claude/worktrees/cert-ios-e2e"
 
-npm run ios:add     # assembles capacitor-www, then `cap add ios` (runs pod install)
-npm run ios:run     # assembles + `cap sync ios` + launches on the Simulator
+npm run ios:add     # assembles capacitor-www, then `cap add ios --packagemanager SPM`
+npm run ios:run     # assembles + `cap sync ios` + builds + launches on the Simulator
 # or: npm run ios:open  → open in Xcode and Run (⌘R) to pick a device
 ```
-`cap add ios` generates the native `ios/` project. Decide whether to commit it
-(Capacitor convention is yes); it's currently untracked, not force-ignored.
+
+### ⚠️ Known bug in @capacitor/cli 7.6.6 (`cap add` only)
+`cap add ios --packagemanager SPM` **lowercases the flag before comparing it to
+`'SPM'`** (cli `index.ts` line ~305: `packagemanager?.toLowerCase()` vs `=== 'SPM'`),
+so it wrongly keeps `Cocoapods` as package manager → runs the CocoaPods presence
+check and a `pod install` step even though it extracts the **SPM template** correctly
+(that branch compares the raw flag). 7.6.6 is the last v7 release; the bug is moot in
+v8 (SPM is the default). Workaround used here, only needed if you ever delete `ios/`
+and re-add:
+1. Put a stub `pod` on PATH so the check passes:
+   `mkdir -p /tmp/podstub && printf '#!/bin/sh\n[ "$1" = "--version" ] && echo "1.16.2"\nexit 0\n' > /tmp/podstub/pod && chmod +x /tmp/podstub/pod && export PATH="/tmp/podstub:$PATH"`
+2. Run `npm run ios:add` — it extracts the SPM template, then **fails at the
+   `pod install` step with "ENOENT … Podfile". That failure is expected and harmless**
+   (the SPM template has no Podfile).
+3. Run `npx cap sync ios` (no stub needed) — Capacitor auto-detects SPM from the
+   `ios/App/CapApp-SPM/` directory from then on; sync/run/open all work normally.
 
 ## Re-syncing after a mockup/shell change
 ```bash
