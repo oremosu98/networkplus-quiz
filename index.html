@@ -34,6 +34,8 @@
 <link rel="stylesheet" href="styles.css">
 <link rel="stylesheet" href="dg-system.css?v=7.33.0">
 <link rel="stylesheet" href="dg-depurple.css?v=7.13.5">
+<link rel="stylesheet" href="lift-shell.css?v=7.36.0">
+<link rel="stylesheet" href="lift-screens.css?v=7.36.0">
 <!-- v5.5.1 — Fraunces display face for the editorial system (Home v3
      reimagining + cross-surface). Body stays the app font; Fraunces is
      scoped to display moments in dg-system.css. preconnect + display=swap
@@ -754,7 +756,7 @@
     <span class="hero-icon">&#9889;</span>
     <h1>Network+ AI Quiz</h1>
     <p>AI-generated MCQs every session. Never the same quiz twice.</p>
-    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:color-mix(in oklab,var(--accent) 12%,transparent);border:1px solid color-mix(in oklab,var(--accent) 30%,transparent);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v7.35.0</span>
+    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:color-mix(in oklab,var(--accent) 12%,transparent);border:1px solid color-mix(in oklab,var(--accent) 30%,transparent);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v7.36.0</span>
     <div id="streak-badge" class="streak-badge"></div>
     <div id="stats-card" class="hero-stats-strip is-hidden">
       <div class="stats-grid" id="stats-grid"></div>
@@ -947,7 +949,19 @@
 ══════════════════════════════════════════ -->
 <div id="page-quiz" class="page">
   <div class="quiz-topbar">
-    <button class="back-btn" onclick="confirmBack()" aria-label="Back to menu">&#8592; Menu</button>
+    <button class="back-btn" onclick="confirmBack()" aria-label="Back to menu" title="Exit session"><svg viewBox="0 0 24 24" aria-hidden="true" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6L6 18"></path></svg><span class="back-btn-label">Menu</span></button>
+    <!-- lift Phase 1: progress track lives in the bar (mockup .qbar anatomy) -->
+    <div class="progress-wrap">
+      <div class="progress-label">
+        <button class="quiz-nav-arrow" id="quiz-prev-btn" onclick="prevQuestion()"
+                title="Previous question (←)" aria-label="Previous question" disabled>&#8249;</button>
+        <span id="q-label">Question 1 of 10</span>
+        <button class="quiz-nav-arrow" id="quiz-next-arrow-btn" onclick="nextQuestion()"
+                title="Next question (→)" aria-label="Next question" disabled>&#8250;</button>
+        <span id="q-pct">0%</span>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" id="prog-fill" style="width:0%"></div></div>
+    </div>
     <div class="quiz-stats">
       <div class="stat-pill score" id="live-score" role="status" aria-live="polite" aria-label="Score">0 / 0</div>
       <div class="stat-pill streak" id="live-streak" role="status" aria-live="polite" aria-label="Current streak">Streak 0</div>
@@ -956,26 +970,10 @@
     </div>
   </div>
 
-  <div class="progress-wrap">
-    <div class="progress-label">
-      <!-- v4.82.0: Prev/Next nav arrows for revisiting previously answered
-           questions. Disabled appropriately based on current/total. Keyboard:
-           ArrowLeft / ArrowRight bound in the global keydown handler. -->
-      <button class="quiz-nav-arrow" id="quiz-prev-btn" onclick="prevQuestion()"
-              title="Previous question (←)" aria-label="Previous question" disabled>&#8249;</button>
-      <span id="q-label">Question 1 of 10</span>
-      <button class="quiz-nav-arrow" id="quiz-next-arrow-btn" onclick="nextQuestion()"
-              title="Next question (→)" aria-label="Next question" disabled>&#8250;</button>
-      <span id="q-pct">0%</span>
-    </div>
-    <div class="progress-bar"><div class="progress-fill" id="prog-fill" style="width:0%"></div></div>
-    <!-- v4.54.8: segmented per-question progress dots (prototype pattern).
-         One dot per question: moss-green=correct, red=wrong, tall ink=current,
-         grey=pending. Rendered by _renderQuizProgressDots() in render().
-         v4.82.0: dots are now clickable buttons. Click any answered dot to
-         revisit that question; click any pending dot to jump ahead. -->
-    <div class="quiz-prog-dots" id="quiz-prog-dots" role="progressbar" aria-label="Per-question progress"></div>
-  </div>
+  <!-- v4.54.8 dots (now styled as the mockup's numbered question pills; still
+       rendered + wired by _renderQuizProgressDots(): click to revisit/jump).
+       The progress track + label moved into .quiz-topbar (lift Phase 1). -->
+  <div class="quiz-prog-dots" id="quiz-prog-dots" role="progressbar" aria-label="Per-question progress"></div>
 
   <div class="q-card">
     <div class="q-meta">
@@ -1197,6 +1195,39 @@
     </div>
   </div>
   <div id="progress-topic-grid" class="topic-grid"></div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     DRILLS PAGE (lift Phase 3 — net-new tab screen)
+     1:1 port of mockups/cert-ios-drills.html (cert-ios-e2e worktree).
+     Rendered by liftRenderDrills() in lift-shell.js from real data:
+     wrong bank (startWrongDrill), weak spots (computeWeakSpotScores →
+     focusTopic), DOMAIN_WEIGHTS domains (applyDomainPreset).
+══════════════════════════════════════════ -->
+<div id="page-drills" class="page">
+  <div class="drills-hdr">
+    <h1 class="drills-title">Drills</h1>
+    <span class="drills-plan-tag" id="drills-plan-tag">N10-009</span>
+  </div>
+  <p class="drills-lede">Short, repeat passes on the things you get wrong. Ten questions or fewer, scored like practice.</p>
+
+  <div class="drills-card" id="drills-mistakes-card">
+    <div class="drills-card-head"><span class="drills-card-title">Drill Mistakes</span><span class="drills-count-pill" id="drills-mistakes-pill">0 saved</span></div>
+    <p class="drills-card-note" id="drills-mistakes-note">Clear the wrong answers in your bank. Get one right twice in a row and it leaves the bank for good.</p>
+    <button type="button" class="drills-btn" id="drills-mistakes-btn" onclick="startWrongDrill()">Drill your mistakes</button>
+  </div>
+
+  <div class="drills-card" id="drills-weak-card">
+    <div class="drills-card-head"><span class="drills-card-title">Weakest topics</span></div>
+    <div class="drills-topic-chips" id="drills-weak-chips"></div>
+    <p class="drills-card-note">Your lowest-mastery topics right now. The drill leads with the weakest of them.</p>
+    <button type="button" class="drills-btn" id="drills-weak-btn">Drill weakest topics</button>
+  </div>
+
+  <div class="drills-sect">Drill by domain</div>
+  <div id="drills-domain-list"></div>
+
+  <p class="drills-foot-note">Drills don't touch your daily review queue — those cards stay scheduled.</p>
 </div>
 
 <!-- ══════════════════════════════════════════
@@ -1665,6 +1696,7 @@
 <script defer src="lib/onboarding-chrome.js"></script>
 <script defer src="lib/onboarding-home.js"></script>
 <script defer src="app.js"></script>
+<script defer src="lift-shell.js?v=7.36.0"></script>
 <!-- codex-home reveal animation. Purely presentational + additive: a
      staggered IntersectionObserver fade-up for #page-setup .reveal blocks,
      with a hard safety net so any conditionally-rendered card (NBM /

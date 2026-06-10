@@ -1,0 +1,1480 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   LIFT-SCREENS · Phase 1 of the mockup lift-and-shift (2026-06-10)
+   Per-screen 1:1 ports of the cert-ios mockups onto the REAL app pages.
+   Source of truth: mockups/cert-ios-quiz.html (this file: quiz session).
+   Loads LAST — selectors mirror dg-system's `html[data-theme] body #page-X`
+   pattern so later-order wins the specificity tie.
+   Token map (mockup → app): --ink→--text · --ink-soft→--text-mid ·
+   --muted→--text-dim · --surface-2→--surface3 · --track→--surface3 ·
+   --pass→--green · --miss→--red · --on-accent→var(--on-accent, var(--bg))
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ─────────────────────────── QUIZ SESSION ─────────────────────────── */
+
+#page-quiz { --lift-ease: cubic-bezier(0.16, 1, 0.3, 1); }
+html[data-theme] body #page-quiz { padding-top: 0 !important; }
+
+/* qbar: exit ✕ + track + flag (mockup .qbar) */
+html[data-theme] body #page-quiz .quiz-topbar {
+  display: flex !important; align-items: center !important; gap: 13px !important;
+  padding: 13px 0 12px !important; margin: 0 !important;
+  border: 0 !important; border-bottom: 0 !important; background: none !important;
+}
+html[data-theme] body #page-quiz .back-btn {
+  flex: 0 0 auto; width: 34px !important; height: 34px !important;
+  display: grid !important; place-items: center !important;
+  border: 1px solid var(--border) !important; border-radius: 10px !important;
+  background: var(--surface) !important; color: var(--text-mid) !important;
+  padding: 0 !important; cursor: pointer;
+  transition: transform .14s var(--lift-ease), border-color .18s !important;
+}
+html[data-theme] body #page-quiz .back-btn:active { transform: scale(0.94); }
+html[data-theme] body #page-quiz .back-btn:hover { border-color: color-mix(in oklab, var(--accent) 36%, var(--border)) !important; color: var(--text-mid) !important; }
+#page-quiz .back-btn .back-btn-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* progress track inside the bar */
+html[data-theme] body #page-quiz .progress-wrap { flex: 1 1 auto; display: flex; flex-direction: column; max-width: none !important; margin: 0 !important; padding: 0 !important; background: none !important; border: 0 !important; }
+#page-quiz .progress-bar { height: 6px; border-radius: 999px; background: var(--surface3); overflow: hidden; order: 1; }
+#page-quiz .progress-fill { height: 100%; border-radius: 999px; background: var(--accent); transition: width .5s var(--lift-ease); }
+#page-quiz .progress-label { display: flex; align-items: center; gap: 8px; margin: 6px 0 0; order: 2; }
+#page-quiz #q-label { font: 700 11px/1 Inter, 'Segoe UI', sans-serif; color: var(--text-dim); letter-spacing: 0.02em; }
+#page-quiz #q-pct,
+html[data-theme] body #page-quiz .quiz-nav-arrow { display: none !important; }
+
+/* session chrome the mockup doesn't carry */
+html[data-theme] body #page-quiz .stat-pill { display: none !important; }
+html[data-theme] body #page-quiz .cache-notice, html[data-theme] body #page-quiz #cache-notice.show { display: none !important; }
+#page-quiz .quiz-kbd-hints { display: none !important; }
+html[data-theme] body #page-quiz .quiz-stats { gap: 0 !important; }
+html[data-theme] body #page-quiz .flag-btn {
+  width: 34px; height: 34px; display: grid !important; place-items: center !important;
+  border: 1px solid var(--border) !important; border-radius: 10px !important;
+  background: var(--surface) !important; color: var(--text-dim) !important;
+  font: 700 10px/1 Inter, sans-serif !important; padding: 0 !important;
+  transition: transform .14s var(--lift-ease), border-color .18s, color .18s !important;
+}
+html[data-theme] body #page-quiz .flag-btn:active { transform: scale(0.94); }
+html[data-theme] body #page-quiz .flag-btn.flagged { border-color: var(--accent) !important; color: var(--accent) !important; }
+
+/* numbered question pills (mockup .qpills) — dots renumbered via CSS counter */
+#page-quiz .quiz-prog-dots { display: flex; gap: 7px; margin: 2px 0 16px; padding: 0; overflow-x: auto; scrollbar-width: none; counter-reset: liftqp; background: none; border: 0; }
+#page-quiz .quiz-prog-dots::-webkit-scrollbar { display: none; }
+html[data-theme] body #page-quiz .qpd-cell {
+  flex: 0 0 auto; width: 28px !important; height: 28px !important;
+  border-radius: 9px !important; display: grid; place-items: center;
+  background: var(--surface3) !important; border: 1px solid transparent !important;
+  color: var(--text-dim) !important; font: 800 12px/1 Inter, sans-serif !important;
+  counter-increment: liftqp; cursor: pointer; padding: 0 !important;
+  transition: background .18s, color .18s, border-color .18s;
+}
+#page-quiz .qpd-cell::before { content: counter(liftqp); }
+html[data-theme] body #page-quiz .qpd-cell.qpd-done { color: var(--green) !important; background: color-mix(in oklab, var(--green) 12%, var(--surface3)) !important; border-color: color-mix(in oklab, var(--green) 30%, var(--border)) !important; }
+html[data-theme] body #page-quiz .qpd-cell.qpd-wrong { color: var(--red) !important; background: color-mix(in oklab, var(--red) 11%, var(--surface3)) !important; border-color: color-mix(in oklab, var(--red) 30%, var(--border)) !important; }
+html[data-theme] body #page-quiz .qpd-cell.qpd-now { color: var(--on-accent, var(--bg)) !important; background: var(--accent) !important; border-color: var(--accent) !important; }
+
+/* question block: flat typographic flow (mockup has no card) */
+html[data-theme] body #page-quiz .q-card { background: none !important; border: 0 !important; border-radius: 0 !important; box-shadow: none !important; padding: 0 !important; margin: 0 !important; max-width: none !important; }
+#page-quiz .q-meta { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+html[data-theme] body #page-quiz .q-num { font: 800 12px/1 Inter, sans-serif !important; letter-spacing: 0.04em; color: var(--text-mid) !important; background: none !important; border: 0 !important; padding: 0 !important; }
+html[data-theme] body #page-quiz .diff-badge, html[data-theme] body #page-quiz .pbq-badge {
+  font: 800 9.5px/1 Inter, sans-serif !important; letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--accent) !important; background: color-mix(in oklab, var(--accent) 11%, transparent) !important;
+  border: 1px solid color-mix(in oklab, var(--accent) 26%, var(--border)) !important;
+  border-radius: 999px !important; padding: 6px 10px !important;
+}
+html[data-theme] body #page-quiz .q-text {
+  font-family: Fraunces, Georgia, serif !important; font-weight: 600 !important;
+  font-size: 22px !important; line-height: 1.28 !important; letter-spacing: -0.01em !important;
+  color: var(--text) !important; margin: 0 0 16px !important;
+}
+#page-quiz .q-text .hl-keyword, #page-quiz .q-text .kw { color: var(--accent); font-style: italic; }
+
+/* scenario context (mockup .scenario) */
+html[data-theme] body #page-quiz .q-scenario {
+  border: 1px solid color-mix(in oklab, var(--accent) 22%, var(--border)) !important;
+  border-left: 3px solid var(--accent) !important;
+  border-radius: 12px !important;
+  background: color-mix(in oklab, var(--accent) 6%, var(--surface)) !important;
+  padding: 11px 13px !important; margin: 0 0 18px !important;
+  font: 500 13px/1.5 Inter, sans-serif !important; color: var(--text-mid) !important;
+}
+
+/* options (mockup .opt — app DOM is .option > .opt-letter + .opt-text) */
+html[data-theme] body #page-quiz .option {
+  display: flex !important; align-items: center !important; gap: 12px !important;
+  width: 100%; text-align: left;
+  border: 1px solid var(--border) !important; border-radius: 14px !important;
+  background: var(--surface) !important; padding: 13px 14px !important; margin: 0 0 10px !important;
+  color: var(--text) !important; box-shadow: none !important; cursor: pointer;
+  transition: border-color .18s, background .18s, opacity .2s, transform .12s var(--lift-ease) !important;
+}
+html[data-theme] body #page-quiz .option:active { transform: scale(0.99); }
+@media (hover:hover) and (pointer:fine) { html[data-theme] body #page-quiz .option:hover { border-color: color-mix(in oklab, var(--accent) 38%, var(--border)) !important; } }
+html[data-theme] body #page-quiz .option .opt-letter {
+  flex: 0 0 auto; width: 30px !important; height: 30px !important; border-radius: 9px !important;
+  background: var(--surface3) !important; color: var(--text-mid) !important;
+  display: grid !important; place-items: center !important;
+  font: 800 13px/1 Inter, sans-serif !important; transition: background .18s, color .18s;
+}
+html[data-theme] body #page-quiz .option .opt-text { flex: 1 1 auto; font: 500 14.5px/1.35 Inter, sans-serif !important; color: inherit !important; }
+/* answered states (mockup .answered .opt.*) — keep app's class hooks */
+html[data-theme] body #page-quiz .option.correct,
+html[data-theme] body #page-quiz .option.reveal-correct {
+  border-color: color-mix(in oklab, var(--green) 55%, var(--border)) !important;
+  background: color-mix(in oklab, var(--green) 9%, var(--surface)) !important;
+}
+html[data-theme] body #page-quiz .option.correct .opt-letter,
+html[data-theme] body #page-quiz .option.reveal-correct .opt-letter { background: var(--green) !important; color: var(--on-accent, var(--bg)) !important; }
+html[data-theme] body #page-quiz .option.wrong {
+  border-color: color-mix(in oklab, var(--red) 50%, var(--border)) !important;
+  background: color-mix(in oklab, var(--red) 8%, var(--surface)) !important;
+}
+html[data-theme] body #page-quiz .option.wrong .opt-letter { background: var(--red) !important; color: var(--on-accent, var(--bg)) !important; }
+html[data-theme] body #page-quiz .option.dimmed { opacity: .55; }
+
+/* explanation (mockup .why) */
+html[data-theme] body #page-quiz .explanation-box {
+  border: 1px solid color-mix(in oklab, var(--accent) 24%, var(--border)) !important;
+  border-radius: 15px !important;
+  background: color-mix(in oklab, var(--accent) 5%, var(--surface)) !important;
+  padding: 14px 15px !important; margin: 4px 0 0 !important;
+  font-size: 13px !important; line-height: 1.52 !important; color: var(--text-mid) !important;
+  box-shadow: none !important;
+}
+html[data-theme] body #page-quiz .explanation-box strong { display: block; font: 800 11px/1.3 Inter, sans-serif !important; letter-spacing: 0.04em; color: var(--accent) !important; margin-bottom: 9px; text-transform: none; }
+#page-quiz .exp-wrong-explain { margin-top: 9px; padding-top: 9px; border-top: 1px solid color-mix(in oklab, var(--border) 60%, transparent); }
+
+/* revisit banner: quiet pill */
+html[data-theme] body #page-quiz .quiz-revisit-banner {
+  display: flex; align-items: center; gap: 8px;
+  border: 1px solid var(--border) !important; border-radius: 11px !important;
+  background: var(--surface3) !important; color: var(--text-mid) !important;
+  font: 600 11.5px/1.4 Inter, sans-serif !important; padding: 9px 12px !important; margin: 10px 0 0 !important;
+}
+
+/* pinned footer action (mockup .qfoot + .btn-primary) */
+#page-quiz .next-btn-row {
+  position: sticky; bottom: 0; margin: 14px -20px 0; padding: 12px 20px calc(12px + env(safe-area-inset-bottom));
+  border-top: 1px solid color-mix(in oklab, var(--border) 70%, transparent);
+  background: var(--bg); z-index: 5;
+}
+html[data-theme] body #page-quiz .btn-next {
+  width: 100% !important; justify-content: center !important;
+  border: 0 !important; border-radius: 13px !important; padding: 14px !important;
+  background: var(--accent) !important; color: var(--on-accent, var(--bg)) !important;
+  font: 700 15px/1 Inter, sans-serif !important; cursor: pointer;
+  transition: transform .14s var(--lift-ease), filter .2s !important; box-shadow: none !important;
+}
+html[data-theme] body #page-quiz .btn-next:active { transform: scale(0.985); }
+@media (hover:hover) and (pointer:fine) { html[data-theme] body #page-quiz .btn-next:hover { filter: brightness(1.05); } }
+
+/* ─────────────────────────── SESSION RESULTS ─────────────────────────── */
+/* Source: mockups/cert-ios-results.html (done-head, scaled card, stats
+   hairline rows, qrow review list, rfoot actions) onto #page-results. */
+
+html[data-theme] body #page-results { padding-top: 10px !important; }
+html[data-theme] body #page-results .results-v2 { max-width: none !important; margin: 0 !important; padding: 0 !important; }
+
+/* done-head */
+html[data-theme] body #page-results .results-v2-eyebrow {
+  font: 800 10px/1 Inter, sans-serif !important; letter-spacing: 0.14em !important; text-transform: uppercase;
+  color: var(--text-dim) !important; margin-bottom: 11px !important; background: none !important; border: 0 !important; padding: 0 !important;
+}
+html[data-theme] body #page-results .results-v2-display {
+  font: 600 30px/1.08 Fraunces, Georgia, serif !important; letter-spacing: -0.014em !important;
+  color: var(--text) !important; margin: 0 !important;
+}
+html[data-theme] body #page-results .results-v2-display em { font-style: normal !important; color: var(--accent) !important; }
+html[data-theme] body #page-results .results-v2-lede {
+  font-size: 13.5px !important; line-height: 1.5 !important; color: var(--text-mid) !important;
+  margin: 10px 0 0 !important; max-width: 34ch;
+}
+
+/* hero -> scaled card + stats card, stacked */
+html[data-theme] body #page-results .results-v2-hero {
+  display: flex !important; flex-direction: column !important; gap: 0 !important;
+  background: none !important; border: 0 !important; padding: 0 !important; margin-top: 18px !important;
+}
+html[data-theme] body #page-results .results-v2-big {
+  border: 1px solid color-mix(in oklab, var(--accent) 20%, var(--border)) !important;
+  border-radius: 18px !important;
+  background: color-mix(in oklab, var(--accent) 5%, var(--surface)) !important;
+  padding: 16px 17px !important; color: var(--text) !important; box-shadow: none !important;
+}
+html[data-theme] body #page-results .results-v2-big-label {
+  font: 800 10px/1 Inter, sans-serif !important; letter-spacing: 0.12em !important; text-transform: uppercase;
+  color: var(--text-dim) !important;
+}
+html[data-theme] body #page-results .results-v2-big-score {
+  display: flex; align-items: baseline; gap: 9px; margin: 11px 0 12px !important;
+  font: 600 52px/1 Fraunces, Georgia, serif !important; color: var(--text) !important;
+  font-variant-numeric: lining-nums tabular-nums; font-feature-settings: "lnum","tnum";
+}
+html[data-theme] body #page-results .results-v2-big-score em {
+  font: 700 14px/1 Inter, sans-serif !important; font-style: normal !important; letter-spacing: 0.04em;
+  color: var(--text-dim) !important;
+}
+html[data-theme] body #page-results .results-v2-verdict {
+  display: inline-flex; align-items: center; gap: 7px;
+  font: 700 11.5px/1 Inter, sans-serif !important; border-radius: 999px !important; padding: 7px 11px !important;
+}
+html[data-theme] body #page-results .results-v2-verdict-pass {
+  color: var(--green) !important; background: color-mix(in oklab, var(--green) 12%, transparent) !important;
+  border: 1px solid color-mix(in oklab, var(--green) 32%, transparent) !important;
+}
+html[data-theme] body #page-results .results-v2-verdict-fail {
+  color: var(--red) !important; background: color-mix(in oklab, var(--red) 12%, transparent) !important;
+  border: 1px solid color-mix(in oklab, var(--red) 32%, transparent) !important;
+}
+html[data-theme] body #page-results .results-v2-side {
+  margin-top: 16px !important; border: 1px solid var(--border) !important; border-radius: 15px !important;
+  background: var(--surface) !important; overflow: hidden; padding: 0 !important; box-shadow: none !important;
+}
+html[data-theme] body #page-results .results-v2-row {
+  display: flex !important; align-items: center; justify-content: space-between;
+  padding: 12px 15px !important; margin: 0 !important; border: 0 !important;
+}
+html[data-theme] body #page-results .results-v2-row + .results-v2-row { border-top: 1px solid color-mix(in oklab, var(--border) 64%, transparent) !important; }
+html[data-theme] body #page-results .results-v2-row .k { font: 500 13.5px/1 Inter, sans-serif !important; color: var(--text-mid) !important; }
+html[data-theme] body #page-results .results-v2-row .v { font: 700 14px/1 Inter, sans-serif !important; color: var(--text) !important; font-variant-numeric: lining-nums tabular-nums; }
+html[data-theme] body #page-results #r-correct { color: var(--green) !important; }
+html[data-theme] body #page-results #r-wrong { color: var(--red) !important; }
+
+/* difficulty breakdown: quiet card */
+html[data-theme] body #page-results .diff-breakdown { margin-top: 11px !important; }
+
+/* review-this-session list */
+html[data-theme] body #page-results .results-v2-review { margin-top: 6px !important; background: none !important; border: 0 !important; padding: 0 !important; }
+html[data-theme] body #page-results .results-v2-review-eyebrow {
+  font: 800 10px/1 Inter, sans-serif !important; letter-spacing: 0.12em !important; text-transform: uppercase;
+  color: var(--text-dim) !important; margin: 22px 2px 7px !important;
+}
+html[data-theme] body #page-results .results-v2-review-title {
+  font: 600 22px/1.1 Fraunces, Georgia, serif !important; letter-spacing: -0.012em !important;
+  color: var(--text) !important; margin: 0 2px 12px !important;
+}
+html[data-theme] body #page-results .results-v2-review-title em { font-style: normal !important; color: var(--accent) !important; }
+html[data-theme] body #page-results .results-v2-review-row {
+  display: flex !important; align-items: flex-start; gap: 12px; width: 100%; text-align: left;
+  border: 1px solid var(--border) !important; border-radius: 13px !important;
+  background: var(--surface) !important; padding: 12px 13px !important; margin: 0 0 9px !important;
+  cursor: pointer; box-shadow: none !important; transition: border-color .18s;
+}
+html[data-theme] body #page-results .results-v2-review-row:hover { border-color: color-mix(in oklab, var(--accent) 36%, var(--border)) !important; }
+html[data-theme] body #page-results .results-v2-review-num { flex: 0 0 auto; font: 700 11px/1.4 'Roboto Mono', ui-monospace, monospace !important; color: var(--text-dim) !important; padding-top: 1px; }
+html[data-theme] body #page-results .results-v2-review-body { flex: 1 1 auto; min-width: 0; }
+html[data-theme] body #page-results .results-v2-review-q {
+  font: 500 13px/1.4 Inter, sans-serif !important; color: var(--text) !important;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+html[data-theme] body #page-results .results-v2-review-meta { font: 500 10.5px/1.3 'Roboto Mono', ui-monospace, monospace !important; color: var(--text-dim) !important; margin-top: 5px !important; }
+html[data-theme] body #page-results .results-v2-review-mark {
+  flex: 0 0 auto; align-self: center;
+  font: 800 9px/1 Inter, sans-serif !important; letter-spacing: 0.08em !important; text-transform: uppercase;
+  border-radius: 999px !important; padding: 5px 8px !important;
+}
+html[data-theme] body #page-results .results-v2-review-mark-ok {
+  color: var(--green) !important; background: color-mix(in oklab, var(--green) 12%, transparent) !important;
+  border: 1px solid color-mix(in oklab, var(--green) 32%, transparent) !important;
+}
+html[data-theme] body #page-results .results-v2-review-mark-bad {
+  color: var(--red) !important; background: color-mix(in oklab, var(--red) 12%, transparent) !important;
+  border: 1px solid color-mix(in oklab, var(--red) 32%, transparent) !important;
+}
+
+/* footer actions (mockup .rfoot): primary on top, ghost row under */
+html[data-theme] body #page-results .results-v2-cta-row {
+  position: sticky; bottom: 0; z-index: 5;
+  display: flex !important; flex-direction: column !important; gap: 9px !important;
+  margin: 14px -20px 0 !important; padding: 12px 20px calc(12px + env(safe-area-inset-bottom)) !important;
+  border-top: 1px solid color-mix(in oklab, var(--border) 70%, transparent) !important;
+  background: var(--bg) !important;
+}
+html[data-theme] body #page-results .results-v2-cta-right { display: flex !important; flex-wrap: wrap; gap: 9px !important; order: 1; }
+html[data-theme] body #page-results .results-v2-cta-right .btn-primary {
+  flex: 1 1 100%; order: -1;
+  border: 0 !important; border-radius: 13px !important; padding: 14px !important;
+  background: var(--accent) !important; color: var(--on-accent, var(--bg)) !important;
+  font: 700 15px/1 Inter, sans-serif !important; cursor: pointer;
+  transition: transform .14s var(--lift-ease), filter .2s !important;
+}
+html[data-theme] body #page-results .results-v2-cta-right .btn-primary:active { transform: scale(0.985); }
+html[data-theme] body #page-results .results-v2-cta-row .btn-ghost {
+  flex: 1 1 0; display: inline-flex; align-items: center; justify-content: center;
+  font: 700 11.5px/1.1 Inter, sans-serif !important; color: var(--text-mid) !important;
+  background: var(--surface3) !important; border: 1px solid var(--border) !important;
+  border-radius: 11px !important; padding: 11px 8px !important; cursor: pointer;
+  transition: border-color .18s, color .18s, transform .12s var(--lift-ease) !important;
+}
+html[data-theme] body #page-results .results-v2-cta-row .btn-ghost:active { transform: scale(0.97); }
+html[data-theme] body #page-results .results-v2-cta-back { order: 2; }
+
+/* case fixes: mockup uses sentence case for stat labels + review title */
+html[data-theme] body #page-results .results-v2-row .k { text-transform: none !important; letter-spacing: 0 !important; }
+html[data-theme] body #page-results .results-v2-review-title { text-transform: none !important; }
+html[data-theme] body #page-results .results-v2-review-mark { text-transform: uppercase !important; }
+
+/* ─────────────────────────── REVIEW ANSWERS ─────────────────────────── */
+/* Source: cert-ios-review-answers.html (hdr, filter chips, .qa cards with
+   verdict badge, marked option rows, left-rule explanation) onto #page-review. */
+
+html[data-theme] body #page-review { padding-top: 10px !important; }
+
+/* header: back chip + kick + Fraunces display */
+html[data-theme] body #page-review .ed-pagehead { display: flex; align-items: flex-start; gap: 13px; margin: 4px 0 14px !important; background: none !important; border: 0 !important; padding: 0 !important; }
+html[data-theme] body #page-review .ed-pagehead-back {
+  flex: 0 0 auto; width: 34px; height: 34px; display: grid !important; place-items: center !important;
+  border: 1px solid var(--border) !important; border-radius: 10px !important;
+  background: var(--surface) !important; color: var(--text-mid) !important;
+  font: 700 14px/1 Inter, sans-serif !important; padding: 0 !important; cursor: pointer;
+  transition: transform .14s var(--lift-ease), border-color .18s !important; overflow: hidden; white-space: nowrap;
+}
+html[data-theme] body #page-review .ed-pagehead-back:active { transform: scale(0.94); }
+html[data-theme] body #page-review .ed-pagehead-eyebrow {
+  font: 800 10px/1 Inter, sans-serif !important; letter-spacing: 0.14em !important; text-transform: uppercase;
+  color: var(--text-dim) !important; margin-bottom: 9px !important;
+}
+html[data-theme] body #page-review .ed-pagehead-display {
+  font: 600 30px/1.08 Fraunces, Georgia, serif !important; letter-spacing: -0.014em !important;
+  color: var(--text) !important; margin: 0 !important;
+}
+html[data-theme] body #page-review .ed-pagehead-display em { font-style: normal !important; color: var(--accent) !important; }
+
+/* filter chips */
+html[data-theme] body #page-review .review-filter-row { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; margin: 0 0 14px !important; background: none !important; border: 0 !important; padding: 0 !important; }
+html[data-theme] body #page-review .review-filter-eyebrow { font: 800 10px/1 Inter, sans-serif !important; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-dim) !important; margin-right: 3px; }
+html[data-theme] body #page-review .review-filter-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  font: 700 11.5px/1 Inter, sans-serif !important; color: var(--text-mid) !important;
+  background: var(--surface3) !important; border: 1px solid var(--border) !important;
+  border-radius: 999px !important; padding: 8px 11px !important; cursor: pointer;
+  transition: border-color .18s, color .18s, background .18s, transform .12s var(--lift-ease) !important; box-shadow: none !important;
+}
+html[data-theme] body #page-review .review-filter-chip:active { transform: scale(0.96); }
+html[data-theme] body #page-review .review-filter-chip.is-active {
+  color: var(--accent) !important; background: color-mix(in oklab, var(--accent) 11%, transparent) !important;
+  border-color: color-mix(in oklab, var(--accent) 34%, var(--border)) !important;
+}
+html[data-theme] body #page-review .review-filter-chip.is-disabled { opacity: .4; cursor: default; }
+html[data-theme] body #page-review .chip-count { font: 700 10px/1 'Roboto Mono', ui-monospace, monospace !important; color: inherit !important; opacity: .75; }
+html[data-theme] body #page-review .review-filter-meta { font: 500 11px/1 Inter, sans-serif !important; color: var(--text-dim) !important; margin-left: auto; }
+
+/* answer cards (mockup .qa) */
+html[data-theme] body #page-review .review-item {
+  border: 1px solid var(--border) !important; border-left: 1px solid var(--border) !important;
+  border-radius: 16px !important; background: var(--surface) !important;
+  padding: 15px 15px 14px !important; margin-bottom: 10px !important; box-shadow: none !important;
+}
+html[data-theme] body #page-review .review-q-meta-row { display: flex; align-items: center; flex-wrap: wrap; gap: 7px; margin-bottom: 10px !important; }
+html[data-theme] body #page-review .q-num-pill {
+  font: 800 11px/1 Inter, sans-serif !important; letter-spacing: 0.04em; color: var(--text-dim) !important;
+  background: none !important; border: 0 !important; padding: 0 !important;
+}
+html[data-theme] body #page-review .q-tag {
+  display: inline-flex; align-items: center; gap: 5px;
+  font: 800 10px/1 Inter, sans-serif !important; letter-spacing: 0.05em !important; text-transform: uppercase;
+  padding: 5px 9px !important; border-radius: 999px !important; border: 0 !important;
+}
+html[data-theme] body #page-review .q-tag.tag-correct { color: var(--green) !important; background: color-mix(in oklab, var(--green) 13%, transparent) !important; margin-left: auto; order: 9; }
+html[data-theme] body #page-review .q-tag.tag-incorrect { color: var(--red) !important; background: color-mix(in oklab, var(--red) 12%, transparent) !important; margin-left: auto; order: 9; }
+html[data-theme] body #page-review .q-tag.tag-skipped { color: var(--text-dim) !important; background: var(--surface3) !important; margin-left: auto; order: 9; }
+html[data-theme] body #page-review .q-tag.tag-flagged { color: var(--accent) !important; background: color-mix(in oklab, var(--accent) 12%, transparent) !important; }
+html[data-theme] body #page-review .q-tag.tag-domain { color: var(--text-dim) !important; background: var(--surface3) !important; text-transform: none !important; letter-spacing: 0 !important; }
+html[data-theme] body #page-review .review-q { font: 650 14.5px/1.4 Inter, sans-serif !important; color: var(--text) !important; margin: 0 0 11px !important; }
+
+/* option rows (mockup .qa-opt) */
+html[data-theme] body #page-review .review-options { display: grid; gap: 7px; margin: 0 0 11px !important; }
+html[data-theme] body #page-review .review-opt {
+  display: flex; align-items: center; gap: 9px;
+  font: 500 13px/1.3 Inter, sans-serif !important; color: var(--text-mid) !important;
+  border: 1.5px solid var(--border) !important; border-radius: 11px !important;
+  background: none !important; padding: 10px 12px !important; margin: 0 !important;
+}
+html[data-theme] body #page-review .review-opt .r-letter { flex: 0 0 auto; font: 800 11px/1 Inter, sans-serif !important; color: var(--text-dim) !important; }
+html[data-theme] body #page-review .review-opt.is-correct {
+  border-color: var(--green) !important; background: color-mix(in oklab, var(--green) 10%, var(--surface)) !important; color: var(--text) !important;
+}
+html[data-theme] body #page-review .review-opt.is-correct .r-letter { color: var(--green) !important; }
+html[data-theme] body #page-review .review-opt.was-chosen {
+  border-color: var(--red) !important; background: color-mix(in oklab, var(--red) 9%, var(--surface)) !important; color: var(--text) !important;
+}
+html[data-theme] body #page-review .review-opt.was-chosen .r-letter { color: var(--red) !important; }
+
+/* explanation: left-rule note (mockup .qa-ex) */
+html[data-theme] body #page-review .review-exp {
+  font-size: 12.5px !important; line-height: 1.45 !important; color: var(--text-dim) !important;
+  background: none !important; border-radius: 0 !important;
+  padding: 0 0 0 12px !important; border-left: 2px solid color-mix(in oklab, var(--accent) 40%, var(--border)) !important;
+}
+html[data-theme] body #page-review .resource-dive-btn {
+  display: inline-flex; align-items: center; gap: 7px; margin-top: 4px;
+  font: 700 12px/1 Inter, sans-serif !important; color: var(--accent) !important;
+  background: color-mix(in oklab, var(--accent) 10%, transparent) !important;
+  border: 1px solid color-mix(in oklab, var(--accent) 30%, var(--border)) !important;
+  border-radius: 999px !important; padding: 8px 12px !important; cursor: pointer;
+}
+
+/* back chip: arrow glyph only (the 'Back' word doesn't fit the 34px chip) */
+html[data-theme] body #page-review .ed-pagehead-back { font-size: 0 !important; }
+html[data-theme] body #page-review .ed-pagehead-back::after { content: '\2190'; font: 700 15px/1 Inter, sans-serif; }
+
+/* ─────────────────────────── SETTINGS (Phase 2) ─────────────────────────── */
+/* Source: cert-ios-settings.html — sect labels, calm cards, seg chips, full-
+   width save buttons — onto #page-settings. The v7.18 12-col control-center
+   bento collapses to the mockup's single scrollable column at EVERY viewport. */
+
+html[data-theme] body #page-settings { max-width: none !important; margin: 0 auto !important; padding: 10px 0 90px !important; }
+html[data-theme] body #page-settings .settings-group { display: flex !important; flex-direction: column !important; gap: 11px !important; margin-top: 26px !important; }
+html[data-theme] body #page-settings .settings-group .settings-section { grid-column: auto !important; }
+
+/* group head → mockup .sect kicker (small caps over the cards) */
+html[data-theme] body #page-settings .settings-group-head { display: block !important; margin-bottom: 0 !important; padding-bottom: 0 !important; border: 0 !important; }
+html[data-theme] body #page-settings .settings-group-num { display: none !important; }
+html[data-theme] body #page-settings .settings-group-h {
+  font: 800 10px/1 Inter, sans-serif !important; letter-spacing: 0.12em !important; text-transform: uppercase !important;
+  color: var(--text-dim) !important; margin: 0 2px 4px !important;
+}
+html[data-theme] body #page-settings .settings-group-h em { color: var(--text-dim) !important; }
+html[data-theme] body #page-settings .settings-group-sub { font-size: 12px !important; color: var(--text-dim) !important; margin: 0 2px 7px !important; line-height: 1.45 !important; }
+
+/* cards (mockup .card) */
+html[data-theme] body #page-settings .settings-section {
+  border: 1px solid var(--border) !important; border-radius: 16px !important;
+  background: var(--surface) !important; padding: 15px 16px !important;
+  margin: 0 !important; box-shadow: none !important;
+}
+html[data-theme] body #page-settings .settings-section-title {
+  font: 650 14.5px/1.2 Inter, sans-serif !important; letter-spacing: 0 !important; text-transform: none !important;
+  color: var(--text) !important; margin: 0 0 6px !important;
+}
+html[data-theme] body #page-settings .settings-section-hint { font-size: 12px !important; line-height: 1.45 !important; color: var(--text-dim) !important; margin-top: 9px !important; }
+
+/* health/at-a-glance grid → single column rows */
+html[data-theme] body #page-settings .settings-health-grid { grid-template-columns: 1fr !important; gap: 0 !important; margin-top: 4px !important; }
+
+/* segmented chips (mockup .seg) */
+html[data-theme] body #page-settings .settings-daily-chip {
+  font: 700 12.5px/1 Inter, sans-serif !important; border-radius: 10px !important; padding: 10px 12px !important;
+  background: var(--surface3) !important; border: 1px solid var(--border) !important; color: var(--text-mid) !important;
+  cursor: pointer; transition: background .18s, color .18s, border-color .18s, transform .12s var(--lift-ease) !important;
+}
+html[data-theme] body #page-settings .settings-daily-chip:active { transform: scale(0.97); }
+html[data-theme] body #page-settings .settings-daily-chip.is-active {
+  background: color-mix(in oklab, var(--accent) 14%, transparent) !important;
+  border-color: color-mix(in oklab, var(--accent) 45%, var(--border)) !important; color: var(--accent) !important;
+}
+
+/* buttons inside settings: full-width accent saves, quiet ghosts */
+html[data-theme] body #page-settings .settings-section .btn {
+  border-radius: 12px !important; font: 700 13px/1 Inter, sans-serif !important; padding: 12px 14px !important;
+  transition: transform .14s var(--lift-ease), filter .2s !important; box-shadow: none !important;
+}
+html[data-theme] body #page-settings .settings-section .btn:active { transform: scale(0.985); }
+html[data-theme] body #page-settings .settings-section .btn-primary { width: 100%; background: var(--accent) !important; color: var(--on-accent, var(--bg)) !important; border: 0 !important; }
+html[data-theme] body #page-settings .settings-section .btn-ghost { background: var(--surface3) !important; border: 1px solid var(--border) !important; color: var(--text-mid) !important; }
+
+/* ─────────────────────────── HOME tune (Phase 2) ─────────────────────────── */
+/* The v7.17 bento already descends from an approved mockup; in the column it
+   just needs mockup-scale cards + type (cert-ios-home rhythm). */
+html[data-theme] body #page-setup .tile, html[data-theme] body #page-setup .cell-hero, html[data-theme] body #page-setup .cmd-bar {
+  border-radius: 16px !important; box-shadow: none !important;
+}
+html[data-theme] body #page-setup .tile { padding: 15px 16px !important; }
+html[data-theme] body #page-setup .tile-title { font: 650 15px/1.25 Fraunces, Georgia, serif !important; letter-spacing: -0.008em !important; }
+html[data-theme] body #page-setup .tile-sub { font-size: 12px !important; line-height: 1.45 !important; color: var(--text-dim) !important; }
+html[data-theme] body #page-setup .bento { gap: 11px !important; }
+html[data-theme] body #page-setup .home-grid { gap: 11px !important; padding-top: 12px !important; }
+
+/* settings page header: the topbar crumb + Account tab already say where we
+   are (mockup has no in-page header) */
+html[data-theme] body #page-settings > .ed-pagehead { display: none !important; }
+
+/* ─────────────────────────── PROGRESS (Phase 3) ─────────────────────────── */
+/* Source: cert-ios-progress.html — the swipe pager is FLATTENED to one scroll
+   (locked: app pages are single scrolls). Mockup blocks map to the real bento:
+   .hero→.t-spot · .stand→.t-cov · .domain→.t-dom · .listcard→.t-weak ·
+   .cloud→.t-untouched/.t-strong chips · .strip→.t-recent. The pm/dr summary,
+   rec card, page header and search duplicate mockup-absent surfaces — hidden. */
+
+#page-progress { --lift-ease: cubic-bezier(0.16, 1, 0.3, 1); }
+html[data-theme] body #page-progress { padding-top: 10px !important; }
+
+/* Progress ⇄ Analytics seg switcher (lift-shell injects; mockup .seg chips) */
+html[data-theme] body .lift-seg { display: flex; gap: 8px; margin: 2px 0 12px; }
+html[data-theme] body .lift-seg-chip {
+  font: 700 12px/1 Inter, sans-serif; padding: 8px 13px; border-radius: 999px;
+  border: 1px solid var(--border); background: var(--surface); color: var(--text-mid);
+  cursor: pointer; white-space: nowrap;
+  transition: background .2s, color .2s, border-color .2s, transform .14s cubic-bezier(0.16, 1, 0.3, 1);
+}
+html[data-theme] body .lift-seg-chip:active { transform: scale(.96); }
+html[data-theme] body .lift-seg-chip.on {
+  background: color-mix(in oklab, var(--accent) 12%, var(--surface));
+  border-color: color-mix(in oklab, var(--accent) 45%, var(--border));
+  color: var(--accent);
+}
+
+/* surfaces the mockup doesn't carry */
+html[data-theme] body #page-progress .ed-pagehead { display: none !important; }
+html[data-theme] body #page-progress #progress-rec-host { display: none !important; }
+html[data-theme] body #page-progress #progress-summary { display: none !important; }
+html[data-theme] body #page-progress .progress-search { display: none !important; }
+
+/* toolbar → mockup .controls (fchips + sort pill) */
+html[data-theme] body #page-progress .progress-toolbar {
+  display: flex !important; align-items: center !important; flex-wrap: wrap !important; gap: 7px !important;
+  margin: 2px 0 14px !important; padding: 0 !important; background: none !important; border: 0 !important;
+}
+html[data-theme] body #page-progress .progress-filters { display: contents !important; }
+html[data-theme] body #page-progress .prog-filter-btn {
+  border: 1px solid var(--border) !important; border-radius: 999px !important;
+  background: var(--surface) !important; color: var(--text-mid) !important;
+  font: 700 11.5px/1 Inter, sans-serif !important; padding: 8px 12px !important; cursor: pointer;
+  transition: transform .14s var(--lift-ease), border-color .18s, background .18s, color .18s !important;
+}
+html[data-theme] body #page-progress .prog-filter-btn:active { transform: scale(0.96); }
+@media (hover:hover) and (pointer:fine) { html[data-theme] body #page-progress .prog-filter-btn:hover { border-color: color-mix(in oklab, var(--accent) 36%, var(--border)) !important; } }
+html[data-theme] body #page-progress .prog-filter-btn.prog-filter-active {
+  background: var(--accent) !important; color: var(--on-accent, var(--bg)) !important; border-color: var(--accent) !important;
+}
+html[data-theme] body #page-progress .progress-sort { margin-left: auto !important; display: inline-flex !important; align-items: center; }
+html[data-theme] body #page-progress .prog-sort-label { display: none !important; }
+html[data-theme] body #page-progress .prog-sort-select {
+  appearance: none; -webkit-appearance: none;
+  border: 1px solid var(--border) !important; border-radius: 999px !important;
+  background: var(--surface) !important; color: var(--text-dim) !important;
+  font: 700 11px/1 Inter, sans-serif !important; padding: 8px 11px !important; cursor: pointer;
+}
+
+/* bento grid → single mockup column (viewport-media-query trap) */
+html[data-theme] body #page-progress .progress-bento,
+html[data-theme] body #page-progress #progress-topic-grid {
+  display: block !important; column-count: auto !important; grid-template-columns: none !important;
+}
+html[data-theme] body #page-progress .progress-bento .tile {
+  width: auto !important; margin: 0 0 12px !important; box-shadow: none !important;
+}
+/* shared eyebrow → mockup .sect kicker */
+html[data-theme] body #page-progress .tile-eyebrow {
+  font: 800 10px/1 Inter, sans-serif !important; letter-spacing: 0.12em !important; text-transform: uppercase !important;
+  color: var(--text-dim) !important; margin: 0 0 11px !important; display: flex; align-items: baseline; gap: 6px;
+}
+html[data-theme] body #page-progress .tile-count { font: 600 10px/1 Inter, sans-serif !important; letter-spacing: 0 !important; text-transform: none !important; color: var(--text-dim) !important; opacity: .85; }
+
+/* spotlight → mockup .hero (drill this next) */
+html[data-theme] body #page-progress .t-spot {
+  display: block !important; width: 100% !important; text-align: left !important; cursor: pointer;
+  border: 1px solid color-mix(in oklab, var(--accent) 24%, var(--border)) !important;
+  border-radius: 18px !important;
+  background: color-mix(in oklab, var(--accent) 6%, var(--surface)) !important;
+  padding: 16px 17px !important;
+}
+html[data-theme] body #page-progress .t-spot::before, html[data-theme] body #page-progress .t-spot::after { content: none !important; }
+html[data-theme] body #page-progress .spot-top { display: block !important; }
+html[data-theme] body #page-progress .spot-eyebrow {
+  display: inline-flex !important; align-items: center; gap: 6px;
+  font: 800 9.5px/1 Inter, sans-serif !important; letter-spacing: 0.12em !important; text-transform: uppercase !important;
+  color: var(--accent) !important; background: none !important; border: 0 !important; padding: 0 !important; margin: 0 !important;
+}
+html[data-theme] body #page-progress .spot-flag { display: none !important; }
+html[data-theme] body #page-progress .spot-name {
+  display: block !important; font: 600 21px/1.12 Fraunces, Georgia, serif !important; letter-spacing: -0.01em !important;
+  color: var(--text) !important; margin: 10px 0 3px !important;
+}
+html[data-theme] body #page-progress .spot-domain {
+  display: block !important; font: 600 11px/1.3 'Roboto Mono', ui-monospace, monospace !important; color: var(--text-dim) !important;
+}
+html[data-theme] body #page-progress .spot-why {
+  display: block !important; font: 400 12.5px/1.45 Inter, sans-serif !important; color: var(--text-mid) !important;
+  margin: 11px 0 13px !important; max-width: none !important;
+}
+html[data-theme] body #page-progress .spot-foot { display: flex !important; align-items: center !important; gap: 12px !important; margin: 0 !important; }
+html[data-theme] body #page-progress .spot-mastery { flex: 0 0 auto; display: flex !important; flex-direction: column !important; gap: 3px !important; }
+html[data-theme] body #page-progress .spot-mastery .num {
+  font: 600 22px/1 Fraunces, Georgia, serif !important; color: var(--red) !important;
+  font-variant-numeric: lining-nums tabular-nums; font-feature-settings: "lnum","tnum";
+}
+html[data-theme] body #page-progress .spot-mastery .lbl {
+  font: 700 8.5px/1 Inter, sans-serif !important; letter-spacing: 0.1em !important; text-transform: uppercase !important; color: var(--text-dim) !important;
+}
+html[data-theme] body #page-progress .spot-mastery-lbl { flex: 0 0 auto; font: 700 10px/1.3 Inter, sans-serif !important; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-dim) !important; max-width: 9ch; }
+html[data-theme] body #page-progress .spot-cta {
+  flex: 1 1 auto !important; display: inline-flex !important; align-items: center !important; justify-content: center !important; gap: 7px !important;
+  border: 0 !important; border-radius: 13px !important;
+  background: var(--accent) !important; color: var(--on-accent, var(--bg)) !important;
+  font: 700 14px/1 Inter, sans-serif !important; padding: 13px 16px !important; margin: 0 !important;
+  box-shadow: 0 10px 22px -12px color-mix(in oklab, var(--accent) 72%, transparent) !important;
+  transition: transform .15s var(--lift-ease), filter .2s !important;
+}
+html[data-theme] body #page-progress .t-spot:active .spot-cta { transform: scale(0.985); }
+@media (hover:hover) and (pointer:fine) { html[data-theme] body #page-progress .t-spot:hover .spot-cta { filter: brightness(1.04); } }
+
+/* coverage → mockup .stand (ring + pair + counts) */
+html[data-theme] body #page-progress .t-cov {
+  border: 1px solid var(--border) !important; border-radius: 17px !important;
+  background: var(--surface) !important; padding: 15px 16px !important;
+}
+html[data-theme] body #page-progress .cov-rings { display: flex !important; align-items: center !important; gap: 15px !important; }
+html[data-theme] body #page-progress .t-cov .ring { flex: 0 0 auto; position: relative; width: 64px !important; height: 64px !important; }
+html[data-theme] body #page-progress .t-cov .ring svg { width: 64px !important; height: 64px !important; display: block; transform: rotate(-90deg); }
+html[data-theme] body #page-progress .t-cov .ring-c-bg { stroke: var(--surface3) !important; }
+html[data-theme] body #page-progress .t-cov .ring-c-cov { stroke: var(--accent) !important; stroke-linecap: round; }
+html[data-theme] body #page-progress .t-cov .ring-mid { position: absolute; inset: 0; display: grid !important; place-items: center; text-align: center; }
+html[data-theme] body #page-progress .t-cov .ring-mid .num {
+  font: 600 15px/1 Fraunces, Georgia, serif !important; color: var(--text) !important;
+  font-variant-numeric: lining-nums tabular-nums; font-feature-settings: "lnum","tnum";
+}
+html[data-theme] body #page-progress .t-cov .ring-mid .pcsym { font-size: 11px !important; }
+html[data-theme] body #page-progress .t-cov .ring-mid .lbl {
+  display: block; font: 700 7.5px/1 Inter, sans-serif !important; letter-spacing: 0.1em !important; text-transform: uppercase !important;
+  color: var(--text-dim) !important; margin-top: 3px;
+}
+html[data-theme] body #page-progress .cov-legend { flex: 1 1 auto; display: flex !important; flex-direction: row !important; gap: 10px !important; border: 0 !important; }
+html[data-theme] body #page-progress .cov-legend .row { flex: 1 1 0; display: flex !important; flex-direction: column-reverse !important; justify-content: flex-end; gap: 4px; border: 0 !important; padding: 0 !important; }
+html[data-theme] body #page-progress .cov-legend .row .v {
+  font: 600 24px/1 Fraunces, Georgia, serif !important; color: var(--text) !important;
+  font-variant-numeric: lining-nums tabular-nums; font-feature-settings: "lnum","tnum";
+}
+html[data-theme] body #page-progress .cov-legend .row .k { font: 600 10.5px/1.3 Inter, sans-serif !important; color: var(--text-dim) !important; }
+html[data-theme] body #page-progress .cov-legend .row:nth-child(3) { display: none !important; } /* "Solid" — mockup pair is 2-up */
+html[data-theme] body #page-progress .cov-split { display: flex !important; gap: 8px !important; margin-top: 15px !important; border: 0 !important; padding: 0 !important; }
+html[data-theme] body #page-progress .cov-split .cell {
+  flex: 1 1 0 !important; border-radius: 12px !important; padding: 10px 11px !important;
+  border: 1px solid var(--border) !important; background: var(--surface3) !important; text-align: left !important;
+}
+html[data-theme] body #page-progress .cov-split .cell .n {
+  font: 600 18px/1 Fraunces, Georgia, serif !important;
+  font-variant-numeric: lining-nums tabular-nums; font-feature-settings: "lnum","tnum";
+}
+html[data-theme] body #page-progress .cov-split .cell:nth-child(1) .n { color: var(--red) !important; }
+html[data-theme] body #page-progress .cov-split .cell:nth-child(2) .n { color: var(--text-mid) !important; }
+html[data-theme] body #page-progress .cov-split .cell:nth-child(3) .n { color: var(--green) !important; }
+html[data-theme] body #page-progress .cov-split .cell .t {
+  font: 700 9px/1 Inter, sans-serif !important; letter-spacing: 0.08em !important; text-transform: uppercase !important;
+  color: var(--text-dim) !important; margin-top: 5px !important;
+}
+
+/* domain accordions → mockup .domain cards */
+html[data-theme] body #page-progress .t-dom {
+  border: 1px solid var(--border) !important; border-radius: 16px !important;
+  background: var(--surface) !important; padding: 0 !important; margin: 0 0 11px !important; overflow: hidden;
+}
+html[data-theme] body #page-progress .progress-domain-head {
+  display: grid !important; grid-template-columns: 1fr auto 26px !important; align-items: center !important;
+  gap: 4px 8px !important; padding: 14px 15px !important; margin: 0 !important; cursor: pointer;
+  background: none !important; border: 0 !important; list-style: none !important;
+}
+html[data-theme] body #page-progress .progress-domain-head::-webkit-details-marker { display: none; }
+@media (hover:hover) and (pointer:fine) { html[data-theme] body #page-progress .progress-domain-head:hover { background: color-mix(in oklab, var(--accent) 4%, transparent) !important; } }
+html[data-theme] body #page-progress .pd-name {
+  grid-column: 1; grid-row: 1; font: 650 15px/1.15 Inter, sans-serif !important; color: var(--text) !important;
+}
+html[data-theme] body #page-progress .pd-weight {
+  grid-column: 2; grid-row: 1; font: 600 10px/1 'Roboto Mono', ui-monospace, monospace !important;
+  color: var(--text-dim) !important; white-space: nowrap; text-align: right; text-transform: none !important;
+}
+html[data-theme] body #page-progress .pd-bar {
+  grid-column: 1 !important; grid-row: 2 !important; display: block !important; width: auto !important;
+  height: 8px !important; border-radius: 999px !important;
+  background: var(--surface3) !important; position: relative; overflow: hidden; margin-top: 5px !important;
+}
+html[data-theme] body #page-progress .pd-bar-fill {
+  position: absolute; left: 0; top: 0; bottom: 0; display: block; border-radius: 999px !important;
+  background: var(--accent) !important; transition: width .8s var(--lift-ease);
+}
+html[data-theme] body #page-progress .pd-bar-fill.s { background: var(--green) !important; }
+html[data-theme] body #page-progress .pd-bar-fill.w { background: var(--red) !important; }
+html[data-theme] body #page-progress .pd-avg {
+  grid-column: 2; grid-row: 2; font: 600 11px/1 'Roboto Mono', ui-monospace, monospace !important;
+  color: var(--text-dim) !important; text-align: right; margin-top: 5px !important;
+}
+html[data-theme] body #page-progress .pd-avg.s { color: var(--green) !important; }
+html[data-theme] body #page-progress .pd-avg.w { color: var(--red) !important; }
+html[data-theme] body #page-progress .pd-count {
+  grid-column: 1 / 3 !important; grid-row: 3 !important; font: 600 10.5px/1 Inter, sans-serif !important;
+  color: var(--text-dim) !important; margin-top: 4px !important;
+  background: none !important; padding: 0 !important; border-radius: 0 !important; border: 0 !important;
+}
+/* chevron in the right rail, rotates on open (mockup .dchev) */
+html[data-theme] body #page-progress .progress-domain-head::after {
+  content: '\2304' !important; display: block !important; position: static !important;
+  grid-column: 3 !important; grid-row: 1 / 4 !important; place-self: center;
+  width: auto !important; height: auto !important; border: 0 !important; background: none !important;
+  font: 700 16px/1 Inter, sans-serif !important; color: var(--text-dim) !important;
+  transition: transform .25s var(--lift-ease); margin: -4px 0 0 !important;
+}
+html[data-theme] body #page-progress .t-dom[open] > .progress-domain-head::after { transform: rotate(180deg) !important; margin: 4px 0 0 !important; }
+html[data-theme] body #page-progress .progress-domain-rows { padding: 0 15px 6px !important; background: none !important; }
+
+/* topic rows → mockup .trow (dot + name + short bar + pct) */
+html[data-theme] body #page-progress .t-row:not(.t-spot) {
+  display: flex !important; align-items: center !important; gap: 11px !important; width: 100% !important;
+  padding: 10px 0 !important; margin: 0 !important; text-align: left !important; cursor: pointer;
+  background: none !important; border: 0 !important;
+  border-top: 1px solid color-mix(in oklab, var(--border) 70%, transparent) !important;
+  border-radius: 0 !important; box-shadow: none !important;
+}
+html[data-theme] body #page-progress .t-row:not(.t-spot)::after { content: none !important; }
+html[data-theme] body #page-progress .t-row:not(.t-spot)::before {
+  content: ''; flex: 0 0 auto; width: 9px; height: 9px; border-radius: 999px; background: var(--surface3);
+}
+html[data-theme] body #page-progress .t-row:has(.tpc.s)::before { background: var(--green); }
+html[data-theme] body #page-progress .t-row:has(.tpc.o)::before { background: var(--accent); }
+html[data-theme] body #page-progress .t-row:has(.tpc.w)::before { background: var(--red); }
+html[data-theme] body #page-progress .t-row.untouched::before { background: var(--text-dim); opacity: 0.4; }
+html[data-theme] body #page-progress .t-row .tn { flex: 1 1 auto; min-width: 0; display: block !important; }
+html[data-theme] body #page-progress .t-row .tnm {
+  display: block !important; font: 600 13.5px/1.25 Inter, sans-serif !important; color: var(--text) !important;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+html[data-theme] body #page-progress .t-row.untouched .tnm { color: var(--text-mid) !important; }
+html[data-theme] body #page-progress .t-row .tsub { display: none !important; } /* verdict·date — mockup rows are name+bar+pct only */
+html[data-theme] body #page-progress .t-row .tbar {
+  flex: 0 0 58px !important; display: block !important; height: 8px !important; border-radius: 999px !important;
+  background: var(--surface3) !important; position: relative; overflow: hidden;
+}
+html[data-theme] body #page-progress .t-row .tbar i {
+  position: absolute; left: 0; top: 0; bottom: 0; display: block; border-radius: 999px !important; background: var(--accent) !important;
+}
+html[data-theme] body #page-progress .t-row .tbar i.s { background: var(--green) !important; }
+html[data-theme] body #page-progress .t-row .tbar i.w { background: var(--red) !important; }
+html[data-theme] body #page-progress .t-row .tpc {
+  flex: 0 0 auto !important; font: 600 11px/1 'Roboto Mono', ui-monospace, monospace !important;
+  color: var(--text-dim) !important; min-width: 30px; text-align: right;
+}
+html[data-theme] body #page-progress .t-row .tpc.s { color: var(--green) !important; }
+html[data-theme] body #page-progress .t-row .tpc.o { color: var(--accent) !important; }
+html[data-theme] body #page-progress .t-row .tpc.w { color: var(--red) !important; }
+
+/* weakest list → mockup .listcard .lrow */
+html[data-theme] body #page-progress .t-weak,
+html[data-theme] body #page-progress .t-scoped {
+  border: 1px solid var(--border) !important; border-radius: 16px !important;
+  background: var(--surface) !important; padding: 13px 15px 6px !important;
+}
+html[data-theme] body #page-progress .weak-list, html[data-theme] body #page-progress .scoped-list { display: block !important; }
+html[data-theme] body #page-progress .weak-row {
+  display: flex !important; align-items: center !important; gap: 12px !important; width: 100% !important;
+  padding: 11px 0 !important; margin: 0 !important; text-align: left !important; cursor: pointer;
+  background: none !important; border: 0 !important;
+  border-top: 1px solid color-mix(in oklab, var(--border) 70%, transparent) !important;
+  border-radius: 0 !important; box-shadow: none !important;
+}
+html[data-theme] body #page-progress .weak-row:first-child { border-top: 0 !important; }
+html[data-theme] body #page-progress .weak-row::before, html[data-theme] body #page-progress .weak-row::after { content: none !important; }
+html[data-theme] body #page-progress .weak-rank { flex: 0 0 auto; font: 600 11px/1 'Roboto Mono', ui-monospace, monospace !important; color: var(--text-dim) !important; }
+html[data-theme] body #page-progress .weak-name { flex: 1 1 auto; min-width: 0; display: block !important; }
+html[data-theme] body #page-progress .weak-name .n { display: block !important; font: 600 14px/1.15 Inter, sans-serif !important; color: var(--text) !important; }
+html[data-theme] body #page-progress .weak-name .d { display: block !important; font: 500 11px/1.2 Inter, sans-serif !important; color: var(--text-dim) !important; margin-top: 2px !important; }
+html[data-theme] body #page-progress .weak-pct { flex: 0 0 auto; font: 600 12px/1 'Roboto Mono', ui-monospace, monospace !important; color: var(--red) !important; }
+
+/* untouched cloud → mockup .tag · strong chips → mockup .lchip */
+html[data-theme] body #page-progress .t-untouched, html[data-theme] body #page-progress .t-strong, html[data-theme] body #page-progress .t-recent {
+  border: 0 !important; background: none !important; padding: 0 !important; border-radius: 0 !important;
+}
+html[data-theme] body #page-progress .t-untouched .tile-eyebrow, html[data-theme] body #page-progress .t-strong .tile-eyebrow,
+html[data-theme] body #page-progress .t-recent .tile-eyebrow, html[data-theme] body #page-progress .t-weak .tile-eyebrow { margin: 8px 2px 11px !important; }
+html[data-theme] body #page-progress .chips { display: flex !important; flex-wrap: wrap !important; gap: 7px !important; }
+html[data-theme] body #page-progress .chips .chip {
+  display: inline-flex !important; align-items: center; gap: 6px; width: auto !important;
+  font: 600 11px/1 Inter, sans-serif !important; color: var(--text-dim) !important;
+  background: var(--surface) !important; border: 1px solid var(--border) !important;
+  border-radius: 999px !important; padding: 7px 10px !important; margin: 0 !important; cursor: pointer;
+  box-shadow: none !important;
+}
+html[data-theme] body #page-progress .chips .chip::before, html[data-theme] body #page-progress .chips .chip::after { content: none !important; }
+html[data-theme] body #page-progress .chips .chip.good {
+  color: var(--green) !important; background: color-mix(in oklab, var(--green) 13%, transparent) !important;
+  border-color: color-mix(in oklab, var(--green) 32%, transparent) !important; font-weight: 800 !important;
+}
+html[data-theme] body #page-progress .chips .chip .m { font: 700 10px/1 'Roboto Mono', ui-monospace, monospace !important; color: inherit !important; opacity: .85; }
+
+/* recently studied → mockup .strip of .rcard */
+html[data-theme] body #page-progress .recent-track {
+  display: flex !important; gap: 10px !important; overflow-x: auto !important;
+  padding: 2px 18px 6px !important; margin: 0 -18px !important; scrollbar-width: none;
+}
+html[data-theme] body #page-progress .recent-track::-webkit-scrollbar { display: none; }
+html[data-theme] body #page-progress .recent-card {
+  flex: 0 0 138px !important; width: 138px !important; min-width: 0 !important; max-width: 138px !important;
+  display: flex !important; flex-direction: column !important; align-items: stretch !important;
+  justify-content: space-between !important; text-align: left !important;
+  border: 1px solid var(--border) !important; border-radius: 14px !important;
+  background: var(--surface) !important; padding: 12px 13px !important; margin: 0 !important; cursor: pointer;
+  box-shadow: none !important;
+}
+html[data-theme] body #page-progress .recent-card::before, html[data-theme] body #page-progress .recent-card::after { content: none !important; }
+html[data-theme] body #page-progress .recent-card .rn { display: block !important; font: 650 13px/1.2 Inter, sans-serif !important; color: var(--text) !important; min-height: 32px; }
+html[data-theme] body #page-progress .recent-card .rb { display: flex !important; align-items: center !important; justify-content: space-between !important; margin-top: 9px !important; }
+html[data-theme] body #page-progress .recent-card .rm { font: 600 10.5px/1 'Roboto Mono', ui-monospace, monospace !important; color: var(--accent) !important; }
+html[data-theme] body #page-progress .recent-card .rt { font: 500 10px/1 Inter, sans-serif !important; color: var(--text-dim) !important; }
+
+/* scoped (filter/search) rows reuse the .t-row treatment above */
+html[data-theme] body #page-progress .empty-note { font: 500 12.5px/1.5 Inter, sans-serif !important; color: var(--text-dim) !important; padding: 6px 0 12px; }
+
+/* ─────────────────────────── ANALYTICS (Phase 3) ─────────────────────────── */
+/* Source: cert-ios-analytics.html — pager flattened to one scroll. The v7.16
+   .ana-bento tiles map 1:1 onto the mockup blocks: s-read→.rd+.tiles ·
+   s-const→.const · s-trend→acc card · s-why→.lev · s-domains→.mrow card ·
+   s-streak→streak card · s-diff→diff card · s-evq→.pvt · s-heat→heatmap ·
+   s-wrong→.slip card · s-miles→milestones · s-exam→full-exams. */
+
+#page-analytics { --lift-ease: cubic-bezier(0.16, 1, 0.3, 1); }
+html[data-theme] body #page-analytics { padding-top: 10px !important; }
+html[data-theme] body #page-analytics > .ed-pagehead { display: none !important; }
+
+/* bento → single mockup column */
+html[data-theme] body #page-analytics .ana-bento {
+  display: block !important; column-count: auto !important; grid-template-columns: none !important;
+}
+html[data-theme] body #page-analytics .ana-bento .tile {
+  width: auto !important; margin: 0 0 12px !important; box-shadow: none !important;
+  border: 1px solid var(--border) !important; border-radius: 17px !important;
+  background: var(--surface) !important; padding: 15px 16px !important;
+}
+
+/* eyebrow → mockup .card-kick (mono, accent) · count → .card-meta */
+html[data-theme] body #page-analytics .tile-eyebrow {
+  font: 700 9.5px/1 'Roboto Mono', ui-monospace, monospace !important; letter-spacing: 0.11em !important;
+  text-transform: uppercase !important; color: var(--accent) !important; margin-bottom: 6px !important;
+  display: flex; align-items: baseline; justify-content: space-between; gap: 10px;
+}
+html[data-theme] body #page-analytics .tile-eyebrow .count {
+  font: 600 10.5px/1 'Roboto Mono', ui-monospace, monospace !important; letter-spacing: 0 !important;
+  text-transform: none !important; color: var(--text-dim) !important; white-space: nowrap;
+}
+/* tile titles → mockup .card-title (Fraunces) */
+html[data-theme] body #page-analytics .ana-bento .tile h2 {
+  font: 600 17px/1.15 Fraunces, Georgia, serif !important; letter-spacing: -0.01em !important;
+  color: var(--text) !important; margin: 0 !important;
+}
+html[data-theme] body #page-analytics .ana-bento .tile h2 em { font-style: normal !important; color: var(--accent) !important; }
+
+/* readiness hero → mockup .rd */
+html[data-theme] body #page-analytics .s-read {
+  border-color: color-mix(in oklab, var(--accent) 22%, var(--border)) !important; border-radius: 18px !important;
+  background: color-mix(in oklab, var(--accent) 5%, var(--surface)) !important; padding: 16px 17px !important;
+}
+html[data-theme] body #page-analytics .read-top { display: flex !important; align-items: center !important; justify-content: space-between !important; gap: 10px; }
+html[data-theme] body #page-analytics .read-top .tile-eyebrow { color: var(--text-dim) !important; letter-spacing: 0.13em !important; }
+html[data-theme] body #page-analytics .read-tier {
+  font: 800 9.5px/1 Inter, sans-serif !important; letter-spacing: 0.08em !important; text-transform: uppercase !important;
+  color: var(--accent) !important; background: color-mix(in oklab, var(--accent) 13%, transparent) !important;
+  border: 1px solid color-mix(in oklab, var(--accent) 32%, transparent) !important;
+  border-radius: 999px !important; padding: 5px 9px !important;
+}
+html[data-theme] body #page-analytics .read-score { display: flex !important; align-items: baseline !important; gap: 8px !important; margin: 12px 0 9px !important; }
+html[data-theme] body #page-analytics .read-score .big {
+  font: 600 44px/1 Fraunces, Georgia, serif !important; color: var(--text) !important;
+  font-variant-numeric: lining-nums tabular-nums; font-feature-settings: "lnum","tnum";
+}
+html[data-theme] body #page-analytics .read-score .of {
+  font: 700 11px/1 'Roboto Mono', ui-monospace, monospace !important; letter-spacing: 0.1em !important;
+  text-transform: uppercase !important; color: var(--text-dim) !important;
+}
+html[data-theme] body #page-analytics .read-cap { font: 400 12.5px/1.45 Inter, sans-serif !important; color: var(--text-mid) !important; margin: 0 0 11px !important; }
+html[data-theme] body #page-analytics .read-cap b { color: var(--text) !important; font-weight: 650 !important; }
+html[data-theme] body #page-analytics .read-bar {
+  height: 8px !important; border-radius: 999px !important; background: var(--surface3) !important;
+  position: relative; overflow: visible !important;
+}
+html[data-theme] body #page-analytics .read-bar i {
+  position: absolute; left: 0; top: 0; bottom: 0; display: block; border-radius: 999px !important;
+  background: var(--accent) !important; transition: width .9s var(--lift-ease);
+}
+html[data-theme] body #page-analytics .read-tick {
+  position: absolute; top: -2px !important; bottom: -2px !important; width: 2px !important;
+  background: color-mix(in oklab, var(--text) 45%, var(--surface3)) !important; border-radius: 0 !important;
+}
+html[data-theme] body #page-analytics .read-fore { display: flex !important; gap: 9px !important; margin-top: 12px !important; }
+html[data-theme] body #page-analytics .read-fore > span {
+  flex: 1 1 0 !important; display: flex !important; flex-direction: column !important; justify-content: flex-start; gap: 5px;
+  border: 1px solid var(--border) !important; border-radius: 12px !important;
+  background: color-mix(in oklab, var(--surface3) 60%, var(--surface)) !important; padding: 10px 11px !important;
+  font: 700 8.5px/1.25 'Roboto Mono', ui-monospace, monospace !important; letter-spacing: 0.08em !important;
+  text-transform: uppercase !important; color: var(--text-dim) !important;
+}
+html[data-theme] body #page-analytics .read-fore .fv { font: 600 17px/1 Fraunces, Georgia, serif !important; color: var(--text) !important; letter-spacing: 0 !important; }
+/* stat tiles 2-up → mockup .tiles/.tile */
+html[data-theme] body #page-analytics .read-stats { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 10px !important; margin-top: 12px !important; }
+html[data-theme] body #page-analytics .rstat {
+  border: 1px solid var(--border) !important; border-radius: 14px !important;
+  background: var(--surface) !important; padding: 12px 13px !important; display: block !important;
+}
+html[data-theme] body #page-analytics .rstat .n {
+  display: block !important; font: 600 26px/1 Fraunces, Georgia, serif !important; color: var(--text) !important;
+  font-variant-numeric: lining-nums tabular-nums; font-feature-settings: "lnum","tnum";
+}
+html[data-theme] body #page-analytics .rstat .l {
+  display: block !important; font: 600 10.5px/1.2 'Roboto Mono', ui-monospace, monospace !important;
+  letter-spacing: 0.04em !important; text-transform: uppercase !important; color: var(--text-dim) !important; margin-top: 5px !important;
+}
+html[data-theme] body #page-analytics .rstat svg { display: block !important; width: 100% !important; height: 22px !important; margin-top: 8px !important; overflow: visible; }
+html[data-theme] body #page-analytics .rstat svg path { fill: none !important; stroke: var(--accent) !important; stroke-width: 2 !important; stroke-linecap: round; stroke-linejoin: round; }
+
+/* constellation: keep the navy sky, normalize chrome (mockup .const) */
+html[data-theme] body #page-analytics .s-const { border-radius: 17px !important; }
+html[data-theme] body #page-analytics .s-const .const-sub { font-size: 12px !important; line-height: 1.5 !important; margin: 8px 0 12px !important; }
+html[data-theme] body #page-analytics .s-const .const-legend { display: flex !important; flex-wrap: wrap !important; gap: 10px 14px !important; margin-top: 13px !important; }
+
+/* accuracy trend → mockup acc card + .rangeseg */
+html[data-theme] body #page-analytics .trend-head { display: flex !important; align-items: flex-start !important; justify-content: space-between !important; gap: 10px !important; }
+html[data-theme] body #page-analytics .trend-verdict { font: 600 11px/1.35 'Roboto Mono', ui-monospace, monospace !important; color: var(--text-dim) !important; margin: 6px 0 0 !important; }
+html[data-theme] body #page-analytics .acc-tabs {
+  display: inline-flex !important; border: 1px solid var(--border) !important; border-radius: 999px !important;
+  padding: 2px !important; background: var(--surface3) !important; gap: 0 !important; flex: 0 0 auto;
+}
+html[data-theme] body #page-analytics .acc-tab {
+  border: 0 !important; background: none !important; cursor: pointer;
+  font: 700 10px/1 'Roboto Mono', ui-monospace, monospace !important; letter-spacing: 0.04em !important;
+  text-transform: uppercase !important; color: var(--text-dim) !important; padding: 6px 10px !important;
+  border-radius: 999px !important; transition: color .18s, background .18s !important; box-shadow: none !important;
+}
+html[data-theme] body #page-analytics .acc-tab.on, html[data-theme] body #page-analytics .acc-tab[aria-pressed="true"] {
+  color: var(--on-accent, var(--bg)) !important; background: var(--accent) !important;
+}
+html[data-theme] body #page-analytics .acc-wrap { margin-top: 12px !important; }
+
+/* highest-leverage → mockup .lev */
+html[data-theme] body #page-analytics .s-why {
+  border-color: color-mix(in oklab, var(--accent) 26%, var(--border)) !important; border-radius: 18px !important;
+  background: color-mix(in oklab, var(--accent) 6%, var(--surface)) !important; padding: 16px !important;
+}
+html[data-theme] body #page-analytics .why-lev { display: flex !important; align-items: baseline !important; gap: 7px !important; margin-top: 2px; }
+html[data-theme] body #page-analytics .why-lev .v { font: 600 26px/1.05 Fraunces, Georgia, serif !important; color: var(--accent) !important; letter-spacing: -0.01em !important; }
+html[data-theme] body #page-analytics .why-lev .l { font: 700 12px/1.3 'Roboto Mono', ui-monospace, monospace !important; color: var(--text-dim) !important; }
+html[data-theme] body #page-analytics .why-head { font: 700 14px/1.3 Inter, sans-serif !important; color: var(--text) !important; margin: 8px 0 0 !important; }
+html[data-theme] body #page-analytics .why-body { font: 400 12.5px/1.55 Inter, sans-serif !important; color: var(--text-mid) !important; margin: 9px 0 13px !important; }
+html[data-theme] body #page-analytics .why-factors { display: flex !important; flex-direction: column !important; gap: 9px !important; }
+html[data-theme] body #page-analytics .why-f { display: flex !important; align-items: flex-start !important; gap: 9px !important; font: 400 12px/1.4 Inter, sans-serif !important; color: var(--text-mid) !important; }
+html[data-theme] body #page-analytics .why-f .ar { flex: 0 0 auto; font-size: 11px !important; margin-top: 1px; }
+html[data-theme] body #page-analytics .why-f .ar.down { color: var(--red) !important; }
+html[data-theme] body #page-analytics .why-f .ar.up { color: var(--green) !important; }
+html[data-theme] body #page-analytics .why-f .ft { color: var(--text) !important; font-weight: 650 !important; }
+
+/* mastery by domain → mockup .mrow */
+html[data-theme] body #page-analytics .dom-list { display: block !important; }
+html[data-theme] body #page-analytics .dom-row { display: block !important; margin: 0 0 13px !important; padding: 0 !important; border: 0 !important; background: none !important; }
+html[data-theme] body #page-analytics .dom-row:last-child { margin-bottom: 0 !important; }
+html[data-theme] body #page-analytics .dom-row .dl { display: flex !important; align-items: baseline !important; gap: 7px !important; float: left; }
+html[data-theme] body #page-analytics .dom-row .dl .obj { font: 600 10.5px/1 'Roboto Mono', ui-monospace, monospace !important; color: var(--text-dim) !important; }
+html[data-theme] body #page-analytics .dom-row .dl .txt { font: 650 13.5px/1.2 Inter, sans-serif !important; color: var(--text) !important; }
+html[data-theme] body #page-analytics .dom-row .dm { float: right; font: 700 12px/1 'Roboto Mono', ui-monospace, monospace !important; color: var(--text-dim) !important; font-variant-numeric: lining-nums tabular-nums; }
+html[data-theme] body #page-analytics .dom-bar {
+  clear: both; height: 8px !important; border-radius: 999px !important; background: var(--surface3) !important;
+  position: relative; overflow: hidden; margin-top: 7px !important;
+}
+html[data-theme] body #page-analytics .dom-bar i { position: absolute; left: 0; top: 0; bottom: 0; display: block; border-radius: 999px !important; transition: width .9s var(--lift-ease); }
+html[data-theme] body #page-analytics .dom-meta { font: 400 11px/1.4 Inter, sans-serif !important; color: var(--text-dim) !important; margin-top: 6px !important; }
+html[data-theme] body #page-analytics .dom-meta .tag { color: var(--red) !important; font-weight: 600 !important; background: none !important; border: 0 !important; padding: 0 !important; }
+
+/* streak → mockup streak card */
+html[data-theme] body #page-analytics .streak-main { display: flex !important; align-items: baseline !important; gap: 10px !important; }
+html[data-theme] body #page-analytics .streak-main .v { font: 600 36px/1 Fraunces, Georgia, serif !important; color: var(--text) !important; font-variant-numeric: lining-nums; }
+html[data-theme] body #page-analytics .streak-main .l {
+  font: 700 11px/1 'Roboto Mono', ui-monospace, monospace !important; letter-spacing: 0.06em !important;
+  text-transform: uppercase !important; color: var(--text-dim) !important;
+}
+html[data-theme] body #page-analytics .streak-sub { font: 400 11.5px/1.5 Inter, sans-serif !important; color: var(--text-mid) !important; margin: 9px 0 12px !important; }
+html[data-theme] body #page-analytics .week-dots { display: flex !important; gap: 7px !important; }
+html[data-theme] body #page-analytics .week-dots .wd { flex: 1 1 0 !important; display: flex !important; flex-direction: column !important; align-items: center !important; gap: 6px !important; }
+html[data-theme] body #page-analytics .week-dots .dot {
+  width: 100% !important; height: auto !important; aspect-ratio: 1 !important; border-radius: 9px !important;
+  background: var(--surface3) !important; border: 1px solid var(--border) !important;
+}
+html[data-theme] body #page-analytics .week-dots .wd.on .dot {
+  background: color-mix(in oklab, var(--accent) 30%, var(--surface)) !important;
+  border-color: color-mix(in oklab, var(--accent) 45%, var(--border)) !important;
+}
+html[data-theme] body #page-analytics .week-dots .wl { font: 700 9px/1 'Roboto Mono', ui-monospace, monospace !important; color: var(--text-dim) !important; }
+html[data-theme] body #page-analytics .week-dots .wd.on .wl { color: var(--accent) !important; }
+
+/* difficulty → mockup diff rows */
+html[data-theme] body #page-analytics .diff-list { display: block !important; }
+html[data-theme] body #page-analytics .s-diff .diff-row { margin: 0 0 13px !important; padding: 0 !important; border: 0 !important; background: none !important; }
+html[data-theme] body #page-analytics .s-diff .diff-row:last-child { margin-bottom: 0 !important; }
+html[data-theme] body #page-analytics .diff-top { display: flex !important; align-items: baseline !important; justify-content: space-between !important; margin-bottom: 7px !important; }
+html[data-theme] body #page-analytics .diff-top .dk { font: 650 13px/1 Inter, sans-serif !important; color: var(--text) !important; }
+html[data-theme] body #page-analytics .diff-top .dv { font: 700 12px/1 'Roboto Mono', ui-monospace, monospace !important; color: var(--accent) !important; font-variant-numeric: lining-nums tabular-nums; }
+html[data-theme] body #page-analytics .diff-top .dc { font: 600 10.5px/1 'Roboto Mono', ui-monospace, monospace !important; color: var(--text-dim) !important; margin-left: 7px; }
+html[data-theme] body #page-analytics .diff-bar { height: 8px !important; border-radius: 999px !important; background: var(--surface3) !important; position: relative; overflow: hidden; }
+html[data-theme] body #page-analytics .diff-bar i { position: absolute; left: 0; top: 0; bottom: 0; display: block; border-radius: 999px !important; background: var(--accent) !important; transition: width .9s var(--lift-ease); }
+
+/* practice vs timed → mockup .pvt */
+html[data-theme] body #page-analytics .evq-nums { display: flex !important; gap: 10px !important; margin-top: 4px; }
+html[data-theme] body #page-analytics .evq-cell {
+  flex: 1 1 0 !important; border: 1px solid var(--border) !important; border-radius: 13px !important;
+  background: var(--surface3) !important; padding: 12px 13px !important; text-align: center !important;
+}
+html[data-theme] body #page-analytics .evq-cell .n { font: 600 16px/1.2 Fraunces, Georgia, serif !important; color: var(--text-mid) !important; }
+html[data-theme] body #page-analytics .evq-cell .t {
+  font: 700 9px/1 'Roboto Mono', ui-monospace, monospace !important; letter-spacing: 0.08em !important;
+  text-transform: uppercase !important; color: var(--text-dim) !important; margin-top: 6px !important;
+}
+html[data-theme] body #page-analytics .evq-cell .s { font: 500 10px/1.3 Inter, sans-serif !important; color: var(--text-dim) !important; margin-top: 3px !important; }
+html[data-theme] body #page-analytics .evq-note { font: 400 12px/1.5 Inter, sans-serif !important; color: var(--text-mid) !important; margin: 10px 0 0 !important; }
+
+/* heatmap foot → mockup .heat-legend */
+html[data-theme] body #page-analytics .heat-wrap { margin-top: 8px; }
+html[data-theme] body #page-analytics .heat-foot {
+  display: flex !important; align-items: center !important; justify-content: space-between !important;
+  margin-top: 11px !important; font: 700 9px/1 'Roboto Mono', ui-monospace, monospace !important;
+  letter-spacing: 0.05em !important; text-transform: uppercase !important; color: var(--text-dim) !important;
+}
+html[data-theme] body #page-analytics .heat-scale { display: inline-flex !important; align-items: center; gap: 3px !important; }
+html[data-theme] body #page-analytics .heat-scale .heat-cell { width: 10px !important; height: 10px !important; border-radius: 2.5px !important; }
+
+/* where you slip → mockup .slip rows */
+html[data-theme] body #page-analytics .wrong-list { display: block !important; }
+html[data-theme] body #page-analytics .wrong-row {
+  display: flex !important; align-items: center !important; gap: 12px !important;
+  padding: 11px 0 !important; margin: 0 !important; border: 0 !important; background: none !important;
+  border-bottom: 1px solid color-mix(in oklab, var(--border) 60%, transparent) !important; border-radius: 0 !important;
+}
+html[data-theme] body #page-analytics .wrong-row:last-child { border-bottom: 0 !important; padding-bottom: 2px !important; }
+html[data-theme] body #page-analytics .wrong-row .rank, html[data-theme] body #page-analytics .wrong-rank {
+  flex: 0 0 auto; width: 24px !important; height: 24px !important; border-radius: 8px !important;
+  background: color-mix(in oklab, var(--red) 14%, var(--surface3)) !important; color: var(--red) !important;
+  display: grid !important; place-items: center !important; font: 700 12px/1 'Roboto Mono', ui-monospace, monospace !important;
+}
+html[data-theme] body #page-analytics .wrong-mid { flex: 1 1 auto; min-width: 0; }
+html[data-theme] body #page-analytics .wrong-mid .n { font: 650 13px/1.2 Inter, sans-serif !important; color: var(--text) !important; }
+html[data-theme] body #page-analytics .wrong-mid .d { font: 500 11px/1.4 Inter, sans-serif !important; color: var(--text-dim) !important; margin-top: 2px !important; }
+html[data-theme] body #page-analytics .wrong-row .miss, html[data-theme] body #page-analytics .wrong-miss { flex: 0 0 auto; font: 700 11px/1 'Roboto Mono', ui-monospace, monospace !important; color: var(--red) !important; }
+
+/* milestones → mockup .mile rows */
+html[data-theme] body #page-analytics .mile-count { font: 600 24px/1 Fraunces, Georgia, serif !important; color: var(--text) !important; text-transform: none !important; letter-spacing: 0 !important; }
+html[data-theme] body #page-analytics .mile-count small { font: 700 13px/1 'Roboto Mono', ui-monospace, monospace !important; color: var(--text-dim) !important; }
+html[data-theme] body #page-analytics .mile-prog { height: 8px !important; border-radius: 999px !important; background: var(--surface3) !important; position: relative; overflow: hidden; margin: 10px 0 4px !important; }
+html[data-theme] body #page-analytics .mile-prog i { position: absolute; left: 0; top: 0; bottom: 0; display: block; border-radius: 999px !important; background: var(--accent) !important; transition: width .9s var(--lift-ease); }
+html[data-theme] body #page-analytics .mile-list { display: block !important; margin-top: 4px; }
+html[data-theme] body #page-analytics .mile-row {
+  display: flex !important; align-items: center !important; gap: 11px !important; padding: 10px 0 !important;
+  margin: 0 !important; border: 0 !important; background: none !important;
+  border-bottom: 1px solid color-mix(in oklab, var(--border) 60%, transparent) !important; border-radius: 0 !important;
+}
+html[data-theme] body #page-analytics .mile-row:last-child { border-bottom: 0 !important; padding-bottom: 2px !important; }
+html[data-theme] body #page-analytics .mile-ic {
+  flex: 0 0 auto; width: 32px !important; height: 32px !important; border-radius: 10px !important;
+  display: grid !important; place-items: center !important;
+  background: color-mix(in oklab, var(--accent) 14%, var(--surface3)) !important; color: var(--accent) !important;
+}
+html[data-theme] body #page-analytics .mile-ic svg { width: 16px !important; height: 16px !important; }
+html[data-theme] body #page-analytics .mile-txt { flex: 1 1 auto; min-width: 0; }
+html[data-theme] body #page-analytics .mile-txt .n { font: 650 13px/1.2 Inter, sans-serif !important; color: var(--text) !important; }
+html[data-theme] body #page-analytics .mile-txt .d { font: 500 10.5px/1.3 'Roboto Mono', ui-monospace, monospace !important; color: var(--text-dim) !important; margin-top: 3px !important; }
+
+/* full exams */
+html[data-theme] body #page-analytics .exam-list { display: block !important; }
+html[data-theme] body #page-analytics .exam-row { padding: 8px 0 2px !important; margin: 0 !important; border: 0 !important; background: none !important; }
+html[data-theme] body #page-analytics .exam-row .el { font: 650 13px/1.3 Inter, sans-serif !important; color: var(--text) !important; }
+html[data-theme] body #page-analytics .exam-row .ed { font: 500 10.5px/1.4 'Roboto Mono', ui-monospace, monospace !important; color: var(--text-dim) !important; margin-top: 3px !important; }
+
+/* analytics empty state: calm centered card */
+html[data-theme] body #page-analytics .ana-empty-card {
+  border: 1px solid var(--border) !important; border-radius: 17px !important;
+  background: var(--surface) !important; padding: 26px 18px !important; text-align: center;
+}
+
+/* ─────────────────────────── SR DAILY REVIEW (Phase 3) ─────────────────────────── */
+/* Source: cert-ios-review.html (Daily Review session). Immersive (HIDE_ON).
+   hdr→.ed-pagehead · prog→.sr-progress-row · why chip→.sr-why-due ·
+   .q→.sr-question · .opt→.sr-option · .fb→.sr-explanation (ok/no derived via
+   :has on the revealed options) · recap→#sr-complete/#sr-empty. */
+
+#page-sr-review { --lift-ease: cubic-bezier(0.16, 1, 0.3, 1); }
+html[data-theme] body #page-sr-review { padding-top: 6px !important; }
+
+/* header → mockup .hdr (back chip + Fraunces title) */
+html[data-theme] body #page-sr-review .ed-pagehead { display: flex !important; align-items: center !important; gap: 11px !important; margin: 4px 0 10px !important; padding: 0 !important; background: none !important; border: 0 !important; }
+html[data-theme] body #page-sr-review .ed-pagehead-back {
+  flex: 0 0 auto; width: 36px !important; height: 36px !important; display: grid !important; place-items: center !important;
+  border: 1px solid var(--border) !important; border-radius: 10px !important;
+  background: var(--surface) !important; color: var(--text-mid) !important;
+  font-size: 0 !important; padding: 0 !important; cursor: pointer;
+  transition: transform .14s var(--lift-ease), border-color .18s !important; overflow: hidden; white-space: nowrap;
+}
+html[data-theme] body #page-sr-review .ed-pagehead-back::after { content: '\2190'; font: 700 16px/1 Inter, sans-serif; }
+html[data-theme] body #page-sr-review .ed-pagehead-back:active { transform: scale(0.94); }
+html[data-theme] body #page-sr-review .ed-pagehead-eyebrow { display: none !important; }
+html[data-theme] body #page-sr-review .ed-pagehead-display {
+  font: 600 20px/1.1 Fraunces, Georgia, serif !important; letter-spacing: -0.01em !important;
+  color: var(--text) !important; margin: 0 !important;
+  background: none !important; border: 0 !important; outline: 0 !important; box-shadow: none !important;
+  padding: 0 !important; text-decoration: none !important;
+}
+html[data-theme] body #page-sr-review .ed-pagehead-display::before, html[data-theme] body #page-sr-review .ed-pagehead-display::after { content: none !important; }
+html[data-theme] body #page-sr-review .ed-pagehead-display em {
+  font-style: normal !important; color: var(--accent) !important;
+  background: none !important; border: 0 !important; box-shadow: none !important; text-decoration: none !important;
+}
+html[data-theme] body #page-sr-review .sr-meta-interval, html[data-theme] body #page-sr-review .sr-meta-streak, html[data-theme] body #page-sr-review .sr-meta-sep { color: var(--text-dim) !important; }
+
+/* progress strip → mockup .prog */
+html[data-theme] body #page-sr-review .sr-progress-row { display: block !important; margin: 0 0 14px !important; padding: 0 !important; background: none !important; border: 0 !important; }
+html[data-theme] body #page-sr-review .sr-progress-text { font: 700 12px/1 Inter, sans-serif !important; color: var(--text-dim) !important; margin-bottom: 7px !important; }
+html[data-theme] body #page-sr-review .sr-progress-bar { height: 5px !important; border-radius: 999px !important; background: var(--surface3) !important; overflow: hidden; }
+html[data-theme] body #page-sr-review .sr-progress-fill { display: block; height: 100% !important; border-radius: 999px !important; background: var(--accent) !important; transition: width .4s var(--lift-ease); }
+
+/* card: flat flow (mockup .body has no card chrome) */
+html[data-theme] body #page-sr-review .sr-card { background: none !important; border: 0 !important; border-radius: 0 !important; box-shadow: none !important; padding: 0 !important; margin: 0 !important; }
+html[data-theme] body #page-sr-review .sr-card-meta {
+  display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px;
+  font: 600 10.5px/1.3 'Roboto Mono', ui-monospace, monospace !important; color: var(--text-dim) !important; margin: 0 0 10px !important;
+}
+html[data-theme] body #page-sr-review .sr-meta-topic { color: var(--text-mid) !important; }
+
+/* why-due chip → mockup .why */
+html[data-theme] body #page-sr-review .sr-why-due {
+  display: inline-flex !important; align-items: center !important; gap: 7px !important;
+  font: 600 11.5px/1 Inter, sans-serif !important; color: var(--text-dim) !important;
+  background: var(--surface3) !important; border: 1px solid var(--border) !important;
+  border-radius: 999px !important; padding: 7px 11px !important; margin: 0 0 16px !important;
+}
+html[data-theme] body #page-sr-review .sr-why-due.sr-why-rebuild { color: var(--red) !important; border-color: color-mix(in oklab, var(--red) 30%, var(--border)) !important; }
+html[data-theme] body #page-sr-review .sr-why-ico { width: 13px !important; height: 13px !important; stroke: var(--accent) !important; }
+
+/* retry pill */
+html[data-theme] body #page-sr-review .sr-retry-pill {
+  display: inline-flex !important; align-items: center !important; gap: 7px !important;
+  font: 600 11px/1.3 Inter, sans-serif !important; color: var(--accent) !important;
+  background: color-mix(in oklab, var(--accent) 10%, transparent) !important;
+  border: 1px solid color-mix(in oklab, var(--accent) 28%, var(--border)) !important;
+  border-radius: 999px !important; padding: 7px 11px !important; margin: 12px 0 0 !important;
+}
+html[data-theme] body #page-sr-review .sr-retry-pill .sr-why-ico { stroke: var(--accent) !important; }
+
+/* question stem → mockup .q */
+html[data-theme] body #page-sr-review .sr-question {
+  font: 600 21px/1.25 Fraunces, Georgia, serif !important; letter-spacing: -0.01em !important;
+  color: var(--text) !important; margin: 0 0 18px !important;
+}
+
+/* options → mockup .opt */
+html[data-theme] body #page-sr-review .sr-options { display: grid !important; gap: 9px !important; margin: 0 !important; }
+html[data-theme] body #page-sr-review .sr-option {
+  display: flex !important; align-items: center !important; gap: 12px !important; width: 100% !important; text-align: left !important;
+  cursor: pointer; font: 600 14.5px/1.3 Inter, sans-serif !important; color: var(--text) !important;
+  background: var(--surface) !important; border: 1.5px solid var(--border) !important;
+  border-radius: 13px !important; padding: 14px 15px !important; margin: 0 !important; box-shadow: none !important;
+  transition: border-color .16s var(--lift-ease), background .16s var(--lift-ease), transform .1s var(--lift-ease) !important;
+}
+html[data-theme] body #page-sr-review .sr-option:active { transform: scale(0.99); }
+@media (hover:hover) and (pointer:fine) { html[data-theme] body #page-sr-review .sr-option:not(:disabled):hover { border-color: color-mix(in oklab, var(--accent) 30%, var(--border)) !important; } }
+html[data-theme] body #page-sr-review .sr-option-letter {
+  flex: 0 0 auto; width: 24px !important; height: 24px !important; border-radius: 7px !important;
+  background: var(--surface3) !important; color: var(--text-dim) !important;
+  font: 800 12px/1 Inter, sans-serif !important; display: grid !important; place-items: center !important;
+  transition: background .16s, color .16s;
+}
+html[data-theme] body #page-sr-review .sr-option-text { flex: 1 1 auto; font: inherit !important; color: inherit !important; }
+html[data-theme] body #page-sr-review .sr-option.is-picked { border-color: color-mix(in oklab, var(--accent) 55%, var(--border)) !important; background: color-mix(in oklab, var(--accent) 7%, var(--surface)) !important; }
+html[data-theme] body #page-sr-review .sr-option.is-picked .sr-option-letter { background: var(--accent) !important; color: var(--on-accent, var(--bg)) !important; }
+html[data-theme] body #page-sr-review .sr-option.is-correct { border-color: var(--green) !important; background: color-mix(in oklab, var(--green) 12%, var(--surface)) !important; }
+html[data-theme] body #page-sr-review .sr-option.is-correct .sr-option-letter { background: var(--green) !important; color: var(--on-accent, var(--bg)) !important; }
+html[data-theme] body #page-sr-review .sr-option.is-wrong { border-color: var(--red) !important; background: color-mix(in oklab, var(--red) 11%, var(--surface)) !important; }
+html[data-theme] body #page-sr-review .sr-option.is-wrong .sr-option-letter { background: var(--red) !important; color: #fff !important; }
+
+/* explanation → mockup .fb, ok/no tint derived from the revealed options */
+html[data-theme] body #page-sr-review .sr-explanation {
+  border-radius: 13px !important; padding: 13px 15px !important; margin: 16px 0 0 !important;
+  font-size: 13px !important; line-height: 1.45 !important; color: var(--text-mid) !important;
+  background: color-mix(in oklab, var(--green) 12%, var(--surface)) !important;
+  border: 1px solid color-mix(in oklab, var(--green) 30%, transparent) !important; box-shadow: none !important;
+}
+html[data-theme] body #page-sr-review .sr-explanation strong { color: var(--green) !important; font-weight: 800 !important; }
+html[data-theme] body #page-sr-review .sr-card:has(.sr-option.is-wrong) .sr-explanation {
+  background: color-mix(in oklab, var(--red) 11%, var(--surface)) !important;
+  border-color: color-mix(in oklab, var(--red) 28%, transparent) !important;
+}
+html[data-theme] body #page-sr-review .sr-card:has(.sr-option.is-wrong) .sr-explanation strong { color: var(--red) !important; }
+
+/* confidence row: calm full-width choice cards under the reveal */
+html[data-theme] body #page-sr-review .sr-confidence-row { display: grid !important; gap: 9px !important; margin: 14px 0 0 !important; padding: 0 !important; background: none !important; border: 0 !important; }
+html[data-theme] body #page-sr-review .sr-confidence-label {
+  font: 800 10px/1 Inter, sans-serif !important; letter-spacing: 0.1em !important; text-transform: uppercase !important;
+  color: var(--text-dim) !important; margin: 2px 0 0 !important;
+}
+html[data-theme] body #page-sr-review .sr-confidence-btn {
+  display: block !important; width: 100% !important; text-align: left !important; cursor: pointer;
+  font: 700 13.5px/1.3 Inter, sans-serif !important; color: var(--text) !important;
+  background: var(--surface) !important; border: 1.5px solid var(--border) !important;
+  border-radius: 13px !important; padding: 12px 14px !important; margin: 0 !important; box-shadow: none !important;
+  transition: transform .12s var(--lift-ease), border-color .16s !important;
+}
+html[data-theme] body #page-sr-review .sr-confidence-btn:active { transform: scale(0.985); }
+html[data-theme] body #page-sr-review .sr-confidence-confident { border-color: color-mix(in oklab, var(--green) 40%, var(--border)) !important; }
+html[data-theme] body #page-sr-review .sr-confidence-uncertain { border-color: color-mix(in oklab, var(--accent) 40%, var(--border)) !important; }
+html[data-theme] body #page-sr-review .sr-confidence-wrong { border-color: color-mix(in oklab, var(--red) 40%, var(--border)) !important; }
+html[data-theme] body #page-sr-review .sr-confidence-hint { display: block !important; font: 500 11px/1.4 Inter, sans-serif !important; color: var(--text-dim) !important; margin-top: 3px !important; }
+
+/* empty + complete recap → mockup .done */
+html[data-theme] body #page-sr-review .sr-empty {
+  text-align: center !important; border: 0 !important; background: none !important; padding: 36px 8px 8px !important; box-shadow: none !important;
+}
+html[data-theme] body #page-sr-review .sr-empty h2 {
+  font: 600 25px/1.15 Fraunces, Georgia, serif !important; letter-spacing: -0.015em !important;
+  color: var(--text) !important; margin: 0 0 6px !important;
+}
+html[data-theme] body #page-sr-review .sr-empty p { font-size: 14px !important; line-height: 1.5 !important; color: var(--text-mid) !important; margin: 0 0 22px !important; }
+html[data-theme] body #page-sr-review .sr-empty .btn-primary {
+  width: 100% !important; border: 0 !important; border-radius: 13px !important; padding: 15px !important;
+  background: var(--accent) !important; color: var(--on-accent, var(--bg)) !important;
+  font: 800 15.5px/1 Inter, sans-serif !important; cursor: pointer;
+  box-shadow: 0 10px 22px -12px color-mix(in oklab, var(--accent) 70%, transparent) !important;
+  transition: transform .15s var(--lift-ease), filter .2s !important;
+}
+html[data-theme] body #page-sr-review .sr-empty .btn-primary:active { transform: scale(0.985); }
+html[data-theme] body #page-sr-review #sr-forecast-complete { margin: 0 0 18px !important; font-size: 12.5px !important; color: var(--text-dim) !important; }
+
+/* ─────────────────────────── DRILLS TAB (Phase 3, net-new) ─────────────────────────── */
+/* Source: cert-ios-drills.html. The page markup is the lift's own
+   (#page-drills in index.html + liftRenderDrills in lift-shell.js), so the
+   class names mirror the mockup directly — no dg-system overrides needed,
+   but selectors stay in the same scoped pattern for consistency. */
+
+#page-drills { --lift-ease: cubic-bezier(0.16, 1, 0.3, 1); }
+html[data-theme] body #page-drills { padding-top: 10px !important; }
+
+/* showPage moves focus to the page h1 for screen readers — don't draw the
+   interactive focus ring on a static heading (mockups carry no ring) */
+html[data-theme] body .page h1[tabindex="-1"]:focus,
+html[data-theme] body .page h2[tabindex="-1"]:focus { outline: none !important; box-shadow: none !important; }
+
+html[data-theme] body #page-drills .drills-hdr { display: flex; align-items: center; gap: 11px; margin: 2px 0 4px; }
+html[data-theme] body #page-drills .drills-title {
+  flex: 1; font: 600 21px/1.1 Fraunces, Georgia, serif !important; letter-spacing: -0.01em;
+  color: var(--text) !important; margin: 0 !important;
+}
+html[data-theme] body #page-drills .drills-plan-tag {
+  flex: 0 0 auto; font: 800 9.5px/1 Inter, sans-serif; letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--text-dim); background: color-mix(in oklab, var(--text) 6%, transparent);
+  border: 1px solid var(--border); border-radius: 999px; padding: 6px 9px;
+}
+html[data-theme] body #page-drills .drills-lede { font: 500 12.5px/1.5 Inter, sans-serif; color: var(--text-dim); margin: 2px 2px 14px; }
+
+html[data-theme] body #page-drills .drills-card {
+  border: 1px solid var(--border); border-radius: 16px; background: var(--surface);
+  padding: 15px 16px; margin-bottom: 11px;
+}
+html[data-theme] body #page-drills .drills-card-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+html[data-theme] body #page-drills .drills-card-title { font: 650 14.5px/1.2 Inter, sans-serif; color: var(--text); }
+html[data-theme] body #page-drills .drills-card-note { font-size: 12px; line-height: 1.45; color: var(--text-dim); margin: 9px 0 0; }
+html[data-theme] body #page-drills .drills-card-note b { color: var(--text-mid); font-weight: 650; }
+html[data-theme] body #page-drills .drills-count-pill {
+  flex: 0 0 auto; font: 700 10.5px/1 'Roboto Mono', ui-monospace, monospace; color: var(--accent);
+  border: 1px solid color-mix(in oklab, var(--accent) 38%, var(--border));
+  background: color-mix(in oklab, var(--accent) 10%, var(--surface));
+  border-radius: 999px; padding: 6px 10px;
+}
+html[data-theme] body #page-drills .drills-btn {
+  width: 100%; margin-top: 12px; border: none; border-radius: 12px; padding: 12px; cursor: pointer;
+  background: var(--accent); color: var(--on-accent, var(--bg)); font: 700 14px/1 Inter, sans-serif;
+  transition: transform .14s var(--lift-ease), filter .2s, opacity .2s;
+}
+html[data-theme] body #page-drills .drills-btn:active:not(:disabled) { transform: scale(0.985); }
+@media (hover:hover) and (pointer:fine) { html[data-theme] body #page-drills .drills-btn:hover:not(:disabled) { filter: brightness(1.06); } }
+html[data-theme] body #page-drills .drills-btn:disabled { opacity: 0.4; cursor: default; }
+
+html[data-theme] body #page-drills .drills-topic-chips { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 11px; }
+html[data-theme] body #page-drills .drills-chip {
+  font: 600 11.5px/1.3 Inter, sans-serif; color: var(--text-mid);
+  border: 1px solid var(--border); background: var(--surface3); border-radius: 999px; padding: 7px 11px;
+}
+html[data-theme] body #page-drills .drills-chip b { color: var(--red); font-weight: 700; font-variant-numeric: tabular-nums; }
+html[data-theme] body #page-drills .drills-chip-empty { color: var(--text-dim); }
+
+html[data-theme] body #page-drills .drills-sect {
+  font: 800 10px/1 Inter, sans-serif; letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--text-dim); margin: 18px 2px 11px;
+}
+html[data-theme] body #page-drills .drills-domain {
+  display: block; width: 100%; text-align: left; cursor: pointer;
+  border: 1px solid var(--border); border-radius: 14px; background: var(--surface3);
+  padding: 12px 14px; margin-bottom: 9px;
+  transition: border-color .18s, transform .12s var(--lift-ease);
+}
+html[data-theme] body #page-drills .drills-domain:active { transform: scale(0.995); }
+@media (hover:hover) and (pointer:fine) { html[data-theme] body #page-drills .drills-domain:hover { border-color: color-mix(in oklab, var(--accent) 36%, var(--border)); } }
+html[data-theme] body #page-drills .drills-domain-top { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+html[data-theme] body #page-drills .drills-domain-top b { font: 650 13.5px/1.2 Inter, sans-serif; color: var(--text); }
+html[data-theme] body #page-drills .drills-domain-wt { flex: 0 0 auto; font: 600 10px/1 'Roboto Mono', ui-monospace, monospace; color: var(--text-dim); }
+html[data-theme] body #page-drills .drills-domain-bar {
+  display: block; height: 6px; border-radius: 999px; background: var(--surface3); overflow: hidden;
+  margin-top: 8px; position: relative; border: 1px solid color-mix(in oklab, var(--border) 50%, transparent);
+}
+html[data-theme] body #page-drills .drills-domain-bar i {
+  position: absolute; left: 0; top: 0; bottom: 0; display: block; border-radius: 999px;
+  background: var(--accent); transition: width .7s var(--lift-ease);
+}
+html[data-theme] body #page-drills .drills-domain-bar.full i { background: var(--green); }
+html[data-theme] body #page-drills .drills-domain-mast { display: block; font: 600 9.5px/1.3 Inter, sans-serif; color: var(--text-dim); margin-top: 6px; }
+html[data-theme] body #page-drills .drills-domain-mast b { color: var(--text-mid); font-weight: 700; }
+
+html[data-theme] body #page-drills .drills-foot-note { font: 500 11px/1.5 Inter, sans-serif; color: var(--text-dim); text-align: center; margin: 16px 8px 4px; }
+
+/* ─────────────────────── EXAM-DATE BOTTOM SHEET (Phase 2 leftover) ─────────────────────── */
+/* Source: cert-ios-settings.html .sheet block. Injected by lift-shell.js;
+   fixed to the viewport and width-capped to the app column. */
+
+html[data-theme] body .lift-sheet-scrim {
+  position: fixed; inset: 0; z-index: 130;
+  background: color-mix(in oklab, #000 44%, transparent);
+  opacity: 0; pointer-events: none; transition: opacity .32s cubic-bezier(0.16, 1, 0.3, 1);
+}
+html[data-theme] body .lift-sheet-scrim.on { opacity: 1; pointer-events: auto; }
+html[data-theme] body .lift-sheet {
+  position: fixed; left: 50%; bottom: 0; z-index: 131;
+  width: min(430px, 100vw); box-sizing: border-box;
+  background: var(--surface); border: 1px solid var(--border); border-bottom: none;
+  border-radius: 22px 22px 0 0;
+  padding: 10px 18px calc(16px + env(safe-area-inset-bottom));
+  transform: translate(-50%, 104%); transition: transform .42s cubic-bezier(0.32, 0.72, 0, 1);
+  box-shadow: 0 -18px 50px -18px color-mix(in oklab, #000 50%, transparent);
+}
+html[data-theme] body .lift-sheet.on { transform: translate(-50%, 0); }
+html[data-theme] body .lift-sheet-grab { width: 38px; height: 5px; border-radius: 999px; background: color-mix(in oklab, var(--text) 18%, var(--surface)); margin: 0 auto 13px; }
+html[data-theme] body .lift-sheet-title { font: 600 18px/1.2 Fraunces, Georgia, serif; color: var(--text); margin: 0 0 2px; }
+html[data-theme] body .lift-sheet-sub { font: 500 12.5px/1.45 Inter, sans-serif; color: var(--text-mid); margin: 0 0 13px; }
+html[data-theme] body .lift-cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+html[data-theme] body .lift-cal-month { font: 700 13.5px/1 Inter, sans-serif; color: var(--text); }
+html[data-theme] body .lift-cal-nav { display: inline-flex; gap: 6px; }
+html[data-theme] body .lift-cal-nav button {
+  width: 30px; height: 30px; border-radius: 9px; border: 1px solid var(--border); background: transparent;
+  color: var(--text); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; padding: 0;
+}
+html[data-theme] body .lift-cal-nav button:disabled { opacity: .35; cursor: default; }
+html[data-theme] body .lift-cal-nav svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+html[data-theme] body .lift-cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
+html[data-theme] body .lift-cal-dow { text-align: center; font: 700 10px/1 Inter, sans-serif; letter-spacing: .08em; color: var(--text-dim); padding: 5px 0 7px; text-transform: uppercase; }
+html[data-theme] body .lift-cal-day {
+  aspect-ratio: 1; border: none; background: transparent; border-radius: 10px;
+  font: 600 13px/1 Inter, sans-serif; color: var(--text); cursor: pointer;
+  font-variant-numeric: lining-nums tabular-nums; padding: 0;
+}
+html[data-theme] body .lift-cal-day:disabled { color: color-mix(in oklab, var(--text) 26%, transparent); cursor: default; }
+html[data-theme] body .lift-cal-day.sel { background: var(--accent); color: var(--on-accent, var(--bg)); font-weight: 800; }
+html[data-theme] body .lift-cal-day.today { box-shadow: inset 0 0 0 1.5px color-mix(in oklab, var(--accent) 65%, transparent); }
+html[data-theme] body .lift-sheet-save {
+  width: 100%; margin-top: 12px; border: none; border-radius: 12px; padding: 13px; cursor: pointer;
+  background: var(--accent); color: var(--on-accent, var(--bg)); font: 700 14px/1 Inter, sans-serif;
+  transition: transform .14s cubic-bezier(0.16, 1, 0.3, 1), filter .2s, opacity .2s;
+}
+html[data-theme] body .lift-sheet-save:disabled { opacity: .45; cursor: default; }
+html[data-theme] body .lift-sheet-save:active:not(:disabled) { transform: scale(0.985); }
+html[data-theme] body .lift-sheet-clear { width: 100%; margin-top: 9px; background: none; border: none; font: 600 12.5px/1 Inter, sans-serif; color: var(--text-mid); cursor: pointer; padding: 9px; }
+
+/* ─────────────────── HOME DAY-0: locked readiness hero (Phase 2 leftover) ─────────────────── */
+/* Source: cert-ios-home.html .rd.locked (new-user state). The real pending
+   card (.readiness-card.is-pending) becomes the mockup's locked hero:
+   eyebrow + Locked chip, big em-dash score, empty bar, unlock line. */
+
+html[data-theme] body #page-setup .readiness-card.is-pending {
+  border: 1px solid var(--border) !important; border-radius: 18px !important;
+  background: var(--surface) !important; padding: 16px 17px !important; box-shadow: none !important;
+  display: flex !important; flex-direction: column !important;
+}
+/* mockup order: eyebrow+chip · score · bar · range · unlock line */
+html[data-theme] body #page-setup .readiness-card.is-pending .readiness-eyebrow { order: 1; }
+html[data-theme] body #page-setup .readiness-card.is-pending .readiness-score { order: 2; flex-direction: row !important; }
+html[data-theme] body #page-setup .readiness-card.is-pending .readiness-bar-track { order: 3; }
+html[data-theme] body #page-setup .readiness-card.is-pending .readiness-range { order: 4; }
+html[data-theme] body #page-setup .readiness-card.is-pending .readiness-strip-line { order: 5; }
+html[data-theme] body #page-setup .readiness-card.is-pending .rc-v2-numwrap { display: inline-flex !important; align-items: baseline !important; }
+html[data-theme] body #page-setup .readiness-card.is-pending .readiness-eyebrow {
+  display: flex !important; align-items: center !important; justify-content: space-between !important;
+  font: 800 10px/1 Inter, sans-serif !important; letter-spacing: 0.13em !important; text-transform: uppercase !important;
+  color: var(--text-dim) !important; margin: 0 0 4px !important; background: none !important; border: 0 !important;
+}
+html[data-theme] body #page-setup .readiness-card.is-pending .readiness-eyebrow::after {
+  content: 'Locked'; font: 800 9.5px/1 Inter, sans-serif; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--text-dim); background: var(--surface3); border: 1px solid var(--border);
+  border-radius: 999px; padding: 5px 9px;
+}
+html[data-theme] body #page-setup .readiness-card.is-pending .readiness-score {
+  display: flex !important; align-items: center !important; gap: 8px !important; margin: 8px 0 9px !important;
+}
+html[data-theme] body #page-setup .readiness-card.is-pending .rc-v2-ring,
+html[data-theme] body #page-setup .readiness-card.is-pending .rc-v2-glow,
+html[data-theme] body #page-setup .readiness-card.is-pending .rc-v2-stamp { display: none !important; }
+html[data-theme] body #page-setup .readiness-card.is-pending #rc-v2-num {
+  font: 600 40px/1 Fraunces, Georgia, serif !important; color: var(--text) !important;
+  font-variant-numeric: lining-nums tabular-nums; font-feature-settings: "lnum","tnum";
+  background: none !important; -webkit-text-fill-color: currentColor;
+}
+html[data-theme] body #page-setup .readiness-card.is-pending .readiness-score > span:last-child {
+  font: 700 11px/1 'Roboto Mono', ui-monospace, monospace !important; letter-spacing: 0.1em !important;
+  text-transform: uppercase !important; color: var(--text-dim) !important;
+}
+/* empty track (mockup locked hero keeps the bar, unfilled) */
+html[data-theme] body #page-setup .readiness-card.is-pending .readiness-bar-track {
+  display: block !important; height: 8px !important; border-radius: 999px !important;
+  background: var(--surface3) !important; overflow: hidden; margin: 0 0 9px !important;
+}
+html[data-theme] body #page-setup .readiness-card.is-pending .readiness-bar-track > span { display: none !important; }
+html[data-theme] body #page-setup .readiness-card.is-pending .readiness-range {
+  font: 600 10.5px/1 'Roboto Mono', ui-monospace, monospace !important; color: var(--text-dim) !important;
+}
+/* the compressed strip carries the unlock copy — surface it as the rd-insight line */
+html[data-theme] body #page-setup .readiness-card.is-pending .readiness-strip-line {
+  display: block !important; font: 400 12.5px/1.45 Inter, sans-serif !important;
+  color: var(--text-mid) !important; margin: 10px 0 0 !important; background: none !important;
+  border: 0 !important; padding: 0 !important; cursor: default !important;
+}
+html[data-theme] body #page-setup .readiness-card.is-pending .readiness-strip-go { display: none !important; }
+
+/* ─────────────────── FREE-TIER CAP: quota-exceeded modal (Phase 2 leftover) ─────────────────── */
+/* Source: cert-ios-daily-limit.html (free-tier gate). The real
+   #quota-exceeded-modal becomes the mockup's calm centered gate:
+   lockmark, Fraunces headline, lede, accent CTA + ghost + quiet dismiss. */
+
+html[data-theme] body .quota-exceeded-modal {
+  position: fixed !important; inset: 0 !important; z-index: 140 !important;
+  display: flex !important; align-items: center !important; justify-content: center !important;
+  background: color-mix(in oklab, #000 44%, transparent) !important; padding: 20px;
+}
+html[data-theme] body .quota-exceeded-card {
+  width: min(394px, 100%) !important; box-sizing: border-box;
+  background: var(--bg) !important; border: 1px solid var(--border) !important;
+  border-radius: 22px !important; padding: 26px 20px 18px !important; text-align: center !important;
+  box-shadow: 0 24px 60px -24px color-mix(in oklab, #000 55%, transparent) !important;
+}
+html[data-theme] body .quota-exceeded-icon {
+  width: 46px !important; height: 46px !important; margin: 0 auto 12px !important;
+  display: grid !important; place-items: center !important; overflow: visible !important;
+  font-size: 22px !important; line-height: 1 !important; background: var(--surface3) !important;
+  border: 1px solid var(--border) !important; border-radius: 13px !important;
+}
+html[data-theme] body .quota-exceeded-card::before, html[data-theme] body .quota-exceeded-card::after { content: none !important; }
+html[data-theme] body .quota-exceeded-title {
+  font: 600 22px/1.15 Fraunces, Georgia, serif !important; letter-spacing: -0.012em !important;
+  color: var(--text) !important; margin: 0 0 8px !important;
+}
+html[data-theme] body .quota-exceeded-sub {
+  font: 400 13px/1.5 Inter, sans-serif !important; color: var(--text-mid) !important; margin: 0 0 16px !important;
+}
+html[data-theme] body .quota-exceeded-sub strong { color: var(--text) !important; font-weight: 650 !important; }
+html[data-theme] body .quota-exceeded-actions { display: flex !important; flex-direction: column !important; gap: 9px !important; }
+/* upgrade link = the accent CTA (mockup .cta) */
+html[data-theme] body a.quota-exceeded-cta {
+  display: block; width: 100%; box-sizing: border-box; border: 0 !important; border-radius: 13px !important;
+  padding: 15px !important; cursor: pointer; text-decoration: none !important;
+  background: var(--accent) !important; color: var(--on-accent, var(--bg)) !important;
+  font: 800 15px/1 Inter, sans-serif !important; letter-spacing: -0.005em;
+  box-shadow: 0 10px 22px -12px color-mix(in oklab, var(--accent) 70%, transparent) !important;
+  transition: transform .15s cubic-bezier(0.16, 1, 0.3, 1), filter .2s !important;
+}
+html[data-theme] body a.quota-exceeded-cta:active { transform: scale(0.985); }
+/* SR-review escape hatch = the ghost (mockup .ghost) */
+html[data-theme] body button.quota-exceeded-cta {
+  display: block; width: 100%; box-sizing: border-box; cursor: pointer;
+  background: transparent !important; border: 1.5px solid var(--border) !important;
+  color: var(--text) !important; border-radius: 13px !important; padding: 13px !important;
+  font: 700 14px/1 Inter, sans-serif !important;
+  transition: transform .14s cubic-bezier(0.16, 1, 0.3, 1), border-color .18s !important;
+}
+html[data-theme] body button.quota-exceeded-cta:active { transform: scale(0.985); }
+html[data-theme] body .quota-exceeded-dismiss {
+  background: none !important; border: 0 !important; cursor: pointer;
+  font: 600 12.5px/1 Inter, sans-serif !important; color: var(--text-mid) !important; padding: 9px !important;
+}

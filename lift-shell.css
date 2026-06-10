@@ -1,0 +1,88 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   LIFT-SHELL · Phase 0 of the mockup lift-and-shift (2026-06-10)
+   The whole app renders as the cert-ios mockups' centered phone column on
+   EVERY viewport (decision: 1:1, desktop = centered ~430px app column).
+   Source of truth: mockups/cert-ios-*.html in feat/cert-ios-e2e.
+   Plan: docs/superpowers/specs/2026-06-10-mockup-lift-and-shift-plan.md
+   Load order: after dg-system.css + dg-depurple.css. CSS-only chrome —
+   per-screen lifts land in later phases.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+:root { --lift-col-w: 430px; --lift-tab-h: 64px; }
+
+/* styles.css has no universal border-box; the column math needs it */
+.page, #app-topbar, .app-topbar, #lift-tabbar { box-sizing: border-box; }
+
+/* backdrop outside the column (mockups' --page-bg: a step away from --bg) */
+html[data-theme] body {
+  background: color-mix(in oklab, var(--bg) 90%, var(--text) 10%) !important;
+  padding-left: 0 !important;
+}
+
+/* sidebar retires — the bottom tab bar owns primary navigation */
+#app-sidebar, .app-sidebar, #sb-mobile-toggle, .sb-mobile-toggle { display: none !important; }
+
+/* dev/preview env badge: clear the tab bar */
+#env-badge { bottom: calc(var(--lift-tab-h) + 16px + env(safe-area-inset-bottom)) !important; }
+
+/* the column: topbar + active page share one centered track */
+#app-topbar, .app-topbar {
+  width: min(var(--lift-col-w), 100%);
+  margin: 0 auto;
+  background: var(--bg) !important;
+}
+.page {
+  width: min(var(--lift-col-w), 100%);
+  max-width: min(var(--lift-col-w), 100%) !important;
+  margin: 0 auto;
+  background: var(--bg);
+  min-height: calc(100dvh - 48px);
+  padding-bottom: calc(24px + var(--lift-tab-h) + env(safe-area-inset-bottom)) !important;
+}
+
+/* desktop-era topbar extras have no place in the phone column.
+   The version pill STAYS — it's the triple-tap production-monitor entry. */
+#topbar-time, #topbar-toggle { display: none !important; }
+.topbar-version-pill { font-size: 9px !important; opacity: .7; }
+
+/* ─ bottom tab bar (mockup tabbar: Home / Drills / Progress / Account) ─ */
+#lift-tabbar {
+  position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+  width: min(var(--lift-col-w), 100%);
+  z-index: 96;
+  display: flex;
+  border-top: 1px solid color-mix(in oklab, var(--border) 70%, transparent);
+  background: color-mix(in oklab, var(--bg) 86%, var(--surface3));
+  padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
+}
+#lift-tabbar .lift-tab {
+  flex: 1 1 0;
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  background: none; border: none; cursor: pointer; padding: 5px 0;
+  color: var(--text-dim);
+  transition: color .18s, transform .14s cubic-bezier(0.16, 1, 0.3, 1);
+}
+#lift-tabbar .lift-tab:active { transform: scale(0.94); }
+#lift-tabbar .lift-tab svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+#lift-tabbar .lift-tab span { font: 700 10px/1 Inter, 'Segoe UI', system-ui, sans-serif; letter-spacing: 0.01em; }
+#lift-tabbar .lift-tab.on { color: var(--accent); }
+
+/* immersive session pages own the whole screen — no tab bar, no app topbar
+   (the session screens carry their own mockup header, e.g. the quiz qbar) */
+body.lift-no-tabbar #lift-tabbar { display: none; }
+body.lift-no-tabbar #app-topbar { display: none !important; }
+body.lift-no-tabbar .page { padding-bottom: calc(24px + env(safe-area-inset-bottom)) !important; }
+
+/* ─ Phase-0 interim: un-lifted pages built desktop grids whose narrow-viewport
+   collapses key on @media viewport width, which never fires on desktop now
+   that the app lives in a 430px column. Force the narrow collapse at every
+   viewport. Each rule dies when its screen's real lift lands. ─ */
+#page-setup .home-grid { grid-template-columns: minmax(0, 1fr) !important; }
+#page-setup .col-side { order: 2; }
+#page-setup .bento { grid-template-columns: 1fr !important; }
+#page-setup .bento > * { grid-column: auto !important; grid-row: auto !important; }
+#page-setup #setup-domain-grid.dgh-dom-grid { grid-template-columns: 1fr !important; }
+#page-setup .stat-row { grid-template-columns: 1fr !important; }
+/* bento drill-by-domain quick-pick: 5-up never fits the column */
+#page-setup .ld-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+#page-setup .ld-grid > * { min-width: 0; }
