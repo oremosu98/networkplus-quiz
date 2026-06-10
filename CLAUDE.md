@@ -112,6 +112,7 @@ npx playwright test              # E2E (tests/e2e/app.spec.js)
 
 | Version | Features Added |
 |---|---|
+| v7.36.0 | Mockup lift: cert-ios design language on all app surfaces — centered column + tab bar chrome, quiz/results/review/settings/home/progress/analytics/SR-review lifts, net-new Drills tab, exam-date sheet, day-0 + capped states |
 | v7.35.0 | Mobile Home redesign (Start-first, collapsible Practice/Exam/Drill, readiness strip) + in-view signed-out prompt, top-strip update banner, 44px tap targets, sticky Results CTA; desktop readiness/PROD polish |
 | v7.34.0 | Desktop home polish — compress empty readiness hero (no-score state) + hide PROD badge from live users |
 | v7.33.0 | Free-tier cert lock: one cert until Pro (web + native) |
