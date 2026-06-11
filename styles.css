@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════
-   Network+ AI Quiz — styles.css  v7.40.0
+   Network+ AI Quiz — styles.css  v7.41.0
    ══════════════════════════════════════════ */
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -13871,8 +13871,122 @@ html { zoom: 1.10; }
   border-color: rgba(255,255,255,0.32);
 }
 
+/* ── GAP-2 — pre-emptive daily-limit screen (mockup cert-ios-daily-limit) ──
+   Shares the .quota-exceeded-modal scrim; the card is its own block. */
+.dlpb-card {
+  box-sizing: border-box;
+  background: var(--bg, #0b0b14);
+  border: 1px solid var(--border, rgba(255,255,255,0.12));
+  border-radius: 16px;
+  padding: 30px 26px 24px;
+  max-width: 400px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  animation: dlpbCardIn 0.2s cubic-bezier(0.23, 1, 0.32, 1) forwards;
+}
+@keyframes dlpbCardIn {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+.dlpb-lockmark {
+  width: 54px; height: 54px;
+  margin: 0 auto 16px;
+  border-radius: 50%;
+  background: color-mix(in oklab, var(--accent, #b08d57) 14%, transparent);
+  border: 1px solid color-mix(in oklab, var(--accent, #b08d57) 38%, transparent);
+  color: var(--accent, #b08d57);
+  display: grid; place-items: center;
+}
+.dlpb-lockmark svg { width: 26px; height: 26px; }
+.dlpb-title {
+  font-size: 19px;
+  font-weight: 700;
+  color: var(--text, #f0f0f8);
+  margin: 0 0 8px;
+  letter-spacing: -0.01em;
+}
+.dlpb-title i {
+  font-style: italic;
+  color: var(--accent, #b08d57);
+}
+.dlpb-lede {
+  font-size: 13.5px;
+  color: var(--text-mid, #b0b0cc);
+  line-height: 1.55;
+  margin: 0 0 18px;
+}
+.dlpb-lede b { color: var(--text, #f0f0f8); font-variant-numeric: tabular-nums; }
+.dlpb-allow {
+  border: 1px solid var(--border, rgba(255,255,255,0.12));
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 14px;
+  text-align: left;
+}
+.dlpb-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 11px 14px;
+}
+.dlpb-row + .dlpb-row { border-top: 1px solid var(--border, rgba(255,255,255,0.12)); }
+.dlpb-row-tx { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.dlpb-row-tx b { font-size: 13px; font-weight: 650; color: var(--text, #f0f0f8); }
+.dlpb-row-tx span { font-size: 11.5px; color: var(--text-mid, #b0b0cc); }
+.dlpb-row-amt {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text, #f0f0f8);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.dlpb-pro-line {
+  font-size: 12.5px;
+  color: var(--text-mid, #b0b0cc);
+  margin: 0 0 18px;
+}
+.dlpb-pro-line b { color: var(--text, #f0f0f8); }
+.dlpb-actions { display: flex; flex-direction: column; gap: 9px; }
+.dlpb-cta {
+  display: block;
+  background: var(--accent, #b08d57);
+  color: var(--on-accent, #14110b) !important;
+  padding: 13px 22px;
+  font-size: 13.5px;
+  font-weight: 700;
+  border-radius: 10px;
+  text-decoration: none;
+  border: 0;
+  cursor: pointer;
+  transition: transform 0.16s cubic-bezier(0.23, 1, 0.32, 1);
+}
+@media (hover: hover) and (pointer: fine) {
+  .dlpb-cta:hover { transform: translateY(-1px); }
+}
+.dlpb-cta:active { transform: scale(0.97); }
+.dlpb-ghost {
+  background: transparent;
+  color: var(--text, #f0f0f8);
+  border: 1px solid var(--border, rgba(255,255,255,0.16));
+  padding: 12px 20px;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 10px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: transform 0.16s cubic-bezier(0.23, 1, 0.32, 1), border-color 0.16s ease;
+}
+@media (hover: hover) and (pointer: fine) {
+  .dlpb-ghost:hover { border-color: color-mix(in oklab, var(--text, #fff) 32%, transparent); }
+}
+.dlpb-ghost:active { transform: scale(0.97); }
+
 @media (prefers-reduced-motion: reduce) {
   .quota-exceeded-modal { animation: none; }
+  .dlpb-card { animation: none; }
+  .dlpb-cta, .dlpb-ghost { transition: none !important; }
   .topbar-quota-chip,
   .topbar-quota-chip .quota-chip-fill,
   .quota-exceeded-cta { transition: none !important; }

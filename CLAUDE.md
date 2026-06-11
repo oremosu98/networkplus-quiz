@@ -112,6 +112,7 @@ npx playwright test              # E2E (tests/e2e/app.spec.js)
 
 | Version | Features Added |
 |---|---|
+| v7.41.0 | Free tier pre-emptive daily-limit screen — oversized sessions blocked before start with right-size option (GAP-2) |
 | v7.40.0 | Free tier 15 questions + 5 review cards per day (GAP-1 of tier-logic sweep) |
 | v7.39.0 | Manage-subscription static UI lift — plan card, Pro pricing, Stripe-ready seams |
 | v7.38.0 | Account-pages lift phase 2 — Go Pro card + upsell sheet + auth modal lift (mobile, <900px) |
