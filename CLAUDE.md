@@ -112,6 +112,7 @@ npx playwright test              # E2E (tests/e2e/app.spec.js)
 
 | Version | Features Added |
 |---|---|
+| v7.38.0 | Account-pages lift phase 2 — Go Pro card + upsell sheet + auth modal lift (mobile, <900px) |
 | v7.37.0 | Account-pages mobile lift — viewport-gated cert-ios reskin of landing /account + /analytics |
 | v7.36.1 | Viewport-gate the cert-ios lift — mobile keeps the new look, desktop restores the classic layout |
 | v7.36.0 | Mockup lift: cert-ios design language on all app surfaces — centered column + tab bar chrome, quiz/results/review/settings/home/progress/analytics/SR-review lifts, net-new Drills tab, exam-date sheet, day-0 + capped states |

@@ -3370,6 +3370,9 @@
 <!-- v4.89.1: vendored locally instead of cdn.jsdelivr.net (CDN 503'd
      intermittently · broke auth flow on landing). Local copy is identical
      to v2.105.3 UMD bundle. -->
+<!-- cert-ios account-pages lift (phase 2) — viewport-gated (<900px); only the
+     .auth-modal-overlay rules apply on this page. Desktop untouched. -->
+<link rel="stylesheet" href="lift-account.css" media="(max-width: 899px)">
 <script src="lib/supabase-umd.min.js"></script>
 <script src="lib/supabase.js"></script>
 <script src="auth.js"></script>
