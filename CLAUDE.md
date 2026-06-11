@@ -112,6 +112,7 @@ npx playwright test              # E2E (tests/e2e/app.spec.js)
 
 | Version | Features Added |
 |---|---|
+| v7.47.0 | Mistake Autopsy — wrong-bank questions return re-worded, beating the concept not the question |
 | v7.46.1 | Pro-gate polish — modal rebuilt in house design language, per-feature copy, pill consolidation |
 | v7.46.0 | Free-tier hard gates — exam sim, marathons, Deep Scan, Drill Mistakes Pro-only; custom quiz capped at 15 for free |
 | v7.45.0 | In-app account deletion — Settings danger-zone row + confirm flow, Apple 5.1.1(v) (GAP-6) |
