@@ -112,6 +112,7 @@ npx playwright test              # E2E (tests/e2e/app.spec.js)
 
 | Version | Features Added |
 |---|---|
+| v7.37.0 | Account-pages mobile lift — viewport-gated cert-ios reskin of landing /account + /analytics |
 | v7.36.1 | Viewport-gate the cert-ios lift — mobile keeps the new look, desktop restores the classic layout |
 | v7.36.0 | Mockup lift: cert-ios design language on all app surfaces — centered column + tab bar chrome, quiz/results/review/settings/home/progress/analytics/SR-review lifts, net-new Drills tab, exam-date sheet, day-0 + capped states |
 | v7.35.0 | Mobile Home redesign (Start-first, collapsible Practice/Exam/Drill, readiness strip) + in-view signed-out prompt, top-strip update banner, 44px tap targets, sticky Results CTA; desktop readiness/PROD polish |

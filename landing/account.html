@@ -573,9 +573,15 @@
     } else { p.classList.add('acx-in'); }
   })();
 </script>
+<!-- cert-ios account-pages lift — viewport-gated, same pattern as the cert-app
+     lift (v7.36.1): mobile <900px gets the hub language, desktop keeps the
+     signed-off editorial v2 untouched. Loaded at end-of-body so it cascades
+     after the inline #acx-styles block (equal specificity, later wins). -->
+<link rel="stylesheet" href="lift-account.css" media="(max-width: 899px)">
 <script src="lib/supabase-umd.min.js"></script>
 <script src="lib/supabase.js"></script>
 <script src="auth.js"></script>
 <script src="lib/account.js"></script>
+<script src="lift-account.js"></script>
 </body>
 </html>
