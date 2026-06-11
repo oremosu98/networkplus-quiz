@@ -112,6 +112,7 @@ npx playwright test              # E2E (tests/e2e/app.spec.js)
 
 | Version | Features Added |
 |---|---|
+| v7.43.0 | Cross-cert analytics gated as Pro feature with upsell state for free users (GAP-4) |
 | v7.42.0 | Settings tier locks — Daily Goal + Daily Review controls pro-locked for free users (GAP-3) |
 | v7.41.0 | Free tier pre-emptive daily-limit screen — oversized sessions blocked before start with right-size option (GAP-2) |
 | v7.40.0 | Free tier 15 questions + 5 review cards per day (GAP-1 of tier-logic sweep) |
