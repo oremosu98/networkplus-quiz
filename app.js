@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v7.46.1
+// Network+ AI Quiz — app.js  v7.47.0
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '7.46.1';
+const APP_VERSION = '7.47.0';
 // v4.99.45 (Phase 6b): expose APP_VERSION on window so the web-vitals
 // collector (lib/web-vitals-collector.js, loaded BEFORE app.js so its
 // PerformanceObservers attach earlier) can stamp this version onto every
@@ -6353,11 +6353,70 @@ function _renderResultsReviewList() {
   root.innerHTML = items;
 }
 
-function startWrongDrill() {
+// ── Mistake Autopsy (v7.47.0) ──────────────────────────────────────────
+// Research-verified pain: people learn the QUESTION, not the concept —
+// 95-100% practice scores fail on re-worded real exams. So missed
+// questions now come back re-worded: same concept, same correct fact,
+// brand-new phrasing and options. Beating the variant proves the concept
+// stuck; right-twice graduation now means something.
+//
+// Single-answer MCQ entries get variants; PBQ types (order/items) and
+// multi-answer entries run verbatim. Any AI failure falls back to the
+// verbatim originals — the drill never breaks because a reword didn't
+// arrive.
+async function _fetchRewordedVariants(key, entries) {
+  const numbered = entries.map(function (b, i) {
+    const correctIdx = 'ABCDEF'.indexOf((b.answer || 'A').trim().toUpperCase());
+    const correctText = (Array.isArray(b.options) && b.options[correctIdx]) || '';
+    return (i + 1) + '. Topic: ' + (b.topic || 'general') +
+      '\n   Original question: ' + b.question +
+      '\n   The fact being tested (the correct answer): ' + correctText;
+  }).join('\n\n');
+
+  const prompt = 'A student answered each of these exam questions WRONG and is re-drilling them. ' +
+    'For EACH original, write ONE new multiple-choice question that tests the SAME concept and the SAME correct fact, ' +
+    'but is phrased completely differently: new scenario or angle, different sentence structure, no reuse of the original wording. ' +
+    'Keep the same difficulty. Write 4 plausible options (plain text, no letter prefixes) with exactly one correct; ' +
+    'vary which position is correct across questions. Add a 1-2 sentence explanation of why the correct answer is right.\n\n' +
+    'Return ONLY a JSON array with one object per original, in the same order:\n' +
+    '[{"question":"...","options":["...","...","...","..."],"answer":"A","explanation":"...","topic":"copy the topic"}]\n' +
+    '"answer" is the letter (A-D) of the correct option by position.\n\nOriginals:\n\n' + numbered;
+
+  const res = await _claudeFetch({
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': key,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true'
+    },
+    // _metered: true — counts toward quota + the global kill-switch,
+    // same contract as question generation.
+    body: JSON.stringify({ model: CLAUDE_MODEL, max_tokens: MAX_TOKENS_GENERATION, messages: [{ role: 'user', content: prompt }], _metered: true })
+  });
+  if (!res.ok) throw new Error('reword API error ' + res.status);
+  const data = await res.json();
+  const raw = (data.content && data.content[0] && data.content[0].text) || '';
+  const m = raw.match(/\[[\s\S]*\]/);
+  if (!m) throw new Error('reword: no JSON array in response');
+  const parsed = JSON.parse(m[0]);
+  // Per-slot shape check — a bad variant just means that slot stays verbatim.
+  return entries.map(function (orig, i) {
+    const v = parsed[i];
+    const ok = v && typeof v.question === 'string' && v.question.length > 20 &&
+      Array.isArray(v.options) && v.options.length >= 3 && v.options.length <= 6 &&
+      typeof v.answer === 'string' && /^[A-F]$/.test(v.answer.trim().toUpperCase()) &&
+      'ABCDEF'.indexOf(v.answer.trim().toUpperCase()) < v.options.length &&
+      v.question !== orig.question;
+    return ok ? v : null;
+  });
+}
+
+async function startWrongDrill() {
   // v7.46.0: Drill Mistakes is Pro-only (Simi, 2026-06-11)
   if (typeof _gateProOnly === 'function' && !_gateProOnly('Drill Mistakes', {
     title: 'Drill Mistakes is a Pro feature',
-    body: 'Re-run the questions you got wrong until they stick. Your wrong-answer bank keeps saving either way — the drill itself is Pro.'
+    body: 'Your missed questions come back re-worded, so you beat the concept — not the question. The bank keeps saving either way; the drill itself is Pro.'
   })) return;
   const bank = loadWrongBank();
   if (bank.length === 0) {
@@ -6366,16 +6425,19 @@ function startWrongDrill() {
   }
 
   const key = document.getElementById('api-key').value.trim();
-  apiKey = key; // May be empty, but wrong drill doesn't need API
+  apiKey = key; // May be empty — the reword call routes via the signed-in proxy
 
   wrongDrillMode = true;
   examMode = false;
   sessionMode = false;
   activeQuizTopic = 'Wrong Answers Drill';
 
-  // Pick up to 10 questions from the bank (shuffle)
+  // Pick up to 10 questions from the bank (shuffle).
+  // _bankKey/_bankOrig carry the ORIGINAL bank identity through the drill:
+  // graduation and miss-handling key on the original question text, so a
+  // re-worded variant graduates (or re-triggers SR for) the entry it came from.
   const shuffled = [...bank].sort(() => Math.random() - 0.5);
-  questions = shuffled.slice(0, 10).map(b => ({
+  const base = shuffled.slice(0, 10).map(b => ({
     question: b.question,
     options: b.options,
     answer: b.answer,
@@ -6385,9 +6447,42 @@ function startWrongDrill() {
     correctOrder: b.correctOrder,
     explanation: b.explanation,
     topic: b.topic,
-    difficulty: b.difficulty
+    difficulty: b.difficulty,
+    _bankKey: b.question,
+    _bankOrig: b
   }));
 
+  // v7.47.0 Mistake Autopsy: re-word the single-answer MCQs (signed-in only —
+  // the reword rides the AI proxy). Verbatim fallback on any failure.
+  const rewordable = base.filter(q =>
+    (q.type || 'mcq') === 'mcq' && !q.answers && q.answer && Array.isArray(q.options) && q.options.length >= 3);
+  if (rewordable.length > 0 && typeof window !== 'undefined' && window._certanvilSignedIn === true) {
+    const lp = document.getElementById('load-progress');
+    if (lp) lp.classList.add('is-hidden');
+    showPage('loading');
+    const lm = document.getElementById('loading-msg');
+    if (lm) lm.textContent = 'Re-wording your mistakes — same concepts, new disguises…';
+    if (typeof _loadingProgressBegin === 'function') _loadingProgressBegin('Re-wording your mistakes…');
+    try {
+      const variants = await _fetchRewordedVariants(key, rewordable.map(q => q._bankOrig));
+      rewordable.forEach((q, i) => {
+        const v = variants[i];
+        if (v) {
+          q.question = v.question;
+          q.options = v.options;
+          q.answer = v.answer.trim().toUpperCase();
+          q.explanation = v.explanation || q.explanation;
+          q._reworded = true;
+        }
+      });
+    } catch (_) {
+      // Verbatim fallback — say so honestly, then run the drill as before.
+      try { if (typeof showToast === 'function') showToast('Couldn’t re-word this time — running your saved questions as-is.', 'info'); } catch (_) {}
+    }
+    if (typeof _loadingProgressFinish === 'function') { try { _loadingProgressFinish(); } catch (_) {} }
+  }
+
+  questions = base;
   current = 0; score = 0; streak = 0; bestStreak = 0; answered = 0; log = [];
   quizFlags = new Array(questions.length).fill(false);
   showCacheNotice(false);
@@ -7877,8 +7972,8 @@ function submitMultiSelect(q) {
     if (isRight) { score++; streak++; if (streak > bestStreak) bestStreak = streak; }
     else { streak = 0; }
     log.push({ q, chosen: chosen.join(','), correct: correctAnswers.join(','), isRight, flagged: quizFlags[current] });
-    if (!isRight) addToWrongBank(q, chosen.join(','));
-    else if (wrongDrillMode) graduateFromBank(q.question);
+    if (!isRight) addToWrongBank(q._bankOrig || q, chosen.join(','));  // v7.47.0: a missed variant re-triggers SR for its ORIGINAL (bank dedup no-ops)
+    else if (wrongDrillMode) graduateFromBank(q._bankKey || q.question);  // v7.47.0: variant graduates its original
     document.getElementById('live-score').textContent = `${score} / ${answered}`;
     const streakEl = document.getElementById('live-streak');
     streakEl.textContent = `Streak ${streak}`;
@@ -8040,8 +8135,8 @@ function submitOrder(q) {
     if (isRight) { score++; streak++; if (streak > bestStreak) bestStreak = streak; }
     else { streak = 0; }
     log.push({ q, chosen: orderSequence.join(','), correct: correctOrder.join(','), isRight, flagged: quizFlags[current] });
-    if (!isRight) addToWrongBank(q, orderSequence.join(','));
-    else if (wrongDrillMode) graduateFromBank(q.question);
+    if (!isRight) addToWrongBank(q._bankOrig || q, orderSequence.join(','));  // v7.47.0: original identity preserved
+    else if (wrongDrillMode) graduateFromBank(q._bankKey || q.question);  // v7.47.0: variant graduates its original
     document.getElementById('live-score').textContent = `${score} / ${answered}`;
     const streakEl = document.getElementById('live-streak');
     streakEl.textContent = `Streak ${streak}`;
@@ -8115,8 +8210,8 @@ function pick(chosen, q) {
     if (isRight) { score++; streak++; if (streak > bestStreak) bestStreak = streak; }
     else { streak = 0; }
     log.push({ q, chosen, correct: q.answer, isRight, flagged: quizFlags[current] });
-    if (!isRight) addToWrongBank(q, chosen);
-    else if (wrongDrillMode) graduateFromBank(q.question);
+    if (!isRight) addToWrongBank(q._bankOrig || q, chosen);  // v7.47.0: original identity preserved
+    else if (wrongDrillMode) graduateFromBank(q._bankKey || q.question);  // v7.47.0: variant graduates its original
     document.getElementById('live-score').textContent = `${score} / ${answered}`;
     const streakEl = document.getElementById('live-streak');
     streakEl.textContent = `Streak ${streak}`;
@@ -12882,7 +12977,7 @@ function submitHotArea(q) {
     else { streak = 0; }
     log.push({ q, chosen: _hotAreaPick, correct: correctIds.join(','), isRight: isCorrect, flagged: quizFlags[current] });
     if (!isCorrect) addToWrongBank(q, _hotAreaPick);
-    else if (wrongDrillMode) graduateFromBank(q.question);
+    else if (wrongDrillMode) graduateFromBank(q._bankKey || q.question);  // v7.47.0: variant graduates its original
     document.getElementById('live-score').textContent = score + ' / ' + answered;
     document.getElementById('live-streak').textContent = 'Streak ' + streak;
   }
@@ -14058,7 +14153,7 @@ function submitTopology(q) {
     else { streak = 0; }
     log.push({ q, chosen: JSON.stringify(topoDevices), correct: JSON.stringify(correct), isRight: allCorrect, flagged: quizFlags[current] });
     if (!allCorrect) addToWrongBank(q, JSON.stringify(topoDevices));
-    else if (wrongDrillMode) graduateFromBank(q.question);
+    else if (wrongDrillMode) graduateFromBank(q._bankKey || q.question);  // v7.47.0: variant graduates its original
     document.getElementById('live-score').textContent = score + ' / ' + answered;
     document.getElementById('live-streak').textContent = 'Streak ' + streak;
   }
