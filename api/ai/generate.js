@@ -44,7 +44,12 @@ const MAX_PROMPT_BYTES = 100 * 1024;  // C2: cap serialized messages+system at 1
 // H1: abuse ceilings (separate from the product 20/day question quota).
 const USER_DAILY_LIMIT   = 500;    // ~20 full 90-Q exams/day — no human reaches it
 const IP_HOURLY_LIMIT    = 200;
-const GLOBAL_DAILY_LIMIT = 20000;  // global kill-switch; tune to Anthropic budget
+const GLOBAL_DAILY_LIMIT = 500;    // global kill-switch — matched to the $20/mo
+                                   // Anthropic workspace cap (founder decision
+                                   // 2026-06-11, testing phase). Equals one user's
+                                   // daily ceiling; raise at go-live alongside the
+                                   // workspace cap, after measuring per-session
+                                   // cost from the simulator E2E run.
 const RL_SALT = process.env.RL_SALT || 'certanvil-ai-rl-v1';
 
 // ── Supabase helpers (REST, no SDK) ─────────────────────────────────────
