@@ -238,22 +238,48 @@
   window.ccaGetCertCatalog = getCertCatalog;
 
   // ── Auth flow ──────────────────────────────────────────────────────────
+  var elProGate = document.getElementById('cca-pro-gate');
+
   function showLoading() {
     if (elLoading) elLoading.removeAttribute('hidden');
     if (elAnonGate) elAnonGate.setAttribute('hidden', '');
+    if (elProGate) elProGate.setAttribute('hidden', '');
     if (elContent) elContent.setAttribute('hidden', '');
   }
 
   function showAnonGate() {
     if (elLoading) elLoading.setAttribute('hidden', '');
     if (elAnonGate) elAnonGate.removeAttribute('hidden');
+    if (elProGate) elProGate.setAttribute('hidden', '');
+    if (elContent) elContent.setAttribute('hidden', '');
+  }
+
+  // GAP-4 (v7.43.0): cross-cert analytics is a Pro feature.
+  function showProGate() {
+    if (elLoading) elLoading.setAttribute('hidden', '');
+    if (elAnonGate) elAnonGate.setAttribute('hidden', '');
+    if (elProGate) elProGate.removeAttribute('hidden');
     if (elContent) elContent.setAttribute('hidden', '');
   }
 
   function showContent() {
     if (elLoading) elLoading.setAttribute('hidden', '');
     if (elAnonGate) elAnonGate.setAttribute('hidden', '');
+    if (elProGate) elProGate.setAttribute('hidden', '');
     if (elContent) elContent.removeAttribute('hidden');
+  }
+
+  // Tier check — same RPC the cert app's quota chip uses (is_pro() in
+  // Postgres folds admin into 'pro'). Returns 'free' | 'pro' | null.
+  // null = unknown (RPC error) — callers fail OPEN so a transient hiccup
+  // never locks a paying user out of their dashboard.
+  function fetchTier(userId) {
+    return supabase.rpc('get_daily_quota_usage', { uid: userId })
+      .then(function (res) {
+        var row = res && res.data && res.data[0];
+        return (row && row.tier) ? row.tier : null;
+      })
+      .catch(function () { return null; });
   }
 
   function fetchProfile(userId) {
@@ -1056,22 +1082,31 @@
         showAnonGate();
         return;
       }
-      // Render the panel synchronously with no profile while we fetch — the
-      // catalog itself is enough to render the active/coming-soon rows.
-      // Profile fetch only changes the passed-cert section.
-      var emptyProfile = { role: 'user', metadata: {} };
-      renderPanel1(emptyProfile);
-      renderPanel2(emptyProfile);
-      renderPanel3(emptyProfile);
-      showContent();
-
-      // Async: fetch real profile, re-render once we have cert_results
-      fetchProfile(session.user.id).then(function (profile) {
-        if (profile) {
-          renderPanel1(profile);
-          renderPanel2(profile);
-          renderPanel3(profile);
+      // GAP-4 (v7.43.0): Pro-only surface. Resolve tier before any content
+      // renders so free users never see a flash of the dashboard. Unknown
+      // tier (null, RPC error) fails open.
+      fetchTier(session.user.id).then(function (tier) {
+        if (tier === 'free') {
+          showProGate();
+          return;
         }
+        // Render the panel synchronously with no profile while we fetch — the
+        // catalog itself is enough to render the active/coming-soon rows.
+        // Profile fetch only changes the passed-cert section.
+        var emptyProfile = { role: 'user', metadata: {} };
+        renderPanel1(emptyProfile);
+        renderPanel2(emptyProfile);
+        renderPanel3(emptyProfile);
+        showContent();
+
+        // Async: fetch real profile, re-render once we have cert_results
+        fetchProfile(session.user.id).then(function (profile) {
+          if (profile) {
+            renderPanel1(profile);
+            renderPanel2(profile);
+            renderPanel3(profile);
+          }
+        });
       });
     }).catch(function () {
       showAnonGate();

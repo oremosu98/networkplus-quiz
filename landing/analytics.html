@@ -413,6 +413,16 @@
       <a href="/" class="btn-ghost-link">Back to home</a>
     </div>
 
+    <!-- v7.43.0 GAP-4: Pro gate — free users see this instead of the dashboard.
+         Reuses the anon-gate component styling, no new CSS. -->
+    <div class="account-anon-gate" id="cca-pro-gate" hidden>
+      <div class="anon-gate-icon" aria-hidden="true"></div>
+      <h2>Cross-cert analytics is a Pro feature</h2>
+      <p>Readiness, skill overlap, and your best next move across every cert, in one dashboard. Pro unlocks it along with every exam in the library.</p>
+      <a href="/pricing" class="btn-primary-cta">See Pro plans →</a>
+      <a href="/account" class="btn-ghost-link">Back to account</a>
+    </div>
+
     <!-- Authenticated content — populated by lib/cross-cert-analytics.js -->
     <div class="cca-content" id="cca-content" hidden>
 
