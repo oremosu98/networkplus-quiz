@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v7.40.0
+// Network+ AI Quiz — app.js  v7.41.0
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '7.40.0';
+const APP_VERSION = '7.41.0';
 // v4.99.45 (Phase 6b): expose APP_VERSION on window so the web-vitals
 // collector (lib/web-vitals-collector.js, loaded BEFORE app.js so its
 // PerformanceObservers attach earlier) can stamp this version onto every
@@ -740,6 +740,128 @@ function _gateActivityForQuota(activityLabel) {
     });
   }
   return false;
+}
+
+// ── GAP-2 (tier-logic sweep) — pre-emptive session-size gate ────────────
+// _gateActivityForQuota fires AT the cap (15/15). This one fires BEFORE a
+// session starts when the picked set is bigger than what's left of the free
+// day (e.g. picked 20, only 15 left) — so the user sees the daily-limit
+// screen up front instead of a mid-quiz wall when the proxy 429s at Q16.
+// Design lifted from mockups/cert-ios-daily-limit.html.
+
+// Questions a Free user can still generate today. Infinity = no cap applies
+// (Pro/admin, unknown state, or signed-out — the proxy is the backstop).
+function _quotaRemainingToday() {
+  if (!_quotaState) return Infinity;
+  if (_quotaState.tier === 'pro') return Infinity;
+  if (typeof _quotaState.daily_limit !== 'number') return Infinity;
+  if (_quotaState.daily_limit < 0) return Infinity;
+  return Math.max(0, _quotaState.daily_limit - (_quotaState.used_today || 0));
+}
+
+// Returns true if the session may start at the requested size.
+// opts.mode: 'quiz' (keep the user's topic/diff on downsize) or
+// 'exam' / 'bulk' (downsize restarts as a Mixed Exam-Level practice set).
+// Callers pattern: `if (!_gateSessionSizeForQuota(qCount, { mode: 'quiz' })) return;`
+function _gateSessionSizeForQuota(requestedCount, opts) {
+  var remaining = _quotaRemainingToday();
+  if (!isFinite(remaining)) return true;            // uncapped
+  if (remaining <= 0) return true;                  // fully spent — _gateActivityForQuota owns this
+  if (!requestedCount || requestedCount <= remaining) return true;
+  if (typeof _showDailyLimitPreblockUI === 'function') {
+    _showDailyLimitPreblockUI({
+      picked: requestedCount,
+      remaining: remaining,
+      limit: _quotaState.daily_limit,
+      mode: (opts && opts.mode) || 'quiz'
+    });
+  }
+  return false;
+}
+
+// The pre-block screen itself — lock mark, allowance rows, Go Pro CTA, and
+// a one-tap "start a right-sized set instead" escape hatch.
+function _showDailyLimitPreblockUI(detail) {
+  detail = detail || {};
+  var picked = detail.picked || 0;
+  var remaining = detail.remaining || 0;
+  var limit = detail.limit || 15;
+  var mode = detail.mode || 'quiz';
+  var srCap = (typeof SR_FREE_DAILY_CAP === 'number') ? SR_FREE_DAILY_CAP : 5;
+
+  var lede;
+  if (mode === 'exam') {
+    lede = 'The exam simulator runs <b>' + picked + ' questions</b>. On Free you study <b>' +
+      limit + ' practice questions</b> a day, so the full sim needs Pro.';
+  } else if (remaining >= limit) {
+    lede = 'You picked a <b>' + picked + '-question</b> set. On Free you study <b>' +
+      limit + ' practice questions</b> a day, so this one needs Pro.';
+  } else {
+    lede = 'You picked a <b>' + picked + '-question</b> set, but you&rsquo;ve only got <b>' +
+      remaining + '</b> of today&rsquo;s <b>' + limit + '</b> free questions left.';
+  }
+
+  var prev = document.getElementById('daily-limit-preblock');
+  if (prev) prev.remove();
+
+  var modal = document.createElement('div');
+  modal.id = 'daily-limit-preblock';
+  modal.className = 'quota-exceeded-modal';  // reuse the overlay scrim
+  modal.innerHTML =
+    '<div class="dlpb-card" role="dialog" aria-modal="true" aria-label="Free daily limit">' +
+      '<div class="dlpb-lockmark" aria-hidden="true">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' +
+          '<rect x="4" y="11" width="16" height="9" rx="2.5"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path>' +
+        '</svg>' +
+      '</div>' +
+      '<h2 class="dlpb-title">That&rsquo;s more than your <i>free</i> day</h2>' +
+      '<p class="dlpb-lede">' + lede + '</p>' +
+      '<div class="dlpb-allow">' +
+        '<div class="dlpb-row">' +
+          '<span class="dlpb-row-tx"><b>Practice</b><span>Quizzes and custom sets</span></span>' +
+          '<span class="dlpb-row-amt">' + limit + ' / day</span>' +
+        '</div>' +
+        '<div class="dlpb-row">' +
+          '<span class="dlpb-row-tx"><b>Daily Review</b><span>Spaced repetition</span></span>' +
+          '<span class="dlpb-row-amt">' + srCap + ' / day</span>' +
+        '</div>' +
+      '</div>' +
+      '<p class="dlpb-pro-line"><b>Pro</b> is unlimited questions, every day, on every cert.</p>' +
+      '<div class="dlpb-actions">' +
+        '<a class="dlpb-cta" href="https://certanvil.com/pricing" target="_blank" rel="noopener">Go Pro &mdash; unlimited</a>' +
+        '<button type="button" class="dlpb-ghost" id="dlpb-start-smaller">Start a ' + remaining + '-question set instead</button>' +
+      '</div>' +
+    '</div>';
+  document.body.appendChild(modal);
+
+  var smallerBtn = document.getElementById('dlpb-start-smaller');
+  if (smallerBtn) {
+    smallerBtn.addEventListener('click', function () {
+      modal.remove();
+      qCount = remaining;
+      if (mode !== 'quiz') {
+        // Exam / bulk downsizes restart as a Mixed Exam-Level practice set —
+        // there's no smaller exam sim, so the closest useful session wins.
+        topic = MIXED_TOPIC;
+        diff = 'Exam Level';
+        examMode = false;
+      }
+      // Reflect the new size on the setup-page chips so the UI stays honest.
+      document.querySelectorAll('#topic-group .chip').forEach(function (c) { c.classList.toggle('on', c.dataset.v === topic); });
+      document.querySelectorAll('#diff-group .chip').forEach(function (c) { c.classList.toggle('on', c.dataset.v === diff); });
+      document.querySelectorAll('#count-group .chip').forEach(function (c) { c.classList.toggle('on', c.dataset.v === String(qCount)); });
+      if (typeof syncChipAriaPressed === 'function') {
+        syncChipAriaPressed('#topic-group');
+        syncChipAriaPressed('#diff-group');
+        syncChipAriaPressed('#count-group');
+      }
+      if (typeof startQuiz === 'function') startQuiz();
+    });
+  }
+  // Click the scrim → dismiss (stay on setup, nothing consumed)
+  modal.addEventListener('click', function (e) {
+    if (e.target === modal) modal.remove();
+  });
 }
 
 // v4.99.4 Phase E.4.1 — Pro-only feature gate (drills, flagship labs).
@@ -6334,6 +6456,7 @@ function _showSignInPrompt(anchorEl, message) {
 // ══════════════════════════════════════════
 async function startQuiz() {
   if (!_gateActivityForQuota('practice quizzes')) return;
+  if (!_gateSessionSizeForQuota(qCount, { mode: 'quiz' })) return;
   const key = document.getElementById('api-key').value.trim();
   const errBox = document.getElementById('setup-err');
   errBox.classList.add('is-hidden');
@@ -6733,6 +6856,7 @@ function _formatElapsed(ms) {
 // ══════════════════════════════════════════
 async function startExam() {
   if (!_gateActivityForQuota('exam simulator')) return;
+  if (!_gateSessionSizeForQuota(90, { mode: 'exam' })) return;
   const key = document.getElementById('api-key').value.trim();
   const errBox = document.getElementById('setup-err');
   errBox.classList.add('is-hidden');
@@ -11005,6 +11129,10 @@ async function startBulkQuiz(count) {
   topic = MIXED_TOPIC;
   diff = 'Exam Level';
   qCount = count;
+
+  // GAP-2: bulk presets previously had no quota gate (free user would 429 mid-run)
+  if (!_gateActivityForQuota('practice quizzes')) return;
+  if (!_gateSessionSizeForQuota(count, { mode: 'bulk' })) return;
 
   showPage('loading');
   document.getElementById('loading-msg').textContent = `Generating ${count} mixed Exam Level questions\u2026`;
