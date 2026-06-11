@@ -7879,7 +7879,7 @@ test('v5.5.8 StreakRedesign: sidebar streak render = brand flame + Longest sub, 
 test('bento HTML: 3 commitment tiles (quick / practice / exam simulation)',
   html.includes('id="grp-quick"') && html.includes('id="grp-practice"') && html.includes('id="grp-exam"')
     && /class="tile-title">Quick start</.test(html)
-    && /class="tile-title">Practice</.test(html)
+    && /class="tile-title">Practice[ <]/.test(html)  // v7.46.1: free-tier PRO pill may follow the title
     && /class="tile-title">Exam <i>simulation<\/i>/.test(html));
 test('v4.76.0 HTML: Daily Challenge tile in Quick tier', html.includes('id="modes-dc-tile"'));
 test('v4.76.0 HTML: Drill Mistakes tile in Quick tier', html.includes('id="modes-wrong-tile"'));
@@ -15200,13 +15200,13 @@ test('v4.99.3 gate: startExam protected',
 // v4.99.4: drill entry points now use _gateProOnly (drills are Pro-only).
 // Quizzes (startQuiz/startExam) still use _gateActivityForQuota (20/day quota).
 test('v4.99.4 ProOnly: _gateProOnly helper defined',
-  /function _gateProOnly\(featureLabel\)/.test(js));
+  /function _gateProOnly\(featureLabel, opts\)/.test(js));  // v7.46.1: opts carries per-feature modal copy
 test('v4.99.4 ProOnly: _showProOnlyUI modal helper defined',
   /function _showProOnlyUI\(/.test(js));
 // v4.99.7 — softened from hard default-deny to anonymous-only default-deny.
 // Signed-in users now optimistic-allow during state hydration (race fix).
 test('v4.99.4 ProOnly: anonymous users denied when quotaState is null (safe default)',
-  /_gateProOnly[\s\S]{0,800}!_quotaState[\s\S]{0,400}window\._certanvilSignedIn === true[\s\S]{0,300}return false/.test(js));
+  /_gateProOnly[\s\S]{0,1300}!_quotaState[\s\S]{0,400}window\._certanvilSignedIn === true[\s\S]{0,300}return false/.test(js));  // window 800→1300: v7.46.1 detail/opts preamble
 test('v4.99.4 ProOnly: modal links to upgrade page',
   /pro-only-modal[\s\S]{0,1000}certanvil\.com\/pricing/.test(js));
 
@@ -15306,7 +15306,7 @@ test('v4.99.7 ShowPageGate: topic-dive Back no longer raw-toggles .active class'
 test('v4.99.7 ShowPageGate: guided-lab Back no longer raw-toggles .active class',
   !/getElementById\('page-guided-lab'\)\.classList\.remove\('active'\)/.test(js));
 test('v4.99.7 GateRace: _gateProOnly optimistic-allows signed-in users when _quotaState pending',
-  /function _gateProOnly[\s\S]{0,800}window\._certanvilSignedIn === true[\s\S]{0,200}return true/.test(js));
+  /function _gateProOnly[\s\S]{0,1300}window\._certanvilSignedIn === true[\s\S]{0,200}return true/.test(js));  // window 800→1300: v7.46.1 detail/opts preamble
 test('v4.99.7 GateRace: anonymous users still default-deny in _gateProOnly',
   /function _gateProOnly[\s\S]{0,1200}_showProOnlyUI\([\s\S]{0,200}return false/.test(js));
 test('v4.99.7 QuotaModal: countdown shows "(midnight UTC)" clarifier',

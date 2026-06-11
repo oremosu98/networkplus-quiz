@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════
-   Network+ AI Quiz — styles.css  v7.46.0
+   Network+ AI Quiz — styles.css  v7.46.1
    ══════════════════════════════════════════ */
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -14012,9 +14012,13 @@ body.is-pro-tier .tier-free-only { display: none !important; }
   stroke: currentColor; fill: none;
   stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round;
 }
-/* v7.46.0: pill variants inside home tiles + custom-quiz count chips */
+/* v7.46.1: pill placement — one pill per locked tile head (not per row),
+   and the 20-count chip swaps its "~20 min" sub for the pill on free so
+   the chip never stacks three lines. */
+.tile-title .pro-lock-pill { font-size: 8px; padding: 3px 6px; vertical-align: 2px; }
 .opt .on .pro-lock-pill { font-size: 8px; padding: 3px 6px; margin-left: 4px; }
 .chip-count .chip-count-pro { font-size: 8px; padding: 3px 6px; margin: 4px auto 0; }
+body.is-state-resolved:not(.is-pro-tier) #count-group .chip[data-v="20"] .chip-count-sub { display: none; }
 .settings-lock-bignum {
   display: flex;
   align-items: baseline;

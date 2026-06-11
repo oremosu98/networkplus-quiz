@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v7.46.0
+// Network+ AI Quiz — app.js  v7.46.1
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '7.46.0';
+const APP_VERSION = '7.46.1';
 // v4.99.45 (Phase 6b): expose APP_VERSION on window so the web-vitals
 // collector (lib/web-vitals-collector.js, loaded BEFORE app.js so its
 // PerformanceObservers attach earlier) can stamp this version onto every
@@ -871,7 +871,7 @@ function _showDailyLimitPreblockUI(detail) {
 //
 // Returns true if the user is Pro/admin (proceed), false if Free (blocked +
 // modal shown). Pattern: `if (!_gateProOnly('Acronym Blitz')) return;`
-function _gateProOnly(featureLabel) {
+function _gateProOnly(featureLabel, opts) {
   // v4.99.7 — optimistic-allow for signed-in users while quota state is still
   // hydrating. Pre-v4.99.7, the default-deny path here caused signed-in Pro
   // users to briefly see the upgrade modal during the first ~500ms after page
@@ -880,48 +880,58 @@ function _gateProOnly(featureLabel) {
   // Subsequent gate checks (in start* functions or showPage on later nav)
   // fire after state has resolved with the correct verdict. Anonymous users
   // still default-deny since they're definitely not Pro.
+  // v7.46.1: opts {title, body} let call sites pass bespoke modal copy —
+  // the old "<label> is a Pro feature" template broke on plural labels.
+  var detail = Object.assign({ feature: featureLabel || 'this feature' }, opts || {});
   if (!_quotaState) {
     if (window._certanvilSignedIn === true) {
       // Optimistic allow; gate re-fires on actual activity start with real state
       return true;
     }
     // Anonymous → block
-    if (typeof _showProOnlyUI === 'function') {
-      _showProOnlyUI({ feature: featureLabel || 'this feature' });
-    }
+    if (typeof _showProOnlyUI === 'function') _showProOnlyUI(detail);
     return false;
   }
   // Pro / admin → daily_limit < 0 (unlimited) or tier === 'pro'
   if (_quotaState.tier === 'pro') return true;
   if (typeof _quotaState.daily_limit === 'number' && _quotaState.daily_limit < 0) return true;
   // Otherwise — Free user. Block.
-  if (typeof _showProOnlyUI === 'function') {
-    _showProOnlyUI({ feature: featureLabel || 'this feature' });
-  }
+  if (typeof _showProOnlyUI === 'function') _showProOnlyUI(detail);
   return false;
 }
 
 // v4.99.4 Phase E.4.1 — Pro-only modal. Distinct from quota-exceeded because
 // the value prop is different: "this is locked behind Pro" vs "you've used
-// your daily allowance." Shares the layout but has its own copy.
+// your daily allowance."
+// v7.46.1 — rebuilt in the daily-limit card family (lock mark, accent CTA)
+// so every gate in the app speaks one visual language. detail.title/body
+// carry per-feature copy; legacy callers fall back to the safe template.
 function _showProOnlyUI(detail) {
   detail = detail || {};
   var feature = detail.feature || 'This feature';
+  var title = detail.title || (feature + ' is a Pro feature');
+  var body = detail.body ||
+    'Free covers the daily core: 15 practice questions and 5 review cards, every day. This one is part of Pro.';
 
   var prev = document.getElementById('pro-only-modal');
   if (prev) prev.remove();
 
   var modal = document.createElement('div');
   modal.id = 'pro-only-modal';
-  modal.className = 'quota-exceeded-modal';  // reuse layout class
+  modal.className = 'quota-exceeded-modal';  // reuse overlay scrim
   modal.innerHTML =
-    '<div class="quota-exceeded-card pro-only-card">' +
-      '<div class="quota-exceeded-icon pro-only-icon">&#9889;</div>' +
-      '<div class="quota-exceeded-title">' + feature + ' is a Pro feature</div>' +
-      '<div class="quota-exceeded-sub">The Exam Simulator, marathon sets, Deep Scan, and drills are all part of Pro. Free is 15 practice questions plus 5 review cards a day, every day. Upgrade to unlock everything.</div>' +
-      '<div class="quota-exceeded-actions">' +
-        '<a class="quota-exceeded-cta" href="https://certanvil.com/pricing" target="_blank" rel="noopener">Upgrade to Pro &middot; $9.99/mo &rarr;</a>' +
-        '<button type="button" class="quota-exceeded-dismiss" id="pro-only-dismiss">Maybe later</button>' +
+    '<div class="dlpb-card" role="dialog" aria-modal="true" aria-label="Pro feature">' +
+      '<div class="dlpb-lockmark" aria-hidden="true">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' +
+          '<rect x="4" y="11" width="16" height="9" rx="2.5"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path>' +
+        '</svg>' +
+      '</div>' +
+      '<h2 class="dlpb-title">' + title + '</h2>' +
+      '<p class="dlpb-lede">' + body + '</p>' +
+      '<p class="dlpb-pro-line"><b>Pro</b> is unlimited questions, every day, on every cert.</p>' +
+      '<div class="dlpb-actions">' +
+        '<a class="dlpb-cta" href="https://certanvil.com/pricing" target="_blank" rel="noopener">Go Pro &mdash; unlimited</a>' +
+        '<button type="button" class="dlpb-ghost" id="pro-only-dismiss">Not now</button>' +
       '</div>' +
     '</div>';
   document.body.appendChild(modal);
@@ -943,7 +953,12 @@ document.addEventListener('click', function (e) {
   if (typeof _srIsFreeTier === 'function' && _srIsFreeTier()) {
     e.preventDefault();
     e.stopPropagation();
-    if (typeof _gateProOnly === 'function') _gateProOnly('Going past 15 questions per set');
+    if (typeof _gateProOnly === 'function') {
+      _gateProOnly('Bigger sets', {
+        title: 'Bigger sets are a Pro feature',
+        body: 'Free tops out at 15 questions a set — your whole daily allowance in one go. Pro goes as big as you like.'
+      });
+    }
   }
 }, true);
 
@@ -6280,7 +6295,10 @@ function clearWrongBank() {
 // wrong-bank). If every answer was correct the button is hidden upstream.
 function drillMistakesFromResults() {
   // v7.46.0: Drill Mistakes is Pro-only — same gate as startWrongDrill
-  if (typeof _gateProOnly === 'function' && !_gateProOnly('Drill Mistakes')) return;
+  if (typeof _gateProOnly === 'function' && !_gateProOnly('Drill Mistakes', {
+    title: 'Drill Mistakes is a Pro feature',
+    body: 'Re-run the questions you got wrong until they stick. Your wrong-answer bank keeps saving either way — the drill itself is Pro.'
+  })) return;
   if (!Array.isArray(log) || log.length === 0) return;
   const wrongEntries = log.filter(e => e && e.isRight === false);
   if (wrongEntries.length === 0) {
@@ -6337,7 +6355,10 @@ function _renderResultsReviewList() {
 
 function startWrongDrill() {
   // v7.46.0: Drill Mistakes is Pro-only (Simi, 2026-06-11)
-  if (typeof _gateProOnly === 'function' && !_gateProOnly('Drill Mistakes')) return;
+  if (typeof _gateProOnly === 'function' && !_gateProOnly('Drill Mistakes', {
+    title: 'Drill Mistakes is a Pro feature',
+    body: 'Re-run the questions you got wrong until they stick. Your wrong-answer bank keeps saving either way — the drill itself is Pro.'
+  })) return;
   const bank = loadWrongBank();
   if (bank.length === 0) {
     alert('No wrong answers saved yet. Keep quizzing!');
@@ -6480,7 +6501,10 @@ async function startQuiz() {
   // allowance in one set (Simi, 2026-06-11). The count-chip interceptor
   // blocks the picker; this is the enforcement behind it.
   if (qCount > 15 && typeof _srIsFreeTier === 'function' && _srIsFreeTier()) {
-    if (!_gateProOnly('Going past 15 questions per set')) return;
+    if (!_gateProOnly('Bigger sets', {
+      title: 'Bigger sets are a Pro feature',
+      body: 'Free tops out at 15 questions a set — your whole daily allowance in one go. Pro goes as big as you like.'
+    })) return;
   }
   if (!_gateSessionSizeForQuota(qCount, { mode: 'quiz' })) return;
   const key = document.getElementById('api-key').value.trim();
@@ -6883,7 +6907,10 @@ function _formatElapsed(ms) {
 async function startExam() {
   // v7.46.0: the Exam Simulator is Pro-only (Simi, 2026-06-11). The quota
   // and size gates below only matter for Pro edge states now.
-  if (!_gateProOnly('The Exam Simulator')) return;
+  if (!_gateProOnly('The Exam Simulator', {
+    title: 'The Exam Simulator is a Pro feature',
+    body: '90 questions against a 90-minute clock, scored 100–900 like test day. Free covers your daily practice; the full rehearsal is Pro.'
+  })) return;
   if (!_gateActivityForQuota('exam simulator')) return;
   if (!_gateSessionSizeForQuota(90, { mode: 'exam' })) return;
   const key = document.getElementById('api-key').value.trim();
@@ -10808,13 +10835,32 @@ function startStreakSave() {
 function applyPreset(name) {
   // v7.46.0: Deep Scan + all marathon presets are Pro-only (Simi, 2026-06-11).
   // Free stays on Warmup (5), Focused (10), and custom sets up to 15.
+  // v7.46.1: per-preset modal copy (the shared template broke on plurals).
   const PRO_PRESETS = {
-    grind: 'The 20-min Deep Scan',
-    bulk30: '30-question marathons',
-    bulk45: '45-question marathons',
-    bulk60: 'The 60-Question SIM'
+    grind: {
+      feature: 'The 20-min Deep Scan',
+      title: 'The Deep Scan is a Pro feature',
+      body: '20 exam-level questions across every topic in one sitting — more than the free day holds.'
+    },
+    bulk30: {
+      feature: 'The 30-question marathon',
+      title: 'The 30-question marathon is a Pro feature',
+      body: 'One marathon burns past the free day’s 15 questions. Pro takes the cap off.'
+    },
+    bulk45: {
+      feature: 'The 45-question marathon',
+      title: 'The 45-question marathon is a Pro feature',
+      body: 'One marathon burns past the free day’s 15 questions. Pro takes the cap off.'
+    },
+    bulk60: {
+      feature: 'The 60-Question SIM',
+      title: 'The 60-Question SIM is a Pro feature',
+      body: 'The closest thing to the real exam, minus the timer. Full-length sims are Pro.'
+    }
   };
-  if (PRO_PRESETS[name] && typeof _gateProOnly === 'function' && !_gateProOnly(PRO_PRESETS[name])) return;
+  const _proPreset = PRO_PRESETS[name];
+  if (_proPreset && typeof _gateProOnly === 'function' &&
+      !_gateProOnly(_proPreset.feature, { title: _proPreset.title, body: _proPreset.body })) return;
   // Bulk Mixed presets — large counts that exceed the single-call ceiling are
   // batched via startBulkQuiz so the AI never gets asked for >20 Qs at once.
   const bulkSizes = { bulk30: 30, bulk45: 45, bulk60: 60 };
@@ -11171,7 +11217,10 @@ async function startBulkQuiz(count) {
   // v7.46.0: marathons are Pro-only — belt behind the applyPreset gate so a
   // direct startBulkQuiz() call can't sidestep it. The GAP-2 gates below
   // only matter for Pro edge states now.
-  if (typeof _gateProOnly === 'function' && !_gateProOnly('Marathon sets')) return;
+  if (typeof _gateProOnly === 'function' && !_gateProOnly('Marathon sets', {
+    title: 'Marathon sets are a Pro feature',
+    body: 'One marathon burns past the free day’s 15 questions. Pro takes the cap off.'
+  })) return;
   // GAP-2: bulk presets previously had no quota gate (free user would 429 mid-run)
   if (!_gateActivityForQuota('practice quizzes')) return;
   if (!_gateSessionSizeForQuota(count, { mode: 'bulk' })) return;

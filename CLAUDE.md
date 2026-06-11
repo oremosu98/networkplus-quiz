@@ -112,6 +112,7 @@ npx playwright test              # E2E (tests/e2e/app.spec.js)
 
 | Version | Features Added |
 |---|---|
+| v7.46.1 | Pro-gate polish — modal rebuilt in house design language, per-feature copy, pill consolidation |
 | v7.46.0 | Free-tier hard gates — exam sim, marathons, Deep Scan, Drill Mistakes Pro-only; custom quiz capped at 15 for free |
 | v7.45.0 | In-app account deletion — Settings danger-zone row + confirm flow, Apple 5.1.1(v) (GAP-6) |
 | v7.44.0 | Log-exam-result gated as Pro on /account per mockup (GAP-5) |
