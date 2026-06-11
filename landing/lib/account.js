@@ -321,6 +321,17 @@
   };
 
   function renderExamResultsList(role, profile) {
+    // GAP-5 (v7.44.0): logging real exam results is Pro-only per the
+    // cert-ios-log-result mockup. Same tier logic as the tier pill above:
+    // admin = Pro until Stripe lands; paying users will arrive as tier='pro'.
+    if (role !== 'admin') {
+      return ''
+        + '<div class="er-pro-lock">'
+        +   '<span class="er-pro-lock-pill"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>Pro</span>'
+        +   '<p>Logging real exam results is part of Pro. Record your score and test centre after exam day, and your cert tile flips to <b>Passed</b>.</p>'
+        +   '<a class="btn-primary-cta" href="/pricing">See Pro plans →</a>'
+        + '</div>';
+    }
     var certs = getCertEntitlements(role).filter(function (c) { return c.status !== 'locked'; });
     if (!certs.length) {
       return '<p class="er-empty">No certs unlocked yet. Pick a cert and start studying.</p>';

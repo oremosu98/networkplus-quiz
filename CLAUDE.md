@@ -112,6 +112,7 @@ npx playwright test              # E2E (tests/e2e/app.spec.js)
 
 | Version | Features Added |
 |---|---|
+| v7.44.0 | Log-exam-result gated as Pro on /account per mockup (GAP-5) |
 | v7.43.0 | Cross-cert analytics gated as Pro feature with upsell state for free users (GAP-4) |
 | v7.42.0 | Settings tier locks — Daily Goal + Daily Review controls pro-locked for free users (GAP-3) |
 | v7.41.0 | Free tier pre-emptive daily-limit screen — oversized sessions blocked before start with right-size option (GAP-2) |
