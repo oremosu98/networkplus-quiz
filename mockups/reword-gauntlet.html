@@ -5,29 +5,30 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>CertAnvil · Reword Gauntlet E2E mockup</title>
 <style>
-  /* ── Tokens (cert-ios lift grammar) ─────────────────────────────────── */
+  /* ── Tokens (brand OKLCH per BRAND.md §3 / dg-system.css; --accent-deep
+        carries the text-accent role: bright bronze on dark, deep on light) ── */
   :root, [data-theme="dark"] {
-    --bg: #0b0b11; --surface: #15151d; --surface-2: #1c1c26;
-    --ink: #f2f0eb; --ink-soft: #b9b5ac; --muted: #807c74;
-    --border: rgba(242,240,235,0.11); --border-soft: rgba(242,240,235,0.07);
-    --accent: #e8a33d; --accent-deep: #f0b35a; --on-accent: #181308;
-    --pass: #4ade80; --fail: #f87171;
-    --ease: cubic-bezier(0.23, 1, 0.32, 1);
-    --page-bg: #060609; --page-ink: #f2f0eb; --page-dim: #8a8680;
+    --bg: oklch(0.17 0.008 275); --surface: oklch(0.205 0.009 275); --surface-2: oklch(0.23 0.009 275);
+    --ink: oklch(0.96 0.006 275); --ink-soft: oklch(0.80 0.012 275); --muted: oklch(0.725 0.013 275);
+    --border: oklch(0.32 0.011 275); --border-soft: oklch(0.255 0.010 275);
+    --accent: oklch(0.80 0.155 64); --accent-deep: oklch(0.86 0.135 64); --on-accent: oklch(0.18 0.020 275);
+    --pass: oklch(0.74 0.150 152); --fail: oklch(0.66 0.17 25);
+    --ease: cubic-bezier(0.16, 1, 0.3, 1);
+    --page-bg: oklch(0.13 0.008 275); --page-ink: oklch(0.96 0.006 275); --page-dim: oklch(0.66 0.012 275);
   }
   [data-theme="light"] {
-    --bg: #faf8f4; --surface: #ffffff; --surface-2: #f1ede5;
-    --ink: #1c1914; --ink-soft: #4f4a42; --muted: #8a847a;
-    --border: rgba(28,25,20,0.13); --border-soft: rgba(28,25,20,0.07);
-    --accent: #a8741f; --accent-deep: #8a5e16; --on-accent: #fff8ec;
-    --pass: #15803d; --fail: #b91c1c;
-    --page-bg: #efece5; --page-ink: #1c1914; --page-dim: #8a847a;
+    --bg: oklch(0.975 0.007 85); --surface: oklch(0.992 0.004 85); --surface-2: oklch(0.965 0.010 84);
+    --ink: oklch(0.22 0.015 280); --ink-soft: oklch(0.36 0.014 280); --muted: oklch(0.50 0.013 280);
+    --border: oklch(0.86 0.008 85); --border-soft: oklch(0.91 0.006 85);
+    --accent: oklch(0.50 0.155 55); --accent-deep: oklch(0.42 0.150 52); --on-accent: oklch(0.985 0.010 85);
+    --pass: oklch(0.50 0.15 150); --fail: oklch(0.52 0.19 25);
+    --page-bg: oklch(0.94 0.008 85); --page-ink: oklch(0.22 0.015 280); --page-dim: oklch(0.50 0.013 280);
   }
   * { box-sizing: border-box; margin: 0; }
   body { background: var(--page-bg); color: var(--page-ink); font: 400 14px/1.5 Inter, -apple-system, sans-serif; padding: 34px 22px 60px; }
 
   .stage-head { max-width: 1180px; margin: 0 auto 26px; }
-  .stage-eyebrow { font: 700 10.5px/1 Inter, sans-serif; letter-spacing: 0.18em; text-transform: uppercase; color: var(--accent); margin-bottom: 9px; }
+  .stage-eyebrow { font: 800 10.5px/1 Inter, sans-serif; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); margin-bottom: 9px; }
   .stage-title { font-family: Fraunces, Georgia, serif; font-weight: 600; font-size: 25px; letter-spacing: -0.012em; }
   .stage-sub { color: var(--page-dim); font-size: 13px; margin-top: 8px; max-width: 76ch; line-height: 1.55; }
   .stage-sub b { color: var(--page-ink); }
@@ -53,9 +54,9 @@
   .footer { padding: 0 22px 26px; display: flex; flex-direction: column; gap: 9px; }
 
   /* shared atoms */
-  .pill { font: 800 9px/1 Inter, sans-serif; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent-deep); background: color-mix(in oklab, var(--accent) 14%, transparent); border: 1px solid color-mix(in oklab, var(--accent) 32%, var(--border)); border-radius: 999px; padding: 4px 8px; display: inline-flex; align-items: center; gap: 4px; }
+  .pill { font: 800 10px/1 Inter, sans-serif; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent-deep); background: color-mix(in oklab, var(--accent) 14%, transparent); border: 1px solid color-mix(in oklab, var(--accent) 32%, var(--border)); border-radius: 999px; padding: 4px 8px; display: inline-flex; align-items: center; gap: 4px; }
   .pill svg { width: 10px; height: 10px; stroke: currentColor; fill: none; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
-  .cta { width: 100%; border: 0; border-radius: 12px; padding: 14px; cursor: pointer; background: var(--accent); color: var(--on-accent); font: 700 14.5px/1 Inter, sans-serif; display: inline-flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 10px 24px -14px color-mix(in oklab, var(--accent) 75%, transparent); transition: transform 0.16s var(--ease); }
+  .cta { width: 100%; border: 0; border-radius: 12px; padding: 14px; cursor: pointer; background: var(--accent); color: var(--on-accent); font: 700 14.5px/1 Inter, sans-serif; display: inline-flex; align-items: center; justify-content: center; gap: 8px; transition: transform 0.16s var(--ease); }
   .cta:active { transform: scale(0.97); }
   .ghost { width: 100%; background: transparent; border: 1px solid var(--border); border-radius: 12px; padding: 13px; color: var(--ink); font: 600 13px/1 Inter, sans-serif; cursor: pointer; transition: transform 0.16s var(--ease); }
   .ghost:active { transform: scale(0.97); }
@@ -68,7 +69,7 @@
   .rung.done .rung-bar i { transform: scaleX(1); transition: transform 0.45s var(--ease); }
   .rung.missed .rung-bar i { transform: scaleX(1); background: var(--fail); transition: transform 0.45s var(--ease); }
   .rung.live .rung-bar { box-shadow: 0 0 0 1.5px color-mix(in oklab, var(--accent) 55%, transparent); }
-  .rung-name { font: 700 8.5px/1 Inter, sans-serif; letter-spacing: 0.07em; text-transform: uppercase; color: var(--muted); margin-top: 6px; }
+  .rung-name { font: 800 10px/1 Inter, sans-serif; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin-top: 6px; }
   .rung.live .rung-name { color: var(--accent-deep); }
   .rung.done .rung-name { color: var(--ink-soft); }
 
@@ -87,14 +88,14 @@
   .cracked-n { font: 800 22px/1 Inter, sans-serif; color: var(--accent-deep); font-variant-numeric: tabular-nums; }
   .cracked-t { font-size: 12.5px; color: var(--ink-soft); line-height: 1.4; }
   .ladder-preview { display: flex; gap: 5px; margin: 16px 2px 0; }
-  .ladder-preview span { flex: 1; font: 700 8.5px/1 Inter, sans-serif; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); text-align: center; padding-top: 8px; border-top: 3px solid var(--surface-2); }
+  .ladder-preview span { flex: 1; font: 800 10px/1 Inter, sans-serif; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); text-align: center; padding-top: 8px; border-top: 3px solid var(--surface-2); }
 
   /* ── Unit 2: In-rung ───────────────────────────────────────────────── */
   .q-card { border: 1px solid var(--border); border-radius: 16px; background: var(--surface); padding: 17px 16px; }
-  .q-type { display: inline-flex; align-items: center; gap: 6px; font: 800 9.5px/1 Inter, sans-serif; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent-deep); margin-bottom: 10px; }
+  .q-type { display: inline-flex; align-items: center; gap: 6px; font: 800 10px/1 Inter, sans-serif; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent-deep); margin-bottom: 10px; }
   .q-type::before { content: ""; width: 7px; height: 7px; border-radius: 2px; background: var(--accent); display: inline-block; }
   .q-text { font-size: 15px; line-height: 1.5; font-weight: 550; }
-  .q-text mark { background: color-mix(in oklab, var(--fail) 26%, transparent); color: inherit; padding: 1px 5px; border-radius: 5px; font-weight: 750; animation: hingeIn 0.5s var(--ease) 0.25s both; }
+  .q-text mark { background: color-mix(in oklab, var(--fail) 26%, transparent); color: inherit; padding: 1px 5px; border-radius: 5px; font-weight: 700; animation: hingeIn 0.5s var(--ease) 0.25s both; }
   @keyframes hingeIn { from { background: transparent; } to { background: color-mix(in oklab, var(--fail) 26%, transparent); } }
   .opts { display: flex; flex-direction: column; gap: 9px; margin-top: 14px; }
   .opt { text-align: left; border: 1px solid var(--border); background: var(--surface); border-radius: 12px; padding: 13px 14px; color: var(--ink); font: 500 13.5px/1.4 Inter, sans-serif; cursor: pointer; display: flex; gap: 10px; transition: transform 0.14s var(--ease), border-color 0.14s ease; }
@@ -113,8 +114,8 @@
   .seal-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
   .seal { width: 130px; height: 130px; border-radius: 50%; display: grid; place-items: center; background: color-mix(in oklab, var(--accent) 15%, transparent); border: 2px solid var(--accent); color: var(--accent); animation: sealIn 0.55s var(--ease) both; }
   .seal svg { width: 56px; height: 56px; stroke: currentColor; fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
-  @keyframes sealIn { 0% { transform: scale(0.7) rotate(-7deg); opacity: 0; } 70% { transform: scale(1.05) rotate(1deg); } 100% { transform: scale(1) rotate(0); opacity: 1; } }
-  .seal-k { font: 800 11px/1 Inter, sans-serif; letter-spacing: 0.22em; text-transform: uppercase; color: var(--accent-deep); margin: 20px 0 8px; }
+  @keyframes sealIn { 0% { transform: scale(0.9) rotate(-7deg); opacity: 0; } 70% { transform: scale(1.05) rotate(1deg); } 100% { transform: scale(1) rotate(0); opacity: 1; } }
+  .seal-k { font: 800 11px/1 Inter, sans-serif; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent-deep); margin: 20px 0 8px; }
   .seal-concept { font-family: Fraunces, Georgia, serif; font-weight: 600; font-size: 22px; letter-spacing: -0.012em; max-width: 24ch; }
   .seal-sub { color: var(--ink-soft); font-size: 13px; margin-top: 10px; }
   .seal-sub b { color: var(--ink); }
@@ -124,10 +125,11 @@
   .seal-ladder i:nth-child(4) { animation-delay: 0.24s; } .seal-ladder i:nth-child(5) { animation-delay: 0.32s; }
   @keyframes rungPop { from { transform: scaleX(0); } to { transform: scaleX(1); } }
   .streak-line { display: inline-flex; align-items: center; gap: 7px; margin-top: 16px; font: 650 12.5px/1 Inter, sans-serif; color: var(--ink-soft); border: 1px solid var(--border-soft); border-radius: 999px; padding: 8px 14px; background: var(--surface); }
+  .streak-line svg { width: 13px; height: 13px; stroke: var(--accent); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
 
   /* ── Unit 4: Near-miss ─────────────────────────────────────────────── */
   .miss-head { text-align: center; margin-top: 12px; }
-  .miss-score { font-family: Fraunces, Georgia, serif; font-weight: 600; font-size: 24px; }
+  .miss-score { font-family: Fraunces, Georgia, serif; font-weight: 600; font-size: 24px; font-variant-numeric: lining-nums tabular-nums; font-feature-settings: "lnum", "tnum"; }
   .miss-score b { color: var(--accent); }
   .miss-callout { font-size: 13.5px; color: var(--ink-soft); margin-top: 7px; }
   .miss-callout b { color: var(--fail); }
@@ -141,7 +143,7 @@
   .rr-t span { font-size: 11.5px; color: var(--muted); }
   .miss-promise { font-size: 12px; color: var(--muted); text-align: center; margin-top: 10px; }
 
-  .flag { position: absolute; bottom: 84px; right: -33px; transform: rotate(-90deg); transform-origin: center; font: 800 9px/1 Inter, sans-serif; letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted); }
+  .flag { position: absolute; bottom: 84px; right: -33px; transform: rotate(-90deg); transform-origin: center; font: 800 9px/1 Inter, sans-serif; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
 
   @media (prefers-reduced-motion: reduce) { .seal, .seal-ladder i, .rung-bar i, .q-text mark { animation: none !important; transition: none !important; } }
 </style>
@@ -250,7 +252,7 @@
           <div class="seal-concept">VLSM subnet sizing</div>
           <div class="seal-ladder"><i></i><i></i><i></i><i></i><i></i></div>
           <p class="seal-sub">Five wordings, five answers. <b>That's 15 in your collection.</b></p>
-          <span class="streak-line">&#9889; Streak +1 &middot; 5 questions toward today's goal</span>
+          <span class="streak-line"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.07-2.14-.22-4.05 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.15.43-2.29 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg> Streak +1 &middot; 5 questions toward today's goal</span>
         </div>
       </div>
       <div class="footer">
