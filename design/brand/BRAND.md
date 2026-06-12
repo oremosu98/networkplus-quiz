@@ -370,6 +370,7 @@ When fixing a class-of-bug, grep the **pattern** (shape), not the specific funct
 - **Landing**: `landing/index.html` + `landing/dg-system.css` (separate Vercel project)
 - **Logo**: `brand/logo.svg` (standalone) + inline `brandSvg` in `app.js renderSidebar()`
 - **Mockups**: `mockups/*-concept.html` (every feature/redesign is mockup-first)
+- **Mockup starter tokens**: [`brand/mockup-starter-tokens.css`](./mockup-starter-tokens.css) — copy-paste this token block into every new mockup's `<style>`. Never freehand a hex token block (the 2026-06-12 Gauntlet-mockup lesson: eyeballed hexes pulled the accent toward gold and imported Tailwind greens).
 - **Concept-mockup-first workflow**: see [`feedback_concept_mockup_first`](../docs/feedback_concept_mockup_first.md) memory — approved across 14+ ships with zero revision rounds.
 
 ### Versioning
@@ -379,4 +380,4 @@ When fixing a class-of-bug, grep the **pattern** (shape), not the specific funct
 
 ---
 
-**Last updated**: v5.5.12 · 2026-05-19
+**Last updated**: 2026-06-12 (mockup starter token block) · prior v5.5.12 · 2026-05-19

@@ -1,0 +1,48 @@
+/* ════════════════════════════════════════════════════════════════════════
+   CertAnvil · MOCKUP STARTER TOKEN BLOCK
+   ────────────────────────────────────────────────────────────────────────
+   Copy this into the <style> of every new mockup. Do NOT eyeball hex —
+   freehand token blocks are how the 2026-06-12 Gauntlet-mockup drift
+   happened (accent pulled 9-19° toward gold, Tailwind pass/fail greens).
+   Values = BRAND.md §3 / live dg-system.css. Audit trail:
+   mockups branch audit-workspace/brand-audit.md.
+
+   Reminders that pair with this block (BRAND.md §4-§9):
+   · easing is ONLY cubic-bezier(0.16, 1, 0.3, 1); entrances start
+     scale(0.96-0.98); hover gated (hover:hover) and (pointer:fine)
+   · Fraunces numbers: font-variant-numeric: lining-nums tabular-nums;
+     font-feature-settings: "lnum","tnum";
+   · eyebrows: Inter 800, 10-11px, tracking 0.08-0.14em (never more)
+   · shadows/tints: color-mix(in oklab, var(--ink) N%, transparent) —
+     never rgba()/hex on chrome
+   · no emoji decoration (semantic ✓ ✗ → only) · no em dashes in copy
+   ════════════════════════════════════════════════════════════════════════ */
+
+/* ── App-surface mockups (dual theme; --accent-deep = text-accent role) ── */
+:root, [data-theme="dark"] {
+  --bg: oklch(0.17 0.008 275); --surface: oklch(0.205 0.009 275); --surface-2: oklch(0.23 0.009 275);
+  --ink: oklch(0.96 0.006 275); --ink-soft: oklch(0.80 0.012 275); --muted: oklch(0.725 0.013 275);
+  --border: oklch(0.32 0.011 275); --border-soft: oklch(0.255 0.010 275);
+  --accent: oklch(0.80 0.155 64); --accent-deep: oklch(0.86 0.135 64); --on-accent: oklch(0.18 0.020 275);
+  --pass: oklch(0.74 0.150 152); --fail: oklch(0.66 0.17 25);
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+}
+[data-theme="light"] {
+  --bg: oklch(0.975 0.007 85); --surface: oklch(0.992 0.004 85); --surface-2: oklch(0.965 0.010 84);
+  --ink: oklch(0.22 0.015 280); --ink-soft: oklch(0.36 0.014 280); --muted: oklch(0.50 0.013 280);
+  --border: oklch(0.86 0.008 85); --border-soft: oklch(0.91 0.006 85);
+  --accent: oklch(0.50 0.155 55); --accent-deep: oklch(0.42 0.150 52); --on-accent: oklch(0.985 0.010 85);
+  --pass: oklch(0.50 0.15 150); --fail: oklch(0.52 0.19 25);
+}
+
+/* ── Landing (certanvil.com) mockups — light only ──────────────────────── */
+/*
+:root {
+  --bg: oklch(0.975 0.007 85); --surface: oklch(0.992 0.004 85);
+  --ink: oklch(0.22 0.015 280); --ink-soft: oklch(0.36 0.014 280); --muted: oklch(0.50 0.013 280);
+  --border: oklch(0.86 0.008 85); --border-soft: oklch(0.91 0.006 85);
+  --accent: oklch(0.50 0.155 55); --accent-bright: oklch(0.80 0.155 64); --on-accent: oklch(0.985 0.010 85);
+  --pass: oklch(0.52 0.13 150); --fail: oklch(0.52 0.19 25);
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+}
+*/
