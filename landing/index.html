@@ -2168,6 +2168,150 @@
 </section>
 
 <!-- ══════════════════════════════════════════
+     REWORD GAUNTLET (v7.48.0) · flagship-drill pitch where the "why Pro"
+     story peaks. Lift of mockups/landing-gauntlet-section.html
+     (brand-audited 2026-06-12). The demo card replays a five-rung run on
+     a loop; the loop starts on first scroll-into-view (same IO pattern as
+     the neighbouring sections). gx- prefix, fully scoped under #gauntlet.
+══════════════════════════════════════════ -->
+<style>
+  /* Scoped brand tokens (BRAND.md §3) — landing's :root --accent is still the
+     legacy purple layer in styles.css; every lifted section redefines its own
+     tokens on the section id, light here + dark below (the sq2/pp pattern). */
+  #gauntlet{
+    --bg:oklch(0.975 0.007 85);
+    --surface:oklch(0.992 0.004 85);
+    --surface-2:oklch(0.965 0.010 84);
+    --ink:oklch(0.22 0.015 280);
+    --ink-soft:oklch(0.36 0.014 280);
+    --muted:oklch(0.50 0.013 280);
+    --border:oklch(0.86 0.008 85);
+    --border-soft:oklch(0.91 0.006 85);
+    --accent:oklch(0.50 0.155 55);
+    --accent-bright:oklch(0.80 0.155 64);
+    --accent-deep:oklch(0.42 0.150 52);
+    --on-accent:oklch(0.985 0.010 85);
+    background:var(--bg);color:var(--ink);
+    padding:96px 24px;
+  }
+  [data-theme="dark"] #gauntlet{
+    --bg:oklch(0.16 0.009 275);
+    --surface:oklch(0.205 0.009 275);
+    --surface-2:oklch(0.185 0.009 275);
+    --ink:oklch(0.96 0.006 275);
+    --ink-soft:oklch(0.78 0.010 275);
+    --muted:oklch(0.60 0.013 275);
+    --border:oklch(0.30 0.008 275);
+    --border-soft:oklch(0.26 0.008 275);
+    --accent:oklch(0.80 0.155 64);
+    --accent-bright:oklch(0.86 0.140 70);
+    --accent-deep:oklch(0.70 0.150 62);
+    --on-accent:oklch(0.18 0.020 275);
+  }
+  #gauntlet .gx-wrap{max-width:1080px;margin:0 auto}
+  #gauntlet .gx{display:grid;grid-template-columns:1.05fr 0.95fr;gap:64px;align-items:center}
+  #gauntlet .gx-kicker{font:800 11px/1 Inter,sans-serif;letter-spacing:0.14em;text-transform:uppercase;color:var(--accent);display:inline-flex;align-items:center;gap:7px;margin-bottom:18px}
+  #gauntlet .gx-kicker svg{width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+  #gauntlet h2{font-family:Fraunces,Georgia,serif;font-weight:600;font-size:38px;line-height:1.13;letter-spacing:-0.015em;color:var(--ink)}
+  #gauntlet h2 em{font-style:italic;color:var(--accent)}
+  #gauntlet .gx-lede{color:var(--ink-soft);font-size:16px;line-height:1.6;margin:18px 0 6px;max-width:46ch}
+  #gauntlet .gx-lede b{color:var(--ink)}
+  #gauntlet .gx-proof{font-size:13.5px;color:var(--muted);margin:14px 0 26px}
+  #gauntlet .gx-cta-row{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+  #gauntlet .gx-btn{background:var(--accent);color:var(--on-accent);border:0;border-radius:10px;padding:14px 26px;font:700 15px/1 Inter,sans-serif;cursor:pointer;text-decoration:none;display:inline-block;transition:transform 0.16s cubic-bezier(0.16,1,0.3,1),filter 0.2s ease}
+  #gauntlet .gx-btn:active{transform:scale(0.97)}
+  @media (hover:hover) and (pointer:fine){#gauntlet .gx-btn:hover{filter:brightness(1.08)}}
+  #gauntlet .gx-cta-note{font-size:13px;color:var(--muted)}
+  #gauntlet .gx-demo{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:26px 24px;box-shadow:0 1px 0 color-mix(in oklab,var(--ink) 4%,transparent),0 18px 50px -30px color-mix(in oklab,var(--ink) 30%,transparent)}
+  #gauntlet .gx-demo-k{font:800 10px/1 Inter,sans-serif;letter-spacing:0.14em;text-transform:uppercase;color:var(--muted);margin-bottom:16px;display:flex;justify-content:space-between}
+  #gauntlet .gx-demo-k span:last-child{color:var(--accent)}
+  #gauntlet .gx-demo-concept{font-family:Fraunces,Georgia,serif;font-weight:600;font-size:19px;color:var(--ink);margin-bottom:18px}
+  #gauntlet .gx-rungs{display:flex;flex-direction:column;gap:10px}
+  #gauntlet .gx-dr{display:flex;align-items:center;gap:12px;border:1px solid var(--border-soft);border-radius:11px;padding:11px 14px;opacity:0.35;transform:translateX(6px);transition:opacity 0.5s cubic-bezier(0.16,1,0.3,1),transform 0.5s cubic-bezier(0.16,1,0.3,1),border-color 0.5s ease}
+  #gauntlet .gx-dr.on{opacity:1;transform:translateX(0);border-color:color-mix(in oklab,var(--accent) 30%,var(--border))}
+  #gauntlet .gx-dr-n{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;flex:none;font:800 11px/1 Inter,sans-serif;background:color-mix(in oklab,var(--accent) 11%,transparent);color:var(--accent)}
+  #gauntlet .gx-dr.on .gx-dr-n{background:var(--accent);color:var(--on-accent)}
+  #gauntlet .gx-dr-t b{display:block;font:650 13.5px/1.25 Inter,sans-serif;color:var(--ink)}
+  #gauntlet .gx-dr-t span{font-size:12px;color:var(--muted)}
+  #gauntlet .gx-seal{margin-top:16px;text-align:center;font:800 11px/1 Inter,sans-serif;letter-spacing:0.14em;text-transform:uppercase;color:var(--accent);opacity:0;transform:scale(0.96);transition:opacity 0.5s cubic-bezier(0.16,1,0.3,1),transform 0.5s cubic-bezier(0.16,1,0.3,1)}
+  #gauntlet .gx-seal.on{opacity:1;transform:scale(1)}
+  @media (max-width:880px){
+    #gauntlet{padding:64px 20px}
+    #gauntlet .gx{grid-template-columns:1fr;gap:38px}
+    #gauntlet h2{font-size:30px}
+  }
+  @media (prefers-reduced-motion:reduce){
+    #gauntlet .gx-dr,#gauntlet .gx-seal{transition:none !important;opacity:1 !important;transform:none !important}
+  }
+</style>
+
+<section class="gauntlet-section" id="gauntlet">
+  <div class="gx-wrap">
+    <div class="gx">
+      <div class="gx-copy">
+        <span class="gx-kicker"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 17l6-6-6-6"></path><path d="M12 19h8"></path></svg>Reword Gauntlet &middot; Pro</span>
+        <h2>Memorized the practice test? The real exam <em>re-words everything.</em></h2>
+        <p class="gx-lede">The Gauntlet asks one concept five ways: plain, scenario, best-of, not-trap, twisted. Crack all five and you own it <b>in any wording</b>. Miss one, and it rebuilds the whole run with fresh questions. There's nothing to memorize.</p>
+        <p class="gx-proof">Built from how people actually fail: candidates who ace question banks, then meet an exam that never repeats itself.</p>
+        <div class="gx-cta-row">
+          <a class="gx-btn" href="/pricing">Go Pro — unlimited</a>
+          <span class="gx-cta-note">Works on every cert in the library, automatically.</span>
+        </div>
+      </div>
+      <div class="gx-demo" aria-hidden="true">
+        <div class="gx-demo-k"><span>The Gauntlet</span><span id="gx-demo-count">Rung 1 / 5</span></div>
+        <div class="gx-demo-concept">HTTPS rides port 443</div>
+        <div class="gx-rungs" id="gx-demo-rungs">
+          <div class="gx-dr"><span class="gx-dr-n">1</span><span class="gx-dr-t"><b>Plain</b><span>Which port does HTTPS use?</span></span></div>
+          <div class="gx-dr"><span class="gx-dr-n">2</span><span class="gx-dr-t"><b>Scenario</b><span>A storefront needs encrypted checkout traffic allowed&hellip;</span></span></div>
+          <div class="gx-dr"><span class="gx-dr-n">3</span><span class="gx-dr-t"><b>Best-of</b><span>Which rule BEST limits the exposure&hellip;</span></span></div>
+          <div class="gx-dr"><span class="gx-dr-n">4</span><span class="gx-dr-t"><b>Not-trap</b><span>Which of these is NOT carried over 443&hellip;</span></span></div>
+          <div class="gx-dr"><span class="gx-dr-n">5</span><span class="gx-dr-t"><b>Twisted</b><span>Two services share a host; only one handshake&hellip;</span></span></div>
+        </div>
+        <div class="gx-seal" id="gx-demo-seal">&#10003; Concept cracked</div>
+      </div>
+    </div>
+  </div>
+  <script>
+    /* Looping demo: rungs light in sequence, seal stamps, hold, reset.
+       Starts on first scroll-into-view (same IO pattern as the other
+       sections); reduced-motion users get the final state instantly. */
+    (function(){
+      var rungs=Array.prototype.slice.call(document.querySelectorAll('#gx-demo-rungs .gx-dr'));
+      var seal=document.getElementById('gx-demo-seal');
+      var count=document.getElementById('gx-demo-count');
+      if(!rungs.length||!seal||!count)return;
+      var reduced=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if(reduced){count.textContent='5 / 5';return;}
+      var i=0,started=false;
+      function tick(){
+        if(i<rungs.length){
+          rungs[i].classList.add('on');
+          count.textContent='Rung '+(i+1)+' / 5';
+          i++;
+          setTimeout(tick,650);
+        }else{
+          seal.classList.add('on');
+          count.textContent='Cracked';
+          setTimeout(function(){
+            rungs.forEach(function(r){r.classList.remove('on');});
+            seal.classList.remove('on');
+            i=0;
+            setTimeout(tick,700);
+          },2100);
+        }
+      }
+      function start(){ if(started)return; started=true; setTimeout(tick,600); }
+      var s=document.getElementById('gauntlet');
+      if('IntersectionObserver' in window){
+        var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){start();io.disconnect();}});},{threshold:0.25});
+        io.observe(s);
+      } else { start(); }
+    })();
+  </script>
+</section>
+
+<!-- ══════════════════════════════════════════
      WHY READY (v2) · "Walk in knowing" efficacy + credibility hook.
      Editorial headline + anonymous founder line + ghost diagnostic CTA
      + a 3-step readiness panel (not a 3-equal-card row). FULLY SCOPED

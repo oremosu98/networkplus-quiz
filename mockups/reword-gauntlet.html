@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CertAnvil · Reword Gauntlet E2E mockup</title>
+<style>
+  /* ── Tokens (brand OKLCH per BRAND.md §3 / dg-system.css; --accent-deep
+        carries the text-accent role: bright bronze on dark, deep on light) ── */
+  :root, [data-theme="dark"] {
+    --bg: oklch(0.17 0.008 275); --surface: oklch(0.205 0.009 275); --surface-2: oklch(0.23 0.009 275);
+    --ink: oklch(0.96 0.006 275); --ink-soft: oklch(0.80 0.012 275); --muted: oklch(0.725 0.013 275);
+    --border: oklch(0.32 0.011 275); --border-soft: oklch(0.255 0.010 275);
+    --accent: oklch(0.80 0.155 64); --accent-deep: oklch(0.86 0.135 64); --on-accent: oklch(0.18 0.020 275);
+    --pass: oklch(0.74 0.150 152); --fail: oklch(0.66 0.17 25);
+    --ease: cubic-bezier(0.16, 1, 0.3, 1);
+    --page-bg: oklch(0.13 0.008 275); --page-ink: oklch(0.96 0.006 275); --page-dim: oklch(0.66 0.012 275);
+  }
+  [data-theme="light"] {
+    --bg: oklch(0.975 0.007 85); --surface: oklch(0.992 0.004 85); --surface-2: oklch(0.965 0.010 84);
+    --ink: oklch(0.22 0.015 280); --ink-soft: oklch(0.36 0.014 280); --muted: oklch(0.50 0.013 280);
+    --border: oklch(0.86 0.008 85); --border-soft: oklch(0.91 0.006 85);
+    --accent: oklch(0.50 0.155 55); --accent-deep: oklch(0.42 0.150 52); --on-accent: oklch(0.985 0.010 85);
+    --pass: oklch(0.50 0.15 150); --fail: oklch(0.52 0.19 25);
+    --page-bg: oklch(0.94 0.008 85); --page-ink: oklch(0.22 0.015 280); --page-dim: oklch(0.50 0.013 280);
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body { background: var(--page-bg); color: var(--page-ink); font: 400 14px/1.5 Inter, -apple-system, sans-serif; padding: 34px 22px 60px; }
+
+  .stage-head { max-width: 1180px; margin: 0 auto 26px; }
+  .stage-eyebrow { font: 800 10.5px/1 Inter, sans-serif; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); margin-bottom: 9px; }
+  .stage-title { font-family: Fraunces, Georgia, serif; font-weight: 600; font-size: 25px; letter-spacing: -0.012em; }
+  .stage-sub { color: var(--page-dim); font-size: 13px; margin-top: 8px; max-width: 76ch; line-height: 1.55; }
+  .stage-sub b { color: var(--page-ink); }
+  .theme-toggle { position: fixed; top: 22px; right: 22px; z-index: 50; background: var(--surface); color: var(--ink); border: 1px solid var(--border); border-radius: 999px; padding: 9px 14px; font: 650 12px/1 Inter, sans-serif; cursor: pointer; }
+
+  .phones { display: flex; flex-wrap: wrap; gap: 30px; justify-content: center; max-width: 1900px; margin: 0 auto; }
+  .unit { width: 390px; }
+  .unit-label { font: 700 11px/1 Inter, sans-serif; letter-spacing: 0.14em; text-transform: uppercase; color: var(--page-dim); margin: 0 0 10px 6px; }
+  .unit-note { font-size: 12px; color: var(--page-dim); line-height: 1.5; margin: 12px 6px 0; }
+  .unit-note b { color: var(--page-ink); }
+
+  .phone { width: 390px; border-radius: 46px; padding: 10px; background: #000; box-shadow: 0 24px 70px -30px rgba(0,0,0,0.7); }
+  .screen { position: relative; border-radius: 38px; background: var(--bg); color: var(--ink); overflow: hidden; min-height: 760px; display: flex; flex-direction: column; }
+  .notch { position: absolute; top: 9px; left: 50%; transform: translateX(-50%); width: 112px; height: 26px; border-radius: 16px; background: #000; z-index: 5; }
+  .statusbar { display: flex; justify-content: space-between; padding: 16px 26px 4px; font: 650 12.5px/1 Inter, sans-serif; }
+
+  .hdr { display: flex; align-items: center; justify-content: space-between; padding: 12px 18px 8px; }
+  .hdr h1 { font: 650 16px/1 Inter, sans-serif; letter-spacing: -0.01em; }
+  .hdr .back, .hdr .x { background: none; border: 0; color: var(--ink-soft); width: 34px; height: 34px; cursor: pointer; }
+  .hdr svg { width: 21px; height: 21px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+  .body { flex: 1; padding: 8px 22px 18px; display: flex; flex-direction: column; }
+  .footer { padding: 0 22px 26px; display: flex; flex-direction: column; gap: 9px; }
+
+  /* shared atoms */
+  .pill { font: 800 10px/1 Inter, sans-serif; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent-deep); background: color-mix(in oklab, var(--accent) 14%, transparent); border: 1px solid color-mix(in oklab, var(--accent) 32%, var(--border)); border-radius: 999px; padding: 4px 8px; display: inline-flex; align-items: center; gap: 4px; }
+  .pill svg { width: 10px; height: 10px; stroke: currentColor; fill: none; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+  .cta { width: 100%; border: 0; border-radius: 12px; padding: 14px; cursor: pointer; background: var(--accent); color: var(--on-accent); font: 700 14.5px/1 Inter, sans-serif; display: inline-flex; align-items: center; justify-content: center; gap: 8px; transition: transform 0.16s var(--ease); }
+  .cta:active { transform: scale(0.97); }
+  .ghost { width: 100%; background: transparent; border: 1px solid var(--border); border-radius: 12px; padding: 13px; color: var(--ink); font: 600 13px/1 Inter, sans-serif; cursor: pointer; transition: transform 0.16s var(--ease); }
+  .ghost:active { transform: scale(0.97); }
+
+  /* ── Ladder (the run's spine) ───────────────────────────────────────── */
+  .ladder { display: flex; gap: 6px; margin: 6px 0 14px; }
+  .rung { flex: 1; text-align: center; }
+  .rung-bar { height: 5px; border-radius: 3px; background: var(--surface-2); overflow: hidden; position: relative; }
+  .rung-bar i { position: absolute; inset: 0; border-radius: 3px; transform: scaleX(0); transform-origin: left; background: var(--accent); }
+  .rung.done .rung-bar i { transform: scaleX(1); transition: transform 0.45s var(--ease); }
+  .rung.missed .rung-bar i { transform: scaleX(1); background: var(--fail); transition: transform 0.45s var(--ease); }
+  .rung.live .rung-bar { box-shadow: 0 0 0 1.5px color-mix(in oklab, var(--accent) 55%, transparent); }
+  .rung-name { font: 800 10px/1 Inter, sans-serif; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin-top: 6px; }
+  .rung.live .rung-name { color: var(--accent-deep); }
+  .rung.done .rung-name { color: var(--ink-soft); }
+
+  /* ── Unit 1: Entry ──────────────────────────────────────────────────── */
+  .gauntlet-mark { width: 64px; height: 64px; margin: 18px auto 14px; border-radius: 50%; display: grid; place-items: center; background: color-mix(in oklab, var(--accent) 13%, transparent); border: 1px solid color-mix(in oklab, var(--accent) 36%, transparent); color: var(--accent); }
+  .gauntlet-mark svg { width: 30px; height: 30px; stroke: currentColor; fill: none; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+  .entry-title { font-family: Fraunces, Georgia, serif; font-weight: 600; font-size: 25px; letter-spacing: -0.014em; text-align: center; }
+  .entry-title i { color: var(--accent); }
+  .entry-lede { text-align: center; color: var(--ink-soft); font-size: 13.5px; line-height: 1.55; margin: 9px auto 18px; max-width: 30ch; }
+  .target { border: 1px solid var(--border); border-radius: 14px; background: var(--surface); padding: 15px 16px; }
+  .target-k { font: 700 10px/1 Inter, sans-serif; letter-spacing: 0.13em; text-transform: uppercase; color: var(--muted); margin-bottom: 7px; }
+  .target-v { font: 650 15.5px/1.3 Inter, sans-serif; }
+  .target-why { font-size: 12px; color: var(--muted); margin-top: 5px; }
+  .target-switch { background: none; border: 0; padding: 10px 0 0; color: var(--accent-deep); font: 650 12.5px/1 Inter, sans-serif; cursor: pointer; }
+  .cracked-row { display: flex; align-items: center; gap: 10px; margin-top: 14px; padding: 13px 15px; border: 1px solid var(--border-soft); border-radius: 14px; background: var(--surface); }
+  .cracked-n { font: 800 22px/1 Inter, sans-serif; color: var(--accent-deep); font-variant-numeric: tabular-nums; }
+  .cracked-t { font-size: 12.5px; color: var(--ink-soft); line-height: 1.4; }
+  .ladder-preview { display: flex; gap: 5px; margin: 16px 2px 0; }
+  .ladder-preview span { flex: 1; font: 800 10px/1 Inter, sans-serif; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); text-align: center; padding-top: 8px; border-top: 3px solid var(--surface-2); }
+
+  /* ── Unit 2: In-rung ───────────────────────────────────────────────── */
+  .q-card { border: 1px solid var(--border); border-radius: 16px; background: var(--surface); padding: 17px 16px; }
+  .q-type { display: inline-flex; align-items: center; gap: 6px; font: 800 10px/1 Inter, sans-serif; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent-deep); margin-bottom: 10px; }
+  .q-type::before { content: ""; width: 7px; height: 7px; border-radius: 2px; background: var(--accent); display: inline-block; }
+  .q-text { font-size: 15px; line-height: 1.5; font-weight: 550; }
+  .q-text mark { background: color-mix(in oklab, var(--fail) 26%, transparent); color: inherit; padding: 1px 5px; border-radius: 5px; font-weight: 700; animation: hingeIn 0.5s var(--ease) 0.25s both; }
+  @keyframes hingeIn { from { background: transparent; } to { background: color-mix(in oklab, var(--fail) 26%, transparent); } }
+  .opts { display: flex; flex-direction: column; gap: 9px; margin-top: 14px; }
+  .opt { text-align: left; border: 1px solid var(--border); background: var(--surface); border-radius: 12px; padding: 13px 14px; color: var(--ink); font: 500 13.5px/1.4 Inter, sans-serif; cursor: pointer; display: flex; gap: 10px; transition: transform 0.14s var(--ease), border-color 0.14s ease; }
+  .opt:active { transform: scale(0.985); }
+  .opt b { color: var(--muted); font-weight: 700; }
+  .opt.right { border-color: color-mix(in oklab, var(--pass) 55%, transparent); background: color-mix(in oklab, var(--pass) 9%, var(--surface)); }
+  .opt.wrong { border-color: color-mix(in oklab, var(--fail) 55%, transparent); background: color-mix(in oklab, var(--fail) 9%, var(--surface)); }
+  .verdict { margin-top: 13px; border-radius: 13px; padding: 13px 15px; border: 1px solid color-mix(in oklab, var(--fail) 30%, var(--border)); background: color-mix(in oklab, var(--fail) 6%, var(--surface)); }
+  .verdict.good { border-color: color-mix(in oklab, var(--pass) 30%, var(--border)); background: color-mix(in oklab, var(--pass) 6%, var(--surface)); }
+  .verdict-k { font: 800 10px/1 Inter, sans-serif; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 6px; color: var(--fail); }
+  .verdict.good .verdict-k { color: var(--pass); }
+  .verdict p { font-size: 12.5px; line-height: 1.55; color: var(--ink-soft); }
+  .verdict p b { color: var(--ink); }
+
+  /* ── Unit 3: Cracked ───────────────────────────────────────────────── */
+  .seal-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+  .seal { width: 130px; height: 130px; border-radius: 50%; display: grid; place-items: center; background: color-mix(in oklab, var(--accent) 15%, transparent); border: 2px solid var(--accent); color: var(--accent); animation: sealIn 0.55s var(--ease) both; }
+  .seal svg { width: 56px; height: 56px; stroke: currentColor; fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+  @keyframes sealIn { 0% { transform: scale(0.9) rotate(-7deg); opacity: 0; } 70% { transform: scale(1.05) rotate(1deg); } 100% { transform: scale(1) rotate(0); opacity: 1; } }
+  .seal-k { font: 800 11px/1 Inter, sans-serif; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent-deep); margin: 20px 0 8px; }
+  .seal-concept { font-family: Fraunces, Georgia, serif; font-weight: 600; font-size: 22px; letter-spacing: -0.012em; max-width: 24ch; }
+  .seal-sub { color: var(--ink-soft); font-size: 13px; margin-top: 10px; }
+  .seal-sub b { color: var(--ink); }
+  .seal-ladder { display: flex; gap: 6px; margin-top: 18px; width: 78%; }
+  .seal-ladder i { flex: 1; height: 5px; border-radius: 3px; background: var(--accent); animation: rungPop 0.4s var(--ease) both; }
+  .seal-ladder i:nth-child(2) { animation-delay: 0.08s; } .seal-ladder i:nth-child(3) { animation-delay: 0.16s; }
+  .seal-ladder i:nth-child(4) { animation-delay: 0.24s; } .seal-ladder i:nth-child(5) { animation-delay: 0.32s; }
+  @keyframes rungPop { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+  .streak-line { display: inline-flex; align-items: center; gap: 7px; margin-top: 16px; font: 650 12.5px/1 Inter, sans-serif; color: var(--ink-soft); border: 1px solid var(--border-soft); border-radius: 999px; padding: 8px 14px; background: var(--surface); }
+  .streak-line svg { width: 13px; height: 13px; stroke: var(--accent); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+
+  /* ── Unit 4: Near-miss ─────────────────────────────────────────────── */
+  .miss-head { text-align: center; margin-top: 12px; }
+  .miss-score { font-family: Fraunces, Georgia, serif; font-weight: 600; font-size: 24px; font-variant-numeric: lining-nums tabular-nums; font-feature-settings: "lnum", "tnum"; }
+  .miss-score b { color: var(--accent); }
+  .miss-callout { font-size: 13.5px; color: var(--ink-soft); margin-top: 7px; }
+  .miss-callout b { color: var(--fail); }
+  .rung-report { display: flex; flex-direction: column; gap: 8px; margin: 18px 0 6px; }
+  .rr { display: flex; align-items: center; gap: 11px; border: 1px solid var(--border-soft); border-radius: 12px; padding: 11px 13px; background: var(--surface); }
+  .rr-ic { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; flex: none; }
+  .rr-ic svg { width: 13px; height: 13px; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+  .rr.ok .rr-ic { background: color-mix(in oklab, var(--pass) 14%, transparent); color: var(--pass); }
+  .rr.bad .rr-ic { background: color-mix(in oklab, var(--fail) 14%, transparent); color: var(--fail); }
+  .rr-t b { display: block; font: 650 13px/1.2 Inter, sans-serif; }
+  .rr-t span { font-size: 11.5px; color: var(--muted); }
+  .miss-promise { font-size: 12px; color: var(--muted); text-align: center; margin-top: 10px; }
+
+  .flag { position: absolute; bottom: 84px; right: -33px; transform: rotate(-90deg); transform-origin: center; font: 800 9px/1 Inter, sans-serif; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+
+  @media (prefers-reduced-motion: reduce) { .seal, .seal-ladder i, .rung-bar i, .q-text mark { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+
+<button class="theme-toggle" id="themeToggle" type="button">Light / Dark</button>
+
+<div class="stage-head">
+  <p class="stage-eyebrow">Cert app · all platforms · Pro</p>
+  <h1 class="stage-title">Reword Gauntlet: the full run</h1>
+  <p class="stage-sub">One concept, asked five ways: <b>Plain → Scenario → Best-of → Not-trap → Twisted</b>. The run always finishes all five rungs; the concept cracks only on a clean 5/5. A miss names the rung type that got you, and the retry generates <b>five fresh wordings</b>. That is the whole point. Concept is AI-picked from the weakest topic at generation; exemplar banks ground the phrasing per cert. Pro-only at every entry. Cracks persist to <b>STORAGE.GAUNTLET_CRACKED</b> (cloud-synced), count toward the streak, and questions count toward Today's goal.</p>
+</div>
+
+<div class="phones">
+
+  <!-- ① ENTRY -->
+  <div class="unit">
+    <p class="unit-label">① Entry</p>
+    <div class="phone"><div class="screen">
+      <div class="notch"></div>
+      <div class="statusbar"><span>9:41</span><span>●●●</span></div>
+      <div class="hdr">
+        <button class="back" type="button" aria-label="Back"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button>
+        <h1>Reword Gauntlet</h1>
+        <span class="pill"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>Pro</span>
+      </div>
+      <div class="body">
+        <div class="gauntlet-mark"><svg viewBox="0 0 24 24"><path d="M4 17l6-6-6-6"/><path d="M12 19h8"/></svg></div>
+        <h2 class="entry-title">Beat the concept in <i>every</i> disguise</h2>
+        <p class="entry-lede">Five questions on one concept. The wording never repeats.</p>
+        <div class="target">
+          <div class="target-k">Today's target</div>
+          <div class="target-v">Subnetting &amp; IP Addressing</div>
+          <div class="target-why">Your weakest topic right now</div>
+          <button class="target-switch" type="button">Pick a different topic</button>
+        </div>
+        <div class="cracked-row">
+          <span class="cracked-n">14</span>
+          <span class="cracked-t">concepts cracked so far.<br>Each one survived all five wordings.</span>
+        </div>
+        <div class="ladder-preview">
+          <span>Plain</span><span>Scenario</span><span>Best-of</span><span>Not-trap</span><span>Twisted</span>
+        </div>
+      </div>
+      <div class="footer">
+        <button class="cta" type="button">Start the Gauntlet</button>
+      </div>
+      <div class="flag">Concept · gauntlet entry</div>
+    </div></div>
+    <p class="unit-note"><b>Free users</b> reach this screen via the locked tile and get the standard Pro gate card on Start. Loading state after Start: <b>"Forging five disguises…"</b> on the shared loading page.</p>
+  </div>
+
+  <!-- ② IN-RUNG -->
+  <div class="unit">
+    <p class="unit-label">② Rung 4 of 5, answered wrong</p>
+    <div class="phone"><div class="screen">
+      <div class="notch"></div>
+      <div class="statusbar"><span>9:43</span><span>●●●</span></div>
+      <div class="hdr">
+        <button class="x" type="button" aria-label="Quit run"><svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+        <h1>VLSM subnet sizing</h1>
+        <span style="font:650 12px/1 Inter,sans-serif;color:var(--muted)">4/5</span>
+      </div>
+      <div class="body">
+        <div class="ladder">
+          <div class="rung done"><div class="rung-bar"><i></i></div><div class="rung-name">Plain</div></div>
+          <div class="rung done"><div class="rung-bar"><i></i></div><div class="rung-name">Scenario</div></div>
+          <div class="rung done"><div class="rung-bar"><i></i></div><div class="rung-name">Best-of</div></div>
+          <div class="rung missed live"><div class="rung-bar"><i></i></div><div class="rung-name">Not-trap</div></div>
+          <div class="rung"><div class="rung-bar"><i></i></div><div class="rung-name">Twisted</div></div>
+        </div>
+        <div class="q-card">
+          <span class="q-type">Not-trap</span>
+          <p class="q-text">Which of the following is <mark>NOT</mark> a valid host address in the 192.168.10.64/27 subnet?</p><!-- hinge highlight: the one word the rung pivots on -->
+          <div class="opts">
+            <button class="opt" type="button"><b>A</b>192.168.10.70</button>
+            <button class="opt wrong" type="button"><b>B</b>192.168.10.90</button>
+            <button class="opt right" type="button"><b>C</b>192.168.10.96</button>
+            <button class="opt" type="button"><b>D</b>192.168.10.65</button>
+          </div>
+        </div>
+        <div class="verdict">
+          <div class="verdict-k">The hinge: "NOT"</div>
+          <p>/27 gives hosts .65-.94 here, so <b>.96 sits outside the range</b>. The question wanted the address that <b>doesn't</b> belong. .90 is valid, which is exactly why it looks tempting.</p>
+        </div>
+      </div>
+      <div class="footer">
+        <button class="cta" type="button">Last rung &rarr;</button>
+      </div>
+      <div class="flag">Concept · in-rung feedback</div>
+    </div></div>
+    <p class="unit-note">The rung label teaches the <b>trap taxonomy by name</b>; the hinge word gets a highlight in the stem AND named in the verdict. Right answers get the same verdict card in green ("The hinge: 'BEST'. Three options work, one is cheapest").</p>
+  </div>
+
+  <!-- ③ CRACKED -->
+  <div class="unit">
+    <p class="unit-label">③ Cracked, clean 5/5</p>
+    <div class="phone"><div class="screen">
+      <div class="notch"></div>
+      <div class="statusbar"><span>9:46</span><span>●●●</span></div>
+      <div class="body">
+        <div class="seal-wrap">
+          <div class="seal"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></div>
+          <div class="seal-k">Concept cracked</div>
+          <div class="seal-concept">VLSM subnet sizing</div>
+          <div class="seal-ladder"><i></i><i></i><i></i><i></i><i></i></div>
+          <p class="seal-sub">Five wordings, five answers. <b>That's 15 in your collection.</b></p>
+          <span class="streak-line"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.07-2.14-.22-4.05 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.15.43-2.29 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg> Streak +1 &middot; 5 questions toward today's goal</span>
+        </div>
+      </div>
+      <div class="footer">
+        <button class="cta" type="button">Next target &rarr;</button>
+        <button class="ghost" type="button">Back to Drills</button>
+      </div>
+      <div class="flag">Concept · cracked</div>
+    </div></div>
+    <p class="unit-note">Seal stamps in with a 0.55s overshoot; the five rungs pop in sequence (staggered 80ms). <b>Reduced-motion users get the final state instantly.</b> "Next target" re-enters the loop with the next weakest topic pre-loaded.</p>
+  </div>
+
+  <!-- ④ NEAR-MISS -->
+  <div class="unit">
+    <p class="unit-label">④ Near-miss, 4/5</p>
+    <div class="phone"><div class="screen">
+      <div class="notch"></div>
+      <div class="statusbar"><span>9:46</span><span>●●●</span></div>
+      <div class="body">
+        <div class="miss-head">
+          <div class="miss-score">Cracked <b>4 of 5</b></div>
+          <p class="miss-callout">The <b>Not-trap</b> got you. One rung from the seal.</p>
+        </div>
+        <div class="rung-report">
+          <div class="rr ok"><span class="rr-ic"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></span><span class="rr-t"><b>Plain</b><span>Straight definition</span></span></div>
+          <div class="rr ok"><span class="rr-ic"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></span><span class="rr-t"><b>Scenario</b><span>Real-world setup</span></span></div>
+          <div class="rr ok"><span class="rr-ic"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></span><span class="rr-t"><b>Best-of</b><span>One word decides it</span></span></div>
+          <div class="rr bad"><span class="rr-ic"><svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg></span><span class="rr-t"><b>Not-trap</b><span>The negation flip</span></span></div>
+          <div class="rr ok"><span class="rr-ic"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></span><span class="rr-t"><b>Twisted</b><span>Trickiest phrasing</span></span></div>
+        </div>
+        <p class="miss-promise">Run it again and every question is re-worded from scratch. There's nothing to memorize. That's the point.</p>
+      </div>
+      <div class="footer">
+        <button class="cta" type="button">Run it again</button>
+        <button class="ghost" type="button">Different concept</button>
+      </div>
+      <div class="flag">Concept · near-miss</div>
+    </div></div>
+    <p class="unit-note">The open loop ("one rung from the seal") is deliberate: the retry is one tap and regenerates everything. Attempts count is stored per concept, so the eventual crack can say <b>"took 3 runs. Earned."</b></p>
+  </div>
+
+</div>
+
+<script>
+  (function () {
+    var root = document.documentElement;
+    try { var saved = localStorage.getItem('ca-theme'); if (saved) root.setAttribute('data-theme', saved); } catch (e) {}
+    document.getElementById('themeToggle').addEventListener('click', function () {
+      var next = root.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+      root.setAttribute('data-theme', next);
+      try { localStorage.setItem('ca-theme', next); } catch (e) {}
+    });
+  })();
+</script>
+</body>
+</html>

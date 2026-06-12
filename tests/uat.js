@@ -4018,7 +4018,8 @@ test('v4.54.0 JS: goSetup calls renderHeroV2',
   // v4.99.38: window bumped from 1500 → 2000 after _portDrillTeardown
   // shell-callable hook added in goSetup body.
   // v4.99.42: window bumped 2000 → 2500 after 3rd teardown hook (_subnetTrainerTeardown).
-  /function goSetup\([\s\S]{0,2500}renderHeroV2/.test(js));
+  // v7.48.0: window bumped 2500 → 2900 after the gauntlet-mode reset block in goSetup.
+  /function goSetup\([\s\S]{0,2900}renderHeroV2/.test(js));
 // v4.81.20: tombstone — focus-banner v2 structure was retired (the function
 // is now a compat shim that delegates to renderTodayPlan). The CSS for
 // .focus-banner-v2 + .fb-* classes is retained for the (now hidden)

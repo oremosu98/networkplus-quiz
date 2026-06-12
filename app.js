@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v7.47.0
+// Network+ AI Quiz — app.js  v7.48.0
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '7.47.0';
+const APP_VERSION = '7.48.0';
 // v4.99.45 (Phase 6b): expose APP_VERSION on window so the web-vitals
 // collector (lib/web-vitals-collector.js, loaded BEFORE app.js so its
 // PerformanceObservers attach earlier) can stamp this version onto every
@@ -1034,6 +1034,7 @@ const STORAGE = {
   SUBNET_STATS: 'nplus_subnet_stats',
   DAILY_GOAL: 'nplus_daily_goal',
   DAILY_CHALLENGE: 'nplus_daily_challenge',
+  GAUNTLET_CRACKED: 'nplus_gauntlet_cracked', // v7.48.0 Reword Gauntlet: [{concept, topic, certId, date, attempts}]
   DEEP_DIVE_USES: 'nplus_deep_dive_uses',
   ERROR_LOG: 'nplus_error_log',
   GH_TOKEN: 'nplus_gh_monitor_token',
@@ -1151,6 +1152,12 @@ let qCount     = 10;
 let apiKey     = '';
 let wrongDrillMode = false;
 let dailyChallengeMode = false;
+
+// v7.48.0 — Reword Gauntlet run state
+let gauntletMode = false;     // a gauntlet run is riding the quiz engine
+let _gauntletRun = null;      // { concept, topic, results: [bool x5], attempts }
+let _gauntletBusy = false;    // in-flight guard: double-tap on Start
+let _gauntletTopic = null;    // entry-screen topic override (null = weakest)
 
 // Multi-select state (regular quiz)
 let msSelections = [];
@@ -2437,6 +2444,11 @@ function goSetup() {
   examMode = false;
   wrongDrillMode = false;
   dailyChallengeMode = false;
+  // v7.48.0: quitting a gauntlet mid-run (confirmBack → goSetup) = no crack,
+  // no penalty. Reset the mode + restore the standard quiz chrome.
+  gauntletMode = false;
+  _gauntletRun = null;
+  if (typeof _renderGauntletLadder === 'function') { try { _renderGauntletLadder(); } catch (_) {} }
   navOpen = false;
   // v4.54.1: renderHistoryPanel moved to renderAnalytics (Recent Performance now lives on Analytics page)
   renderStatsCard();
@@ -3546,6 +3558,9 @@ function saveWrongBank(bank) {
 }
 
 function addToWrongBank(q, chosen) {
+  // v7.48.0: Gauntlet runs are parallel to the wrong-bank loop — a gauntlet
+  // miss is answered by "Run it again" (fresh wordings), not bank/SR enrolment.
+  if (typeof gauntletMode !== 'undefined' && gauntletMode) return;
   // v4.74.0: also enroll into the spaced-repetition queue. SR runs ahead
   // of the dedup check below — we WANT a repeated miss on the same
   // question to re-trigger SR (resets interval, drops ease) even though
@@ -6516,6 +6531,367 @@ function getWeakTopic() {
 // getWeakTopic() is still used by applyPreset('focused') as a fallback.
 
 // ══════════════════════════════════════════
+// REWORD GAUNTLET (v7.48.0) — the flagship drill
+// ══════════════════════════════════════════
+// Research-verified pain (FLAGSHIP-DRILL-RESEARCH-2026-06-11): candidates
+// memorize questions, real exams re-word concepts. The Gauntlet asks ONE
+// AI-picked concept five ways — Plain → Scenario → Best-of → Not-trap →
+// Twisted. The run always finishes all five rungs; the concept cracks only
+// on a clean 5/5. A miss names the rung type that got you; "Run it again"
+// regenerates five fresh wordings (the retry IS the anti-memorization demo).
+// Pro-only at Start; parallel to the wrong-bank/SR loop in v1.
+const GAUNTLET_RUNGS = [
+  { key: 'Plain',    sub: 'Straight definition' },
+  { key: 'Scenario', sub: 'Real-world setup' },
+  { key: 'Best-of',  sub: 'One word decides it' },
+  { key: 'Not-trap', sub: 'The negation flip' },
+  { key: 'Twisted',  sub: 'Trickiest phrasing' }
+];
+
+function loadGauntletCracked() {
+  try { return JSON.parse(localStorage.getItem(STORAGE.GAUNTLET_CRACKED) || '[]'); } catch (e) { return []; }
+}
+
+// Entry points (Drills hero card + Home Practice tile). The entry screen is
+// viewable by free users (funnel tease) — the Pro gate fires on Start.
+function startRewordGauntlet() {
+  _gauntletTopic = null;
+  renderGauntletEntry();
+  showPage('gauntlet');
+}
+
+function renderGauntletEntry() {
+  const w = getWeakTopic();
+  let topicName = _gauntletTopic || (w && w.topic) || null;
+  if (!topicName && typeof getTodaysFocusTopics === 'function') {
+    const f = getTodaysFocusTopics(1);
+    const first = Array.isArray(f) ? f[0] : null;
+    topicName = typeof first === 'string' ? first : (first && first.topic) || null;
+  }
+  if (!topicName) topicName = Object.keys((typeof TOPIC_DOMAINS !== 'undefined' && TOPIC_DOMAINS) || {})[0] || MIXED_TOPIC;
+  const nameEl = document.getElementById('gnt-topic-name');
+  if (nameEl) nameEl.textContent = topicName;
+  const whyEl = document.getElementById('gnt-topic-why');
+  if (whyEl) whyEl.textContent = _gauntletTopic ? 'Your pick' : ((w && w.topic === topicName) ? 'Your weakest topic right now' : 'A good place to start');
+  const n = loadGauntletCracked().length;
+  const row = document.getElementById('gnt-cracked-row');
+  if (row) row.classList.toggle('is-hidden', n === 0);
+  const nEl = document.getElementById('gnt-cracked-n');
+  if (nEl) nEl.textContent = n;
+  const listEl = document.getElementById('gnt-topic-list');
+  if (listEl) listEl.classList.add('is-hidden');
+}
+
+function gauntletToggleTopicList() {
+  const el = document.getElementById('gnt-topic-list');
+  if (!el) return;
+  if (!el.classList.contains('is-hidden')) { el.classList.add('is-hidden'); return; }
+  const topics = Object.keys((typeof TOPIC_DOMAINS !== 'undefined' && TOPIC_DOMAINS) || {});
+  el.innerHTML = topics.map(t =>
+    // data-action delegation (Sec-P7): no inline onclick in generated HTML
+    '<button type="button" class="gnt-topic-opt" data-action="gauntletChooseTopic" data-args="' + escAttr(JSON.stringify([t])) + '">' + escHtml(t) + '</button>'
+  ).join('');
+  el.classList.remove('is-hidden');
+}
+
+function gauntletChooseTopic(t) {
+  _gauntletTopic = t;
+  renderGauntletEntry();
+}
+
+// One metered call per run (Approach A, approved): weakest topic + the
+// cert's exemplar slice (style grounding) + the 5-rung recipe. The model
+// picks ONE precise testable concept inside the topic, then writes all five
+// rungs about THAT concept. Cert-agnostic: inputs are CERT_PACK topics +
+// exemplars only.
+async function _fetchGauntletRun(topicName, forcedConcept) {
+  const exemplars = (typeof _pickExemplarsForTopic === 'function') ? _pickExemplarsForTopic(topicName, 3) : [];
+  const exemplarBlock = (exemplars && exemplars.length && typeof _formatExemplarsForPrompt === 'function')
+    ? _formatExemplarsForPrompt(exemplars) : '';
+  const rungSpecs =
+    '1. Plain — a direct, plainly worded question on the concept. hinge = the concept term itself.\n' +
+    '2. Scenario — a short real-world scenario (2-3 sentences) where the concept is the answer. hinge = the scenario detail that points to the concept.\n' +
+    '3. Best-of — several options are partially workable; a BEST/MOST-style qualifier decides it. hinge = the qualifier word.\n' +
+    '4. Not-trap — a negation question (NOT / EXCEPT / LEAST). hinge = the negation word.\n' +
+    '5. Twisted — the trickiest wording: inverted framing, double qualifier, or distractor-heavy phrasing. hinge = the word or phrase the whole question pivots on.';
+  const prompt = (forcedConcept
+      ? 'Write a fresh 5-question "Reword Gauntlet" run about this exact concept: "' + forcedConcept + '" (exam topic: ' + topicName + '). Brand-new wordings — reuse nothing from any previous phrasing.\n\n'
+      : 'Pick ONE precise, testable concept inside the certification exam topic "' + topicName + '" — a single fact or decision a candidate must know cold, not the whole topic. Then write a 5-question "Reword Gauntlet" run about THAT concept only.\n\n') +
+    'All five questions test the SAME concept and the SAME underlying fact, each in a different disguise:\n' + rungSpecs + '\n\n' +
+    'Rules: 4 plausible options per question (plain text, no letter prefixes), exactly one correct, vary which position is correct across the five. ' +
+    'The hinge must be copied VERBATIM from that question\'s own text. Add a 1-2 sentence explanation per question that says why the hinge decides it.\n' +
+    (exemplarBlock ? '\n' + exemplarBlock + '\n' : '') +
+    '\nReturn ONLY JSON:\n{"concept":"...","rungs":[{"question":"...","options":["...","...","...","..."],"answer":"A","explanation":"...","hinge":"..."}]}\n' +
+    '"answer" is the letter (A-D) of the correct option by position. Exactly 5 rungs, in the order above.';
+
+  const res = await _claudeFetch({
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true'
+    },
+    // _metered: true — counts toward quota + the global kill-switch.
+    body: JSON.stringify({ model: CLAUDE_MODEL, max_tokens: MAX_TOKENS_GENERATION, messages: [{ role: 'user', content: prompt }], _metered: true })
+  });
+  if (!res.ok) throw new Error('gauntlet API error ' + res.status);
+  const data = await res.json();
+  const raw = (data.content && data.content[0] && data.content[0].text) || '';
+  const m = raw.match(/\{[\s\S]*\}/);
+  if (!m) throw new Error('gauntlet: no JSON object in response');
+  const parsed = JSON.parse(m[0]);
+  // Per-rung shape validation — any bad rung fails the WHOLE run (a 4-rung
+  // gauntlet would be a lie). Caller shows a friendly retry; nothing recorded.
+  const rungs = (parsed && Array.isArray(parsed.rungs)) ? parsed.rungs : [];
+  const ok = parsed && typeof parsed.concept === 'string' && parsed.concept.length >= 3 &&
+    rungs.length === 5 && rungs.every(r =>
+      r && typeof r.question === 'string' && r.question.length > 20 &&
+      Array.isArray(r.options) && r.options.length === 4 &&
+      typeof r.answer === 'string' && /^[A-D]$/.test(r.answer.trim().toUpperCase()) &&
+      typeof r.explanation === 'string' && r.explanation.length > 0 &&
+      typeof r.hinge === 'string' && r.hinge.length > 0);
+  if (!ok) throw new Error('gauntlet: malformed run shape');
+  return { concept: parsed.concept, rungs };
+}
+
+// Start CTA. opts: { topic, concept, attempts } — used by the retry paths.
+async function gauntletStart(opts) {
+  opts = opts || {};
+  if (_gauntletBusy) return; // double-tap guard
+  if (typeof _gateProOnly === 'function' && !_gateProOnly('Reword Gauntlet', {
+    title: 'The Reword Gauntlet is a Pro feature',
+    body: 'One concept, asked five ways. Crack all five and you own it in any wording. Go Pro to run the Gauntlet on every cert in the library.'
+  })) return;
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+    showToast('The Gauntlet forges fresh questions, so it needs a connection.', 'info');
+    return;
+  }
+  if (typeof _canMakeMeteredCall === 'function' && !_canMakeMeteredCall('Reword Gauntlet')) return;
+
+  let topicName = opts.topic || _gauntletTopic || null;
+  if (!topicName) { const w = getWeakTopic(); topicName = (w && w.topic) || null; }
+  if (!topicName && typeof getTodaysFocusTopics === 'function') {
+    const f = getTodaysFocusTopics(1);
+    const first = Array.isArray(f) ? f[0] : null;
+    topicName = typeof first === 'string' ? first : (first && first.topic) || null;
+  }
+  if (!topicName) topicName = Object.keys((typeof TOPIC_DOMAINS !== 'undefined' && TOPIC_DOMAINS) || {})[0] || MIXED_TOPIC;
+
+  apiKey = (document.getElementById('api-key') || { value: '' }).value.trim();
+  _gauntletBusy = true;
+  const lp = document.getElementById('load-progress');
+  if (lp) lp.classList.add('is-hidden');
+  showPage('loading');
+  const lm = document.getElementById('loading-msg');
+  if (lm) lm.textContent = 'Forging five disguises…';
+  if (typeof _loadingProgressBegin === 'function') _loadingProgressBegin('Forging five disguises…');
+
+  let run;
+  try {
+    run = await _fetchGauntletRun(topicName, opts.concept || null);
+  } catch (e) {
+    // Friendly error + retry — no crack, no attempt, nothing recorded.
+    _gauntletBusy = false;
+    if (typeof _loadingProgressFinish === 'function') { try { _loadingProgressFinish(); } catch (_) {} }
+    renderGauntletEntry();
+    showPage('gauntlet');
+    try { showToast('The forge misfired. Nothing was used up. Hit Start to try again.', 'error'); } catch (_) {}
+    return;
+  }
+  if (typeof _loadingProgressFinish === 'function') { try { _loadingProgressFinish(); } catch (_) {} }
+  _gauntletBusy = false;
+
+  _gauntletRun = { concept: run.concept, topic: topicName, results: [], attempts: (opts.attempts || 0) + 1 };
+  gauntletMode = true;
+  wrongDrillMode = false;
+  examMode = false;
+  sessionMode = false;
+  activeQuizTopic = topicName;
+  questions = run.rungs.map((r, i) => ({
+    question: r.question,
+    options: r.options,
+    answer: r.answer.trim().toUpperCase(),
+    explanation: r.explanation,
+    hinge: r.hinge,
+    topic: topicName,
+    difficulty: 'Exam Level',
+    type: 'mcq',
+    _rung: i
+  }));
+  current = 0; score = 0; streak = 0; bestStreak = 0; answered = 0; log = [];
+  quizFlags = new Array(questions.length).fill(false);
+  _sessionStartTs = Date.now();
+  showCacheNotice(false);
+  showPage('quiz');
+  render();
+  _renderGauntletLadder();
+}
+
+// The rung ladder rides the quiz page in place of the numbered dot strip.
+function _renderGauntletLadder() {
+  const el = document.getElementById('gauntlet-ladder');
+  const dots = document.getElementById('quiz-prog-dots');
+  const chip = document.getElementById('gauntlet-rung-chip');
+  if (!el) return;
+  if (!gauntletMode || !_gauntletRun) {
+    el.classList.add('is-hidden');
+    if (dots) dots.classList.remove('is-hidden');
+    if (chip) chip.classList.add('is-hidden');
+    return;
+  }
+  if (dots) dots.classList.add('is-hidden');
+  el.classList.remove('is-hidden');
+  // Build the five rung nodes ONCE, then reconcile classes in place — an
+  // innerHTML rebuild would restart the bar-fill transition on every
+  // already-done rung at each advance (emil pass 2, 2026-06-12).
+  if (el.children.length !== GAUNTLET_RUNGS.length) {
+    el.innerHTML = GAUNTLET_RUNGS.map(r =>
+      '<div class="gnt-rung"><div class="gnt-rung-bar"><i></i></div><div class="gnt-rung-name">' + r.key + '</div></div>'
+    ).join('');
+  }
+  GAUNTLET_RUNGS.forEach((r, i) => {
+    const node = el.children[i];
+    if (!node) return;
+    const res = _gauntletRun.results[i];
+    node.classList.toggle('done', res === true);
+    node.classList.toggle('missed', res === false);
+    node.classList.toggle('live', i === current && current < GAUNTLET_RUNGS.length);
+  });
+  if (chip) {
+    chip.textContent = GAUNTLET_RUNGS[current] ? GAUNTLET_RUNGS[current].key : '';
+    chip.classList.toggle('is-hidden', !GAUNTLET_RUNGS[current]);
+  }
+}
+
+// Highlight the hinge word in the rendered stem after answering.
+// Escape-THEN-highlight, same contract as setQuestionText (XSS: AI text).
+function _gauntletApplyHinge(q) {
+  if (!q || !q.hinge) return;
+  const el = document.getElementById('q-text');
+  if (!el) return;
+  const esc = escHtml(q.question);
+  const escHinge = escHtml(q.hinge);
+  if (escHinge && esc.indexOf(escHinge) !== -1) {
+    el.innerHTML = esc.replace(escHinge, '<mark class="gnt-hinge">' + escHinge + '</mark>');
+  }
+}
+
+// Run complete (all 5 rungs answered). Crack only on a clean 5/5 of FIRST
+// answers. History entry feeds Today's goal + topic signal; streak credits
+// like any finished session.
+function _finishGauntlet() {
+  const results = GAUNTLET_RUNGS.map((_, i) => _gauntletRun.results[i] === true);
+  const crackCount = results.filter(Boolean).length;
+  const cracked = crackCount === 5;
+  const total = questions.length;
+  const pct = total > 0 ? Math.round((crackCount / total) * 100) : 0;
+  try { saveToHistory({ date: new Date().toISOString(), topic: _gauntletRun.topic, difficulty: 'Exam Level', score: crackCount, total, pct, mode: 'gauntlet' }); } catch (_) {}
+  try { updateStreak(); renderStreakBadge(); } catch (_) {}
+  if (cracked) {
+    try {
+      const list = loadGauntletCracked();
+      list.unshift({
+        concept: _gauntletRun.concept,
+        topic: _gauntletRun.topic,
+        certId: (typeof CURRENT_CERT !== 'undefined' && CURRENT_CERT) || 'netplus',
+        date: new Date().toISOString(),
+        attempts: _gauntletRun.attempts
+      });
+      localStorage.setItem(STORAGE.GAUNTLET_CRACKED, JSON.stringify(list));
+      _cloudFlush(STORAGE.GAUNTLET_CRACKED);
+    } catch (_) { try { showToast('Storage full — crack not saved', 'error'); } catch (_) {} }
+  }
+  try { if (typeof _writeReadinessSnapshot === 'function') _writeReadinessSnapshot(); } catch (_) {}
+  try { renderStatsCard(); renderReadinessCard(); } catch (_) {}
+  try { if (typeof _maybeShowDailyRecap === 'function') _maybeShowDailyRecap(); } catch (_) {}
+  gauntletMode = false;
+  _renderGauntletLadder();
+  renderGauntletResult(cracked, results);
+  showPage('gauntlet-result');
+}
+
+function renderGauntletResult(cracked, results) {
+  const root = document.getElementById('gnt-result-root');
+  if (!root) return;
+  if (cracked) {
+    const n = loadGauntletCracked().length;
+    const subLine = _gauntletRun.attempts > 1
+      ? 'Took ' + _gauntletRun.attempts + ' runs. <b>Earned.</b>'
+      : 'Five wordings, five answers. <b>That’s ' + n + ' in your collection.</b>';
+    root.innerHTML =
+      '<div class="gnt-seal-wrap">' +
+        '<div class="gnt-seal"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></div>' +
+        '<div class="gnt-seal-k">Concept cracked</div>' +
+        '<div class="gnt-seal-concept">' + escHtml(_gauntletRun.concept) + '</div>' +
+        '<div class="gnt-seal-ladder"><i></i><i></i><i></i><i></i><i></i></div>' +
+        '<p class="gnt-seal-sub">' + subLine + '</p>' +
+        '<span class="gnt-streak-line"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.07-2.14-.22-4.05 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.15.43-2.29 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg> Streak +1 · 5 questions toward today’s goal</span>' +
+      '</div>' +
+      '<div class="gnt-result-footer">' +
+        '<button type="button" class="btn btn-primary gnt-cta" data-action="gauntletNextTarget">Next target →</button>' +
+        '<button type="button" class="btn gnt-ghost" data-action="gauntletExit">Back to Drills</button>' +
+      '</div>';
+  } else {
+    const crackCount = results.filter(Boolean).length;
+    const missed = GAUNTLET_RUNGS.filter((r, i) => !results[i]).map(r => '<b>' + r.key + '</b>');
+    const missPhrase = missed.length === 1
+      ? 'The ' + missed[0] + ' got you. One rung from the seal.'
+      : missed.length === 2
+        ? 'The ' + missed[0] + ' and the ' + missed[1] + ' got you.'
+        : missed.length + ' rungs got you this time.';
+    const rows = GAUNTLET_RUNGS.map((r, i) => {
+      const ok = results[i];
+      return '<div class="gnt-rr ' + (ok ? 'ok' : 'bad') + '"><span class="gnt-rr-ic"><svg viewBox="0 0 24 24" aria-hidden="true">' +
+        (ok ? '<path d="M20 6 9 17l-5-5"/>' : '<path d="M18 6 6 18M6 6l12 12"/>') +
+        '</svg></span><span class="gnt-rr-t"><b>' + r.key + '</b><span>' + r.sub + '</span></span></div>';
+    }).join('');
+    root.innerHTML =
+      '<div class="gnt-miss-head">' +
+        '<div class="gnt-miss-score">Cracked <b>' + crackCount + ' of 5</b></div>' +
+        '<p class="gnt-miss-callout">' + missPhrase + '</p>' +
+      '</div>' +
+      '<div class="gnt-rung-report">' + rows + '</div>' +
+      '<p class="gnt-miss-promise">Run it again and every question is re-worded from scratch. There’s nothing to memorize. That’s the point.</p>' +
+      '<div class="gnt-result-footer">' +
+        '<button type="button" class="btn btn-primary gnt-cta" data-action="gauntletRunAgain">Run it again</button>' +
+        '<button type="button" class="btn gnt-ghost" data-action="gauntletDifferentConcept">Different concept</button>' +
+      '</div>';
+  }
+}
+
+// Result-screen CTAs. "Run it again" keeps the concept (attempts carry over,
+// wordings regenerate from scratch); "Next target" re-enters the loop on the
+// next weakest topic; "Different concept" stays on the topic, new concept.
+function gauntletRunAgain() {
+  if (!_gauntletRun) { startRewordGauntlet(); return; }
+  gauntletStart({ topic: _gauntletRun.topic, concept: _gauntletRun.concept, attempts: _gauntletRun.attempts });
+}
+function gauntletDifferentConcept() {
+  if (!_gauntletRun) { startRewordGauntlet(); return; }
+  gauntletStart({ topic: _gauntletRun.topic });
+}
+function gauntletNextTarget() {
+  _gauntletTopic = null;
+  _gauntletRun = null;
+  gauntletStart({});
+}
+function gauntletExit() {
+  _gauntletRun = null;
+  if (typeof renderGauntletDrillsCard === 'function') { try { renderGauntletDrillsCard(); } catch (_) {} }
+  showPage('drills');
+}
+
+// Drills-page hero card pill ("N cracked").
+function renderGauntletDrillsCard() {
+  const pill = document.getElementById('drills-gauntlet-pill');
+  if (!pill) return;
+  const n = loadGauntletCracked().length;
+  // Zero-state invites instead of anchoring on no progress (marketing pass 4)
+  pill.textContent = n === 0 ? 'Flagship drill' : (n === 1 ? '1 cracked' : n + ' cracked');
+}
+
+// ══════════════════════════════════════════
 // API KEY VALIDATION
 // ══════════════════════════════════════════
 // v4.99.33 — signed-in users skip the BYOK check entirely.
@@ -8257,6 +8633,15 @@ function showExplanation(q, isRight, entryOverride) {
   } else {
     label = isRight ? 'Correct!' : `Wrong \u2014 correct answer: ${q.answer}`;
   }
+  // v7.48.0 Reword Gauntlet: name the hinge in the verdict, freeze the rung
+  // result on the FIRST answer (re-picks stay study aids, not crack edits),
+  // highlight the hinge word in the stem, repaint the ladder.
+  if (gauntletMode && _gauntletRun) {
+    if (q.hinge) label = (isRight ? 'Correct' : 'Wrong') + ' \u00b7 the hinge: \u201c' + q.hinge + '\u201d';
+    if (_gauntletRun.results[current] === undefined) _gauntletRun.results[current] = isRight;
+    if (typeof _gauntletApplyHinge === 'function') _gauntletApplyHinge(q);
+    if (typeof _renderGauntletLadder === 'function') _renderGauntletLadder();
+  }
   document.getElementById('exp-label').textContent = label;
   document.getElementById('exp-text').textContent  = q.explanation;
   // v4.54.8: per-choice wrongExplain paragraph. If the question carries a
@@ -8292,7 +8677,9 @@ function showExplanation(q, isRight, entryOverride) {
   // v4.54.17: on wrong answers, offer a "Drill this concept" button that
   // injects 2 follow-up questions into the current session immediately
   // after the current question.
-  if (!isRight && typeof followUpOnMistake === 'function') {
+  // v7.48.0: suppressed in gauntlet runs — injecting follow-up questions
+  // would corrupt the fixed 5-rung structure.
+  if (!isRight && !gauntletMode && typeof followUpOnMistake === 'function') {
     extraHtml += '<button class="explain-btn explain-btn-followup" onclick="followUpOnMistake()">Drill this concept</button>';
   }
 
@@ -8319,7 +8706,7 @@ function showExplanation(q, isRight, entryOverride) {
   setTimeout(() => nextBtn.focus(), 100);
 }
 
-function advance() { current++; render(); window.scrollTo(0,0); }
+function advance() { current++; render(); if (gauntletMode && typeof _renderGauntletLadder === 'function') _renderGauntletLadder(); window.scrollTo(0,0); }
 
 function toggleFlag() {
   quizFlags[current] = !quizFlags[current];
@@ -8354,6 +8741,9 @@ function renderResultsDifficultyBreakdown() {
 }
 
 function finish() {
+  // v7.48.0: a Gauntlet run has its own verdict surface (cracked / near-miss)
+  // instead of the standard results page.
+  if (gauntletMode && _gauntletRun) { _finishGauntlet(); return; }
   // v4.42.0: snapshot streak BEFORE updateStreak so we can detect an
   // increment and flag a pulse animation for the next goSetup() render.
   const _prevStreakBefore = (function(){ try { return getStreak().current || 0; } catch (_) { return 0; } })();

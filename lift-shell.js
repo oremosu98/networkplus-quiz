@@ -137,6 +137,8 @@
      applyDomainPreset. Must never block navigation. */
   function liftRenderDrills() {
     try {
+      /* v7.48.0: Reword Gauntlet hero card pill ("N cracked") */
+      if (typeof renderGauntletDrillsCard === 'function') { try { renderGauntletDrillsCard(); } catch (_) {} }
       var bank = (typeof loadWrongBank === 'function') ? loadWrongBank() : [];
       var n = bank.length;
       var pill = document.getElementById('drills-mistakes-pill');

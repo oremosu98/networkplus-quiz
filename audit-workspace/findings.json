@@ -1,0 +1,107 @@
+{
+  "audit": "Gauntlet mockups vs CertAnvil BRAND.md",
+  "date": "2026-06-12",
+  "method": "static source read (no rendered screenshots); hex tokens converted to OKLCH numerically",
+  "findings": [
+    {
+      "id": "F-001", "category": "color", "severity": "major",
+      "title": "Mockups define their own hardcoded-hex token blocks instead of the brand OKLCH tokens",
+      "location": "reword-gauntlet.html :root blocks (lines 9-25); landing-gauntlet-section.html :root (lines 9-15)",
+      "observed": "All tokens hex (e.g. --accent:#e8a33d dark / #a8741f light / #8a5a14 landing)",
+      "expected": "OKLCH brand tokens per BRAND.md §3 / dg-system.css (R1, R2)",
+      "fix": "Replace token blocks with brand OKLCH values; at lift time, use the app's existing dg-system tokens directly."
+    },
+    {
+      "id": "F-002", "category": "color", "severity": "major",
+      "title": "Accent bronze drifted toward flat gold in all three token sets",
+      "location": "both mockups, --accent",
+      "observed": "dark #e8a33d = oklch(0.765 0.140 72.9); light #a8741f = oklch(0.598 0.115 74.3); landing #8a5a14 = oklch(0.509 0.102 70.4)",
+      "expected": "dark oklch(0.80 0.155 64); light oklch(0.50 0.155 55)",
+      "notes": "Hue +9 to +19 toward yellow, chroma down up to 35% (landing 0.102 vs 0.155), light-theme lightness +0.10 (worse contrast on ivory)",
+      "fix": "Swap to brand accent values per theme."
+    },
+    {
+      "id": "F-003", "category": "color", "severity": "major",
+      "title": "Pass/fail colors are Tailwind defaults, not brand green/red",
+      "location": "reword-gauntlet.html --pass/--fail",
+      "observed": "dark --pass #4ade80 = oklch(0.800 0.182 151.7) (Tailwind green-400), --fail #f87171 (red-400)",
+      "expected": "dark --pass oklch(0.74 0.150 152), --red oklch(0.66 0.17 25); light equivalents per dg-system",
+      "fix": "Swap to brand pass/red tokens both themes."
+    },
+    {
+      "id": "F-004", "category": "components", "severity": "minor",
+      "title": "--accent-deep inverted in dark theme (lighter than accent, used as text accent)",
+      "location": "reword-gauntlet.html dark tokens; used by .pill, .target-switch, .cracked-n, .rung.live",
+      "observed": "#f0b35a (L 0.806) > accent (L 0.765)",
+      "expected": "Brand dark accent-deep oklch(0.70 0.150 62) is darker; the bright text-accent role belongs to accent-light oklch(0.86 0.135 64)",
+      "fix": "Map the variable to oklch(0.86 0.135 64) in dark (text-accent role) and oklch(0.42 0.150 52) in light."
+    },
+    {
+      "id": "F-005", "category": "motion", "severity": "major",
+      "title": "Wrong system easing curve",
+      "location": "both mockups, --ease",
+      "observed": "cubic-bezier(0.23, 1, 0.32, 1)",
+      "expected": "cubic-bezier(0.16, 1, 0.3, 1) — the locked system curve (R7)",
+      "fix": "One-line token swap in each file."
+    },
+    {
+      "id": "F-006", "category": "iconography", "severity": "major",
+      "title": "Decorative emoji (⚡) in the cracked-screen streak pill",
+      "location": "reword-gauntlet.html .streak-line (&#9889;)",
+      "observed": "Lightning emoji as decoration",
+      "expected": "No emoji decoration (R9); streak iconography = monoline SVG or the brand flame",
+      "fix": "Replace with a monoline currentColor flame SVG."
+    },
+    {
+      "id": "F-007", "category": "color", "severity": "major",
+      "title": "rgba() shadows on product chrome (landing demo card)",
+      "location": "landing-gauntlet-section.html .demo (rgba(34,29,21,0.3)); .cta accent glow in app mockup",
+      "observed": "Hex/rgba shadow on the demo card that lifts 1:1; 75% accent glow under the CTA",
+      "expected": "Shadows via color-mix with --ink/--text (R3); live .btn-primary ships box-shadow:none",
+      "fix": "color-mix the demo shadow; drop the CTA glow."
+    },
+    {
+      "id": "F-008", "category": "typography", "severity": "major",
+      "title": "Fraunces numeral without lining-nums (the exact v5.5.12 bug)",
+      "location": "reword-gauntlet.html .miss-score (\"Cracked 4 of 5\")",
+      "observed": "No font-variant-numeric/font-feature-settings",
+      "expected": "lining-nums tabular-nums + lnum/tnum on every Fraunces number (R5)",
+      "fix": "Add both declarations to .miss-score."
+    },
+    {
+      "id": "F-009", "category": "motion", "severity": "minor",
+      "title": "Entrance scales below the 0.96–0.98 floor",
+      "location": "sealIn keyframe scale(0.7); landing .demo-seal scale(0.92)",
+      "observed": "scale(0.7) and scale(0.92) entrance starts",
+      "expected": "Entrances start scale(0.96–0.98) (R7); the seal stamp is deliberately theatrical — raised, not removed",
+      "fix": "sealIn 0.7 → 0.9 (rotation + overshoot keep the stamp read); demo-seal 0.92 → 0.96."
+    },
+    {
+      "id": "F-010", "category": "typography", "severity": "minor",
+      "title": "Eyebrow tracking over the 0.14em ceiling; sub-10px uppercase labels; Inter 750",
+      "location": ".seal-k 0.22em, landing .kicker 0.16em, .demo-seal 0.2em; .pill 9px, .rung-name/.ladder-preview 8.5px; .q-text mark weight 750",
+      "observed": "Tracking 0.16–0.22em; uppercase labels at 8.5–9px; non-catalog weight 750",
+      "expected": "Eyebrows 10–11px / 800 / 0.08–0.14em (R4); Inter weights 400–800 catalog",
+      "fix": "Cap tracking at 0.14em, raise labels to 10px, mark weight 700."
+    },
+    {
+      "id": "F-011", "category": "motion", "severity": "minor",
+      "title": "Hover rule missing pointer:fine gate",
+      "location": "landing-gauntlet-section.html @media (hover:hover) .btn-primary:hover",
+      "observed": "(hover:hover) only",
+      "expected": "(hover:hover) and (pointer:fine) (R7)",
+      "fix": "Extend the media query."
+    }
+  ],
+  "passes": [
+    "Fraunces 600 display / Inter UI split correct throughout",
+    "color-mix used for all tints and state borders in the app mockup",
+    "No em dashes except the approved 'Go Pro — unlimited'",
+    "Both themes present in the app mockup (R12)",
+    "prefers-reduced-motion handled in both files",
+    ":active scale(0.97) press feedback on all clickables",
+    "Durations within the §6 table (0.45–0.55s reveals, 0.5s demo steps)",
+    "✓ in landing demo-seal is a semantic verdict mark (allowed)",
+    "Style coherence: editorial hairline cards, single focal bronze CTA per screen, no card-spam, no purple, no gradients on chrome"
+  ]
+}

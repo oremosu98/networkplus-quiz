@@ -32,7 +32,7 @@
   html[data-theme="light"] body { color: #1a1a2e; }
 </style>
 <link rel="stylesheet" href="styles.css">
-<link rel="stylesheet" href="dg-system.css?v=7.33.0">
+<link rel="stylesheet" href="dg-system.css?v=7.48.0">
 <link rel="stylesheet" href="dg-depurple.css?v=7.13.5">
 <!-- v7.36.1: the cert-ios lift is viewport-gated — phone/tablet-portrait
      viewports get the mockup column + tab bar; desktop keeps the classic
@@ -403,6 +403,8 @@
           <button type="button" class="opt" onclick="applyPreset('grind')"><span class="on">20-min Deep Scan</span><span class="od">20 questions, exam level, mixed</span></button>
           <button type="button" class="opt" onclick="applyPreset('bulk30')"><span class="on">30 Questions</span><span class="od">Marathon mixed, about 25 min</span></button>
           <button type="button" class="opt" onclick="applyPreset('bulk45')"><span class="on">45 Questions</span><span class="od">Marathon mixed, about 38 min</span></button>
+          <!-- v7.48.0: Reword Gauntlet entry (flagship drill) -->
+          <button type="button" class="opt" data-action="startRewordGauntlet"><span class="on">Reword Gauntlet</span><span class="od">One concept, five disguises</span></button>
         </div>
       </section>
 
@@ -762,7 +764,7 @@
     <span class="hero-icon">&#9889;</span>
     <h1>Network+ AI Quiz</h1>
     <p>AI-generated MCQs every session. Never the same quiz twice.</p>
-    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:color-mix(in oklab,var(--accent) 12%,transparent);border:1px solid color-mix(in oklab,var(--accent) 30%,transparent);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v7.47.0</span>
+    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:color-mix(in oklab,var(--accent) 12%,transparent);border:1px solid color-mix(in oklab,var(--accent) 30%,transparent);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v7.48.0</span>
     <div id="streak-badge" class="streak-badge"></div>
     <div id="stats-card" class="hero-stats-strip is-hidden">
       <div class="stats-grid" id="stats-grid"></div>
@@ -981,10 +983,15 @@
        The progress track + label moved into .quiz-topbar (lift Phase 1). -->
   <div class="quiz-prog-dots" id="quiz-prog-dots" role="progressbar" aria-label="Per-question progress"></div>
 
+  <!-- v7.48.0: Reword Gauntlet rung ladder — replaces the dot strip during a
+       gauntlet run (rendered by _renderGauntletLadder, hidden otherwise) -->
+  <div class="gnt-ladder is-hidden" id="gauntlet-ladder" aria-label="Gauntlet rung progress"></div>
+
   <div class="q-card">
     <div class="q-meta">
       <span class="q-num" id="q-num">Q1</span>
       <span class="diff-badge" id="diff-badge">Exam Level</span>
+      <span class="gnt-rung-chip is-hidden" id="gauntlet-rung-chip"></span>
       <span class="pbq-badge is-hidden" id="pbq-badge"></span>
     </div>
     <div class="q-text" id="q-text" role="heading" aria-level="3">Loading&#8230;</div>
@@ -1217,6 +1224,13 @@
   </div>
   <p class="drills-lede">Short, repeat passes on the things you get wrong. Ten questions or fewer, scored like practice.</p>
 
+  <!-- v7.48.0: Reword Gauntlet — flagship drill, hero position -->
+  <div class="drills-card gnt-drills-hero" id="drills-gauntlet-card">
+    <div class="drills-card-head"><span class="drills-card-title">Reword Gauntlet <span class="pro-lock-pill tier-free-only"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>Pro</span></span><span class="drills-count-pill" id="drills-gauntlet-pill">Flagship drill</span></div>
+    <p class="drills-card-note">One concept, asked five ways: plain, scenario, best-of, not-trap, twisted. Crack all five and you own it in any wording.</p>
+    <button type="button" class="drills-btn" id="drills-gauntlet-btn" data-action="startRewordGauntlet">Run the Gauntlet</button>
+  </div>
+
   <div class="drills-card" id="drills-mistakes-card">
     <div class="drills-card-head"><span class="drills-card-title">Drill Mistakes <span class="pro-lock-pill tier-free-only"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>Pro</span></span><span class="drills-count-pill" id="drills-mistakes-pill">0 saved</span></div>
     <p class="drills-card-note" id="drills-mistakes-note">Your missed questions come back re-worded, so you beat the concept &mdash; not the question. Right twice in a row and it leaves the bank for good.</p>
@@ -1234,6 +1248,41 @@
   <div id="drills-domain-list"></div>
 
   <p class="drills-foot-note">Drills don't touch your daily review queue — those cards stay scheduled.</p>
+</div>
+
+<!-- ══════════════════════════════════════════
+     REWORD GAUNTLET (v7.48.0) — entry + verdict screens
+     Lifted from mockups/reword-gauntlet.html (brand-audited 2026-06-12).
+     Entry is viewable by free users; the Pro gate fires on Start.
+══════════════════════════════════════════ -->
+<div id="page-gauntlet" class="page">
+  <div class="gnt-shell">
+    <div class="gnt-hdr">
+      <button type="button" class="back-btn" data-action="showPage" data-args='["drills"]' aria-label="Back to Drills"><svg viewBox="0 0 24 24" aria-hidden="true" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"></path></svg><span class="back-btn-label">Drills</span></button>
+      <h1 class="gnt-hdr-title">Reword Gauntlet</h1>
+      <span class="pro-lock-pill tier-free-only"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>Pro</span>
+    </div>
+    <div class="gnt-mark" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 17l6-6-6-6"></path><path d="M12 19h8"></path></svg></div>
+    <h2 class="gnt-entry-title">Beat the concept in <i>every</i> disguise</h2>
+    <p class="gnt-entry-lede">Five questions on one concept. The wording never repeats.</p>
+    <div class="gnt-target">
+      <div class="gnt-target-k">Today's target</div>
+      <div class="gnt-target-v" id="gnt-topic-name">&mdash;</div>
+      <div class="gnt-target-why" id="gnt-topic-why"></div>
+      <button type="button" class="gnt-target-switch" data-action="gauntletToggleTopicList">Pick a different topic</button>
+      <div class="gnt-topic-list is-hidden" id="gnt-topic-list"></div>
+    </div>
+    <div class="gnt-cracked-row is-hidden" id="gnt-cracked-row">
+      <span class="gnt-cracked-n" id="gnt-cracked-n">0</span>
+      <span class="gnt-cracked-t">concepts cracked so far.<br>Each one survived all five wordings.</span>
+    </div>
+    <div class="gnt-ladder-preview" aria-hidden="true"><span>Plain</span><span>Scenario</span><span>Best-of</span><span>Not-trap</span><span>Twisted</span></div>
+    <button type="button" class="btn btn-primary gnt-cta" id="gnt-start-btn" data-action="gauntletStart">Start the Gauntlet</button>
+  </div>
+</div>
+
+<div id="page-gauntlet-result" class="page">
+  <div class="gnt-shell gnt-shell-result" id="gnt-result-root"></div>
 </div>
 
 <!-- ══════════════════════════════════════════
