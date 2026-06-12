@@ -20059,6 +20059,22 @@ console.log('\n\x1b[1m── Security Phase 7 — CSP script-src unsafe-inline r
     /loadHistory\(\)\.length\s*===\s*0/.test(js) && /Start your first quiz/.test(js));
 })();
 
+// ── v7.48.1: option-shape contract — renderMCQ reads q.options[letter], so
+//    every AI sub-prompt that returns positional ARRAYS must letterize at
+//    the boundary (the live 'undefined options' Gauntlet incident) ──
+(function(){
+  test('v7.48.1 OptShape: _letterizeOptions helper defined (array → {A..D})',
+    /function _letterizeOptions\([\s\S]{0,300}String\.fromCharCode\(65/.test(js));
+  test('v7.48.1 OptShape: gauntlet rung mapping letterizes options before the quiz engine',
+    /options:\s*_letterizeOptions\(r\.options\)/.test(js));
+  test('v7.48.1 OptShape: reworded variant assignment letterizes options',
+    /q\.options\s*=\s*_letterizeOptions\(v\.options\)/.test(js));
+  test('v7.48.1 OptShape: reword eligibility accepts house letter-keyed options (no Array.isArray-only filter)',
+    /_optionCount\(q\.options\)\s*>=\s*3/.test(js));
+  test('v7.48.1 OptShape: gauntlet run validation rejects non-string/empty option elements',
+    /r\.options\.every\(o => typeof o === 'string' && o\.length > 0\)/.test(js));
+})();
+
 // ── Summary ──
 console.log('\n' + '═'.repeat(50));
 const total = results.pass + results.fail;

@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v7.48.0
+// Network+ AI Quiz — app.js  v7.48.1
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '7.48.0';
+const APP_VERSION = '7.48.1';
 // v4.99.45 (Phase 6b): expose APP_VERSION on window so the web-vitals
 // collector (lib/web-vitals-collector.js, loaded BEFORE app.js so its
 // PerformanceObservers attach earlier) can stamp this version onto every
@@ -1158,6 +1158,11 @@ let gauntletMode = false;     // a gauntlet run is riding the quiz engine
 let _gauntletRun = null;      // { concept, topic, results: [bool x5], attempts }
 let _gauntletBusy = false;    // in-flight guard: double-tap on Start
 let _gauntletTopic = null;    // entry-screen topic override (null = weakest)
+let _gauntletReturn = 'setup'; // v7.48.1: where Back/exit returns to — 'drills'
+                               // only when entered FROM the (mobile-only)
+                               // drills page; #page-drills is unstyled on
+                               // desktop (cert-ios lift surface), so desktop
+                               // users must route back to Home
 
 // Multi-select state (regular quiz)
 let msSelections = [];
@@ -6379,10 +6384,30 @@ function _renderResultsReviewList() {
 // multi-answer entries run verbatim. Any AI failure falls back to the
 // verbatim originals — the drill never breaks because a reword didn't
 // arrive.
+// v7.48.1 — option-shape helpers. The HOUSE format for q.options is a
+// letter-keyed object ({"A":"..."} — the fetchQuestions contract renderMCQ
+// reads via q.options[letter]); AI sub-prompts (reword, gauntlet) return
+// positional ARRAYS. Letterize at the boundary, never hand renderMCQ an
+// array (the 'undefined options' incident, 2026-06-12).
+function _letterizeOptions(arr) {
+  if (!Array.isArray(arr)) return arr;
+  const o = {};
+  arr.forEach((t, i) => { o[String.fromCharCode(65 + i)] = t; });
+  return o;
+}
+function _optionCount(o) {
+  return Array.isArray(o) ? o.length : (o && typeof o === 'object' ? Object.keys(o).length : 0);
+}
+
 async function _fetchRewordedVariants(key, entries) {
   const numbered = entries.map(function (b, i) {
-    const correctIdx = 'ABCDEF'.indexOf((b.answer || 'A').trim().toUpperCase());
-    const correctText = (Array.isArray(b.options) && b.options[correctIdx]) || '';
+    const letter = (b.answer || 'A').trim().toUpperCase();
+    const correctIdx = 'ABCDEF'.indexOf(letter);
+    // bank entries are letter-keyed objects (house format); legacy array
+    // entries still resolve by position (v7.48.1)
+    const correctText = Array.isArray(b.options)
+      ? (b.options[correctIdx] || '')
+      : ((b.options && b.options[letter]) || '');
     return (i + 1) + '. Topic: ' + (b.topic || 'general') +
       '\n   Original question: ' + b.question +
       '\n   The fact being tested (the correct answer): ' + correctText;
@@ -6469,8 +6494,11 @@ async function startWrongDrill() {
 
   // v7.47.0 Mistake Autopsy: re-word the single-answer MCQs (signed-in only —
   // the reword rides the AI proxy). Verbatim fallback on any failure.
+  // v7.48.1: the bank stores HOUSE-FORMAT options (letter-keyed object, the
+  // fetchQuestions contract) — the old Array.isArray filter silently no-oped
+  // the feature for object-shaped entries. Accept both shapes.
   const rewordable = base.filter(q =>
-    (q.type || 'mcq') === 'mcq' && !q.answers && q.answer && Array.isArray(q.options) && q.options.length >= 3);
+    (q.type || 'mcq') === 'mcq' && !q.answers && q.answer && _optionCount(q.options) >= 3);
   if (rewordable.length > 0 && typeof window !== 'undefined' && window._certanvilSignedIn === true) {
     const lp = document.getElementById('load-progress');
     if (lp) lp.classList.add('is-hidden');
@@ -6484,7 +6512,10 @@ async function startWrongDrill() {
         const v = variants[i];
         if (v) {
           q.question = v.question;
-          q.options = v.options;
+          // v7.48.1: renderMCQ reads q.options[letter] — letterize the AI's
+          // array into the house letter-keyed object (the 'undefined options'
+          // class of bug, caught live on the Gauntlet 2026-06-12).
+          q.options = _letterizeOptions(v.options);
           q.answer = v.answer.trim().toUpperCase();
           q.explanation = v.explanation || q.explanation;
           q._reworded = true;
@@ -6556,11 +6587,26 @@ function loadGauntletCracked() {
 // viewable by free users (funnel tease) — the Pro gate fires on Start.
 function startRewordGauntlet() {
   _gauntletTopic = null;
+  // v7.48.1: remember the entry origin — Back must never route a desktop
+  // user to the mobile-only drills page.
+  const active = document.querySelector('.page.active');
+  _gauntletReturn = (active && active.id === 'page-drills') ? 'drills' : 'setup';
   renderGauntletEntry();
   showPage('gauntlet');
 }
 
+// Back/exit routing for the gauntlet surfaces (entry back button + result
+// screen ghost CTA). 'setup' goes through goSetup() for the full home
+// re-render + mode reset.
+function gauntletBack() {
+  if (_gauntletReturn === 'drills') showPage('drills');
+  else goSetup();
+}
+
 function renderGauntletEntry() {
+  // v7.48.1: back label names the actual destination
+  const backLabel = document.getElementById('gnt-back-label');
+  if (backLabel) backLabel.textContent = _gauntletReturn === 'drills' ? 'Drills' : 'Home';
   const w = getWeakTopic();
   let topicName = _gauntletTopic || (w && w.topic) || null;
   if (!topicName && typeof getTodaysFocusTopics === 'function') {
@@ -6648,6 +6694,7 @@ async function _fetchGauntletRun(topicName, forcedConcept) {
     rungs.length === 5 && rungs.every(r =>
       r && typeof r.question === 'string' && r.question.length > 20 &&
       Array.isArray(r.options) && r.options.length === 4 &&
+      r.options.every(o => typeof o === 'string' && o.length > 0) &&
       typeof r.answer === 'string' && /^[A-D]$/.test(r.answer.trim().toUpperCase()) &&
       typeof r.explanation === 'string' && r.explanation.length > 0 &&
       typeof r.hinge === 'string' && r.hinge.length > 0);
@@ -6710,7 +6757,9 @@ async function gauntletStart(opts) {
   activeQuizTopic = topicName;
   questions = run.rungs.map((r, i) => ({
     question: r.question,
-    options: r.options,
+    // v7.48.1: letterize — renderMCQ reads q.options[letter], the AI returns
+    // a positional array. Raw arrays render four 'undefined' options.
+    options: _letterizeOptions(r.options),
     answer: r.answer.trim().toUpperCase(),
     explanation: r.explanation,
     hinge: r.hinge,
@@ -6830,7 +6879,7 @@ function renderGauntletResult(cracked, results) {
       '</div>' +
       '<div class="gnt-result-footer">' +
         '<button type="button" class="btn btn-primary gnt-cta" data-action="gauntletNextTarget">Next target →</button>' +
-        '<button type="button" class="btn gnt-ghost" data-action="gauntletExit">Back to Drills</button>' +
+        '<button type="button" class="btn gnt-ghost" data-action="gauntletExit">' + (_gauntletReturn === 'drills' ? 'Back to Drills' : 'Back to Home') + '</button>' +
       '</div>';
   } else {
     const crackCount = results.filter(Boolean).length;
@@ -6879,7 +6928,7 @@ function gauntletNextTarget() {
 function gauntletExit() {
   _gauntletRun = null;
   if (typeof renderGauntletDrillsCard === 'function') { try { renderGauntletDrillsCard(); } catch (_) {} }
-  showPage('drills');
+  gauntletBack(); // v7.48.1: origin-aware — never the unstyled drills page on desktop
 }
 
 // Drills-page hero card pill ("N cracked").

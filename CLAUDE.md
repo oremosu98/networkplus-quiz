@@ -112,6 +112,7 @@ npx playwright test              # E2E (tests/e2e/app.spec.js)
 
 | Version | Features Added |
 |---|---|
+| v7.48.1 | Gauntlet back routing — desktop returns Home, never the mobile-only drills page |
 | v7.48.0 | Reword Gauntlet — flagship drill: one concept five ways, crack on 5/5, Pro-only |
 | v7.47.0 | Mistake Autopsy — wrong-bank questions return re-worded, beating the concept not the question |
 | v7.46.1 | Pro-gate polish — modal rebuilt in house design language, per-feature copy, pill consolidation |
