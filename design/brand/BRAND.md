@@ -349,6 +349,7 @@ The locked do-not list:
 - ❌ **No purple.** `#5b4fdb` / `#7c6ff7` / `#a99df9` / `#3d3870` are dead. The accent is bronze, the suffix-as-fallback `var(--accent2, #5b4fdb)` is the AI-tell — eliminate.
 - ❌ **No card-spam.** A grid of 4+ identical soft-shadow cards is the editorial-premium AI-tell. De-card to hairline rows or replace with a real data-viz.
 - ❌ **No em-dashes** (`—`). Use middle-dot (`·`) or the Inter natural punctuation.
+- ❌ **No left-accent-border callouts** (`border-left: 3-4px solid <accent/status>` on a tinted note box). The classic AI "callout" tell (Simi, 2026-06-12). Verdicts/notes use a FULL tinted hairline via `color-mix` + tinted surface + symmetric radius — see the Gauntlet verdict card family.
 - ❌ **No throat-clearing copy.** "Here's what..." / "It's worth noting..." → cut. State directly.
 - ❌ **No vague declaratives.** "The implications are significant" → name the specific implication.
 - ❌ **No gradient backgrounds on chrome.** Surfaces are `var(--surface)`; gradients are reserved for the single bronze NBM fill + the readiness-bar fill.
