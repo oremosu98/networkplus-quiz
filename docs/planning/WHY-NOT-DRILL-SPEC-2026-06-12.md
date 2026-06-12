@@ -8,7 +8,7 @@
 3. **Score is out of 4** — answer + 3 reasons. Verdict names the exact miss ("You knew the answer. You misdiagnosed why port 80 loses.").
 4. **Fake-reason rule:** fakes must be factually FALSE about the option, not merely weaker arguments. Generation prompt rule + Report button covers the rest.
 5. **Reason taxonomy (for coaching, Phase B):** different job · missing the must-have · wrong scope · true-but-not-BEST · wrong layer · overkill/overspend. The blind-spot chip surfaces the user's most-misdiagnosed type.
-6. **Session shape:** 3 rounds per session by default (the slow, deep drill; the Gauntlet stays the fast loop).
+6. **Session shape: 3 rounds, fixed in v1 (locked with Simi, 2026-06-12).** A round = 4 scored decisions (answer + 3 reasons), so a session is 12 decisions, already 2.4x a Gauntlet run, at ~5-7 minutes. Rationale: end before fatigue (peak-end), depth-per-question IS the product, and the single-call generation stays small enough to validate reliably. "Next target" is the opt-in continuation. A session-length setting waits for proven demand (the SR session-size playbook). Symmetry: Gauntlet = 5 rungs deep on one concept; Why-Not = 3 rounds wide across one topic.
 7. **Gating:** Pro-only at Start, same `_gateProOnly` pattern. Entry: Drills page flagship card (under the Gauntlet) + Home Practice option.
 8. **Generation:** one metered `CLAUDE_MODEL` call per round; Gauntlet-style whole-round shape validation (malformed = friendly retry, nothing consumed). **Letterize option arrays at the boundary** (the v7.48.1 contract, UAT-pinned).
 9. **Parallel to bank/SR** in v1, like the Gauntlet (no addToWrongBank writes during rounds).
