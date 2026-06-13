@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v7.50.0
+// Network+ AI Quiz — app.js  v7.51.0
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '7.50.0';
+const APP_VERSION = '7.51.0';
 // v4.99.45 (Phase 6b): expose APP_VERSION on window so the web-vitals
 // collector (lib/web-vitals-collector.js, loaded BEFORE app.js so its
 // PerformanceObservers attach earlier) can stamp this version onto every
@@ -19566,6 +19566,15 @@ function _maybeShowDailyRecap() {
 }
 function dismissDailyRecap() {
   const modal = document.getElementById('daily-recap-modal');
+  if (!modal) return;
+  modal.hidden = true;
+  modal.classList.remove('daily-recap-modal-visible');
+}
+
+// #acl-hint-modal close handler (its onclick referenced this; was undefined →
+// ReferenceError left the modal stuck). Same dismiss shape as dismissDailyRecap.
+function dismissHintModal() {
+  const modal = document.getElementById('acl-hint-modal');
   if (!modal) return;
   modal.hidden = true;
   modal.classList.remove('daily-recap-modal-visible');
