@@ -7,7 +7,7 @@
 <meta name="theme-color" content="#fafbff">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="CertAnvil">
-<meta name="description" content="Simple, honest CertAnvil pricing. Free tier with 20 questions a day, forever. Pro is $89/yr or $9.99/mo for unlimited questions across every cert. Cancel anytime.">
+<meta name="description" content="Simple, honest CertAnvil pricing. Free tier with 15 questions + 5 review cards a day, forever. Pro is $89/yr or $9.99/mo for unlimited questions across every cert. Cancel anytime.">
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="apple-touch-icon" href="favicon.svg">
 <link rel="stylesheet" href="styles.css">
@@ -22,7 +22,7 @@
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="CertAnvil">
 <meta property="og:title" content="CertAnvil Pricing · Free or $89/yr unlimited">
-<meta property="og:description" content="Free tier with 20 questions/day. Pro $9.99/mo or $89/yr unlimited across all certs. Cancel anytime, 14-day money-back.">
+<meta property="og:description" content="Free tier with 15 questions + 5 review cards/day. Pro $9.99/mo or $89/yr unlimited across all certs. Cancel anytime, 14-day money-back.">
 <meta property="og:url" content="https://certanvil.com/pricing">
 <meta property="og:image" content="https://certanvil.com/og-image.svg">
 <meta property="og:image:type" content="image/svg+xml">
@@ -33,7 +33,7 @@
 <!-- Twitter -->
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="CertAnvil Pricing · Free or $89/yr unlimited">
-<meta name="twitter:description" content="Free tier with 20 questions/day. Pro $9.99/mo or $89/yr unlimited across all certs. Cancel anytime, 14-day money-back.">
+<meta name="twitter:description" content="Free tier with 15 questions + 5 review cards/day. Pro $9.99/mo or $89/yr unlimited across all certs. Cancel anytime, 14-day money-back.">
 <meta name="twitter:image" content="https://certanvil.com/og-image.svg">
 
 <link rel="canonical" href="https://certanvil.com/pricing">
@@ -298,13 +298,11 @@
   #pricing-v2 .pp-headline .pp-amount{color:var(--accent)}
   #pricing-v2 .pp-sub{font-size:16px;line-height:1.6;color:var(--ink-soft);max-width:560px;margin:16px auto 0}
   #pricing-v2 .pp-anchor{
-    display:inline-flex;align-items:center;gap:8px;margin-top:18px;
-    font-size:13px;font-weight:600;color:var(--accent);
-    padding:8px 15px;border-radius:999px;
-    background:color-mix(in oklab,var(--accent) 8%,transparent);
-    border:1px solid color-mix(in oklab,var(--accent) 22%,var(--border));
+    display:block;max-width:600px;margin:22px auto 0;
+    font-size:clamp(16px,2vw,19px);line-height:1.5;font-weight:600;
+    color:var(--accent);text-wrap:balance;
   }
-  #pricing-v2 .pp-anchor b{font-weight:700}
+  #pricing-v2 .pp-anchor b{font-weight:800}
 
   /* ── Asymmetric layout: Pro (focal) + side column ── */
   #pricing-v2 .pp-layout{display:grid;grid-template-columns:1.45fr 1fr;gap:20px;align-items:stretch}
@@ -372,6 +370,14 @@
   @media (hover:hover) and (pointer:fine){#pricing-v2 .pp-cta:hover{filter:brightness(1.04)}}
   #pricing-v2 .pp-cta:active{transform:scale(0.98)}
   #pricing-v2 .pp-cta:focus-visible{outline:2px solid var(--on-accent);outline-offset:3px}
+  #pricing-v2 .pp-cta-notify{
+    display:block;text-align:center;margin-top:10px;
+    font-family:'Inter',sans-serif;font-size:13px;font-weight:600;cursor:pointer;
+    color:var(--on-accent);opacity:.78;text-decoration:underline;text-underline-offset:3px;
+    background:none;border:0;transition:opacity 150ms var(--eo);
+  }
+  @media (hover:hover) and (pointer:fine){#pricing-v2 .pp-cta-notify:hover{opacity:1}}
+  #pricing-v2 .pp-cta-notify:focus-visible{outline:2px solid var(--on-accent);outline-offset:3px;opacity:1}
   #pricing-v2 .pp-pro-foot{
     display:flex;align-items:center;gap:9px;margin-top:16px;
     font-size:12.5px;font-weight:600;color:color-mix(in oklab,var(--on-accent) 82%,transparent);
@@ -478,7 +484,7 @@
       <span class="pp-eyebrow">Pricing · no hidden tiers</span>
       <h1 class="pp-headline">Free until it's working.<br>Then <span class="pp-amount">$89</span> a year.</h1>
       <p class="pp-sub">Start on the free diagnostic and pay nothing until CertAnvil is clearly working for you. No per-cert upcharges, no card to begin.</p>
-      <span class="pp-anchor">A full year of Pro costs less than <b>one CompTIA exam voucher</b>.</span>
+      <p class="pp-anchor">A single exam voucher costs more than <b>a full year of Pro</b>. Fail once and you pay for the voucher twice.</p>
     </div>
 
     <!-- Asymmetric: Pro focal panel + Free/Team side -->
@@ -515,7 +521,8 @@
           <li class="pp-feat"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span>Pass Plan tracking + retention coaching</span></li>
         </ul>
 
-        <a class="pp-cta" href="#" data-action="pro-signup">Notify me when Pro launches <span aria-hidden="true">→</span></a>
+        <a class="pp-cta" href="/diagnostic">Start free · no card <span aria-hidden="true">→</span></a>
+        <a class="pp-cta-notify" href="#" data-action="pro-signup">Pro launches soon · get notified</a>
         <div class="pp-pro-foot">
           <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 4 6v6c0 5 3.5 7.5 8 9 4.5-1.5 8-4 8-9V6z"/><path d="M9 12l2 2 4-4"/></svg>
           <span>14-day money-back · cancel anytime.</span>
@@ -534,7 +541,7 @@
           </div>
           <p class="pp-tagline">Try the engine. Build the habit. No card.</p>
           <ul class="pp-features">
-            <li class="pp-feat"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span><strong>20 questions a day</strong>, one cert of your choice</span></li>
+            <li class="pp-feat"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span><strong>15 questions + 5 review cards a day</strong>, one cert of your choice</span></li>
             <li class="pp-feat"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span>Full Baseline Diagnostic + Pass Plan</span></li>
             <li class="pp-feat"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span>Streak tracker + spaced-repetition review</span></li>
           </ul>

@@ -398,7 +398,7 @@ window.CertAnvilResults = (function () {
               '<span class="dr-cta-icon">▶</span>' +
               '<span class="dr-cta-body">' +
                 '<span class="dr-cta-title">Save your results &amp; keep practising free</span>' +
-                '<span class="dr-cta-sub">Magic-link sign-up · no password · 20 questions a day</span>' +
+                '<span class="dr-cta-sub">Magic-link sign-up · no password · 15 questions + 5 review cards a day</span>' +
               '</span>' +
               '<span class="dr-cta-chev">→</span>' +
             '</button>' +
