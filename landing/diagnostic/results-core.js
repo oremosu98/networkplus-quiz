@@ -106,7 +106,7 @@ window.CertAnvilResults = (function () {
 
       shell.innerHTML =
         '<div class="dr-hero">' +
-          '<span class="dr-eyebrow" style="background:var(--surface2);color:var(--text-mid)">Share link unavailable</span>' +
+          '<span class="dr-eyebrow" style="background:var(--dg-bg-2);color:var(--dg-text-2)">Share link unavailable</span>' +
           '<h1 class="dr-h1">This shared diagnostic isn\'t available</h1>' +
           '<p class="dr-sub">' + hint + '</p>' +
         '</div>' +
@@ -132,7 +132,7 @@ window.CertAnvilResults = (function () {
     function renderEmptyState() {
       shell.innerHTML =
         '<div class="dr-hero">' +
-          '<span class="dr-eyebrow" style="background:var(--surface2);color:var(--text-mid)">No results yet</span>' +
+          '<span class="dr-eyebrow" style="background:var(--dg-bg-2);color:var(--dg-text-2)">No results yet</span>' +
           '<h1 class="dr-h1">Take the diagnostic to see results</h1>' +
           '<p class="dr-sub">No results in this browser session. Start the 20-minute flow to get your score, weak-domain map, and Pass Plan.</p>' +
         '</div>' +
@@ -335,9 +335,9 @@ window.CertAnvilResults = (function () {
       // ── Source eyebrow chip ──
       var eyebrowHtml;
       if (results.source === 'fallback') {
-        eyebrowHtml = '<span class="dr-eyebrow is-source-fallback">⚠ Local question set · ' + durationMin + ' min</span>';
+        eyebrowHtml = '<span class="dr-eyebrow is-source-fallback">Local question set · ' + durationMin + ' min</span>';
       } else if (results.source === 'ai') {
-        eyebrowHtml = '<span class="dr-eyebrow">✨ AI-generated · ' + durationMin + ' min</span>';
+        eyebrowHtml = '<span class="dr-eyebrow">AI-generated · ' + durationMin + ' min</span>';
       } else {
         eyebrowHtml = '<span class="dr-eyebrow">✓ Diagnostic complete · ' + durationMin + ' min</span>';
       }
@@ -442,7 +442,7 @@ window.CertAnvilResults = (function () {
             '<span class="dr-stub-pill">Launching soon</span>' +
             '<p><strong>Pro launches soon</strong> with unlimited AI question generation, every cert, the full Exam Simulator, and advanced readiness analytics.</p>' +
             '<p>For now, your results are saved locally in this browser session. Add your email below and you\'ll be first in when subscriptions open.</p>' +
-            '<p style="margin-top:14px"><a href="/pricing" class="dr-cta dr-cta-secondary" style="text-decoration:none;display:inline-grid;grid-template-columns:auto 1fr auto;padding:10px 16px"><span class="dr-cta-icon">💎</span><span class="dr-cta-body"><span class="dr-cta-title">See full pricing</span></span><span class="dr-cta-chev">→</span></a></p>' +
+            '<p style="margin-top:14px"><a href="/pricing" class="dr-cta dr-cta-secondary" style="text-decoration:none;display:inline-grid;grid-template-columns:auto 1fr auto;padding:10px 16px"><span class="dr-cta-icon"></span><span class="dr-cta-body"><span class="dr-cta-title">See full pricing</span></span><span class="dr-cta-chev">→</span></a></p>' +
           '</div>' +
         '</div>' +
 
@@ -476,7 +476,7 @@ window.CertAnvilResults = (function () {
             '<p>Three options · keep a copy, email it to yourself, or share a public link.</p>' +
             '<div class="dr-download-actions">' +
               '<button type="button" class="dr-download-action" id="dr-action-print">' +
-                '<span class="dr-download-action-icon">🖨</span>' +
+                '<span class="dr-download-action-icon"></span>' +
                 '<span class="dr-download-action-body">' +
                   '<span class="dr-download-action-title">Print or save as PDF</span>' +
                   '<span class="dr-download-action-sub">Opens your browser\'s print dialog · choose "Save as PDF" for a clean copy</span>' +
@@ -492,7 +492,7 @@ window.CertAnvilResults = (function () {
                 '<span class="dr-download-action-chev">→</span>' +
               '</button>' +
               '<button type="button" class="dr-download-action" id="dr-action-share">' +
-                '<span class="dr-download-action-icon">🔗</span>' +
+                '<span class="dr-download-action-icon"></span>' +
                 '<span class="dr-download-action-body">' +
                   '<span class="dr-download-action-title">Copy a shareable link</span>' +
                   '<span class="dr-download-action-sub">Public URL · 90-day expiry · no email required</span>' +
@@ -518,7 +518,7 @@ window.CertAnvilResults = (function () {
               '<button type="button" id="dr-share-copy" class="dr-cta dr-cta-tertiary" style="width:auto;padding:8px 14px">' +
                 '<span class="dr-cta-title">Copy to clipboard</span>' +
               '</button>' +
-              '<span style="display:block;margin-top:8px;font-size:12px;color:var(--text-mid)">Valid 90 days · works for anyone (no sign-in needed) · doesn\'t include your email.</span>' +
+              '<span style="display:block;margin-top:8px;font-size:12px;color:var(--dg-text-2)">Valid 90 days · works for anyone (no sign-in needed) · doesn\'t include your email.</span>' +
             '</div>' +
             '<div id="dr-download-status" class="dr-download-status" role="status" aria-live="polite"></div>' +
           '</div>' +

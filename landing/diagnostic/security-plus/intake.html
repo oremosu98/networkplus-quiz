@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Security+ Baseline · 30-sec setup — CertAnvil · admin preview</title>
+<title>Security+ Baseline · 30-sec setup · CertAnvil · admin preview</title>
 <meta name="theme-color" content="#fafbff">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="CertAnvil">
@@ -11,6 +11,7 @@
 <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
 <link rel="apple-touch-icon" href="../../favicon.svg">
 <link rel="stylesheet" href="../../styles.css">
+<link rel="stylesheet" href="../diagnostic-system.css?v=4.99.96">
 <link rel="canonical" href="https://certanvil.com/diagnostic/security-plus/intake">
 <meta name="robots" content="noindex, nofollow">
 <script>
@@ -31,8 +32,8 @@
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    background: var(--accent-dim, rgba(124,111,247,.15));
-    color: var(--accent, #7c6ff7);
+    background: color-mix(in oklab, var(--dg-accent, oklch(0.80 0.125 78)) 15%, transparent);
+    color: var(--dg-accent);
     font-size: 11px;
     font-weight: 800;
     text-transform: uppercase;
@@ -41,7 +42,7 @@
     border-radius: 12px;
     margin-bottom: 16px;
   }
-  .dx-eyebrow-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent, #7c6ff7); }
+  .dx-eyebrow-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--dg-accent); }
   .dx-h1 {
     font-size: clamp(28px, 4vw, 38px);
     font-weight: 800;
@@ -69,7 +70,7 @@
     width: 8px; height: 8px; border-radius: 50%;
     background: var(--border, rgba(0,0,0,.12));
   }
-  .dx-step-dot.active { background: var(--accent, #7c6ff7); }
+  .dx-step-dot.active { background: var(--dg-accent); }
   .dx-step-dot.done { background: var(--green, #22c55e); }
   .dx-card-stack { max-width: 480px; margin: 0 auto 48px; padding: 0 12px; }
 
@@ -103,8 +104,8 @@
   }
   .dx-input:focus {
     outline: none;
-    border-color: var(--accent, #7c6ff7);
-    box-shadow: 0 0 0 3px rgba(124,111,247,.18);
+    border-color: var(--dg-accent);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--dg-accent, oklch(0.80 0.125 78)) 18%, transparent);
   }
 
   /* Intensity radio segment */
@@ -133,12 +134,12 @@
   .dx-intensity-btn-emoji { font-size: 18px; }
   .dx-intensity-btn-name { font-size: 13px; font-weight: 700; }
   .dx-intensity-btn-meta { font-size: 10px; color: var(--text-dim, #8a8b9c); font-weight: 600; }
-  .dx-intensity-btn:hover { border-color: var(--accent, #7c6ff7); }
+  .dx-intensity-btn:hover { border-color: var(--dg-accent); }
   .dx-intensity-btn.is-selected {
-    border-color: var(--accent, #7c6ff7);
-    background: linear-gradient(135deg, rgba(124,111,247,.08), var(--surface, #fff));
+    border-color: var(--dg-accent);
+    background: color-mix(in oklab, var(--dg-accent, oklch(0.80 0.125 78)) 8%, transparent);
   }
-  .dx-intensity-btn.is-selected .dx-intensity-btn-name { color: var(--accent, #7c6ff7); }
+  .dx-intensity-btn.is-selected .dx-intensity-btn-name { color: var(--dg-accent); }
 
   /* Actions */
   .dx-actions { margin-top: 24px; display: flex; flex-direction: column; gap: 10px; }
@@ -158,15 +159,15 @@
     justify-content: center;
     gap: 8px;
   }
-  .dx-btn-primary { background: var(--accent, #7c6ff7); color: white; border-color: var(--accent, #7c6ff7); }
-  .dx-btn-primary:hover { background: var(--accent-light, #9b8df9); border-color: var(--accent-light, #9b8df9); }
+  .dx-btn-primary { background: var(--dg-accent); color: var(--dg-accent-ink); border-color: var(--dg-accent); }
+  .dx-btn-primary:hover { background: var(--dg-accent-2, oklch(0.85 0.115 80)); border-color: var(--dg-accent-2, oklch(0.85 0.115 80)); }
   .dx-btn-primary:active { transform: scale(.98); }
   .dx-btn-ghost { background: transparent; color: var(--text-mid, #4a4b5e); border-color: var(--border, rgba(0,0,0,.12)); }
   .dx-btn-ghost:hover { background: var(--surface2, #f5f6f9); color: var(--text, #1a1a26); }
   .dx-back-link {
     display: inline-block;
     margin-top: 12px;
-    color: var(--accent, #7c6ff7);
+    color: var(--dg-accent);
     text-decoration: none;
     font-size: 13px;
     font-weight: 600;
@@ -187,8 +188,8 @@
   /* Cert-specific hero accent */
   .dx-cert-pill {
     display: inline-block;
-    background: rgba(124,111,247,.12);
-    color: var(--accent, #7c6ff7);
+    background: color-mix(in oklab, var(--dg-accent, oklch(0.80 0.125 78)) 12%, transparent);
+    color: var(--dg-accent);
     font-size: 11px;
     font-weight: 800;
     padding: 4px 11px;
@@ -245,7 +246,7 @@
   <div class="dx-field">
     <label for="dx-exam-date" class="dx-field-label">When.s your Security+ exam?</label>
     <input type="date" id="dx-exam-date" class="dx-input" aria-describedby="dx-exam-date-help">
-    <div id="dx-exam-date-help" class="dx-field-help">Leave blank if not yet booked — we'll plan for a 6-week-from-now default.</div>
+    <div id="dx-exam-date-help" class="dx-field-help">Leave blank if not yet booked · we'll plan for a 6-week-from-now default.</div>
   </div>
 
   <div class="dx-field">
@@ -274,7 +275,7 @@
     <button type="button" class="dx-btn dx-btn-primary" id="dx-start-btn">
       Start the diagnostic · 30 min →
     </button>
-    <a href="/diagnostic/security-plus/quiz" class="dx-skip-link" id="dx-skip-link">Skip — use defaults</a>
+    <a href="/diagnostic/security-plus/quiz" class="dx-skip-link" id="dx-skip-link">Skip · use defaults</a>
     <a href="/diagnostic" class="dx-back-link">← Back to cert picker</a>
   </div>
 </section>

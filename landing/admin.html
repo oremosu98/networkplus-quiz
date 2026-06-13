@@ -93,7 +93,7 @@
   #site-topbar .account-email-short{font-size:13px;font-weight:600;color:var(--ink-soft);max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   #site-topbar .account-chevron{font-size:10px;color:var(--muted);transition:transform 240ms var(--eo)}
   #site-topbar .account-pill.is-open .account-chevron{transform:rotate(180deg)}
-  #site-topbar .account-dropdown{position:absolute;top:calc(100% + 10px);right:clamp(20px,4vw,32px);z-index:60;width:280px;background:linear-gradient(180deg,var(--surface),var(--surface-2));border:1px solid var(--border);border-radius:16px;box-shadow:0 2px 4px oklch(0.22 0.015 280 / .05),0 30px 60px -24px oklch(0.22 0.015 280 / .28);overflow:hidden;animation:admxDrop 240ms var(--eo)}
+  #site-topbar .account-dropdown{position:absolute;top:calc(100% + 10px);right:clamp(20px,4vw,32px);z-index:60;width:280px;background:var(--surface);border:1px solid var(--border);border-radius:16px;box-shadow:0 2px 4px oklch(0.22 0.015 280 / .05),0 30px 60px -24px oklch(0.22 0.015 280 / .28);overflow:hidden;animation:admxDrop 240ms var(--eo)}
   @keyframes admxDrop{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
   #site-topbar .dropdown-header{padding:16px 18px;border-bottom:1px solid var(--border)}
   #site-topbar .dropdown-email{font-size:13.5px;font-weight:650;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -111,8 +111,8 @@
     --border:oklch(0.86 0.008 85);--border-soft:oklch(0.91 0.006 85);
     --accent:oklch(0.50 0.155 55);--accent-bright:oklch(0.80 0.155 64);--accent-deep:oklch(0.42 0.150 52);--on-accent:oklch(0.985 0.010 85);
     --pass:oklch(0.52 0.13 150);
-    --shadow-soft:0 1px 0 rgba(255,255,255,.55),0 18px 38px -18px oklch(0.22 0.015 280 / .20);
-    --shadow-card:0 2px 4px oklch(0.22 0.015 280 / .05),0 30px 60px -24px oklch(0.22 0.015 280 / .28);
+    --shadow-soft:0 1px 0 color-mix(in oklab, var(--ink) 4%, transparent),0 18px 38px -18px color-mix(in oklab, var(--ink) 8%, transparent);
+    --shadow-card:0 2px 4px color-mix(in oklab, var(--ink) 2%, transparent),0 30px 60px -24px color-mix(in oklab, var(--ink) 11%, transparent);
     --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;--eo:cubic-bezier(0.23,1,0.32,1);
     display:block;background:var(--bg);color:var(--ink);
     font-family:'Inter',system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased;
@@ -124,8 +124,8 @@
     --border:oklch(0.30 0.008 275);--border-soft:oklch(0.26 0.008 275);
     --accent:oklch(0.80 0.155 64);--accent-bright:oklch(0.86 0.140 70);--accent-deep:oklch(0.70 0.150 62);--on-accent:oklch(0.18 0.020 275);
     --pass:oklch(0.74 0.150 152);
-    --shadow-soft:0 1px 0 rgba(255,255,255,.04),0 20px 40px -18px rgba(0,0,0,.55);
-    --shadow-card:0 2px 4px rgba(0,0,0,.3),0 32px 60px -24px rgba(0,0,0,.62);
+    --shadow-soft:0 1px 0 color-mix(in oklab, var(--ink) 2%, transparent),0 20px 40px -18px color-mix(in oklab, var(--ink) 22%, transparent);
+    --shadow-card:0 2px 4px color-mix(in oklab, var(--ink) 12%, transparent),0 32px 60px -24px color-mix(in oklab, var(--ink) 25%, transparent);
   }
   #admin-page *{box-sizing:border-box}
   #admin-page [hidden]{display:none!important}
@@ -148,17 +148,17 @@
   #admin-page .btn-primary-cta{display:inline-flex;align-items:center;gap:8px;font-size:14px;font-weight:650;color:var(--on-accent);background:var(--accent);border:1px solid var(--accent-deep);padding:11px 22px;border-radius:10px;text-decoration:none;margin-right:14px}
   #admin-page .btn-ghost-link{font-size:13.5px;font-weight:600;color:var(--ink-soft);text-decoration:none}
   @media (hover:hover){#admin-page .btn-ghost-link:hover{color:var(--accent)}}
-  #admin-page .admin-grid{margin-top:26px;display:grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--border);border-radius:16px;overflow:hidden;background:linear-gradient(180deg,var(--surface),var(--surface-2));box-shadow:var(--shadow-soft)}
+  #admin-page .admin-grid{margin-top:26px;display:grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--border);border-radius:16px;overflow:hidden;background:var(--surface);box-shadow:var(--shadow-soft)}
   #admin-page .admin-stat{padding:20px 22px;border-right:1px solid var(--border-soft)}
   #admin-page .admin-stat:last-child{border-right:0}
   #admin-page .admin-stat-label{font-size:10.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
-  #admin-page .admin-stat-value{margin-top:8px;font-family:'Fraunces',Georgia,serif;font-size:26px;font-weight:600;color:var(--ink);letter-spacing:-.01em}
+  #admin-page .admin-stat-value{margin-top:8px;font-family:'Fraunces',Georgia,serif;font-size:26px;font-weight:600;color:var(--ink);letter-spacing:-.01em;font-variant-numeric:lining-nums tabular-nums;font-feature-settings:"lnum","tnum"}
   #admin-page .admin-stat-value.admin-stat-mono{font-family:var(--mono);font-size:21px;font-weight:700}
   #admin-page .admin-stat-delta{margin-top:5px;font-size:11.5px;color:var(--muted)}
   #admin-page .admin-table-wrap{margin-top:clamp(40px,5vw,56px)}
   #admin-page .admin-table-head{display:grid;grid-template-columns:auto 1fr auto;align-items:center;column-gap:15px;padding-bottom:14px;border-bottom:1px solid var(--border)}
-  #admin-page .acc-sec-ic{width:36px;height:36px;flex:none;border-radius:10px;background-color:#FFFBF3;border:1px solid var(--border);box-shadow:var(--shadow-soft);display:grid;place-items:center}
-  [data-theme="dark"] #admin-page .acc-sec-ic{background-color:#FFFBF3}
+  #admin-page .acc-sec-ic{width:36px;height:36px;flex:none;border-radius:10px;background-color:color-mix(in oklab, var(--accent) 6%, var(--surface));border:1px solid var(--border);box-shadow:var(--shadow-soft);display:grid;place-items:center}
+  [data-theme="dark"] #admin-page .acc-sec-ic{background-color:color-mix(in oklab, var(--accent) 6%, var(--surface))}
   #admin-page .acc-sec-ic img{width:28px;height:28px;display:block;object-fit:contain}
   #admin-page .admin-table-title{font-family:'Fraunces',Georgia,serif;font-size:clamp(20px,2.2vw,26px);font-weight:600;letter-spacing:-.02em;color:var(--ink)}
   #admin-page .admin-table-meta{font-size:11.5px;color:var(--muted);font-family:var(--mono);justify-self:end}
@@ -210,9 +210,9 @@
     <a class="logo" href="/" aria-label="CertAnvil home">
       <span class="logo-mark" aria-hidden="true">
         <svg viewBox="0 0 100 100" fill="none" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
-          <path d="M58 12 C42 6, 16 16, 14 34 C12 52, 22 62, 42 64" stroke="#b8860b" stroke-width="7" stroke-linecap="round"/>
-          <line x1="30" y1="84" x2="70" y2="16" stroke="#6a6a76" stroke-width="5" stroke-linecap="round"/>
-          <path d="M46 88 L64 50 L82 88 M53 74 L75 74" stroke="#b8860b" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M58 12 C42 6, 16 16, 14 34 C12 52, 22 62, 42 64" stroke="var(--accent)" stroke-width="7" stroke-linecap="round"/>
+          <line x1="30" y1="84" x2="70" y2="16" stroke="var(--muted)" opacity="0.55" stroke-width="5" stroke-linecap="round"/>
+          <path d="M46 88 L64 50 L82 88 M53 74 L75 74" stroke="var(--accent)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       </span>
       <span class="logo-name">CertAnvil <span class="admin-suffix">· ADMIN</span></span>
@@ -248,7 +248,6 @@
         <div class="dropdown-tier" id="dropdown-tier">● Free tier · Network+ unlocked</div>
       </div>
       <a href="/account" class="dropdown-link" role="menuitem">
-        <span class="dropdown-link-icon" aria-hidden="true">⚙️</span>
         <span>Account settings</span>
       </a>
       <div class="dropdown-divider" role="separator"></div>
@@ -329,7 +328,7 @@
         <header class="admin-table-head">
           <span class="acc-sec-ic" aria-hidden="true"><img src="assets/admin/users.svg" alt=""></span>
           <h2 class="admin-table-title">Users</h2>
-          <span class="admin-table-meta" id="users-table-meta">SELECT * FROM profiles</span>
+          <span class="admin-table-meta" id="users-table-meta">All registered accounts</span>
         </header>
         <div class="admin-table-scroll">
           <table class="admin-table">
@@ -404,9 +403,9 @@
           <span class="acc-sec-ic" aria-hidden="true"><img src="assets/admin/telemetry.svg" alt=""></span>
           <div class="section-eyebrow">§04 Telemetry</div>
           <h2 class="section-title">Telemetry &amp; analytics</h2>
-          <p class="section-sub">Funnel, daily actives, churn signals — wired in Phase G+ when there are real users to measure.</p>
+          <p class="section-sub">Funnel, daily actives, churn signals · wired in Phase G+ when there are real users to measure.</p>
         </header>
-        <p class="admin-placeholder-text">— deferred until ≥10 users + Stripe live —</p>
+        <p class="admin-placeholder-text">Deferred until ≥10 users + Stripe live</p>
       </section>
 
     </div>

@@ -95,7 +95,7 @@
   #site-topbar .account-email-short{font-size:13px;font-weight:600;color:var(--ink-soft);max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   #site-topbar .account-chevron{font-size:10px;color:var(--muted);transition:transform 240ms var(--eo)}
   #site-topbar .account-pill.is-open .account-chevron{transform:rotate(180deg)}
-  #site-topbar .account-dropdown{position:absolute;top:calc(100% + 10px);right:clamp(20px,4vw,32px);z-index:60;width:280px;background:linear-gradient(180deg,var(--surface),var(--surface-2));border:1px solid var(--border);border-radius:16px;box-shadow:0 2px 4px oklch(0.22 0.015 280 / .05),0 30px 60px -24px oklch(0.22 0.015 280 / .28);overflow:hidden;animation:ccaxDrop 240ms var(--eo)}
+  #site-topbar .account-dropdown{position:absolute;top:calc(100% + 10px);right:clamp(20px,4vw,32px);z-index:60;width:280px;background:var(--surface);border:1px solid var(--border);border-radius:16px;box-shadow:0 2px 4px oklch(0.22 0.015 280 / .05),0 30px 60px -24px oklch(0.22 0.015 280 / .28);overflow:hidden;animation:ccaxDrop 240ms var(--eo)}
   @keyframes ccaxDrop{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
   #site-topbar .dropdown-header{padding:16px 18px;border-bottom:1px solid var(--border)}
   #site-topbar .dropdown-email{font-size:13.5px;font-weight:650;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -120,8 +120,8 @@
     --border:oklch(0.86 0.008 85);--border-soft:oklch(0.91 0.006 85);
     --accent:oklch(0.50 0.155 55);--accent-bright:oklch(0.80 0.155 64);--accent-deep:oklch(0.42 0.150 52);--on-accent:oklch(0.985 0.010 85);
     --pass:oklch(0.52 0.13 150);
-    --shadow-soft:0 1px 0 rgba(255,255,255,.55),0 18px 38px -18px oklch(0.22 0.015 280 / .20);
-    --shadow-card:0 2px 4px oklch(0.22 0.015 280 / .05),0 30px 60px -24px oklch(0.22 0.015 280 / .26);
+    --shadow-soft:0 1px 0 color-mix(in oklab, var(--ink) 4%, transparent),0 18px 38px -18px color-mix(in oklab, var(--ink) 8%, transparent);
+    --shadow-card:0 2px 4px color-mix(in oklab, var(--ink) 2%, transparent),0 30px 60px -24px color-mix(in oklab, var(--ink) 11%, transparent);
     --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;--eo:cubic-bezier(0.23,1,0.32,1);
     display:block;background:var(--bg);color:var(--ink);
     font-family:'Inter',system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased;
@@ -133,8 +133,8 @@
     --border:oklch(0.30 0.008 275);--border-soft:oklch(0.26 0.008 275);
     --accent:oklch(0.80 0.155 64);--accent-bright:oklch(0.86 0.140 70);--accent-deep:oklch(0.70 0.150 62);--on-accent:oklch(0.18 0.020 275);
     --pass:oklch(0.74 0.150 152);
-    --shadow-soft:0 1px 0 rgba(255,255,255,.04),0 20px 40px -18px rgba(0,0,0,.55);
-    --shadow-card:0 2px 4px rgba(0,0,0,.3),0 32px 60px -24px rgba(0,0,0,.62);
+    --shadow-soft:0 1px 0 color-mix(in oklab, var(--ink) 2%, transparent),0 20px 40px -18px color-mix(in oklab, var(--ink) 22%, transparent);
+    --shadow-card:0 2px 4px color-mix(in oklab, var(--ink) 12%, transparent),0 32px 60px -24px color-mix(in oklab, var(--ink) 25%, transparent);
   }
   #analytics-page *{box-sizing:border-box}
   #analytics-page [hidden]{display:none!important}
@@ -164,8 +164,8 @@
   #analytics-page .cca-panel{margin-top:clamp(48px,6.5vw,76px)}
   #analytics-page .cca-panel-head{display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;padding-bottom:18px;border-bottom:1px solid var(--border)}
   #analytics-page .cca-panel-title-row{display:flex;align-items:center;gap:16px;min-width:0}
-  #analytics-page .cca-panel-icon{width:46px;height:46px;flex:none;border-radius:13px;background-color:#FFFBF3;border:1px solid var(--border);box-shadow:var(--shadow-soft);display:grid;place-items:center}
-  [data-theme="dark"] #analytics-page .cca-panel-icon{background-color:#FFFBF3}
+  #analytics-page .cca-panel-icon{width:46px;height:46px;flex:none;border-radius:13px;background-color:color-mix(in oklab, var(--accent) 6%, var(--surface));border:1px solid var(--border);box-shadow:var(--shadow-soft);display:grid;place-items:center}
+  [data-theme="dark"] #analytics-page .cca-panel-icon{background-color:color-mix(in oklab, var(--accent) 6%, var(--surface))}
   #analytics-page .cca-panel-icon svg,#analytics-page .cca-panel-icon img{width:34px;height:34px;display:block;object-fit:contain}
   #analytics-page .cca-panel-title{font-family:'Fraunces',Georgia,serif;font-size:clamp(22px,2.7vw,31px);font-weight:600;letter-spacing:-.02em;color:var(--ink)}
   #analytics-page .cca-panel-title small{display:block;font-family:'Inter',sans-serif;font-size:12px;font-weight:600;letter-spacing:.02em;color:var(--muted);margin-top:3px;text-transform:none}
@@ -197,7 +197,7 @@
   [data-theme="dark"] #analytics-page .cca-pr-status-active{color:var(--accent-bright)}
   #analytics-page .cca-pr-readiness{min-width:0}
   #analytics-page .cca-pr-readiness-label{display:flex;align-items:baseline;justify-content:space-between;font-size:11px;font-weight:600;color:var(--muted);margin-bottom:13px;text-transform:uppercase;letter-spacing:.06em}
-  #analytics-page .cca-pr-readiness-score{font-family:'Fraunces',Georgia,serif;font-size:20px;font-weight:600;color:var(--ink);letter-spacing:-.01em}
+  #analytics-page .cca-pr-readiness-score{font-family:'Fraunces',Georgia,serif;font-size:20px;font-weight:600;color:var(--ink);letter-spacing:-.01em;font-variant-numeric:lining-nums tabular-nums;font-feature-settings:"lnum","tnum"}
   #analytics-page .cca-pr-score-green{color:var(--pass)}
   #analytics-page .cca-pr-score-pending{color:var(--muted)}
   #analytics-page .cca-pr-readiness-bar{position:relative;height:8px;border-radius:99px;background:color-mix(in oklab,var(--muted) 16%,transparent);overflow:visible}
@@ -222,7 +222,7 @@
 
   /* PANEL 2 — skill overlap "transfer map" (the rebuilt panel) */
   #analytics-page .cca-so-list{margin-top:14px;display:flex;flex-direction:column;gap:16px}
-  #analytics-page .cca-so-row{border:1px solid var(--border);border-radius:18px;background:linear-gradient(180deg,var(--surface),var(--surface-2));overflow:hidden;transition:border-color 220ms var(--eo),box-shadow 220ms var(--eo)}
+  #analytics-page .cca-so-row{border:1px solid var(--border);border-radius:18px;background:var(--surface);overflow:hidden;transition:border-color 220ms var(--eo),box-shadow 220ms var(--eo)}
   @media (hover:hover){#analytics-page .cca-so-row:hover{border-color:color-mix(in oklab,var(--accent) 34%,var(--border))}}
   #analytics-page .cca-so-row.is-open{border-color:color-mix(in oklab,var(--accent) 42%,var(--border));box-shadow:var(--shadow-card)}
   #analytics-page .cca-so-summary{display:grid;grid-template-columns:auto minmax(150px,1fr) minmax(0,1.05fr) 26px;align-items:center;gap:clamp(16px,2.6vw,30px);width:100%;text-align:left;background:none;border:0;cursor:pointer;padding:clamp(18px,2.4vw,26px) clamp(20px,2.8vw,30px);font-family:inherit}
@@ -233,7 +233,7 @@
   #analytics-page .cca-so-pair-arrow{justify-self:center;display:grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--surface);border:1px solid color-mix(in oklab,var(--accent) 38%,var(--border));color:var(--accent);font-size:12px;font-weight:800;z-index:1}
   #analytics-page .cca-so-pair::before{content:"";position:absolute;left:46px;right:46px;top:50%;height:3px;transform:translateY(-50%);border-radius:99px;background:linear-gradient(90deg,color-mix(in oklab,var(--accent) 28%,transparent),color-mix(in oklab,var(--accent) 60%,transparent))}
   #analytics-page .cca-so-bar-wrap{display:flex;flex-direction:column;gap:9px;min-width:0}
-  #analytics-page .cca-so-bar-pct{order:-1;font-family:'Fraunces',Georgia,serif;font-size:clamp(28px,3.4vw,40px);font-weight:600;line-height:1;color:var(--accent-deep);letter-spacing:-.02em}
+  #analytics-page .cca-so-bar-pct{order:-1;font-family:'Fraunces',Georgia,serif;font-size:clamp(28px,3.4vw,40px);font-weight:600;line-height:1;color:var(--accent-deep);letter-spacing:-.02em;font-variant-numeric:lining-nums tabular-nums;font-feature-settings:"lnum","tnum"}
   [data-theme="dark"] #analytics-page .cca-so-bar-pct{color:var(--accent-bright)}
   #analytics-page .cca-so-bar-track{position:relative;height:9px;border-radius:99px;background:color-mix(in oklab,var(--muted) 16%,transparent);overflow:hidden}
   #analytics-page .cca-so-bar-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--accent-deep),var(--accent-bright));transition:width 1000ms var(--eo)}
@@ -260,7 +260,7 @@
   #analytics-page .cca-so-detail-col .cca-so-detail-col-h[style]{margin-top:18px!important;padding-top:16px;border-top:1px dashed var(--border)}
   #analytics-page .cca-so-callout{margin-top:18px;display:flex;align-items:center;gap:18px;flex-wrap:wrap;font-size:13px;line-height:1.55;color:var(--ink-soft);padding:18px 20px;border-radius:14px;background:color-mix(in oklab,var(--accent) 6%,var(--surface));border:1px solid color-mix(in oklab,var(--accent) 22%,var(--border))}
   #analytics-page .cca-so-callout{flex:1;min-width:240px}
-  #analytics-page .cca-so-saving-pill{flex:none;display:block;font-family:'Fraunces',Georgia,serif;font-size:clamp(16px,1.7vw,20px);font-weight:600;letter-spacing:-.01em;color:var(--accent-deep);background:none;border:0;border-left:2px solid color-mix(in oklab,var(--accent) 40%,transparent);padding:2px 0 2px 18px;text-transform:none}
+  #analytics-page .cca-so-saving-pill{flex:none;display:block;font-family:'Fraunces',Georgia,serif;font-size:clamp(16px,1.7vw,20px);font-weight:600;letter-spacing:-.01em;color:var(--accent-deep);background:none;border:0;padding:2px 0;text-transform:none}
   [data-theme="dark"] #analytics-page .cca-so-saving-pill{color:var(--accent-bright)}
 
   /* PANEL 3 — what to study next (the resolution).
@@ -270,8 +270,7 @@
      forced to beat the old low-contrast + gradient-text bleed. This is
      the prod-hotfixed bug class — do not drop the !important. */
   #analytics-page .cca-wn-body{margin-top:22px}
-  #analytics-page .cca-wn-hero{position:relative;border:1px solid color-mix(in oklab,var(--accent) 30%,var(--border));border-radius:18px;padding:clamp(24px,3vw,32px);background:linear-gradient(180deg,var(--surface),var(--surface-2));box-shadow:var(--shadow-soft);overflow:hidden}
-  #analytics-page .cca-wn-hero::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:linear-gradient(180deg,var(--accent-bright),var(--accent))}
+  #analytics-page .cca-wn-hero{position:relative;border:1px solid color-mix(in oklab,var(--accent) 30%,var(--border));border-radius:18px;padding:clamp(24px,3vw,32px);background:var(--surface);box-shadow:var(--shadow-soft);overflow:hidden}
   #analytics-page .cca-wn-hero *{-webkit-text-fill-color:currentColor!important}
   #analytics-page .cca-wn-hero-eyebrow{font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)!important;margin-bottom:12px}
   #analytics-page .cca-wn-hero-title{font-family:'Fraunces',Georgia,serif;font-size:clamp(21px,2.4vw,28px);font-weight:600;color:var(--ink)!important;margin-bottom:18px;letter-spacing:-.015em;line-height:1.18}
@@ -285,7 +284,7 @@
   #analytics-page .cca-wn-secondary-row{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:16px;padding:17px 6px;border-bottom:1px solid var(--border-soft);text-decoration:none}
   #analytics-page .cca-wn-secondary-row:last-child{border-bottom:0}
   @media (hover:hover){#analytics-page .cca-wn-secondary-row:hover{background:color-mix(in oklab,var(--accent) 4%,transparent)}#analytics-page .cca-wn-secondary-row:hover .cca-wn-row-action{color:var(--accent-deep)!important}}
-  #analytics-page .cca-wn-rank{width:26px;height:26px;border-radius:8px;display:grid;place-items:center;font:800 12px 'Fraunces',serif;color:var(--accent-deep)!important;background:color-mix(in oklab,var(--accent) 11%,transparent);flex:none}
+  #analytics-page .cca-wn-rank{width:26px;height:26px;border-radius:8px;display:grid;place-items:center;font:800 12px 'Fraunces',serif;color:var(--accent-deep)!important;background:color-mix(in oklab,var(--accent) 11%,transparent);flex:none;font-variant-numeric:lining-nums tabular-nums;font-feature-settings:"lnum","tnum"}
   [data-theme="dark"] #analytics-page .cca-wn-rank{color:var(--accent-bright)!important}
   #analytics-page .cca-wn-text{font-size:13.5px;font-weight:600;color:var(--ink-soft)!important}
   #analytics-page .cca-wn-text strong{color:var(--ink)!important;font-weight:700}
@@ -322,9 +321,9 @@
     <a class="logo" href="/" aria-label="CertAnvil home">
       <span class="logo-mark" aria-hidden="true">
         <svg viewBox="0 0 100 100" fill="none" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
-          <path d="M58 12 C42 6, 16 16, 14 34 C12 52, 22 62, 42 64" stroke="#b8860b" stroke-width="7" stroke-linecap="round"/>
-          <line x1="30" y1="84" x2="70" y2="16" stroke="#6a6a76" stroke-width="5" stroke-linecap="round"/>
-          <path d="M46 88 L64 50 L82 88 M53 74 L75 74" stroke="#b8860b" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M58 12 C42 6, 16 16, 14 34 C12 52, 22 62, 42 64" stroke="var(--accent)" stroke-width="7" stroke-linecap="round"/>
+          <line x1="30" y1="84" x2="70" y2="16" stroke="var(--muted)" opacity="0.55" stroke-width="5" stroke-linecap="round"/>
+          <path d="M46 88 L64 50 L82 88 M53 74 L75 74" stroke="var(--accent)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       </span>
       <span class="logo-name">CertAnvil</span>
@@ -359,15 +358,12 @@
         <div class="dropdown-tier" id="dropdown-tier">● Free tier · Network+ unlocked</div>
       </div>
       <a href="/account" class="dropdown-link" role="menuitem">
-        <span class="dropdown-link-icon" aria-hidden="true">⚙️</span>
         <span>Account settings</span>
       </a>
       <a href="/?modal=my-certs" class="dropdown-link" role="menuitem">
-        <span class="dropdown-link-icon" aria-hidden="true">🎓</span>
         <span>My certs</span>
       </a>
       <a href="/analytics" class="dropdown-link is-active" role="menuitem">
-        <span class="dropdown-link-icon" aria-hidden="true">📊</span>
         <span>Cross-cert analytics</span>
       </a>
       <div class="dropdown-divider" role="separator"></div>
@@ -430,7 +426,7 @@
       <div class="cca-empty-state" id="cca-empty-state" hidden>
         <div class="cca-empty-icon" aria-hidden="true"></div>
         <h2>Pick your first cert to unlock this dashboard</h2>
-        <p>Cross-cert analytics shows how skills carry between certs and where to focus next — once you've started studying. Pick a cert and we'll start tracking from your first quiz.</p>
+        <p>Cross-cert analytics shows how skills carry between certs and where to focus next · once you've started studying. Pick a cert and we'll start tracking from your first quiz.</p>
         <a href="/#certs" class="btn-primary-cta">Browse certs →</a>
       </div>
 

@@ -172,7 +172,7 @@
   #site-topbar .account-avatar{
     width:28px;height:28px;border-radius:50%;display:grid;place-items:center;flex:none;
     font-size:12px;font-weight:700;color:var(--on-accent);
-    background:linear-gradient(150deg,var(--accent-bright),var(--accent));
+    background:var(--accent);
   }
   #site-topbar .account-email-short{font-size:13px;font-weight:600;color:var(--ink-soft);max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   #site-topbar .account-chevron{font-size:10px;color:var(--muted);transition:transform 240ms var(--eo)}
@@ -181,7 +181,7 @@
   #site-topbar .account-dropdown{
     position:absolute;top:calc(100% + 10px);right:clamp(20px,4vw,32px);z-index:60;
     width:280px;
-    background:linear-gradient(180deg,var(--surface),var(--surface-2));
+    background:var(--surface);
     border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow-card);
     overflow:hidden;
     animation:stbDrop 240ms var(--eo);
@@ -213,9 +213,9 @@
     <a class="logo" href="/" aria-label="CertAnvil home">
       <span class="logo-mark" aria-hidden="true">
         <svg viewBox="0 0 100 100" fill="none" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
-          <path d="M58 12 C42 6, 16 16, 14 34 C12 52, 22 62, 42 64" stroke="#b8860b" stroke-width="7" stroke-linecap="round"/>
-          <line x1="30" y1="84" x2="70" y2="16" stroke="#6a6a76" stroke-width="5" stroke-linecap="round"/>
-          <path d="M46 88 L64 50 L82 88 M53 74 L75 74" stroke="#b8860b" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M58 12 C42 6, 16 16, 14 34 C12 52, 22 62, 42 64" stroke="var(--accent)" stroke-width="7" stroke-linecap="round"/>
+          <line x1="30" y1="84" x2="70" y2="16" stroke="var(--muted)" opacity="0.55" stroke-width="5" stroke-linecap="round"/>
+          <path d="M46 88 L64 50 L82 88 M53 74 L75 74" stroke="var(--accent)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       </span>
       <span class="logo-name">CertAnvil</span>
@@ -250,11 +250,11 @@
         <div class="dropdown-email" id="dropdown-email">you@email.com</div>
         <div class="dropdown-tier" id="dropdown-tier">● Free tier · Network+ unlocked</div>
       </div>
-      <a href="/account" class="dropdown-link" role="menuitem" id="dropdown-account-settings"><span class="dropdown-link-icon" aria-hidden="true">⚙️</span><span>Account settings</span></a>
-      <a href="/?modal=my-certs" class="dropdown-link" role="menuitem" id="dropdown-my-certs"><span class="dropdown-link-icon" aria-hidden="true">🎓</span><span>My certs</span></a>
-      <a href="/analytics" class="dropdown-link" role="menuitem" id="dropdown-cross-cert-analytics"><span class="dropdown-link-icon" aria-hidden="true">📊</span><span>Cross-cert analytics</span></a>
+      <a href="/account" class="dropdown-link" role="menuitem" id="dropdown-account-settings"><span>Account settings</span></a>
+      <a href="/?modal=my-certs" class="dropdown-link" role="menuitem" id="dropdown-my-certs"><span>My certs</span></a>
+      <a href="/analytics" class="dropdown-link" role="menuitem" id="dropdown-cross-cert-analytics"><span>Cross-cert analytics</span></a>
       <div class="dropdown-divider" role="separator"></div>
-      <a href="#" class="dropdown-link dropdown-link-danger" id="sign-out-link" role="menuitem"><span class="dropdown-link-icon" aria-hidden="true">↩</span><span>Sign out</span></a>
+      <a href="#" class="dropdown-link dropdown-link-danger" id="sign-out-link" role="menuitem"><span>Sign out</span></a>
     </div>
   </div>
 </header>
@@ -488,7 +488,7 @@
       <div class="pp-pro">
         <div class="pp-pro-top">
           <span class="pp-tier-label">Pro</span>
-          <span class="pp-pop">Most popular</span>
+          <span class="pp-pop">Recommended</span>
         </div>
 
         <div class="pp-toggle" role="group" aria-label="Billing period">
@@ -506,7 +506,7 @@
         <div class="pp-save pp-save-annual">Billed yearly · save 26% over monthly</div>
         <div class="pp-save pp-save-monthly">Billed monthly · cancel anytime</div>
 
-        <p class="pp-tagline">Everything you need, unlimited.</p>
+        <p class="pp-tagline">Unlimited questions, every cert.</p>
         <ul class="pp-features">
           <li class="pp-feat"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span><strong>Unlimited questions</strong> across every cert</span></li>
           <li class="pp-feat"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span>Full Exam Simulator · 90-question timed</span></li>
@@ -615,9 +615,9 @@
     <div class="auth-state auth-state-main" id="auth-main">
       <div class="auth-logo-mark" aria-hidden="true">
         <svg viewBox="0 0 100 100" fill="none" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
-          <path d="M58 12 C42 6, 16 16, 14 34 C12 52, 22 62, 42 64" stroke="#b8860b" stroke-width="7" stroke-linecap="round"/>
-          <line x1="30" y1="84" x2="70" y2="16" stroke="#6a6a76" stroke-width="5" stroke-linecap="round"/>
-          <path d="M46 88 L64 50 L82 88 M53 74 L75 74" stroke="#b8860b" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M58 12 C42 6, 16 16, 14 34 C12 52, 22 62, 42 64" stroke="var(--accent)" stroke-width="7" stroke-linecap="round"/>
+          <line x1="30" y1="84" x2="70" y2="16" stroke="var(--muted)" opacity="0.55" stroke-width="5" stroke-linecap="round"/>
+          <path d="M46 88 L64 50 L82 88 M53 74 L75 74" stroke="var(--accent)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       </div>
 
@@ -625,7 +625,6 @@
       <p class="auth-sub">Drop your email and we'll send a one-click sign-in link. New here? Same form; your account gets created automatically.</p>
 
       <div class="migration-banner" id="migration-banner" hidden>
-        <span class="migration-banner-icon" aria-hidden="true">📦</span>
         <div class="migration-banner-body" id="migration-stats"></div>
       </div>
 
@@ -657,7 +656,6 @@
     </div>
 
     <div class="auth-state auth-state-sent" id="auth-sent" hidden>
-      <div class="auth-sent-icon" aria-hidden="true">📬</div>
       <h3 class="auth-sent-title">Check your inbox</h3>
       <p class="auth-sent-sub">We sent a 6-digit sign-in code to:</p>
       <span class="auth-sent-email-pill" id="auth-sent-email">you@email.com</span>

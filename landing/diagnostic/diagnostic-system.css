@@ -200,7 +200,8 @@ body {
   font-weight: 800;
   letter-spacing: -0.04em;
   line-height: 0.9;
-  font-variant-numeric: tabular-nums;
+  font-variant-numeric: lining-nums tabular-nums;
+  font-feature-settings: "lnum", "tnum";
   color: var(--dg-near);
 }
 .dr-score-num.is-passing { color: var(--dg-pass); }

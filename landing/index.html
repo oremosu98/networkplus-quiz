@@ -275,9 +275,9 @@
     <a class="logo" href="/" aria-label="CertAnvil home">
       <span class="logo-mark" aria-hidden="true">
         <svg viewBox="0 0 100 100" fill="none" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
-          <path d="M58 12 C42 6, 16 16, 14 34 C12 52, 22 62, 42 64" stroke="#b8860b" stroke-width="7" stroke-linecap="round"/>
-          <line x1="30" y1="84" x2="70" y2="16" stroke="#6a6a76" stroke-width="5" stroke-linecap="round"/>
-          <path d="M46 88 L64 50 L82 88 M53 74 L75 74" stroke="#b8860b" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M58 12 C42 6, 16 16, 14 34 C12 52, 22 62, 42 64" stroke="var(--accent)" stroke-width="7" stroke-linecap="round"/>
+          <line x1="30" y1="84" x2="70" y2="16" stroke="var(--muted)" stroke-width="5" stroke-linecap="round" opacity="0.55"/>
+          <path d="M46 88 L64 50 L82 88 M53 74 L75 74" stroke="var(--accent)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       </span>
       <span class="logo-name">CertAnvil</span>
@@ -364,7 +364,7 @@
     --accent-bright:oklch(0.80 0.155 64);
     --accent-deep:oklch(0.42 0.150 52);
     --on-accent:oklch(0.985 0.010 85);
-    --tile-top:#FFFDF8; --tile-bot:#FFF7EC;          /* cream icon plate, both themes */
+    --tile-top:#FFFDF8; --tile-bot:#FFF7EC;          /* cream icon plate, both themes — left as hardcoded hex: shared by brand-illustrative SVG <stop> fills (per BRAND §3 hex is allowed for brand-illustrative SVG) */
     --shadow-soft:0 1px 0 rgba(255,255,255,.55),0 18px 38px -18px oklch(0.22 0.015 280 / .20);
     --shadow-tile:0 2px 4px oklch(0.22 0.015 280 / .05),0 22px 44px -20px oklch(0.22 0.015 280 / .24);
     --hv2-eo:cubic-bezier(0.23,1,0.32,1);
@@ -397,8 +397,8 @@
     --accent-bright:oklch(0.86 0.140 70);
     --accent-deep:oklch(0.70 0.150 62);
     --on-accent:oklch(0.18 0.020 275);
-    --shadow-soft:0 1px 0 rgba(255,255,255,.04),0 20px 40px -18px rgba(0,0,0,.55);
-    --shadow-tile:0 2px 4px rgba(0,0,0,.3),0 24px 46px -20px rgba(0,0,0,.6);
+    --shadow-soft:0 1px 0 color-mix(in oklab, var(--ink) 2%, transparent),0 20px 40px -18px color-mix(in oklab, var(--ink) 22%, transparent);
+    --shadow-tile:0 2px 4px color-mix(in oklab, var(--ink) 12%, transparent),0 24px 46px -20px color-mix(in oklab, var(--ink) 24%, transparent);
   }
 
   #hero-v2 *{box-sizing:border-box}
@@ -457,7 +457,8 @@
   }
   #hero-v2 .hv2-proof-score{
     font-family:'Fraunces',Georgia,serif;font-weight:700;font-size:34px;
-    letter-spacing:-.01em;color:var(--ink);font-variant-numeric:tabular-nums;
+    letter-spacing:-.01em;color:var(--ink);font-variant-numeric:lining-nums tabular-nums;
+    font-feature-settings:"lnum","tnum";
     line-height:1;white-space:nowrap;
   }
   #hero-v2 .hv2-proof-score s{color:var(--muted);text-decoration:none;font-weight:600}
@@ -516,7 +517,8 @@
   #hero-v2 .mer-num{
     font-family:'Fraunces',Georgia,serif;font-style:italic;font-weight:600;
     font-size:clamp(40px,5.4vw,78px);line-height:0.9;color:var(--accent);
-    letter-spacing:-0.01em;font-variant-numeric:tabular-nums;
+    letter-spacing:-0.01em;font-variant-numeric:lining-nums tabular-nums;
+    font-feature-settings:"lnum","tnum";
   }
   [data-theme="dark"] #hero-v2 .mer-num{text-shadow:0 0 22px color-mix(in oklab, var(--accent-bright) 40%, transparent)}
   #hero-v2 .mer-cap{margin-top:6px;font-size:11px;letter-spacing:0.1em;color:var(--muted);font-weight:500;text-transform:lowercase}
@@ -1102,8 +1104,8 @@
     --border:oklch(0.30 0.008 275);--border-soft:oklch(0.26 0.008 275);
     --accent:oklch(0.80 0.155 64);--accent-bright:oklch(0.86 0.140 70);
     --accent-deep:oklch(0.70 0.150 62);--on-accent:oklch(0.18 0.020 275);
-    --shadow-soft:0 1px 0 rgba(255,255,255,.04),0 20px 40px -18px rgba(0,0,0,.55);
-    --shadow-card:0 2px 4px rgba(0,0,0,.3),0 30px 58px -22px rgba(0,0,0,.62);
+    --shadow-soft:0 1px 0 color-mix(in oklab, var(--ink) 2%, transparent),0 20px 40px -18px color-mix(in oklab, var(--ink) 22%, transparent);
+    --shadow-card:0 2px 4px color-mix(in oklab, var(--ink) 12%, transparent),0 30px 58px -22px color-mix(in oklab, var(--ink) 25%, transparent);
   }
   #sq2 *{box-sizing:border-box}
   #sq2 a{color:inherit;text-decoration:none}
@@ -1392,7 +1394,7 @@
     --shadow-soft:0 1px 0 rgba(255,255,255,.55),0 18px 38px -18px oklch(0.22 0.015 280 / .20);
     --shadow-card:0 2px 4px oklch(0.22 0.015 280 / .05),0 30px 60px -24px oklch(0.22 0.015 280 / .28);
     --shadow-plate:0 1px 0 rgba(255,255,255,.5),0 20px 44px -26px oklch(0.22 0.015 280 / .26);
-    --pass:#16a34a;
+    --pass:oklch(0.52 0.13 150);
     --eo:cubic-bezier(0.23,1,0.32,1);
     --eio:cubic-bezier(0.77,0,0.175,1);
     position:relative;display:block;background:var(--bg);color:var(--ink);
@@ -1407,10 +1409,10 @@
     --border:oklch(0.30 0.008 275);--border-soft:oklch(0.26 0.008 275);
     --accent:oklch(0.80 0.155 64);--accent-bright:oklch(0.86 0.140 70);
     --accent-deep:oklch(0.70 0.150 62);--on-accent:oklch(0.18 0.020 275);
-    --shadow-soft:0 1px 0 rgba(255,255,255,.04),0 20px 40px -18px rgba(0,0,0,.55);
-    --shadow-card:0 2px 4px rgba(0,0,0,.3),0 32px 60px -24px rgba(0,0,0,.62);
-    --shadow-plate:0 1px 0 rgba(255,255,255,.04),0 24px 50px -26px rgba(0,0,0,.6);
-    --pass:#22c55e;
+    --shadow-soft:0 1px 0 rgba(255,255,255,.04),0 20px 40px -18px color-mix(in oklab, var(--ink) 22%, transparent);
+    --shadow-card:0 2px 4px color-mix(in oklab, var(--ink) 14%, transparent),0 32px 60px -24px color-mix(in oklab, var(--ink) 25%, transparent);
+    --shadow-plate:0 1px 0 rgba(255,255,255,.04),0 24px 50px -26px color-mix(in oklab, var(--ink) 24%, transparent);
+    --pass:oklch(0.74 0.150 152);
   }
   #certs *{box-sizing:border-box}
   #certs a{color:inherit;text-decoration:none}
@@ -1472,7 +1474,7 @@
   #certs button.plate{width:100%;text-align:left;font:inherit;cursor:pointer;-webkit-appearance:none;appearance:none}
   #certs .pl-go{fill:var(--accent);font:600 8.4px Inter,sans-serif;letter-spacing:.01em;opacity:0;transform:translateX(-4px);transform-box:fill-box;transition:opacity 200ms var(--eo),transform 200ms var(--eo)}
   @media (hover:hover) and (pointer:fine){#certs .plate:hover .pl-go{opacity:1;transform:none}#certs .plate.drawn:hover .pl-sub{opacity:0;transition:opacity 160ms var(--eo)}}
-  @media (hover:hover) and (pointer:fine){#certs .plate:hover{transform:translateY(-4px);border-color:color-mix(in oklab,var(--accent) 38%,var(--border));box-shadow:0 1px 0 rgba(255,255,255,.05),0 30px 56px -28px rgba(0,0,0,.4)}}
+  @media (hover:hover) and (pointer:fine){#certs .plate:hover{transform:translateY(-4px);border-color:color-mix(in oklab,var(--accent) 38%,var(--border));box-shadow:0 1px 0 color-mix(in oklab, var(--ink) 2%, transparent),0 30px 56px -28px color-mix(in oklab, var(--ink) 16%, transparent)}}
   #certs .plate:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
   #certs .plate svg{display:block;width:100%;height:auto}
 
@@ -1575,7 +1577,7 @@
 
     <div class="anvil-head">
       <span class="anvil-eyebrow">On the anvil</span>
-      <span class="anvil-cap">Forging next — get pinged the day each ships.</span>
+      <span class="anvil-cap">Forging next · get pinged the day each ships.</span>
     </div>
     <div class="wall-soon" id="cl-wall-soon"></div>
   </div>
@@ -1755,7 +1757,7 @@
           wrap.type='button';
           wrap.className='plate soon';
           wrap.setAttribute('data-cert', (cert.code||'').toLowerCase());
-          wrap.setAttribute('aria-label',cert.name+' '+cert.code+' — coming soon, get notified');
+          wrap.setAttribute('aria-label',cert.name+' '+cert.code+' · coming soon, get notified');
           // open the existing notify modal (#notify-modal lives outside this
           // section; script.js owns its submit/close wiring). We only need to
           // reveal it + set the cert label — same DOM ops script.js performs.
@@ -1776,7 +1778,7 @@
           wrap.className='plate';
           wrap.setAttribute('href',cert.href);
           wrap.setAttribute('data-cert', cert.id);
-          wrap.setAttribute('aria-label',cert.name+' '+cert.code+' — start studying');
+          wrap.setAttribute('aria-label',cert.name+' '+cert.code+' · start studying');
         }
         wrap.appendChild(svg);
         return wrap;
@@ -1895,8 +1897,8 @@
     --border:oklch(0.30 0.008 275);--border-soft:oklch(0.26 0.008 275);
     --accent:oklch(0.80 0.155 64);--accent-bright:oklch(0.86 0.140 70);
     --accent-deep:oklch(0.70 0.150 62);--on-accent:oklch(0.18 0.020 275);
-    --shadow-soft:0 1px 0 rgba(255,255,255,.04),0 20px 40px -18px rgba(0,0,0,.55);
-    --shadow-card:0 2px 4px rgba(0,0,0,.3),0 32px 60px -24px rgba(0,0,0,.62);
+    --shadow-soft:0 1px 0 color-mix(in oklab, var(--ink) 2%, transparent),0 20px 40px -18px color-mix(in oklab, var(--ink) 22%, transparent);
+    --shadow-card:0 2px 4px color-mix(in oklab, var(--ink) 12%, transparent),0 32px 60px -24px color-mix(in oklab, var(--ink) 25%, transparent);
   }
   #proof-of-product *{box-sizing:border-box}
   #proof-of-product a{color:inherit;text-decoration:none}
@@ -1963,7 +1965,7 @@
   #proof-of-product .pp-row{display:flex;flex-direction:row;align-items:flex-start;gap:14px;padding:16px 20px;border-bottom:1px solid var(--border);transition:background 160ms ease}
   #proof-of-product .pp-row:last-of-type{border-bottom:0}
   @media (hover:hover){#proof-of-product .pp-row:hover{background:color-mix(in oklab,var(--accent) 4%,transparent)}}
-  #proof-of-product .pp-row-ic{flex:none;width:44px;height:44px;border-radius:12px;background-color:#FFFBF3;border:1px solid var(--border);display:grid;place-items:center}
+  #proof-of-product .pp-row-ic{flex:none;width:44px;height:44px;border-radius:12px;background-color:color-mix(in oklab, var(--surface) 92%, var(--accent));border:1px solid var(--border);display:grid;place-items:center}
   #proof-of-product .pp-row-ic svg{width:30px;height:30px;display:block}
   #proof-of-product .pp-row-body{flex:1;min-width:0}
   #proof-of-product .pp-row-name{font-size:14.5px;font-weight:650;color:var(--ink);margin-bottom:3px;display:flex;flex-direction:row;align-items:center;gap:9px;flex-wrap:wrap}
@@ -2418,8 +2420,8 @@
     --border:oklch(0.30 0.008 275);--border-soft:oklch(0.26 0.008 275);
     --accent:oklch(0.80 0.155 64);--accent-bright:oklch(0.86 0.140 70);
     --accent-deep:oklch(0.70 0.150 62);--on-accent:oklch(0.18 0.020 275);
-    --shadow-soft:0 1px 0 rgba(255,255,255,.04),0 20px 40px -18px rgba(0,0,0,.55);
-    --shadow-card:0 2px 4px rgba(0,0,0,.3),0 32px 60px -24px rgba(0,0,0,.62);
+    --shadow-soft:0 1px 0 color-mix(in oklab, var(--ink) 2%, transparent),0 20px 40px -18px color-mix(in oklab, var(--ink) 22%, transparent);
+    --shadow-card:0 2px 4px color-mix(in oklab, var(--ink) 12%, transparent),0 32px 60px -24px color-mix(in oklab, var(--ink) 25%, transparent);
   }
   #why-ready *{box-sizing:border-box}
   /* defensive: keep this section free of any inherited root pseudo-accent
@@ -2619,8 +2621,8 @@
     --border:oklch(0.30 0.008 275);--border-soft:oklch(0.26 0.008 275);
     --accent:oklch(0.80 0.155 64);--accent-bright:oklch(0.86 0.140 70);
     --accent-deep:oklch(0.70 0.150 62);--on-accent:oklch(0.18 0.020 275);
-    --shadow-soft:0 1px 0 rgba(255,255,255,.04),0 20px 40px -18px rgba(0,0,0,.55);
-    --shadow-card:0 2px 4px rgba(0,0,0,.3),0 32px 60px -24px rgba(0,0,0,.62);
+    --shadow-soft:0 1px 0 color-mix(in oklab, var(--ink) 2%, transparent),0 20px 40px -18px color-mix(in oklab, var(--ink) 22%, transparent);
+    --shadow-card:0 2px 4px color-mix(in oklab, var(--ink) 12%, transparent),0 32px 60px -24px color-mix(in oklab, var(--ink) 25%, transparent);
   }
   #why *{box-sizing:border-box}
   #why .wyx-wrap{max-width:1140px;margin:0 auto}
@@ -2681,7 +2683,7 @@
   #why .wyx-certs-cap{font-size:13.5px;line-height:1.6;color:var(--muted);max-width:52ch}
   #why .wyx-certs-cap strong{color:var(--ink-soft);font-weight:650}
   #why .wyx-badges{display:flex;align-items:center;justify-content:center;gap:clamp(10px,2vw,18px);flex-wrap:wrap}
-  #why .wyx-badge{width:clamp(48px,5vw,58px);height:clamp(48px,5vw,58px);background-color:#FFFBF3;border:1px solid var(--border);border-radius:14px;box-shadow:0 6px 14px -8px oklch(0.22 0.015 280 / .18);display:grid;place-items:center;font-family:'Fraunces',Georgia,serif;font-weight:600;font-size:20px;line-height:1;letter-spacing:-.02em;color:oklch(0.24 0.018 280)}
+  #why .wyx-badge{width:clamp(48px,5vw,58px);height:clamp(48px,5vw,58px);background-color:color-mix(in oklab, var(--surface) 92%, var(--accent));border:1px solid var(--border);border-radius:14px;box-shadow:0 6px 14px -8px oklch(0.22 0.015 280 / .18);display:grid;place-items:center;font-family:'Fraunces',Georgia,serif;font-weight:600;font-size:20px;line-height:1;letter-spacing:-.02em;color:oklch(0.24 0.018 280)}
   #why .wyx-badge .cg-ac{color:var(--accent)}
   #why .wyx-badge .cg-sup{font-size:11px;vertical-align:super;color:var(--accent);font-weight:700;margin-left:.5px}
 
@@ -2839,8 +2841,8 @@
     --border:oklch(0.30 0.008 275);--border-soft:oklch(0.26 0.008 275);
     --accent:oklch(0.80 0.155 64);--accent-bright:oklch(0.86 0.140 70);
     --accent-deep:oklch(0.70 0.150 62);--on-accent:oklch(0.18 0.020 275);
-    --shadow-soft:0 1px 0 rgba(255,255,255,.04),0 20px 40px -18px rgba(0,0,0,.55);
-    --shadow-card:0 2px 4px rgba(0,0,0,.3),0 32px 60px -24px rgba(0,0,0,.62);
+    --shadow-soft:0 1px 0 color-mix(in oklab, var(--ink) 2%, transparent),0 20px 40px -18px color-mix(in oklab, var(--ink) 22%, transparent);
+    --shadow-card:0 2px 4px color-mix(in oklab, var(--ink) 12%, transparent),0 32px 60px -24px color-mix(in oklab, var(--ink) 25%, transparent);
   }
   #faq *{box-sizing:border-box}
   #faq .fqx-wrap{
@@ -2997,7 +2999,7 @@
             </div>
             <div class="fqx-cmp-row">
               <div class="fqx-cmp-cell is-feat">Where questions come from</div>
-              <div class="fqx-cmp-cell is-them">A fixed bank of ~500–1,000</div>
+              <div class="fqx-cmp-cell is-them">A fixed bank of ~500 to 1,000</div>
               <div class="fqx-cmp-cell is-us">Generated fresh, every session</div>
             </div>
             <div class="fqx-cmp-row">
@@ -3486,9 +3488,9 @@
 
       <div class="auth-logo-mark" aria-hidden="true">
         <svg viewBox="0 0 100 100" fill="none" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
-          <path d="M58 12 C42 6, 16 16, 14 34 C12 52, 22 62, 42 64" stroke="#b8860b" stroke-width="7" stroke-linecap="round"/>
-          <line x1="30" y1="84" x2="70" y2="16" stroke="#6a6a76" stroke-width="5" stroke-linecap="round"/>
-          <path d="M46 88 L64 50 L82 88 M53 74 L75 74" stroke="#b8860b" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M58 12 C42 6, 16 16, 14 34 C12 52, 22 62, 42 64" stroke="var(--accent)" stroke-width="7" stroke-linecap="round"/>
+          <line x1="30" y1="84" x2="70" y2="16" stroke="var(--muted)" stroke-width="5" stroke-linecap="round" opacity="0.55"/>
+          <path d="M46 88 L64 50 L82 88 M53 74 L75 74" stroke="var(--accent)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       </div>
 

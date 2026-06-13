@@ -17227,9 +17227,9 @@ test('v4.99.63 dual-theme: diagnostic-system.css has the 4-block cascade, html[d
     // base html:root dark → @media prefers light → html[data-theme=dark] → html[data-theme=light], in that order
     return /html:root\s*\{[\s\S]*?@media\s*\(prefers-color-scheme:\s*light\)[\s\S]*?html\[data-theme="dark"\][\s\S]*?html\[data-theme="light"\]/.test(s)
       && /--dg-bg:\s*oklch\(0\.975/.test(s) && /--dg-bg:\s*oklch\(0\.17 0\.008 275\)/.test(s); })());
-test('v4.99.63 dual-theme: all 4 diagnostic pages cache-bust diagnostic-system.css at v=4.99.63',
+test('v4.99.63 dual-theme: all 4 diagnostic pages cache-bust diagnostic-system.css at v=4.99.96',
   [_pickerRaw, _intakeRaw, _quizRaw, _resultsD4Raw].every(s =>
-    /diagnostic-system\.css\?v=4\.99\.63/.test(s)));
+    /diagnostic-system\.css\?v=4\.99\.96/.test(s)));
 test('v4.99.61 tombstone: dx-* + dq-* systems authored in shared CSS (de-carded, tap targets, decorative emoji hidden)',
   /PICKER \+ INTAKE\s+\(dx-\*/.test(_dgSys) && /QUIZ\s+\(dq-\*/.test(_dgSys) &&
   /\.dx-intensity-btn-emoji\s*\{\s*display:\s*none/.test(_dgSys) &&
