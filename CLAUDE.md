@@ -112,6 +112,7 @@ npx playwright test              # E2E (tests/e2e/app.spec.js)
 
 | Version | Features Added |
 |---|---|
+| v7.51.1 | En/em-dash cleanup in cert-app visible copy (readiness scale, drills note, exam abandon, quota line, Pro modal) |
 | v7.51.0 | Forged-bronze audit sweep — cert-app brand/emoji/dark-mode fixes + ACL hint-modal close handler |
 | v7.50.0 | Why-Not — second flagship drill: score the reasons, not just the answer; combined landing section |
 | v7.49.0 | Gauntlet run topic strip — the topic shows above the ladder throughout the run |

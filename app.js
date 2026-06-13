@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v7.51.0
+// Network+ AI Quiz — app.js  v7.51.1
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '7.51.0';
+const APP_VERSION = '7.51.1';
 // v4.99.45 (Phase 6b): expose APP_VERSION on window so the web-vitals
 // collector (lib/web-vitals-collector.js, loaded BEFORE app.js so its
 // PerformanceObservers attach earlier) can stamp this version onto every
@@ -5468,7 +5468,7 @@ function renderDiagnosticResult() {
   const rangeEl = document.getElementById('pass-plan-prob-range');
   const lowerPct = Math.round((1 / (1 + Math.exp(-((p.lowerBound - EXAM_PASS_SCORE) / (p.ciHalfWidth / 1.645))))) * 100);
   const upperPct = Math.round((1 / (1 + Math.exp(-((p.upperBound - EXAM_PASS_SCORE) / (p.ciHalfWidth / 1.645))))) * 100);
-  if (rangeEl) rangeEl.textContent = lowerPct + ' – ' + upperPct + '%';
+  if (rangeEl) rangeEl.textContent = lowerPct + '-' + upperPct + '%';
   const predEl = document.getElementById('pass-plan-predicted-score');
   if (predEl) predEl.textContent = p.predicted + ' / 870';
   const dataConfEl = document.getElementById('pass-plan-data-confidence');
@@ -7884,7 +7884,7 @@ async function startExam() {
   // and size gates below only matter for Pro edge states now.
   if (!_gateProOnly('The Exam Simulator', {
     title: 'The Exam Simulator is a Pro feature',
-    body: '90 questions against a 90-minute clock, scored 100–900 like test day. Free covers your daily practice; the full rehearsal is Pro.'
+    body: '90 questions against a 90-minute clock, scored 100-900 like test day. Free covers your daily practice; the full rehearsal is Pro.'
   })) return;
   if (!_gateActivityForQuota('exam simulator')) return;
   if (!_gateSessionSizeForQuota(90, { mode: 'exam' })) return;
