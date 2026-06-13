@@ -610,7 +610,7 @@ html[data-theme] body #custom-quiz-section[open]>.custom-quiz-summary{display:fl
 #custom-quiz-section[open]>.custom-quiz-summary::after{content:"\2715";font-family:Inter,-apple-system,sans-serif;font-size:15px;font-weight:600;color:var(--text-dim);width:32px;height:32px;display:grid;place-items:center;border:1px solid var(--border);border-radius:9px;flex:none;}
 @media (hover:hover) and (pointer:fine){#custom-quiz-section[open]>.custom-quiz-summary:hover::after{color:var(--accent);border-color:color-mix(in oklab,var(--accent) 45%,var(--border));}}
 #custom-quiz-section .adv-hint{font-family:Inter,-apple-system,sans-serif;font-size:11.5px;font-weight:600;color:var(--text-dim);letter-spacing:0;}
-html[data-theme] body #custom-quiz-section[open]>.custom-quiz-body{max-height:min(82vh,680px);overflow-y:auto;background:var(--surface);border:1px solid var(--border);border-radius:0 0 16px 16px;padding:24px clamp(20px,2.4vw,28px) 0;box-shadow:0 40px 80px -34px rgba(0,0,0,.5);}
+html[data-theme] body #custom-quiz-section[open]>.custom-quiz-body{max-height:min(82vh,680px);overflow-y:auto;background:var(--surface);border:1px solid var(--border);border-radius:0 0 16px 16px;padding:24px clamp(20px,2.4vw,28px) 0;box-shadow:0 40px 80px -34px color-mix(in oklab, var(--text) 40%, transparent);}
 #custom-quiz-section .cq-section-ico,#custom-quiz-section .cq-mode-ico,#custom-quiz-section .cq-generate-ico{display:none;}
 html[data-theme] body #custom-quiz-section .cq-section-title{font-family:'Fraunces',Georgia,serif;font-size:var(--t1);font-weight:600;letter-spacing:-0.01em;color:var(--text);}
 #custom-quiz-section[open] #topic-group{display:grid;grid-template-columns:1fr 1fr;gap:10px 22px;align-items:start;}
@@ -1488,7 +1488,7 @@ html[data-theme] body #page-quiz .q-card{max-width:780px;margin:0 auto;backgroun
 html[data-theme] body #page-quiz .diff-badge{font-size:10px!important;font-weight:800!important;letter-spacing:0.12em!important;text-transform:uppercase!important;color:var(--accent)!important;background:none!important;border:0!important;padding:0!important;border-radius:0!important;}
 html[data-theme] body #page-quiz .pbq-badge{font-size:10px;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-dim);background:none!important;border:1px solid var(--border)!important;border-radius:999px;padding:3px 9px!important;}
 html[data-theme] body #page-quiz .q-text{font-size:var(--t2)!important;font-weight:800!important;letter-spacing:-0.02em!important;line-height:1.35!important;color:var(--text)!important;margin-bottom:26px!important;}
-html[data-theme] body #page-quiz .q-scenario{background:color-mix(in oklab,var(--accent) 5%,transparent)!important;border:1px solid var(--dg-rule-soft)!important;border-left:2px solid var(--accent)!important;border-radius:10px!important;padding:14px 16px!important;margin-bottom:20px!important;font-size:var(--t-1);color:var(--text-mid);box-shadow:none!important;}
+html[data-theme] body #page-quiz .q-scenario{background:color-mix(in oklab,var(--accent) 5%,transparent)!important;border:1px solid color-mix(in oklab, var(--accent) 22%, var(--border))!important;border-radius:10px!important;padding:14px 16px!important;margin-bottom:20px!important;font-size:var(--t-1);color:var(--text-mid);box-shadow:none!important;}
 
 /* options — hairline rows; correct = pass-tint + pass rule (not a big card) */
 #page-quiz .options{display:block;}
@@ -1503,7 +1503,7 @@ html[data-theme] body #page-quiz .option.wrong .opt-letter{background:var(--red)
 html[data-theme] body #page-quiz .option.exam-selected,html[data-theme] body #page-quiz .option.ms-selected,html[data-theme] body #page-quiz .option.selected{border-color:var(--accent)!important;background:color-mix(in oklab,var(--accent) 8%,transparent)!important;color:var(--text)!important;}
 
 /* explanation — quiet bordered block */
-html[data-theme] body #page-quiz .explanation-box{margin-top:18px!important;background:color-mix(in oklab,var(--green) 5%,transparent)!important;border:1px solid var(--dg-rule-soft)!important;border-left:2px solid var(--green)!important;border-radius:10px!important;padding:18px 20px!important;box-shadow:none!important;color:var(--text-mid)!important;}
+html[data-theme] body #page-quiz .explanation-box{margin-top:18px!important;background:color-mix(in oklab,var(--green) 5%,transparent)!important;border:1px solid color-mix(in oklab, var(--green) 22%, var(--border))!important;border-radius:10px!important;padding:18px 20px!important;box-shadow:none!important;color:var(--text-mid)!important;}
 #page-quiz .explanation-box.is-hidden{display:none!important;}
 html[data-theme] body #page-quiz #exp-label{display:block;font-size:var(--t-1);font-weight:800;color:var(--green)!important;margin-bottom:9px;}
 #page-quiz #exp-text{font-size:var(--t0);line-height:1.65;color:var(--text-mid);}
@@ -2453,7 +2453,7 @@ html[data-theme] body .tad-cert-code{font-size:10.5px!important;color:var(--text
 html[data-theme] body .tad-cert-tier-pill{margin-left:auto!important;display:inline-block!important;font-size:9.5px!important;font-weight:800!important;letter-spacing:0.08em!important;color:var(--accent)!important;background:color-mix(in oklab,var(--accent) 12%,transparent)!important;border:1px solid color-mix(in oklab,var(--accent) 30%,transparent)!important;border-radius:999px!important;padding:2px 7px!important;text-transform:uppercase!important;line-height:1!important;}
 html[data-theme] body .tad-cert-check{color:var(--accent)!important;}
 /* v7.8.1 — cert lettermark glyph tile in switcher dropdown */
-html[data-theme] body .tad-cert-glyph{flex:none!important;width:30px!important;height:30px!important;border-radius:8px!important;background-color:#FFFBF3!important;border:1px solid var(--border)!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;font-family:'Fraunces',Georgia,serif!important;font-weight:600!important;font-size:13px!important;line-height:1!important;letter-spacing:-.02em!important;color:var(--text)!important;}
+html[data-theme] body .tad-cert-glyph{flex:none!important;width:30px!important;height:30px!important;border-radius:8px!important;background-color:color-mix(in oklab, var(--accent) 6%, var(--surface))!important;border:1px solid var(--border)!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;font-family:'Fraunces',Georgia,serif!important;font-weight:600!important;font-size:13px!important;line-height:1!important;letter-spacing:-.02em!important;color:var(--text)!important;}
 html[data-theme] body .tad-cert-glyph .cg{display:inline-flex!important;align-items:baseline!important;white-space:nowrap!important;}
 html[data-theme] body .tad-cert-glyph .cg-ac{color:var(--accent)!important;}
 html[data-theme] body .tad-cert-glyph .cg-sup{font-size:.55em!important;align-self:flex-start!important;color:var(--accent)!important;font-weight:700!important;margin-left:.5px!important;}
@@ -2479,8 +2479,8 @@ html[data-theme] body #page-web-vitals .wv-card.wv-good{background:none!importan
 html[data-theme] body #page-web-vitals .wv-card.wv-mid{background:none!important;border-color:var(--border)!important;}
 html[data-theme] body #page-web-vitals .wv-card.wv-bad{background:none!important;border-color:var(--border)!important;}
 html[data-theme] body #page-web-vitals .wv-card.wv-good .wv-card-value{color:var(--green)!important;}
-html[data-theme] body #page-web-vitals .wv-card.wv-mid .wv-card-value{color:var(--yellow,#fbbf24)!important;}
-html[data-theme] body #page-web-vitals .wv-card.wv-bad .wv-card-value{color:var(--red,#f87171)!important;}
+html[data-theme] body #page-web-vitals .wv-card.wv-mid .wv-card-value{color:var(--yellow)!important;}
+html[data-theme] body #page-web-vitals .wv-card.wv-bad .wv-card-value{color:var(--red)!important;}
 html[data-theme] body #page-web-vitals .wv-card-sub{font-size:10px!important;color:var(--text-dim)!important;font-weight:600!important;margin-top:9px!important;}
 html[data-theme] body #page-web-vitals .wv-meta{font-size:11px!important;color:var(--text-dim)!important;text-align:right!important;margin-top:10px!important;}
 html[data-theme] body #page-web-vitals .wv-section{margin-top:36px!important;}
@@ -2491,8 +2491,8 @@ html[data-theme] body #page-web-vitals .wv-row-label{font-weight:700!important;c
 html[data-theme] body #page-web-vitals .wv-row-meta{font-size:11px!important;color:var(--text-dim)!important;}
 html[data-theme] body #page-web-vitals .wv-row-val{font-weight:700!important;font-variant-numeric:tabular-nums!important;}
 html[data-theme] body #page-web-vitals .wv-row-val.wv-good{color:var(--green)!important;}
-html[data-theme] body #page-web-vitals .wv-row-val.wv-mid{color:var(--yellow,#fbbf24)!important;}
-html[data-theme] body #page-web-vitals .wv-row-val.wv-bad{color:var(--red,#f87171)!important;}
+html[data-theme] body #page-web-vitals .wv-row-val.wv-mid{color:var(--yellow)!important;}
+html[data-theme] body #page-web-vitals .wv-row-val.wv-bad{color:var(--red)!important;}
 html[data-theme] body #page-web-vitals .wv-row-val.wv-na{color:var(--text-dim)!important;font-weight:600!important;}
 html[data-theme] body #page-web-vitals .wv-table-wrap{overflow-x:auto!important;background:none!important;border:1px solid var(--border)!important;border-radius:12px!important;box-shadow:none!important;margin-top:4px!important;}
 html[data-theme] body #page-web-vitals .wv-table{width:100%!important;border-collapse:collapse!important;font-size:12px!important;min-width:720px!important;}
@@ -2503,7 +2503,7 @@ html[data-theme] body #page-web-vitals .wv-table tbody tr:hover{background:color
 html[data-theme] body #page-web-vitals .wv-table tr:last-child td{border-bottom:0!important;}
 html[data-theme] body #page-web-vitals .wv-table td:first-child{color:var(--text)!important;font-weight:600!important;}
 html[data-theme] body #page-web-vitals .wv-loading,html[data-theme] body #page-web-vitals .wv-empty,html[data-theme] body #page-web-vitals .wv-error{background:none!important;border:1px solid var(--border)!important;border-radius:12px!important;padding:32px 24px!important;font-size:13px!important;color:var(--text-dim)!important;text-align:center!important;box-shadow:none!important;}
-html[data-theme] body #page-web-vitals .wv-error{color:var(--red,#f87171)!important;border-color:color-mix(in oklab,var(--red,#f87171) 30%,transparent)!important;}
+html[data-theme] body #page-web-vitals .wv-error{color:var(--red)!important;border-color:color-mix(in oklab,var(--red) 30%,transparent)!important;}
 
 /* ── P1: Global primitives de-purple ── */
 html[data-theme] body *:focus-visible{box-shadow:0 0 0 4px color-mix(in oklab,var(--accent) 20%,transparent)!important;outline:none!important;}
@@ -2552,7 +2552,7 @@ html[data-theme] body #page-diagnostic-result .pass-plan-final-cta .btn-primary{
 html[data-theme] body #page-monitor h2{font-size:22px!important;font-weight:800!important;letter-spacing:-.02em!important;color:var(--text)!important;}
 html[data-theme] body #page-monitor .btn-ghost{background:none!important;border:1px solid var(--border)!important;border-radius:8px!important;color:var(--text-dim)!important;font-weight:600!important;}
 html[data-theme] body #page-monitor .btn-ghost:hover{border-color:var(--accent)!important;color:var(--accent)!important;}
-html[data-theme] body #page-monitor .btn-danger{background:none!important;border:1px solid color-mix(in oklab,var(--red,#f87171) 40%,transparent)!important;border-radius:8px!important;color:var(--red,#f87171)!important;box-shadow:none!important;}
+html[data-theme] body #page-monitor .btn-danger{background:none!important;border:1px solid color-mix(in oklab,var(--red) 40%,transparent)!important;border-radius:8px!important;color:var(--red)!important;box-shadow:none!important;}
 html[data-theme] body #page-monitor .monitor-log{background:none!important;border:1px solid var(--border)!important;border-radius:10px!important;box-shadow:none!important;}
 
 /* ── P7: Inline purple overrides ── */
@@ -3203,7 +3203,7 @@ html[data-theme] body #page-setup .modal-scrim{position:fixed;inset:0;background
 #page-setup .modal-scrim.open{opacity:1;visibility:visible;transition:opacity .3s ease,visibility .3s}
 html[data-theme] body #page-setup .modal{position:fixed;z-index:50;left:50%;top:50%;width:min(540px,94vw);max-height:88dvh;
   display:flex;flex-direction:column;overflow:hidden;
-  background:var(--surface)!important;border:1px solid var(--border)!important;border-radius:20px!important;padding:0!important;box-shadow:0 40px 90px -40px rgba(0,0,0,.7);
+  background:var(--surface)!important;border:1px solid var(--border)!important;border-radius:20px!important;padding:0!important;box-shadow:0 40px 90px -40px color-mix(in oklab, var(--text) 45%, transparent);
   transform-origin:var(--mox,80%) var(--moy,90%);
   transform:translate(-50%,-50%) scale(.955);opacity:0;visibility:hidden;
   transition:transform .2s var(--ease-out),opacity .16s ease,visibility .2s}

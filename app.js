@@ -443,7 +443,7 @@ async function _claudeFetch(init) {
   }
 
   // No session, no key — surface a sign-in nag
-  var err = new Error('Sign in to study — 15 free questions/day at certanvil.com.');
+  var err = new Error('Sign in to study · 15 free questions/day at certanvil.com.');
   err.needsAuth = true;
   throw err;
 }
@@ -524,7 +524,7 @@ function _renderQuotaChip() {
   }
 
   el.innerHTML = iconHtml + '<span class="quota-chip-label">' + labelText + '</span>' + barHtml;
-  el.setAttribute('title', labelText + ' — click for details');
+  el.setAttribute('title', labelText + ' · click for details');
 
   // v4.99.6 Phase E.5: chip click → tooltip with reset countdown + upgrade CTA.
   // Wire once (replace handler so re-renders don't stack).
@@ -956,7 +956,7 @@ document.addEventListener('click', function (e) {
     if (typeof _gateProOnly === 'function') {
       _gateProOnly('Bigger sets', {
         title: 'Bigger sets are a Pro feature',
-        body: 'Free tops out at 15 questions a set — your whole daily allowance in one go. Pro goes as big as you like.'
+        body: 'Free tops out at 15 questions a set · your whole daily allowance in one go. Pro goes as big as you like.'
       });
     }
   }
@@ -1808,7 +1808,7 @@ function saveGhToken() {
   // Don't save the masked placeholder
   if (token === '••••••••••••••••') return;
   if (token && !token.startsWith('ghp_') && !token.startsWith('github_pat_')) {
-    showErrorToast('Invalid token — must start with ghp_ or github_pat_');
+    showErrorToast('Invalid token · must start with ghp_ or github_pat_');
     return;
   }
   if (token) {
@@ -2563,7 +2563,7 @@ function saveToHistory(entry) {
     if (h.length > HISTORY_CAP) h.length = HISTORY_CAP;
     localStorage.setItem(STORAGE.HISTORY, JSON.stringify(h));
     _cloudFlush(STORAGE.HISTORY);
-  } catch { showToast('Storage full — history not saved', 'error'); }
+  } catch { showToast('Storage full · history not saved', 'error'); }
 }
 
 // v4.50.1: polished Recent Performance card — domain-color dot per row,
@@ -3573,7 +3573,7 @@ function loadWrongBank() {
   try { return JSON.parse(localStorage.getItem(STORAGE.WRONG_BANK) || '[]'); } catch { return []; }
 }
 function saveWrongBank(bank) {
-  try { localStorage.setItem(STORAGE.WRONG_BANK, JSON.stringify(bank)); _cloudFlush(STORAGE.WRONG_BANK); } catch { showToast('Storage full — wrong bank not saved', 'error'); }
+  try { localStorage.setItem(STORAGE.WRONG_BANK, JSON.stringify(bank)); _cloudFlush(STORAGE.WRONG_BANK); } catch { showToast('Storage full · wrong bank not saved', 'error'); }
 }
 
 function addToWrongBank(q, chosen) {
@@ -3694,7 +3694,7 @@ function loadSrQueue() {
 }
 function saveSrQueue(queue) {
   try { localStorage.setItem(STORAGE.SR_QUEUE, JSON.stringify(queue)); _cloudFlush(STORAGE.SR_QUEUE); }
-  catch { showToast('Storage full — SR queue not saved', 'error'); }
+  catch { showToast('Storage full · SR queue not saved', 'error'); }
 }
 
 // Stable hash for question identity. Reuses the djb2 + base36 pattern
@@ -4117,7 +4117,7 @@ function startSrReview() {
   if (typeof _srIsFreeTier === 'function' && _srIsFreeTier()) {
     const _freeLeft = Math.max(0, SR_FREE_DAILY_CAP - _srFreeReviewedToday());
     if (_freeLeft === 0) {
-      showToast("Today's " + SR_FREE_DAILY_CAP + ' free reviews are done. ' + due.length + ' card' + (due.length === 1 ? ' is' : 's are') + ' saved for tomorrow — Pro clears the whole queue daily.', 'info');
+      showToast("Today's " + SR_FREE_DAILY_CAP + ' free reviews are done. ' + due.length + ' card' + (due.length === 1 ? ' is' : 's are') + ' saved for tomorrow · Pro clears the whole queue daily.', 'info');
       return;
     }
     _srCap = Math.min(_srCap, _freeLeft);
@@ -4379,7 +4379,7 @@ function _renderSrCard() {
         ? '<div class="sr-explanation"><strong>Why:</strong> ' + escHtml(card.explanation) + '</div>'
         : '';
       confidenceHtml = '<div class="sr-self-grade-banner">'
-        + 'No saved answer key for this card — read the explanation, then mark how you actually did.'
+        + 'No saved answer key for this card · read the explanation, then mark how you actually did.'
         + '</div>'
         + explanation
         + '<div class="sr-confidence-row">'
@@ -4595,7 +4595,7 @@ function _srEndReview() {
         // GAP-1: today's 5 free reviews are spent — gentle queue note instead
         // of a Continue button that would bounce off the cap.
         html += '<div class="sr-remaining-row">'
-          + '<span class="sr-remaining-text">' + remaining + ' more card' + (remaining === 1 ? '' : 's') + ' waiting — ready tomorrow. Pro clears the whole queue daily.</span>'
+          + '<span class="sr-remaining-text">' + remaining + ' more card' + (remaining === 1 ? '' : 's') + ' waiting · ready tomorrow. Pro clears the whole queue daily.</span>'
           + '<a class="btn btn-primary sr-continue-btn" href="https://certanvil.com/pricing" target="_blank" rel="noopener">Go Pro →</a>'
           + '</div>';
       } else {
@@ -4804,7 +4804,7 @@ function loadDiagnostic() {
 }
 function saveDiagnostic(d) {
   try { localStorage.setItem(STORAGE.DIAGNOSTIC, JSON.stringify(d)); _cloudFlush(STORAGE.DIAGNOSTIC); }
-  catch { showToast('Storage full — diagnostic not saved', 'error'); }
+  catch { showToast('Storage full · diagnostic not saved', 'error'); }
 }
 
 // Days remaining until the user can retake. 0 = retake available now.
@@ -4860,7 +4860,7 @@ async function startDiagnostic(opts) {
   if (!opts.skipConfirm && !confirm('Take the Baseline Diagnostic? 20 questions, ~30 minutes, single sitting. You can quit mid-flow but progress will be lost.')) return;
 
   showPage('loading');
-  if (typeof showLoading === 'function') showLoading('Generating your diagnostic — ' + N + ' calibrated questions…');
+  if (typeof showLoading === 'function') showLoading('Generating your diagnostic · ' + N + ' calibrated questions…');
   // v4.82.1: smooth loading bar across the diagnostic flow too.
   _loadingProgressBegin('Generating diagnostic questions…');
 
@@ -5030,7 +5030,7 @@ function _refreshDiagnosticActions() {
     if (ready) {
       hint.textContent = _diagnosticSession.currentIdx === _diagnosticSession.questions.length - 1
         ? 'Submit final answer to see your Pass Plan'
-        : 'Locked in — go to next question';
+        : 'Locked in · go to next question';
     } else if (_diagnosticSession.pickedLetter === null) {
       hint.textContent = 'Pick an answer';
     } else {
@@ -5068,7 +5068,7 @@ function submitDiagnosticAnswer() {
 
 function quitDiagnostic() {
   if (!_diagnosticSession) { goSetup(); return; }
-  if (!confirm('Quit the diagnostic? Your progress will be lost — you\'ll need to retake from the start.')) return;
+  if (!confirm('Quit the diagnostic? Your progress will be lost · you\'ll need to retake from the start.')) return;
   _diagnosticStopTimer();
   _diagnosticSession = null;
   goSetup();
@@ -5561,7 +5561,7 @@ function retakeDiagnostic() {
   if (_isCorruptedPassPlan(record)) {
     // Auto-bypass: the stored Plan is from a known bug version
     if (typeof showToast === 'function') {
-      showToast('Your last Pass Plan was affected by a fixed bug — retaking now', 'info', 4000);
+      showToast('Your last Pass Plan was affected by a fixed bug · retaking now', 'info', 4000);
     }
     startDiagnostic();
     return;
@@ -5619,7 +5619,7 @@ function renderDiagnosticSurface() {
       if (_isCorruptedPassPlan(record)) {
         retake.textContent = 'Retake (fix bug result)';
         retake.classList.remove('pass-plan-tile-cooldown');
-        retake.title = 'Your last Pass Plan was affected by a known bug — click to retake immediately';
+        retake.title = 'Your last Pass Plan was affected by a known bug · click to retake immediately';
         // Override the sub-line too — show the user this isn't a real result
         if (sub) sub.textContent = '⚠ Last Pass Plan affected by a fixed bug · click "Retake" to get a real result';
       } else {
@@ -6333,7 +6333,7 @@ function drillMistakesFromResults() {
   // v7.46.0: Drill Mistakes is Pro-only — same gate as startWrongDrill
   if (typeof _gateProOnly === 'function' && !_gateProOnly('Drill Mistakes', {
     title: 'Drill Mistakes is a Pro feature',
-    body: 'Re-run the questions you got wrong until they stick. Your wrong-answer bank keeps saving either way — the drill itself is Pro.'
+    body: 'Re-run the questions you got wrong until they stick. Your wrong-answer bank keeps saving either way · the drill itself is Pro.'
   })) return;
   if (!Array.isArray(log) || log.length === 0) return;
   const wrongEntries = log.filter(e => e && e.isRight === false);
@@ -6472,7 +6472,7 @@ async function startWrongDrill() {
   // v7.46.0: Drill Mistakes is Pro-only (Simi, 2026-06-11)
   if (typeof _gateProOnly === 'function' && !_gateProOnly('Drill Mistakes', {
     title: 'Drill Mistakes is a Pro feature',
-    body: 'Your missed questions come back re-worded, so you beat the concept — not the question. The bank keeps saving either way; the drill itself is Pro.'
+    body: 'Your missed questions come back re-worded, so you beat the concept · not the question. The bank keeps saving either way; the drill itself is Pro.'
   })) return;
   const bank = loadWrongBank();
   if (bank.length === 0) {
@@ -6539,7 +6539,7 @@ async function startWrongDrill() {
       });
     } catch (_) {
       // Verbatim fallback — say so honestly, then run the drill as before.
-      try { if (typeof showToast === 'function') showToast('Couldn’t re-word this time — running your saved questions as-is.', 'info'); } catch (_) {}
+      try { if (typeof showToast === 'function') showToast('Couldn’t re-word this time · running your saved questions as-is.', 'info'); } catch (_) {}
     }
     if (typeof _loadingProgressFinish === 'function') { try { _loadingProgressFinish(); } catch (_) {} }
   }
@@ -6873,7 +6873,7 @@ function _finishGauntlet() {
       });
       localStorage.setItem(STORAGE.GAUNTLET_CRACKED, JSON.stringify(list));
       _cloudFlush(STORAGE.GAUNTLET_CRACKED);
-    } catch (_) { try { showToast('Storage full — crack not saved', 'error'); } catch (_) {} }
+    } catch (_) { try { showToast('Storage full · crack not saved', 'error'); } catch (_) {} }
   }
   try { if (typeof _writeReadinessSnapshot === 'function') _writeReadinessSnapshot(); } catch (_) {}
   try { renderStatsCard(); renderReadinessCard(); } catch (_) {}
@@ -7478,7 +7478,7 @@ async function startQuiz() {
   if (qCount > 15 && typeof _srIsFreeTier === 'function' && _srIsFreeTier()) {
     if (!_gateProOnly('Bigger sets', {
       title: 'Bigger sets are a Pro feature',
-      body: 'Free tops out at 15 questions a set — your whole daily allowance in one go. Pro goes as big as you like.'
+      body: 'Free tops out at 15 questions a set · your whole daily allowance in one go. Pro goes as big as you like.'
     })) return;
   }
   if (!_gateSessionSizeForQuota(qCount, { mode: 'quiz' })) return;
@@ -11837,7 +11837,7 @@ function applyPreset(name) {
     grind: {
       feature: 'The 20-min Deep Scan',
       title: 'The Deep Scan is a Pro feature',
-      body: '20 exam-level questions across every topic in one sitting — more than the free day holds.'
+      body: '20 exam-level questions across every topic in one sitting · more than the free day holds.'
     },
     bulk30: {
       feature: 'The 30-question marathon',
@@ -14720,7 +14720,7 @@ function saveReport(questionText, reason) {
     reports.push({ question: questionText, reason, date: new Date().toISOString() });
     if (reports.length > REPORTS_CAP) reports.splice(0, reports.length - REPORTS_CAP);
     localStorage.setItem(STORAGE.REPORTS, JSON.stringify(reports));
-  } catch { showToast('Storage full — report not saved', 'error'); }
+  } catch { showToast('Storage full · report not saved', 'error'); }
 }
 
 function getReportCount(questionText) {
@@ -15807,7 +15807,7 @@ function copyCmd(event, cmd) {
       btn.textContent = old;
       btn.classList.remove('terminal-card-copied');
     }, 1200);
-  }).catch(() => showErrorToast('Copy failed — select the command manually.'));
+  }).catch(() => showErrorToast('Copy failed · select the command manually.'));
 }
 
 // Render a single terminal-card HTML block for a {cmd, note} object.
@@ -16807,7 +16807,7 @@ function _startReadinessRefreshQuiz() {
   try {
     const r = (typeof getReadinessScore === 'function') ? getReadinessScore() : null;
     if (!r || !Array.isArray(r.staleTopics) || r.staleTopics.length === 0) {
-      if (typeof showToast === 'function') showToast('No stale topics to refresh — keep practising the rotation.', 'info');
+      if (typeof showToast === 'function') showToast('No stale topics to refresh · keep practising the rotation.', 'info');
       return;
     }
     const stale = r.staleTopics.slice(0, 8);
@@ -16847,7 +16847,7 @@ function _startReadinessWeakestQuiz() {
   try {
     const r = (typeof getReadinessScore === 'function') ? getReadinessScore() : null;
     if (!r || !Array.isArray(r.whatIf) || r.whatIf.length === 0) {
-      if (typeof showToast === 'function') showToast('No weak topics identified yet — keep studying to surface them.', 'info');
+      if (typeof showToast === 'function') showToast('No weak topics identified yet · keep studying to surface them.', 'info');
       return;
     }
     const weak = r.whatIf.slice(0, 3);
@@ -17284,7 +17284,7 @@ function _renderAnaDomainMasteryRow(d, data, tierInfo) {
 // domain. Unstudied domains get a "Not started" state with a prompt.
 function _renderAnaDomainMastery(h) {
   const domains = [
-    { id: 'concepts',        label: '1.0 Networking Concepts',     weight: 23, color: '#7c6ff7' },
+    { id: 'concepts',        label: '1.0 Networking Concepts',     weight: 23, color: 'oklch(0.50 0.155 55)' },
     { id: 'implementation',  label: '2.0 Network Implementation',  weight: 20, color: '#22c55e' },
     { id: 'operations',      label: '3.0 Network Operations',      weight: 19, color: '#3b82f6' },
     { id: 'security',        label: '4.0 Network Security',        weight: 14, color: '#f59e0b' },

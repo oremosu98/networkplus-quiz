@@ -3,13 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>CertAnvil — AI cert practice</title>
+<title>CertAnvil · AI cert practice</title>
 <meta name="theme-color" content="#0a0a12">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="CertAnvil">
-<meta name="description" content="CertAnvil — AI-powered CompTIA cert practice. Network+ (N10-009) + Security+ (SY0-701) live. Custom quizzes, 90-Q exam simulator, baseline diagnostic, performance analytics. Built by an exam-passer.">
+<meta name="description" content="CertAnvil · AI-powered CompTIA cert practice. Network+ (N10-009) + Security+ (SY0-701) live. Custom quizzes, 90-Q exam simulator, baseline diagnostic, performance analytics. Built by an exam-passer.">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="apple-touch-icon" href="favicon.svg">
@@ -32,7 +32,7 @@
   html[data-theme="light"] body { color: #1a1a2e; }
 </style>
 <link rel="stylesheet" href="styles.css">
-<link rel="stylesheet" href="dg-system.css?v=7.50.0">
+<link rel="stylesheet" href="dg-system.css?v=7.50.1">
 <link rel="stylesheet" href="dg-depurple.css?v=7.13.5">
 <!-- v7.36.1: the cert-ios lift is viewport-gated — phone/tablet-portrait
      viewports get the mockup column + tab bar; desktop keeps the classic
@@ -138,20 +138,20 @@
   // v7.3.0: AZ-900 branch added for "CertAnvil — Azure Fundamentals".
   try {
     document.title = (cert === 'secplus')
-      ? 'CertAnvil — Security+'
+      ? 'CertAnvil · Security+'
       : (cert === 'az900')
-        ? 'CertAnvil — Azure Fundamentals'
+        ? 'CertAnvil · Azure Fundamentals'
         : (cert === 'ai900')
-          ? 'CertAnvil — Azure AI Fundamentals'
+          ? 'CertAnvil · Azure AI Fundamentals'
           : (cert === 'sc900')
-            ? 'CertAnvil — SC-900'
+            ? 'CertAnvil · SC-900'
             : (cert === 'clfc02')
-              ? 'CertAnvil — AWS Cloud Practitioner'
+              ? 'CertAnvil · AWS Cloud Practitioner'
             : (cert === 'aplus-core1')
-              ? 'CertAnvil — A+ Core 1'
+              ? 'CertAnvil · A+ Core 1'
               : (cert === 'aplus-core2')
-                ? 'CertAnvil — A+ Core 2'
-                : 'CertAnvil — Network+';
+                ? 'CertAnvil · A+ Core 2'
+                : 'CertAnvil · Network+';
   } catch (e) {}
   // v4.99.30: synchronous active-cert-pack load. document.write before
   // </head> with the body still parsing — the browser blocks parsing on
@@ -1017,7 +1017,7 @@
          re-pick. Populated by _renderRevisitBanner(). -->
     <div class="quiz-revisit-banner is-hidden" id="quiz-revisit-banner" role="note">
       <span class="revisit-banner-icon" aria-hidden="true">&#9999;&#65039;</span>
-      <span class="revisit-banner-text">Revisiting — pick again to change your answer. Score updates; streak stays.</span>
+      <span class="revisit-banner-text">Revisiting · pick again to change your answer. Score updates; streak stays.</span>
     </div>
     <div class="next-btn-row">
       <button class="btn-next" id="btn-next">Next &#8594;</button>
@@ -1259,7 +1259,7 @@
   <div class="drills-sect">Drill by domain</div>
   <div id="drills-domain-list"></div>
 
-  <p class="drills-foot-note">Drills don't touch your daily review queue — those cards stay scheduled.</p>
+  <p class="drills-foot-note">Drills don't touch your daily review queue · those cards stay scheduled.</p>
 </div>
 
 <!-- ══════════════════════════════════════════
