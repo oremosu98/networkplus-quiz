@@ -1787,6 +1787,12 @@ html[data-theme] body #page-settings .ed-pagehead-back:hover{border-color:var(--
 #page-settings [data-group="data-backups"] section.settings-section:nth-of-type(1){grid-column:span 5;}
 #page-settings [data-group="data-backups"] section.settings-section:nth-of-type(2){grid-column:span 7;}
 #page-settings .settings-group-danger .settings-section{grid-column:1 / -1;}
+/* v7.53.1: Pass Plan section spans the full settings grid (was defaulting to span 1 = squished on desktop). */
+#page-settings [data-group="passplan"] section.settings-section{grid-column:1 / -1;}
+/* keep a lone plan card / empty-state / upsell to a tidy column width so the full-width section is not sparse;
+   the multi-plan list (installed app) can use the full width. */
+#page-settings [data-group="passplan"] .plan-card,
+#page-settings [data-group="passplan"] .locked-certs{max-width:560px;}
 @media (max-width:820px){
   #page-settings .settings-group{grid-template-columns:1fr;}
   #page-settings .settings-group .settings-section{grid-column:1 / -1 !important;}
