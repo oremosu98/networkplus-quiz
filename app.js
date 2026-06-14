@@ -5417,7 +5417,7 @@ function _renderPassPlanWeakDomains(p) {
   if (!weakHost) return;
   weakHost.innerHTML = p.weakDomains.map(d => {
     const accPct = Math.round(d.accuracy * 100);
-    const onclick = "focusFirstTopicInDomain('" + d.key + "')";
+    const onclick = "_drillWeakDomainToBuilder('" + d.key + "')";
     return '<div class="pass-plan-weak-row">' +
       '<div class="pass-plan-weak-info">' +
       '<div class="pass-plan-weak-name">' + escHtml(d.label) + '</div>' +
@@ -6346,6 +6346,18 @@ function _setWarmupTopic(topic) {
 }
 
 // Helper: scroll-into-view + open the Custom Quiz details panel.
+// v7.52.0: informational quota line in the Custom Quiz builder — free tier only.
+function _renderBuilderQuotaLine() {
+  const el = document.getElementById('cq-quota-line');
+  if (!el) return;
+  if (_srIsFreeTier()) {
+    el.textContent = 'Free plan · ' + _quotaRemainingToday() + ' of ' + _quotaState.daily_limit + ' questions left today';
+    el.hidden = false;
+  } else {
+    el.hidden = true;
+  }
+}
+
 function _jumpToCustomQuiz() {
   // v5.5.4: Custom Quiz is a modal — _cqModalInit portals it to <body> on
   // open so position:fixed can't be broken by an ancestor. Just open it;
@@ -6354,6 +6366,7 @@ function _jumpToCustomQuiz() {
     const cq = document.getElementById('custom-quiz-section');
     if (cq && !cq.open) cq.open = true;
   } catch (_) {}
+  _renderBuilderQuotaLine();
 }
 
 // v5.5.4: Custom Quiz modal — portal + dismissals. The <details> 'toggle'
@@ -12496,6 +12509,18 @@ function prefillDomainTopics(domainKey) {
   // Refresh the Custom Quiz summary bar + jump into view
   if (typeof updateCqSummaryBar === 'function') updateCqSummaryBar();
   if (typeof _jumpToCustomQuiz === 'function') _jumpToCustomQuiz();
+}
+
+// v7.52.0: open the Custom Quiz builder pre-loaded with a weak domain's topics (no auto-start).
+function _drillWeakDomainToBuilder(domainKey) {
+  prefillDomainTopics(domainKey);                  // selects topics + opens builder, no auto-start
+  const rem = _quotaRemainingToday();              // Infinity for Pro/admin; N for free
+  const want = (rem === Infinity) ? 15 : Math.max(5, Math.min(15, rem));
+  qCount = want;
+  document.querySelectorAll('#count-group .chip').forEach(c =>
+    c.classList.toggle('on', c.dataset.v === String(want)));
+  syncChipAriaPressed('#count-group');
+  _renderBuilderQuotaLine();
 }
 
 // ══════════════════════════════════════════

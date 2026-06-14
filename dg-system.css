@@ -540,6 +540,9 @@ html[data-theme] body #page-setup details.custom-quiz-section{background:none;bo
 html[data-theme] body #custom-quiz-section .cq-section-head{border-bottom:1px solid var(--border);}
 html[data-theme] body #custom-quiz-section .cq-section-title{color:var(--text-dim);}
 #custom-quiz-section .cq-section-ico,#custom-quiz-section .cq-mode-ico,#custom-quiz-section .cq-generate-ico{display:none!important;}
+/* v7.52.0: quota-aware builder line — bronze-tinted hairline pill (full border, symmetric radius). */
+html[data-theme] body #custom-quiz-section .cq-quota-line{display:block;font-size:11.5px;color:var(--text-mid);background:color-mix(in oklab,var(--accent) 6%,var(--bg));border:1px solid color-mix(in oklab,var(--accent) 22%,var(--border));border-radius:var(--radius-sm);padding:9px 12px;margin:0 0 14px;}
+html[data-theme] body #custom-quiz-section .cq-quota-line[hidden]{display:none!important;}
 html[data-theme] body #custom-quiz-section .topic-quickpicks{border-bottom:1px solid var(--border);}
 html[data-theme] body #custom-quiz-section .topic-domain-prefill{border-bottom:1px solid var(--border);}
 

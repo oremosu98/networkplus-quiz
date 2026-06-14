@@ -8134,6 +8134,9 @@ test('Pro teaser has no pricing link', !_fnBody(js, '_showProWaitlist').includes
 test('account Pass Plan section', html.includes('id="passplan-section"'));
 test('Pass Plan section tier-aware', _fnBody(js, 'renderPassPlanSection').includes('_renderPassPlanProHtml'));
 test('Pro plan list uses snapshots', _fnBody(js, '_renderPassPlanProHtml').includes('_readReadinessSnapshots'));
+// v7.52.0: weak domains open the Custom Quiz builder pre-loaded (no auto-start) + quota-aware line
+test('weak drill opens builder (no autostart)', _fnBody(js, '_drillWeakDomainToBuilder').includes('prefillDomainTopics') && !_fnBody(js, '_drillWeakDomainToBuilder').includes('startQuiz('));
+test('builder quota line', html.includes('id="cq-quota-line"') && /function _renderBuilderQuotaLine\(/.test(js));
 test('getAvailableCerts exposed', /window\.getAvailableCerts\s*=/.test(authStateJs));
 test('readiness snapshot reader', /function _readReadinessSnapshots\(/.test(js));
 test('v4.81.0 Diagnostic: renderDiagnosticSurface function defined',
