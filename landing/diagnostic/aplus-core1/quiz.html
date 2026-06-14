@@ -21,11 +21,7 @@
 })();
 </script>
 
-<!-- v4.99.54 D.3: Cloudflare Turnstile invisible bot-protection challenge.
-     Site key is PUBLIC (safe to embed). Dev/test key below always passes;
-     production needs a real site key from dash.cloudflare.com/?to=/:account/turnstile -->
-<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
-<link rel="stylesheet" href="../diagnostic-system.css?v=4.99.96">
+<link rel="stylesheet" href="../diagnostic-system.css?v=4.99.97">
 </head>
 <body class="no-js">
 
@@ -55,18 +51,6 @@
 
 <!-- Loading state (replaced once JS hydrates) -->
 <div class="dq-shell" id="dq-shell">
-  <!-- v4.99.54 D.3: invisible Turnstile widget. Site key 3x...FF is Cloudflare's
-       public dev/test INVISIBLE key (always passes the challenge). Prod swap to
-       a real invisible-mode key from dash.cloudflare.com → Turnstile.
-       Note: data-size is NOT set · invisible mode is determined by the key
-       itself; setting data-size="invisible" throws a TurnstileError. -->
-  <div id="dq-turnstile"
-       class="cf-turnstile"
-       data-sitekey="3x00000000000000000000FF"
-       data-callback="dqTurnstileCallback"
-       data-error-callback="dqTurnstileErrorCallback"
-       data-timeout-callback="dqTurnstileErrorCallback"></div>
-
   <div class="dq-loading" id="dq-loading">
     <div class="dq-loading-spinner" aria-hidden="true"></div>
     <p id="dq-loading-text">Loading questions…</p>
@@ -74,7 +58,7 @@
   </div>
 
   <!-- Source banner · surfaces when we fall back to the inline pool -->
-  <div id="dq-source-banner" role="status" aria-live="polite" style="display:none;background:linear-gradient(135deg,rgba(56,189,248,.06),transparent);border:1px solid rgba(56,189,248,.3);border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:var(--blue, #38bdf8);text-align:center"></div>
+  <div id="dq-source-banner" class="dq-source-banner" role="status" aria-live="polite" style="display:none"></div>
 
   <!-- Live UI (built by JS) -->
   <div id="dq-live" style="display:none">
@@ -93,7 +77,7 @@
     </div>
 
     <div class="dq-pause-banner" role="status" aria-live="polite">
-      ⏸ Paused · your timer froze when you switched tabs. Click here or come back to resume.
+      Paused · your timer froze when you switched tabs. Click here or come back to resume.
     </div>
 
     <div class="dq-card">
@@ -187,7 +171,7 @@
       explanation: 'Exchange ActiveSync (used by Microsoft 365/Exchange) pushes mail, contacts, and calendar to all linked devices. POP3 only downloads mail and does not sync folders or calendar; SMTP only sends mail.'
     },
 
-    // ── Domain 2.0 Networking (6 · ~23%) — biased to ports-in-scenario + DNS records ──
+    // ── Domain 2.0 Networking (6 · ~23%), biased to ports-in-scenario + DNS records ──
     {
       id: 4, domain: 'Networking', topic: 'Ports & Protocols', objective: '2.1', difficulty: 'Easy',
       question: 'A technician must allow secure remote command-line access to a Linux server. Which port should be open on the firewall?',
@@ -226,12 +210,12 @@
     {
       id: 9, domain: 'Networking', topic: 'IP Addressing', objective: '2.5', difficulty: 'Medium',
       question: 'A workstation shows an IP address of 169.254.12.50 and cannot reach other hosts. What does this address indicate?',
-      options: { A: 'A valid public IP', B: 'A static IP misconfiguration', C: 'An APIPA address — DHCP failed', D: 'A loopback address' },
+      options: { A: 'A valid public IP', B: 'A static IP misconfiguration', C: 'An APIPA address · DHCP failed', D: 'A loopback address' },
       answer: 'C',
       explanation: 'The 169.254.x.x range is APIPA (Automatic Private IP Addressing), assigned when a client cannot reach a DHCP server. The loopback address is 127.0.0.1.'
     },
 
-    // ── Domain 3.0 Hardware (6 · ~25%) — biased to RAID + printers ──
+    // ── Domain 3.0 Hardware (6 · ~25%), biased to RAID + printers ──
     {
       id: 10, domain: 'Hardware', topic: 'RAID', objective: '3.4', difficulty: 'Medium',
       question: 'Which RAID level mirrors data across two drives, providing redundancy with no striping?',
@@ -275,7 +259,7 @@
       explanation: 'NVMe drives communicate over the PCIe bus, typically via an M.2 slot, far outpacing SATA. SATA M.2 drives are slower; IDE/PATA and parallel SCSI are legacy.'
     },
 
-    // ── Domain 4.0 Virtualization & Cloud (3 · ~11%) — biased to cloud models ──
+    // ── Domain 4.0 Virtualization & Cloud (3 · ~11%), biased to cloud models ──
     {
       id: 16, domain: 'Virtualization & Cloud', topic: 'Cloud Models', objective: '4.1', difficulty: 'Easy',
       question: 'Which cloud deployment model is dedicated to a single organization and not shared with the public?',
@@ -318,14 +302,14 @@
       question: 'A laptop screen is very dim but an external monitor connected to it displays normally. What is the MOST likely cause?',
       options: { A: 'Failed GPU', B: 'Faulty backlight or inverter', C: 'Corrupt display driver', D: 'Bad RAM' },
       answer: 'B',
-      explanation: 'If the external monitor works but the built-in panel is dim, the GPU is fine — the backlight (or its inverter on older laptops) is failing. A driver or GPU fault would usually affect both displays.'
+      explanation: 'If the external monitor works but the built-in panel is dim, the GPU is fine · the backlight (or its inverter on older laptops) is failing. A driver or GPU fault would usually affect both displays.'
     },
     {
       id: 22, domain: 'Hardware & Network Troubleshooting', topic: 'Storage Troubleshooting', objective: '5.3', difficulty: 'Medium',
       question: 'A user reports loud clicking from the PC and frequent read errors on a mechanical hard drive. What should the technician do FIRST?',
       options: { A: 'Run a disk defragmentation', B: 'Back up the data immediately', C: 'Reinstall the operating system', D: 'Update the storage driver' },
       answer: 'B',
-      explanation: 'Clicking plus read errors signals imminent mechanical drive failure — back up the data immediately before doing anything else. Defragmenting or reinstalling stresses a failing drive and risks total loss.'
+      explanation: 'Clicking plus read errors signals imminent mechanical drive failure · back up the data immediately before doing anything else. Defragmenting or reinstalling stresses a failing drive and risks total loss.'
     },
     {
       id: 23, domain: 'Hardware & Network Troubleshooting', topic: 'Network Troubleshooting', objective: '5.5', difficulty: 'Medium',
@@ -339,7 +323,7 @@
       question: 'A laser printer produces pages where the toner smears and rubs off easily. Which component is MOST likely faulty?',
       options: { A: 'The toner cartridge drum', B: 'The fuser assembly', C: 'The transfer roller', D: 'The pickup roller' },
       answer: 'B',
-      explanation: 'Toner that smears or rubs off was never bonded to the paper — the fuser assembly (heat/pressure) is failing. The transfer roller moves toner to paper; the pickup roller feeds paper.'
+      explanation: 'Toner that smears or rubs off was never bonded to the paper · the fuser assembly (heat/pressure) is failing. The transfer roller moves toner to paper; the pickup roller feeds paper.'
     },
     {
       id: 25, domain: 'Hardware & Network Troubleshooting', topic: 'Connectivity Troubleshooting', objective: '5.5', difficulty: 'Hard',
@@ -359,7 +343,6 @@
   var CERT = 'aplus-core1';
   var TARGET_QUESTION_COUNT = 20;
   var GENERATE_ENDPOINT = '/api/diagnostic/generate';
-  var TURNSTILE_TIMEOUT_MS = 10000;  // bail to fallback if no token in 10s
   var FETCH_TIMEOUT_MS = 25000;       // bail if /api/diagnostic/generate stalls
 
   // v4.99.54 D.3: session envelope now carries the full questions array
@@ -735,7 +718,7 @@
   function showSourceBanner(source) {
     if (!sourceBanner) return;
     if (source === 'fallback') {
-      sourceBanner.innerHTML = '📦 <strong style="font-weight:700">Local question set</strong> · high traffic right now, so we\'re using our curated 20-Q pool instead of live AI generation. Scoring is identical.';
+      sourceBanner.innerHTML = '<strong>Curated question set</strong> · 20 questions weighted to the exam blueprint.';
       sourceBanner.style.display = 'block';
     } else if (source === 'inline') {
       // Dev/preview mode · endpoint unconfigured. Silent (don't worry the user).
@@ -765,44 +748,12 @@
   loadingText.textContent = 'Loading questions…';
   loadingSub.textContent = '20 questions across the 5 CompTIA A+ Core 1 domains.';
 
-  // Turnstile callback · set on window so the cf-turnstile widget can call it
-  var turnstileSettled = false;
-  var turnstileTimeoutHandle = null;
-
-  window.dqTurnstileCallback = function(token) {
-    if (turnstileSettled) return;
-    turnstileSettled = true;
-    if (turnstileTimeoutHandle) clearTimeout(turnstileTimeoutHandle);
-    fetchAIQuestions(token);
-  };
-
-  window.dqTurnstileErrorCallback = function() {
-    if (turnstileSettled) return;
-    turnstileSettled = true;
-    if (turnstileTimeoutHandle) clearTimeout(turnstileTimeoutHandle);
-    console.warn('[dq] Turnstile errored · using inline pool fallback');
-    bootWithFallback('fallback');
-  };
-
-  // Timeout: if Turnstile doesn't fire its callback within 10s, fall back.
-  // This handles cases where the script is blocked by an extension / CSP /
-  // ad-blocker · common enough that we can't assume Turnstile will load.
-  turnstileTimeoutHandle = setTimeout(function() {
-    if (turnstileSettled) return;
-    turnstileSettled = true;
-    console.warn('[dq] Turnstile timed out · using inline pool fallback');
-    bootWithFallback('fallback');
-  }, TURNSTILE_TIMEOUT_MS);
-
-  // Some browsers / ad-blockers strip the Turnstile script entirely. In that
-  // case `window.turnstile` is undefined after a tick. We don't wait · the
-  // timeout above catches it. But we DO check for the existence after a
-  // short delay so we can fail fast with a clearer log.
-  setTimeout(function() {
-    if (typeof window.turnstile === 'undefined' && !turnstileSettled) {
-      console.warn('[dq] Turnstile script not loaded · waiting for timeout');
-    }
-  }, 2000);
+  // Turnstile gate removed · the Cloudflare dev/test key forced a visible
+  // challenge and gated loading for no real protection pre-launch. Boot
+  // directly: AI-first with graceful inline-pool fallback (fetchAIQuestions
+  // handles any non-2xx / malformed / thrown response). Re-add a real
+  // invisible-mode key before public launch if bot abuse appears.
+  fetchAIQuestions(null);
 
   function bootWithFallback(reason) {
     var freshQuestions = shuffleInlinePool();
@@ -841,7 +792,7 @@
           // Show a quota-specific banner via the fallback path
           bootWithFallback('fallback');
           if (sourceBanner) {
-            sourceBanner.innerHTML = '⏱ <strong style="font-weight:700">Daily limit reached</strong> · IPs are limited to 25 AI calls per 24h. Using the local pool for this attempt. Sign up for unlimited retakes after.';
+            sourceBanner.innerHTML = '<strong>Daily limit reached</strong> · you\'re on the curated set for this attempt. Sign up for unlimited fresh question sets.';
           }
           return;
         }

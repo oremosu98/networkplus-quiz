@@ -762,9 +762,9 @@ body {
    element on the most focus-critical screen). Zero markup/JS change.
    ══════════════════════════════════════════════════════════════════════════ */
 .dq-shell { max-width: var(--dg-maxw); margin: 0 auto; padding: 24px 24px 80px; }
-.dq-header { margin-bottom: 16px; }
+.dq-header { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 16px; }
 .dq-header-left { font-size: var(--dg-t-1); color: var(--dg-text-dim); font-weight: 600; letter-spacing: 0.04em; }
-.dq-header-right { gap: 12px; }
+.dq-header-right { display: flex; align-items: center; gap: 12px; }
 .dq-timer {
   font-family: ui-monospace, 'SF Mono', Monaco, monospace;
   font-size: var(--dg-t0); font-weight: 700; color: var(--dg-text);
@@ -786,10 +786,24 @@ body {
   border-radius: 0; padding: 12px 0 12px 16px; margin-bottom: 22px;
   font-size: var(--dg-t-1); color: var(--dg-text-2); text-align: left;
 }
+/* pause banner shows ONLY while the timer is actually frozen (tab backgrounded).
+   The quiz script toggles body.dq-paused on blur/focus; without this gate the
+   banner was visible on every question. */
+.dq-pause-banner { display: none; }
+body.dq-paused .dq-pause-banner { display: block; }
+
+/* source banner · same hairline-aside treatment as the pause banner (was a loud
+   blue gradient callout box). A quiet note when the curated pool is in use. */
+.dq-source-banner {
+  border-left: 1px solid var(--dg-rule);
+  padding: 10px 0 10px 16px; margin-bottom: 22px;
+  font-size: var(--dg-t-1); line-height: 1.5; color: var(--dg-text-2); text-align: left;
+}
+.dq-source-banner strong { color: var(--dg-text); font-weight: 700; }
 
 /* question: de-carded, the stem is now the anchor */
 .dq-card { background: none; border: 0; border-radius: 0; padding: 0; margin-bottom: 28px; box-shadow: none; }
-.dq-card-pills { gap: 14px; margin-bottom: 18px; }
+.dq-card-pills { display: flex; align-items: center; flex-wrap: wrap; gap: 14px; margin-bottom: 18px; }
 .dq-pill {
   font-size: var(--dg-t-1); font-weight: 700; padding: 0; border-radius: 0;
   text-transform: uppercase; letter-spacing: 0.12em; background: none !important;
@@ -862,6 +876,12 @@ body {
 .dq-btn-primary:active:not(:disabled) { transform: scale(.99); }
 .dq-btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
 .dq-loading, .dq-no-js { text-align: left; padding: 80px 0; color: var(--dg-text-2); }
+/* JS-gating · the page ships with <body class="no-js">; the quiz script removes
+   that class on hydrate. Hide the no-JS fallback once JS runs, and hide the live
+   shell entirely while JS is absent (so no-JS users don't see a spinner forever). */
+.dq-no-js { display: none; }
+body.no-js .dq-no-js { display: block; }
+body.no-js .dq-shell { display: none; }
 .dq-loading-spinner {
   width: 28px; height: 28px; border: 2px solid var(--dg-rule);
   border-top-color: var(--dg-accent); border-radius: 50%;

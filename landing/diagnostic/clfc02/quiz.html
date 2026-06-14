@@ -21,11 +21,7 @@
 })();
 </script>
 
-<!-- v4.99.54 D.3: Cloudflare Turnstile invisible bot-protection challenge.
-     Site key is PUBLIC (safe to embed). Dev/test key below always passes;
-     production needs a real site key from dash.cloudflare.com/?to=/:account/turnstile -->
-<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
-<link rel="stylesheet" href="../diagnostic-system.css?v=4.99.96">
+<link rel="stylesheet" href="../diagnostic-system.css?v=4.99.97">
 </head>
 <body class="no-js">
 
@@ -55,18 +51,6 @@
 
 <!-- Loading state (replaced once JS hydrates) -->
 <div class="dq-shell" id="dq-shell">
-  <!-- v4.99.54 D.3: invisible Turnstile widget. Site key 3x...FF is Cloudflare's
-       public dev/test INVISIBLE key (always passes the challenge). Prod swap to
-       a real invisible-mode key from dash.cloudflare.com → Turnstile.
-       Note: data-size is NOT set · invisible mode is determined by the key
-       itself; setting data-size="invisible" throws a TurnstileError. -->
-  <div id="dq-turnstile"
-       class="cf-turnstile"
-       data-sitekey="3x00000000000000000000FF"
-       data-callback="dqTurnstileCallback"
-       data-error-callback="dqTurnstileErrorCallback"
-       data-timeout-callback="dqTurnstileErrorCallback"></div>
-
   <div class="dq-loading" id="dq-loading">
     <div class="dq-loading-spinner" aria-hidden="true"></div>
     <p id="dq-loading-text">Loading questions…</p>
@@ -74,7 +58,7 @@
   </div>
 
   <!-- Source banner · surfaces when we fall back to the inline pool -->
-  <div id="dq-source-banner" role="status" aria-live="polite" style="display:none;background:linear-gradient(135deg,rgba(56,189,248,.06),transparent);border:1px solid rgba(56,189,248,.3);border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:var(--blue, #38bdf8);text-align:center"></div>
+  <div id="dq-source-banner" class="dq-source-banner" role="status" aria-live="polite" style="display:none"></div>
 
   <!-- Live UI (built by JS) -->
   <div id="dq-live" style="display:none">
@@ -93,7 +77,7 @@
     </div>
 
     <div class="dq-pause-banner" role="status" aria-live="polite">
-      ⏸ Paused · your timer froze when you switched tabs. Click here or come back to resume.
+      Paused · your timer froze when you switched tabs. Click here or come back to resume.
     </div>
 
     <div class="dq-card">
@@ -217,7 +201,7 @@
       question: "During a migration planning exercise, a team identifies a group of internal applications that are redundant, rarely used, and will reach end-of-life within six months. The team recommends simply shutting these down rather than migrating them. Which migration strategy applies?",
       options: { A: "Retain", B: "Retire", C: "Repurchase", D: "Rehost" },
       answer: "B",
-      explanation: "Retire means decommissioning applications that are no longer needed. Identifying that roughly 10-20% of an application portfolio can simply be turned off is a common and cost-effective migration outcome — no cloud migration needed at all. Retain (A) means keeping the application where it is for now (often because migration cannot be justified yet or the application requires major changes before moving). Repurchase (C) means replacing with a SaaS product. Rehost (D) means migrating as-is to the cloud."
+      explanation: "Retire means decommissioning applications that are no longer needed. Identifying that roughly 10-20% of an application portfolio can simply be turned off is a common and cost-effective migration outcome · no cloud migration needed at all. Retain (A) means keeping the application where it is for now (often because migration cannot be justified yet or the application requires major changes before moving). Repurchase (C) means replacing with a SaaS product. Rehost (D) means migrating as-is to the cloud."
     },
 
     {
@@ -229,7 +213,7 @@
       question: "A development team wants to deploy a new feature to a single AWS Region first to reduce the blast radius of any problems before rolling it out globally. Which Operational Excellence design principle does this align with?",
       options: { A: "Learn from all operational failures", B: "Make frequent, small, reversible changes", C: "Anticipate failure", D: "Refine operations procedures frequently" },
       answer: "B",
-      explanation: "Deploying to a single Region first is a small, incremental, reversible change strategy — rather than a large, infrequent, hard-to-rollback release. This is the 'make frequent, small, reversible changes' Operational Excellence principle. It reduces the blast radius of any issues. 'Learn from all operational failures' (A) is a post-event retrospective principle. 'Anticipate failure' (C) involves designing with the assumption that components will fail, such as removing single points of failure. 'Refine operations procedures frequently' (D) is about continuously improving runbooks and processes."
+      explanation: "Deploying to a single Region first is a small, incremental, reversible change strategy · rather than a large, infrequent, hard-to-rollback release. This is the 'make frequent, small, reversible changes' Operational Excellence principle. It reduces the blast radius of any issues. 'Learn from all operational failures' (A) is a post-event retrospective principle. 'Anticipate failure' (C) involves designing with the assumption that components will fail, such as removing single points of failure. 'Refine operations procedures frequently' (D) is about continuously improving runbooks and processes."
     },
 
     {
@@ -241,7 +225,7 @@
       question: "A software startup has no physical data centers and builds all of its products entirely on AWS, using AWS services for compute, storage, databases, and networking. There is no self-managed infrastructure of any kind. Which cloud deployment model does this describe?",
       options: { A: "Hybrid deployment", B: "On-premises deployment", C: "Cloud deployment", D: "Private cloud deployment" },
       answer: "C",
-      explanation: "A cloud deployment (also called a fully cloud-based or public cloud deployment) means all components of the application run in the cloud — no on-premises or private data center infrastructure is involved. AWS explicitly defines this model as one of the three main cloud deployment models. Hybrid deployment combines cloud resources with on-premises infrastructure. On-premises deployment keeps everything in the organization's own data center without using cloud services. Private cloud means cloud infrastructure operated solely for one organization, typically on-premises."
+      explanation: "A cloud deployment (also called a fully cloud-based or public cloud deployment) means all components of the application run in the cloud · no on-premises or private data center infrastructure is involved. AWS explicitly defines this model as one of the three main cloud deployment models. Hybrid deployment combines cloud resources with on-premises infrastructure. On-premises deployment keeps everything in the organization's own data center without using cloud services. Private cloud means cloud infrastructure operated solely for one organization, typically on-premises."
     },
 
     {
@@ -253,7 +237,7 @@
       question: "A company runs its web application on Amazon EC2 instances. The security team wants to know who is responsible for patching the operating system on those instances. Which statement correctly describes this responsibility under the AWS Shared Responsibility Model?",
       options: { A: "AWS patches the OS because the instances run on AWS infrastructure.", B: "The customer is responsible for patching the OS on EC2 instances.", C: "AWS and the customer share OS patching duties on a weekly rotation.", D: "The AMI vendor is always responsible for OS patches regardless of instance type." },
       answer: "B",
-      explanation: "With EC2 (IaaS), the customer controls the OS and therefore owns OS patching — this is 'security IN the cloud.' AWS is responsible for 'security OF the cloud,' meaning the physical hardware, hypervisor, and underlying infrastructure. Option A is wrong because AWS's responsibility stops at the hypervisor layer. Option C is wrong because there is no shared rotation for OS patching. Option D is wrong because the AMI vendor provides the base image but post-launch patching belongs to the customer."
+      explanation: "With EC2 (IaaS), the customer controls the OS and therefore owns OS patching · this is 'security IN the cloud.' AWS is responsible for 'security OF the cloud,' meaning the physical hardware, hypervisor, and underlying infrastructure. Option A is wrong because AWS's responsibility stops at the hypervisor layer. Option C is wrong because there is no shared rotation for OS patching. Option D is wrong because the AMI vendor provides the base image but post-launch patching belongs to the customer."
     },
 
     {
@@ -262,7 +246,7 @@
       topic: "AWS Config",
       objective: "2.2",
       difficulty: "Exam Level",
-      question: "A company's AWS environment spans multiple accounts. A security engineer needs to monitor configuration changes to resources — such as detecting when an S3 bucket's public-access block is disabled — and evaluate those changes against company compliance rules. Which AWS service is best suited for this task?",
+      question: "A company's AWS environment spans multiple accounts. A security engineer needs to monitor configuration changes to resources, such as detecting when an S3 bucket's public-access block is disabled, and evaluate those changes against company compliance rules. Which AWS service is best suited for this task?",
       options: { A: "Amazon GuardDuty", B: "AWS CloudTrail", C: "AWS Config", D: "Amazon Macie" },
       answer: "C",
       explanation: "AWS Config records configuration changes to AWS resources and evaluates those changes against Config Rules to determine compliance. It is the correct tool for 'has this resource been configured correctly?' questions. GuardDuty detects threats from log analysis but does not evaluate resource configuration. CloudTrail logs API calls (who did what, when) but does not evaluate ongoing resource compliance posture. Macie discovers PII in S3 but does not evaluate general resource configuration."
@@ -289,7 +273,7 @@
       question: "A retail company's web application is being targeted by automated bots that are attempting SQL injection attacks through the login form. The security team wants to create custom rules to block these requests before they reach the application. Which AWS service should they use?",
       options: { A: "AWS Shield Standard", B: "Amazon GuardDuty", C: "AWS WAF", D: "AWS Shield Advanced" },
       answer: "C",
-      explanation: "AWS WAF (Web Application Firewall) operates at Layer 7 (the application layer) and allows creation of custom rules and managed rule groups to block common web exploits such as SQL injection, cross-site scripting, and bot traffic. Shield Standard protects against Layer 3/4 DDoS attacks, not application-layer exploits. GuardDuty is a threat detection service that analyzes logs — it does not block traffic. Shield Advanced offers enhanced DDoS protection but not application-layer filtering rules."
+      explanation: "AWS WAF (Web Application Firewall) operates at Layer 7 (the application layer) and allows creation of custom rules and managed rule groups to block common web exploits such as SQL injection, cross-site scripting, and bot traffic. Shield Standard protects against Layer 3/4 DDoS attacks, not application-layer exploits. GuardDuty is a threat detection service that analyzes logs · it does not block traffic. Shield Advanced offers enhanced DDoS protection but not application-layer filtering rules."
     },
 
     {
@@ -301,7 +285,7 @@
       question: "A solutions architect is explaining IAM to a junior engineer. The junior engineer asks: 'Can I add an EC2 instance directly to an IAM group to give it permissions?' What is the correct answer?",
       options: { A: "Yes, IAM groups accept EC2 instances as members.", B: "No, IAM groups only contain IAM users. EC2 instances use IAM roles for permissions.", C: "Yes, but only if the EC2 instance has an IAM user attached.", D: "No, EC2 instances cannot use IAM at all." },
       answer: "B",
-      explanation: "IAM groups are collections of IAM users only. AWS services like EC2 instances use IAM roles to obtain temporary credentials via the instance profile mechanism. There is no concept of adding an EC2 instance to an IAM group. Option A is incorrect by definition. Option C is wrong because EC2 instances do not have IAM users attached. Option D is wrong because EC2 can absolutely use IAM — via roles, not groups."
+      explanation: "IAM groups are collections of IAM users only. AWS services like EC2 instances use IAM roles to obtain temporary credentials via the instance profile mechanism. There is no concept of adding an EC2 instance to an IAM group. Option A is incorrect by definition. Option C is wrong because EC2 instances do not have IAM users attached. Option D is wrong because EC2 can absolutely use IAM · via roles, not groups."
     },
 
     {
@@ -325,7 +309,7 @@
       question: "A developer needs to run a small script that processes uploaded images whenever a new object is placed in an S3 bucket. The script takes less than 30 seconds and runs infrequently. Which compute option is MOST cost-effective?",
       options: { A: "Launch a dedicated EC2 On-Demand instance that polls the bucket", B: "Deploy the script on AWS Fargate with a scheduled task", C: "Run the script on an EC2 Spot Instance with Auto Scaling", D: "Use AWS Lambda triggered by an S3 event notification" },
       answer: "D",
-      explanation: "AWS Lambda is event-driven and serverless; you pay only for the milliseconds the function runs, making it ideal for infrequent, short-duration tasks triggered by S3 events. A — EC2 On-Demand runs 24/7 and incurs cost even when idle. B — Fargate requires a container definition and task scheduler, adding overhead for a simple script. D — Spot Instances can be interrupted and still require EC2 management overhead."
+      explanation: "AWS Lambda is event-driven and serverless; you pay only for the milliseconds the function runs, making it ideal for infrequent, short-duration tasks triggered by S3 events. A · EC2 On-Demand runs 24/7 and incurs cost even when idle. B · Fargate requires a container definition and task scheduler, adding overhead for a simple script. D · Spot Instances can be interrupted and still require EC2 management overhead."
     },
 
     {
@@ -337,7 +321,7 @@
       question: "A healthcare company must retain patient records for 10 years for compliance. The records will never be accessed after archiving. Cost minimization is the top priority. Which S3 storage class is MOST appropriate?",
       options: { A: "S3 Standard-Infrequent Access (S3 Standard-IA)", B: "S3 Glacier Flexible Retrieval", C: "S3 Glacier Instant Retrieval", D: "S3 Glacier Deep Archive" },
       answer: "D",
-      explanation: "S3 Glacier Deep Archive is the lowest-cost AWS storage class, designed for data that is retained for 7–10+ years and rarely if ever accessed. Retrieval time is up to 12 hours. Minimum storage duration is 180 days. A — Standard-IA has higher cost than Glacier classes for long-term archival. B — Glacier Flexible Retrieval costs more than Deep Archive. D — Glacier Instant Retrieval provides millisecond access and is priced higher than Deep Archive."
+      explanation: "S3 Glacier Deep Archive is the lowest-cost AWS storage class, designed for data that is retained for 7-10+ years and rarely if ever accessed. Retrieval time is up to 12 hours. Minimum storage duration is 180 days. A · Standard-IA has higher cost than Glacier classes for long-term archival. B · Glacier Flexible Retrieval costs more than Deep Archive. D · Glacier Instant Retrieval provides millisecond access and is priced higher than Deep Archive."
     },
 
     {
@@ -347,9 +331,9 @@
       objective: "3.6",
       difficulty: "Hard",
       question: "An on-premises application writes data to a local NFS mount, but the company wants all files stored durably in Amazon S3 while maintaining a cached copy locally. Which AWS Storage Gateway mode supports this?",
-      options: { A: "File Gateway", B: "Volume Gateway — Cached mode", C: "Tape Gateway", D: "Volume Gateway — Stored mode" },
+      options: { A: "File Gateway", B: "Volume Gateway · Cached mode", C: "Tape Gateway", D: "Volume Gateway · Stored mode" },
       answer: "A",
-      explanation: "AWS Storage Gateway File Gateway presents an NFS (or SMB) interface to on-premises applications while storing files durably in Amazon S3. Frequently accessed files are cached locally. A — Volume Gateway Cached mode stores primary data in S3 and caches frequently accessed data on-premises, but presents block storage (iSCSI), not NFS. C — Tape Gateway virtualizes physical tape libraries for backup software. D — Volume Gateway Stored mode keeps primary data on-premises and asynchronously backs up to S3 as EBS snapshots."
+      explanation: "AWS Storage Gateway File Gateway presents an NFS (or SMB) interface to on-premises applications while storing files durably in Amazon S3. Frequently accessed files are cached locally. A · Volume Gateway Cached mode stores primary data in S3 and caches frequently accessed data on-premises, but presents block storage (iSCSI), not NFS. C · Tape Gateway virtualizes physical tape libraries for backup software. D · Volume Gateway Stored mode keeps primary data on-premises and asynchronously backs up to S3 as EBS snapshots."
     },
 
     {
@@ -361,7 +345,7 @@
       question: "A company has a global web application with static assets (images, CSS, JavaScript). Users in Asia are experiencing high latency fetching assets from the US-East origin. Which AWS service reduces latency by serving content from locations closer to users?",
       options: { A: "Amazon Route 53 latency routing", B: "AWS Global Accelerator", C: "AWS Direct Connect", D: "Amazon CloudFront" },
       answer: "D",
-      explanation: "Amazon CloudFront is a content delivery network (CDN) that caches content at edge locations worldwide. Static assets are served from the nearest edge location, dramatically reducing latency for global users. A — Route 53 latency routing routes DNS queries to the nearest AWS Region but does not cache content. B — Global Accelerator routes TCP/UDP traffic to optimal AWS endpoints using Anycast IPs but does not cache content. D — Direct Connect is a dedicated network link, not a CDN."
+      explanation: "Amazon CloudFront is a content delivery network (CDN) that caches content at edge locations worldwide. Static assets are served from the nearest edge location, dramatically reducing latency for global users. A · Route 53 latency routing routes DNS queries to the nearest AWS Region but does not cache content. B · Global Accelerator routes TCP/UDP traffic to optimal AWS endpoints using Anycast IPs but does not cache content. D · Direct Connect is a dedicated network link, not a CDN."
     },
 
     {
@@ -373,7 +357,7 @@
       question: "A developer wants to understand the end-to-end path of a request through a distributed microservices application to identify which service is causing latency. Which AWS service provides distributed request tracing?",
       options: { A: "AWS CloudTrail", B: "Amazon CloudWatch Container Insights", C: "AWS X-Ray", D: "AWS Config" },
       answer: "C",
-      explanation: "AWS X-Ray provides distributed tracing for applications, enabling developers to analyze and debug production and distributed applications by mapping request flows across services and identifying bottlenecks. A — CloudTrail records AWS API calls, not application-level request traces. B — CloudWatch Container Insights collects metrics and logs from containerized workloads but does not provide distributed request tracing. D — Config tracks resource configurations, not application request traces."
+      explanation: "AWS X-Ray provides distributed tracing for applications, enabling developers to analyze and debug production and distributed applications by mapping request flows across services and identifying bottlenecks. A · CloudTrail records AWS API calls, not application-level request traces. B · CloudWatch Container Insights collects metrics and logs from containerized workloads but does not provide distributed request tracing. D · Config tracks resource configurations, not application request traces."
     },
 
     {
@@ -385,7 +369,7 @@
       question: "A sysadmin wants to automate the deployment of identical AWS infrastructure across 10 different AWS accounts using a template that can be version-controlled. Which approach is MOST appropriate?",
       options: { A: "Manually configure resources in each account using the AWS Management Console", B: "Use AWS CloudFormation templates deployed with StackSets", C: "Write individual AWS CLI commands in a shell script", D: "Use the AWS SDK to call each API directly" },
       answer: "B",
-      explanation: "AWS CloudFormation StackSets allow you to deploy a CloudFormation template (infrastructure as code) across multiple AWS accounts and Regions in a single operation, ensuring consistency and enabling version control. A — Manual console configuration is error-prone and not scalable across 10 accounts. C — Shell scripts with CLI commands can work but are fragile, not idempotent, and harder to maintain than declarative templates. D — SDK calls require significant custom code and drift management logic."
+      explanation: "AWS CloudFormation StackSets allow you to deploy a CloudFormation template (infrastructure as code) across multiple AWS accounts and Regions in a single operation, ensuring consistency and enabling version control. A · Manual console configuration is error-prone and not scalable across 10 accounts. C · Shell scripts with CLI commands can work but are fragile, not idempotent, and harder to maintain than declarative templates. D · SDK calls require significant custom code and drift management logic."
     },
 
     {
@@ -397,7 +381,7 @@
       question: "A business intelligence team wants to run SQL queries directly on log files stored in Amazon S3 without loading the data into a database first. Which AWS service supports this?",
       options: { A: "Amazon Redshift", B: "AWS Glue", C: "Amazon Athena", D: "Amazon EMR" },
       answer: "C",
-      explanation: "Amazon Athena is a serverless interactive query service that runs standard SQL queries directly on data stored in Amazon S3. There is no need to load data into a database; you pay per query. A — Redshift requires loading data into a data warehouse first. B — Glue is for ETL; it can catalog data for Athena but does not itself run interactive SQL queries on S3. D — EMR is a big data platform for complex processing frameworks like Spark and Hadoop, requiring more setup than Athena."
+      explanation: "Amazon Athena is a serverless interactive query service that runs standard SQL queries directly on data stored in Amazon S3. There is no need to load data into a database; you pay per query. A · Redshift requires loading data into a data warehouse first. B · Glue is for ETL; it can catalog data for Athena but does not itself run interactive SQL queries on S3. D · EMR is a big data platform for complex processing frameworks like Spark and Hadoop, requiring more setup than Athena."
     },
 
     {
@@ -421,7 +405,7 @@
       question: "A company wants to categorize AWS costs by project and cost center to allocate charges back to individual business units. Which feature enables this?",
       options: { A: "AWS Service Control Policies (SCPs)", B: "AWS Config rules", C: "Cost Allocation Tags activated in the Billing console", D: "AWS Organizations account grouping" },
       answer: "C",
-      explanation: "Cost Allocation Tags allow organizations to label AWS resources (e.g., Project=Alpha, CostCenter=Finance). Once tags are activated in the AWS Billing and Cost Management console, they appear as filterable dimensions in Cost Explorer and the Cost and Usage Report, enabling chargeback and showback to business units. Service Control Policies (A) set permission guardrails in AWS Organizations — they do not categorize costs. AWS Config rules (B) evaluate resource compliance against configurations and are unrelated to cost allocation. AWS Organizations account grouping (D) can organize accounts by OU but does not generate per-project cost breakdowns without tagging."
+      explanation: "Cost Allocation Tags allow organizations to label AWS resources (e.g., Project=Alpha, CostCenter=Finance). Once tags are activated in the AWS Billing and Cost Management console, they appear as filterable dimensions in Cost Explorer and the Cost and Usage Report, enabling chargeback and showback to business units. Service Control Policies (A) set permission guardrails in AWS Organizations · they do not categorize costs. AWS Config rules (B) evaluate resource compliance against configurations and are unrelated to cost allocation. AWS Organizations account grouping (D) can organize accounts by OU but does not generate per-project cost breakdowns without tagging."
     }
   ];
 
@@ -434,7 +418,6 @@
   var CERT = 'clfc02';
   var TARGET_QUESTION_COUNT = 20;
   var GENERATE_ENDPOINT = '/api/diagnostic/generate';
-  var TURNSTILE_TIMEOUT_MS = 10000;  // bail to fallback if no token in 10s
   var FETCH_TIMEOUT_MS = 25000;       // bail if /api/diagnostic/generate stalls
 
   // v4.99.54 D.3: session envelope now carries the full questions array
@@ -810,7 +793,7 @@
   function showSourceBanner(source) {
     if (!sourceBanner) return;
     if (source === 'fallback') {
-      sourceBanner.innerHTML = '📦 <strong style="font-weight:700">Local question set</strong> · high traffic right now, so we\'re using our curated 20-Q pool instead of live AI generation. Scoring is identical.';
+      sourceBanner.innerHTML = '<strong>Curated question set</strong> · 20 questions weighted to the exam blueprint.';
       sourceBanner.style.display = 'block';
     } else if (source === 'inline') {
       // Dev/preview mode · endpoint unconfigured. Silent (don't worry the user).
@@ -840,44 +823,12 @@
   loadingText.textContent = 'Loading questions…';
   loadingSub.textContent = '20 questions across the 4 CLF-C02 domains.';
 
-  // Turnstile callback · set on window so the cf-turnstile widget can call it
-  var turnstileSettled = false;
-  var turnstileTimeoutHandle = null;
-
-  window.dqTurnstileCallback = function(token) {
-    if (turnstileSettled) return;
-    turnstileSettled = true;
-    if (turnstileTimeoutHandle) clearTimeout(turnstileTimeoutHandle);
-    fetchAIQuestions(token);
-  };
-
-  window.dqTurnstileErrorCallback = function() {
-    if (turnstileSettled) return;
-    turnstileSettled = true;
-    if (turnstileTimeoutHandle) clearTimeout(turnstileTimeoutHandle);
-    console.warn('[dq] Turnstile errored · using inline pool fallback');
-    bootWithFallback('fallback');
-  };
-
-  // Timeout: if Turnstile doesn't fire its callback within 10s, fall back.
-  // This handles cases where the script is blocked by an extension / CSP /
-  // ad-blocker · common enough that we can't assume Turnstile will load.
-  turnstileTimeoutHandle = setTimeout(function() {
-    if (turnstileSettled) return;
-    turnstileSettled = true;
-    console.warn('[dq] Turnstile timed out · using inline pool fallback');
-    bootWithFallback('fallback');
-  }, TURNSTILE_TIMEOUT_MS);
-
-  // Some browsers / ad-blockers strip the Turnstile script entirely. In that
-  // case `window.turnstile` is undefined after a tick. We don't wait · the
-  // timeout above catches it. But we DO check for the existence after a
-  // short delay so we can fail fast with a clearer log.
-  setTimeout(function() {
-    if (typeof window.turnstile === 'undefined' && !turnstileSettled) {
-      console.warn('[dq] Turnstile script not loaded · waiting for timeout');
-    }
-  }, 2000);
+  // Turnstile gate removed · the Cloudflare dev/test key forced a visible
+  // challenge and gated loading for no real protection pre-launch. Boot
+  // directly: AI-first with graceful inline-pool fallback (fetchAIQuestions
+  // handles any non-2xx / malformed / thrown response). Re-add a real
+  // invisible-mode key before public launch if bot abuse appears.
+  fetchAIQuestions(null);
 
   function bootWithFallback(reason) {
     var freshQuestions = shuffleInlinePool();
@@ -916,7 +867,7 @@
           // Show a quota-specific banner via the fallback path
           bootWithFallback('fallback');
           if (sourceBanner) {
-            sourceBanner.innerHTML = '⏱ <strong style="font-weight:700">Daily limit reached</strong> · IPs are limited to 25 AI calls per 24h. Using the local pool for this attempt. Sign up for unlimited retakes after.';
+            sourceBanner.innerHTML = '<strong>Daily limit reached</strong> · you\'re on the curated set for this attempt. Sign up for unlimited fresh question sets.';
           }
           return;
         }

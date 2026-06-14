@@ -7,7 +7,7 @@
 <meta name="theme-color" content="#fafbff">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="CertAnvil">
-<meta name="description" content="20-question Microsoft SC-900 — Security, Compliance &amp; Identity Fundamentals diagnostic. ~30 minutes. Score + weak-domain map at the end.">
+<meta name="description" content="20-question Microsoft SC-900 · Security, Compliance &amp; Identity Fundamentals diagnostic. ~30 minutes. Score + weak-domain map at the end.">
 <link rel="icon" type="image/svg+xml" href="../../favicon.svg">
 <link rel="stylesheet" href="../../styles.css">
 <link rel="canonical" href="https://certanvil.com/diagnostic/sc900/quiz">
@@ -21,11 +21,7 @@
 })();
 </script>
 
-<!-- v4.99.54 D.3: Cloudflare Turnstile invisible bot-protection challenge.
-     Site key is PUBLIC (safe to embed). Dev/test key below always passes;
-     production needs a real site key from dash.cloudflare.com/?to=/:account/turnstile -->
-<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
-<link rel="stylesheet" href="../diagnostic-system.css?v=4.99.96">
+<link rel="stylesheet" href="../diagnostic-system.css?v=4.99.97">
 </head>
 <body class="no-js">
 
@@ -55,18 +51,6 @@
 
 <!-- Loading state (replaced once JS hydrates) -->
 <div class="dq-shell" id="dq-shell">
-  <!-- v4.99.54 D.3: invisible Turnstile widget. Site key 3x...FF is Cloudflare's
-       public dev/test INVISIBLE key (always passes the challenge). Prod swap to
-       a real invisible-mode key from dash.cloudflare.com → Turnstile.
-       Note: data-size is NOT set · invisible mode is determined by the key
-       itself; setting data-size="invisible" throws a TurnstileError. -->
-  <div id="dq-turnstile"
-       class="cf-turnstile"
-       data-sitekey="3x00000000000000000000FF"
-       data-callback="dqTurnstileCallback"
-       data-error-callback="dqTurnstileErrorCallback"
-       data-timeout-callback="dqTurnstileErrorCallback"></div>
-
   <div class="dq-loading" id="dq-loading">
     <div class="dq-loading-spinner" aria-hidden="true"></div>
     <p id="dq-loading-text">Loading questions…</p>
@@ -74,7 +58,7 @@
   </div>
 
   <!-- Source banner · surfaces when we fall back to the inline pool -->
-  <div id="dq-source-banner" role="status" aria-live="polite" style="display:none;background:linear-gradient(135deg,rgba(56,189,248,.06),transparent);border:1px solid rgba(56,189,248,.3);border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:var(--blue, #38bdf8);text-align:center"></div>
+  <div id="dq-source-banner" class="dq-source-banner" role="status" aria-live="polite" style="display:none"></div>
 
   <!-- Live UI (built by JS) -->
   <div id="dq-live" style="display:none">
@@ -93,7 +77,7 @@
     </div>
 
     <div class="dq-pause-banner" role="status" aria-live="polite">
-      ⏸ Paused · your timer froze when you switched tabs. Click here or come back to resume.
+      Paused · your timer froze when you switched tabs. Click here or come back to resume.
     </div>
 
     <div class="dq-card">
@@ -169,14 +153,14 @@
   // Domain distribution: D1 ×3 · D2 ×6 · D3 ×8 · D4 ×5 (= 22 total)
   var QUESTION_POOL = [
 
-    // ── Domain 1: Security, Compliance & Identity Concepts (3Q · obj 1.1–1.2) ──
+    // ── Domain 1: Security, Compliance & Identity Concepts (3Q · obj 1.1-1.2) ──
     {
       id: 1,
       domain: 'Security, Compliance & Identity Concepts',
       topic: 'Zero Trust',
       objective: '1.1',
       difficulty: 'Easy',
-      question: 'Which security model assumes that no user, device, or network should be trusted by default — even inside the corporate perimeter?',
+      question: 'Which security model assumes that no user, device, or network should be trusted by default · even inside the corporate perimeter?',
       options: {
         A: 'Defense-in-depth',
         B: 'Zero Trust',
@@ -219,7 +203,7 @@
       explanation: 'Across all cloud service models, customers always retain responsibility for their own data and the management of user identities and access. Microsoft handles physical security; OS patching shifts to Microsoft in PaaS/SaaS.'
     },
 
-    // ── Domain 2: Microsoft Entra (6Q · obj 2.1–2.4) ──
+    // ── Domain 2: Microsoft Entra (6Q · obj 2.1-2.4) ──
     {
       id: 4,
       domain: 'Microsoft Entra',
@@ -242,7 +226,7 @@
       topic: 'Authentication Methods',
       objective: '2.2',
       difficulty: 'Easy',
-      question: 'Which Microsoft Entra feature requires users to present a second verification factor — such as an authenticator app approval or SMS code — in addition to their password?',
+      question: 'Which Microsoft Entra feature requires users to present a second verification factor, such as an authenticator app approval or SMS code, in addition to their password?',
       options: {
         A: 'Conditional Access',
         B: 'Multi-Factor Authentication (MFA)',
@@ -317,7 +301,7 @@
       explanation: 'Microsoft Entra Identity Protection assigns risk scores to sign-ins (sign-in risk) and users (user risk) based on anomalous signals such as impossible travel. Risk policies can then require MFA or block access automatically. This is distinct from Conditional Access, which acts on the risk signal.'
     },
 
-    // ── Domain 3: Microsoft Security Solutions (8Q · obj 3.1–3.4) ──
+    // ── Domain 3: Microsoft Security Solutions (8Q · obj 3.1-3.4) ──
     {
       id: 10,
       domain: 'Microsoft Security Solutions',
@@ -364,7 +348,7 @@
         D: 'Microsoft Sentinel'
       },
       answer: 'C',
-      explanation: 'Microsoft Defender for Identity (formerly Azure ATP) uses on-premises AD signals to detect identity-based attacks including pass-the-hash, golden ticket, and lateral movement. It is specifically designed for on-premises Active Directory — not Azure AD (Entra ID).'
+      explanation: 'Microsoft Defender for Identity (formerly Azure ATP) uses on-premises AD signals to detect identity-based attacks including pass-the-hash, golden ticket, and lateral movement. It is specifically designed for on-premises Active Directory · not Azure AD (Entra ID).'
     },
     {
       id: 13,
@@ -372,7 +356,7 @@
       topic: 'Microsoft Defender for Cloud Apps',
       objective: '3.2',
       difficulty: 'Medium',
-      question: 'An organization wants to discover all cloud apps employees are using — including unsanctioned apps — and enforce data-sharing policies. Which Microsoft security service addresses this need?',
+      question: 'An organization wants to discover all cloud apps employees are using, including unsanctioned apps, and enforce data-sharing policies. Which Microsoft security service addresses this need?',
       options: {
         A: 'Microsoft Defender for Endpoint',
         B: 'Microsoft Defender for Cloud Apps',
@@ -447,7 +431,7 @@
       explanation: 'Azure DDoS Protection automatically detects and mitigates DDoS attacks against Azure public IP addresses. The Standard tier provides enhanced mitigation, telemetry, and cost protection. Azure Firewall and WAF address different threat vectors (network/application layer attacks, not volumetric floods).'
     },
 
-    // ── Domain 4: Microsoft Compliance Solutions (5Q · obj 4.1–4.4) ──
+    // ── Domain 4: Microsoft Compliance Solutions (5Q · obj 4.1-4.4) ──
     {
       id: 18,
       domain: 'Microsoft Compliance Solutions',
@@ -526,7 +510,7 @@
         D: 'Microsoft Purview Compliance Manager'
       },
       answer: 'C',
-      explanation: 'Microsoft Purview Data Loss Prevention (DLP) policies detect sensitive content — such as credit card numbers, Social Security numbers, or custom patterns — in transit (email, Teams) and at rest (SharePoint, OneDrive), and can automatically block or restrict sharing. Sensitivity labels protect already-classified content; DLP policies scan content for sensitive information types regardless of labels.'
+      explanation: 'Microsoft Purview Data Loss Prevention (DLP) policies detect sensitive content, such as credit card numbers, Social Security numbers, or custom patterns, in transit (email, Teams) and at rest (SharePoint, OneDrive), and can automatically block or restrict sharing. Sensitivity labels protect already-classified content; DLP policies scan content for sensitive information types regardless of labels.'
     }
   ];
 
@@ -539,7 +523,6 @@
   var CERT = 'sc900';
   var TARGET_QUESTION_COUNT = 20;
   var GENERATE_ENDPOINT = '/api/diagnostic/generate';
-  var TURNSTILE_TIMEOUT_MS = 10000;  // bail to fallback if no token in 10s
   var FETCH_TIMEOUT_MS = 25000;       // bail if /api/diagnostic/generate stalls
 
   // v4.99.54 D.3: session envelope now carries the full questions array
@@ -915,7 +898,7 @@
   function showSourceBanner(source) {
     if (!sourceBanner) return;
     if (source === 'fallback') {
-      sourceBanner.innerHTML = '📦 <strong style="font-weight:700">Local question set</strong> · high traffic right now, so we\'re using our curated 20-Q pool instead of live AI generation. Scoring is identical.';
+      sourceBanner.innerHTML = '<strong>Curated question set</strong> · 20 questions weighted to the exam blueprint.';
       sourceBanner.style.display = 'block';
     } else if (source === 'inline') {
       // Dev/preview mode · endpoint unconfigured. Silent (don't worry the user).
@@ -945,44 +928,12 @@
   loadingText.textContent = 'Loading questions…';
   loadingSub.textContent = '20 questions across the 4 SC-900 domains.';
 
-  // Turnstile callback · set on window so the cf-turnstile widget can call it
-  var turnstileSettled = false;
-  var turnstileTimeoutHandle = null;
-
-  window.dqTurnstileCallback = function(token) {
-    if (turnstileSettled) return;
-    turnstileSettled = true;
-    if (turnstileTimeoutHandle) clearTimeout(turnstileTimeoutHandle);
-    fetchAIQuestions(token);
-  };
-
-  window.dqTurnstileErrorCallback = function() {
-    if (turnstileSettled) return;
-    turnstileSettled = true;
-    if (turnstileTimeoutHandle) clearTimeout(turnstileTimeoutHandle);
-    console.warn('[dq] Turnstile errored · using inline pool fallback');
-    bootWithFallback('fallback');
-  };
-
-  // Timeout: if Turnstile doesn't fire its callback within 10s, fall back.
-  // This handles cases where the script is blocked by an extension / CSP /
-  // ad-blocker · common enough that we can't assume Turnstile will load.
-  turnstileTimeoutHandle = setTimeout(function() {
-    if (turnstileSettled) return;
-    turnstileSettled = true;
-    console.warn('[dq] Turnstile timed out · using inline pool fallback');
-    bootWithFallback('fallback');
-  }, TURNSTILE_TIMEOUT_MS);
-
-  // Some browsers / ad-blockers strip the Turnstile script entirely. In that
-  // case `window.turnstile` is undefined after a tick. We don't wait · the
-  // timeout above catches it. But we DO check for the existence after a
-  // short delay so we can fail fast with a clearer log.
-  setTimeout(function() {
-    if (typeof window.turnstile === 'undefined' && !turnstileSettled) {
-      console.warn('[dq] Turnstile script not loaded · waiting for timeout');
-    }
-  }, 2000);
+  // Turnstile gate removed · the Cloudflare dev/test key forced a visible
+  // challenge and gated loading for no real protection pre-launch. Boot
+  // directly: AI-first with graceful inline-pool fallback (fetchAIQuestions
+  // handles any non-2xx / malformed / thrown response). Re-add a real
+  // invisible-mode key before public launch if bot abuse appears.
+  fetchAIQuestions(null);
 
   function bootWithFallback(reason) {
     var freshQuestions = shuffleInlinePool();
@@ -1021,7 +972,7 @@
           // Show a quota-specific banner via the fallback path
           bootWithFallback('fallback');
           if (sourceBanner) {
-            sourceBanner.innerHTML = '⏱ <strong style="font-weight:700">Daily limit reached</strong> · IPs are limited to 25 AI calls per 24h. Using the local pool for this attempt. Sign up for unlimited retakes after.';
+            sourceBanner.innerHTML = '<strong>Daily limit reached</strong> · you\'re on the curated set for this attempt. Sign up for unlimited fresh question sets.';
           }
           return;
         }

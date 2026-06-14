@@ -21,11 +21,7 @@
 })();
 </script>
 
-<!-- v4.99.54 D.3: Cloudflare Turnstile invisible bot-protection challenge.
-     Site key is PUBLIC (safe to embed). Dev/test key below always passes;
-     production needs a real site key from dash.cloudflare.com/?to=/:account/turnstile -->
-<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
-<link rel="stylesheet" href="../diagnostic-system.css?v=4.99.96">
+<link rel="stylesheet" href="../diagnostic-system.css?v=4.99.97">
 </head>
 <body class="no-js">
 
@@ -55,18 +51,6 @@
 
 <!-- Loading state (replaced once JS hydrates) -->
 <div class="dq-shell" id="dq-shell">
-  <!-- v4.99.54 D.3: invisible Turnstile widget. Site key 3x...FF is Cloudflare's
-       public dev/test INVISIBLE key (always passes the challenge). Prod swap to
-       a real invisible-mode key from dash.cloudflare.com → Turnstile.
-       Note: data-size is NOT set · invisible mode is determined by the key
-       itself; setting data-size="invisible" throws a TurnstileError. -->
-  <div id="dq-turnstile"
-       class="cf-turnstile"
-       data-sitekey="3x00000000000000000000FF"
-       data-callback="dqTurnstileCallback"
-       data-error-callback="dqTurnstileErrorCallback"
-       data-timeout-callback="dqTurnstileErrorCallback"></div>
-
   <div class="dq-loading" id="dq-loading">
     <div class="dq-loading-spinner" aria-hidden="true"></div>
     <p id="dq-loading-text">Loading questions…</p>
@@ -74,7 +58,7 @@
   </div>
 
   <!-- Source banner · surfaces when we fall back to the inline pool -->
-  <div id="dq-source-banner" role="status" aria-live="polite" style="display:none;background:linear-gradient(135deg,rgba(56,189,248,.06),transparent);border:1px solid rgba(56,189,248,.3);border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:var(--blue, #38bdf8);text-align:center"></div>
+  <div id="dq-source-banner" class="dq-source-banner" role="status" aria-live="polite" style="display:none"></div>
 
   <!-- Live UI (built by JS) -->
   <div id="dq-live" style="display:none">
@@ -93,7 +77,7 @@
     </div>
 
     <div class="dq-pause-banner" role="status" aria-live="polite">
-      ⏸ Paused · your timer froze when you switched tabs. Click here or come back to resume.
+      Paused · your timer froze when you switched tabs. Click here or come back to resume.
     </div>
 
     <div class="dq-card">
@@ -165,7 +149,7 @@
   // engineering, Windows command-line, malware removal, Windows editions,
   // and MFA per Stage 4 spec.
   var QUESTION_POOL = [
-    // ── Domain 1.0 Operating Systems (7 · ~28%) — biased to Windows CLI + editions ──
+    // ── Domain 1.0 Operating Systems (7 · ~28%), biased to Windows CLI + editions ──
     {
       id: 1, domain: 'Operating Systems', topic: 'Windows Command Line', objective: '1.2', difficulty: 'Easy',
       question: 'Which Windows command displays the full IP configuration, including DNS servers and the default gateway, for all adapters?',
@@ -216,7 +200,7 @@
       explanation: 'ls lists directory contents. pwd prints the working directory; cd changes directory; chmod modifies permissions.'
     },
 
-    // ── Domain 2.0 Security (7 · ~28%) — biased to social engineering + MFA ──
+    // ── Domain 2.0 Security (7 · ~28%), biased to social engineering + MFA ──
     {
       id: 8, domain: 'Security', topic: 'Social Engineering', objective: '2.4', difficulty: 'Easy',
       question: 'A user receives an email appearing to be from their bank, urging them to click a link and confirm their password. What type of attack is this?',
@@ -250,7 +234,7 @@
       question: 'Which of the following is the BEST example of a "something you are" authentication factor used in MFA?',
       options: { A: 'A hardware security key', B: 'A one-time SMS code', C: 'A fingerprint scan', D: 'A PIN' },
       answer: 'C',
-      explanation: 'A fingerprint is a biometric — "something you are." A hardware key and SMS code are "something you have"; a PIN is "something you know."'
+      explanation: 'A fingerprint is a biometric · "something you are." A hardware key and SMS code are "something you have"; a PIN is "something you know."'
     },
     {
       id: 13, domain: 'Security', topic: 'Wireless Security', objective: '2.2', difficulty: 'Medium',
@@ -267,7 +251,7 @@
       explanation: 'Ransomware encrypts data and demands payment for the key. Spyware secretly collects data; a rootkit hides at a privileged level; adware displays unwanted ads.'
     },
 
-    // ── Domain 3.0 Software Troubleshooting (5 · ~23%) — biased to malware removal ──
+    // ── Domain 3.0 Software Troubleshooting (5 · ~23%), biased to malware removal ──
     {
       id: 15, domain: 'Software Troubleshooting', topic: 'Malware Removal', objective: '3.3', difficulty: 'Hard',
       question: 'According to the CompTIA best-practice malware removal procedure, which step comes IMMEDIATELY after identifying and verifying malware symptoms?',
@@ -358,7 +342,6 @@
   var CERT = 'aplus-core2';
   var TARGET_QUESTION_COUNT = 20;
   var GENERATE_ENDPOINT = '/api/diagnostic/generate';
-  var TURNSTILE_TIMEOUT_MS = 10000;  // bail to fallback if no token in 10s
   var FETCH_TIMEOUT_MS = 25000;       // bail if /api/diagnostic/generate stalls
 
   // v4.99.54 D.3: session envelope now carries the full questions array
@@ -734,7 +717,7 @@
   function showSourceBanner(source) {
     if (!sourceBanner) return;
     if (source === 'fallback') {
-      sourceBanner.innerHTML = '📦 <strong style="font-weight:700">Local question set</strong> · high traffic right now, so we\'re using our curated 20-Q pool instead of live AI generation. Scoring is identical.';
+      sourceBanner.innerHTML = '<strong>Curated question set</strong> · 20 questions weighted to the exam blueprint.';
       sourceBanner.style.display = 'block';
     } else if (source === 'inline') {
       // Dev/preview mode · endpoint unconfigured. Silent (don't worry the user).
@@ -764,44 +747,12 @@
   loadingText.textContent = 'Loading questions…';
   loadingSub.textContent = '20 questions across the 4 CompTIA A+ Core 2 domains.';
 
-  // Turnstile callback · set on window so the cf-turnstile widget can call it
-  var turnstileSettled = false;
-  var turnstileTimeoutHandle = null;
-
-  window.dqTurnstileCallback = function(token) {
-    if (turnstileSettled) return;
-    turnstileSettled = true;
-    if (turnstileTimeoutHandle) clearTimeout(turnstileTimeoutHandle);
-    fetchAIQuestions(token);
-  };
-
-  window.dqTurnstileErrorCallback = function() {
-    if (turnstileSettled) return;
-    turnstileSettled = true;
-    if (turnstileTimeoutHandle) clearTimeout(turnstileTimeoutHandle);
-    console.warn('[dq] Turnstile errored · using inline pool fallback');
-    bootWithFallback('fallback');
-  };
-
-  // Timeout: if Turnstile doesn't fire its callback within 10s, fall back.
-  // This handles cases where the script is blocked by an extension / CSP /
-  // ad-blocker · common enough that we can't assume Turnstile will load.
-  turnstileTimeoutHandle = setTimeout(function() {
-    if (turnstileSettled) return;
-    turnstileSettled = true;
-    console.warn('[dq] Turnstile timed out · using inline pool fallback');
-    bootWithFallback('fallback');
-  }, TURNSTILE_TIMEOUT_MS);
-
-  // Some browsers / ad-blockers strip the Turnstile script entirely. In that
-  // case `window.turnstile` is undefined after a tick. We don't wait · the
-  // timeout above catches it. But we DO check for the existence after a
-  // short delay so we can fail fast with a clearer log.
-  setTimeout(function() {
-    if (typeof window.turnstile === 'undefined' && !turnstileSettled) {
-      console.warn('[dq] Turnstile script not loaded · waiting for timeout');
-    }
-  }, 2000);
+  // Turnstile gate removed · the Cloudflare dev/test key forced a visible
+  // challenge and gated loading for no real protection pre-launch. Boot
+  // directly: AI-first with graceful inline-pool fallback (fetchAIQuestions
+  // handles any non-2xx / malformed / thrown response). Re-add a real
+  // invisible-mode key before public launch if bot abuse appears.
+  fetchAIQuestions(null);
 
   function bootWithFallback(reason) {
     var freshQuestions = shuffleInlinePool();
@@ -840,7 +791,7 @@
           // Show a quota-specific banner via the fallback path
           bootWithFallback('fallback');
           if (sourceBanner) {
-            sourceBanner.innerHTML = '⏱ <strong style="font-weight:700">Daily limit reached</strong> · IPs are limited to 25 AI calls per 24h. Using the local pool for this attempt. Sign up for unlimited retakes after.';
+            sourceBanner.innerHTML = '<strong>Daily limit reached</strong> · you\'re on the curated set for this attempt. Sign up for unlimited fresh question sets.';
           }
           return;
         }

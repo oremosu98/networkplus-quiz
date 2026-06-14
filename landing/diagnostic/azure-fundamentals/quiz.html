@@ -21,11 +21,7 @@
 })();
 </script>
 
-<!-- v4.99.54 D.3: Cloudflare Turnstile invisible bot-protection challenge.
-     Site key is PUBLIC (safe to embed). Dev/test key below always passes;
-     production needs a real site key from dash.cloudflare.com/?to=/:account/turnstile -->
-<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
-<link rel="stylesheet" href="../diagnostic-system.css?v=4.99.96">
+<link rel="stylesheet" href="../diagnostic-system.css?v=4.99.97">
 </head>
 <body class="no-js">
 
@@ -55,18 +51,6 @@
 
 <!-- Loading state (replaced once JS hydrates) -->
 <div class="dq-shell" id="dq-shell">
-  <!-- v4.99.54 D.3: invisible Turnstile widget. Site key 3x...FF is Cloudflare's
-       public dev/test INVISIBLE key (always passes the challenge). Prod swap to
-       a real invisible-mode key from dash.cloudflare.com → Turnstile.
-       Note: data-size is NOT set · invisible mode is determined by the key
-       itself; setting data-size="invisible" throws a TurnstileError. -->
-  <div id="dq-turnstile"
-       class="cf-turnstile"
-       data-sitekey="3x00000000000000000000FF"
-       data-callback="dqTurnstileCallback"
-       data-error-callback="dqTurnstileErrorCallback"
-       data-timeout-callback="dqTurnstileErrorCallback"></div>
-
   <div class="dq-loading" id="dq-loading">
     <div class="dq-loading-spinner" aria-hidden="true"></div>
     <p id="dq-loading-text">Loading questions…</p>
@@ -74,7 +58,7 @@
   </div>
 
   <!-- Source banner · surfaces when we fall back to the inline pool -->
-  <div id="dq-source-banner" role="status" aria-live="polite" style="display:none;background:linear-gradient(135deg,rgba(56,189,248,.06),transparent);border:1px solid rgba(56,189,248,.3);border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:var(--blue, #38bdf8);text-align:center"></div>
+  <div id="dq-source-banner" class="dq-source-banner" role="status" aria-live="polite" style="display:none"></div>
 
   <!-- Live UI (built by JS) -->
   <div id="dq-live" style="display:none">
@@ -93,7 +77,7 @@
     </div>
 
     <div class="dq-pause-banner" role="status" aria-live="polite">
-      ⏸ Paused · your timer froze when you switched tabs. Click here or come back to resume.
+      Paused · your timer froze when you switched tabs. Click here or come back to resume.
     </div>
 
     <div class="dq-card">
@@ -180,14 +164,14 @@
       question: 'A company wants to run virtual machines in the cloud but manage the OS, middleware, and applications themselves. Which service model is best?',
       options: { A: 'SaaS (Software as a Service)', B: 'PaaS (Platform as a Service)', C: 'IaaS (Infrastructure as a Service)', D: 'FaaS (Function as a Service)' },
       answer: 'C',
-      explanation: 'IaaS provides virtualized compute, storage, and networking — the customer manages everything above the hypervisor (OS, middleware, apps). PaaS abstracts the OS layer; SaaS delivers the entire app.'
+      explanation: 'IaaS provides virtualized compute, storage, and networking · the customer manages everything above the hypervisor (OS, middleware, apps). PaaS abstracts the OS layer; SaaS delivers the entire app.'
     },
     {
       id: 4, domain: 'Cloud Concepts', topic: 'CapEx vs OpEx', objective: '1.1', difficulty: 'Medium',
       question: 'Moving from on-premises infrastructure to Azure typically shifts IT spending from which model to which?',
       options: { A: 'OpEx to CapEx', B: 'CapEx to OpEx', C: 'CapEx to fixed cost', D: 'OpEx to subscription tax' },
       answer: 'B',
-      explanation: 'On-premises requires upfront Capital Expenditure (servers, networking, datacenter). Cloud shifts spend to Operational Expenditure (pay-as-you-go billing) — no large upfront purchase, predictable monthly costs.'
+      explanation: 'On-premises requires upfront Capital Expenditure (servers, networking, datacenter). Cloud shifts spend to Operational Expenditure (pay-as-you-go billing) · no large upfront purchase, predictable monthly costs.'
     },
     {
       id: 5, domain: 'Cloud Concepts', topic: 'Shared Responsibility', objective: '1.1', difficulty: 'Medium',
@@ -201,7 +185,7 @@
       question: 'What is the primary distinction between high availability and disaster recovery in Azure architecture?',
       options: { A: 'HA prevents downtime within a region; DR restores service after a regional failure', B: 'They are synonyms', C: 'HA is for VMs; DR is for storage only', D: 'HA is automatic; DR is manual only' },
       answer: 'A',
-      explanation: 'High availability uses redundancy (availability sets/zones) to keep services running through localized failures. Disaster recovery (Azure Site Recovery, geo-redundant storage) restores service after a regional event — different problem, different toolkit.'
+      explanation: 'High availability uses redundancy (availability sets/zones) to keep services running through localized failures. Disaster recovery (Azure Site Recovery, geo-redundant storage) restores service after a regional event · different problem, different toolkit.'
     },
 
     // ── Domain 2.0 Azure Architecture & Services (8 · ~38%) ──
@@ -231,7 +215,7 @@
       question: 'Which Azure networking service provides a private, dedicated connection between an on-premises network and Azure, bypassing the public internet?',
       options: { A: 'VPN Gateway', B: 'ExpressRoute', C: 'Azure Bastion', D: 'Application Gateway' },
       answer: 'B',
-      explanation: 'ExpressRoute provides a private, dedicated, high-bandwidth connection through a connectivity provider — no public internet traversal. VPN Gateway is encrypted over the internet; Bastion is for secure RDP/SSH; App Gateway is L7 load balancing.'
+      explanation: 'ExpressRoute provides a private, dedicated, high-bandwidth connection through a connectivity provider · no public internet traversal. VPN Gateway is encrypted over the internet; Bastion is for secure RDP/SSH; App Gateway is L7 load balancing.'
     },
     {
       id: 11, domain: 'Azure Architecture & Services', topic: 'Databases', objective: '2.2', difficulty: 'Medium',
@@ -252,7 +236,7 @@
       question: 'A developer wants to run code in response to an HTTP request without provisioning servers and pay only for execution time. Which service fits?',
       options: { A: 'Azure Virtual Machines', B: 'Azure App Service', C: 'Azure Functions', D: 'Azure Kubernetes Service' },
       answer: 'C',
-      explanation: 'Azure Functions is the serverless compute service — code runs in response to triggers (HTTP, queue, timer, blob), and you pay per execution. App Service is for web apps but provisions an App Service Plan; AKS is for container orchestration.'
+      explanation: 'Azure Functions is the serverless compute service · code runs in response to triggers (HTTP, queue, timer, blob), and you pay per execution. App Service is for web apps but provisions an App Service Plan; AKS is for container orchestration.'
     },
     {
       id: 14, domain: 'Azure Architecture & Services', topic: 'Management Hierarchy', objective: '2.4', difficulty: 'Hard',
@@ -303,7 +287,7 @@
       question: 'Which Azure service provides a unified view of metrics, logs, and alerts across resources for observability?',
       options: { A: 'Azure Advisor', B: 'Azure Monitor', C: 'Azure Service Health', D: 'Azure Policy' },
       answer: 'B',
-      explanation: 'Azure Monitor is the unified observability platform — collects metrics (numeric time-series), logs (Kusto-queryable via Log Analytics), and drives alerting. Advisor gives optimization recommendations; Service Health shows incidents; Policy enforces compliance.'
+      explanation: 'Azure Monitor is the unified observability platform · collects metrics (numeric time-series), logs (Kusto-queryable via Log Analytics), and drives alerting. Advisor gives optimization recommendations; Service Health shows incidents; Policy enforces compliance.'
     }
   ];
 
@@ -316,7 +300,6 @@
   var CERT = 'azure-fundamentals';
   var TARGET_QUESTION_COUNT = 20;
   var GENERATE_ENDPOINT = '/api/diagnostic/generate';
-  var TURNSTILE_TIMEOUT_MS = 10000;  // bail to fallback if no token in 10s
   var FETCH_TIMEOUT_MS = 25000;       // bail if /api/diagnostic/generate stalls
 
   // v4.99.54 D.3: session envelope now carries the full questions array
@@ -692,7 +675,7 @@
   function showSourceBanner(source) {
     if (!sourceBanner) return;
     if (source === 'fallback') {
-      sourceBanner.innerHTML = '📦 <strong style="font-weight:700">Local question set</strong> · high traffic right now, so we\'re using our curated 20-Q pool instead of live AI generation. Scoring is identical.';
+      sourceBanner.innerHTML = '<strong>Curated question set</strong> · 20 questions weighted to the exam blueprint.';
       sourceBanner.style.display = 'block';
     } else if (source === 'inline') {
       // Dev/preview mode · endpoint unconfigured. Silent (don't worry the user).
@@ -722,44 +705,12 @@
   loadingText.textContent = 'Loading questions…';
   loadingSub.textContent = '20 questions across the 3 Azure Fundamentals domains.';
 
-  // Turnstile callback · set on window so the cf-turnstile widget can call it
-  var turnstileSettled = false;
-  var turnstileTimeoutHandle = null;
-
-  window.dqTurnstileCallback = function(token) {
-    if (turnstileSettled) return;
-    turnstileSettled = true;
-    if (turnstileTimeoutHandle) clearTimeout(turnstileTimeoutHandle);
-    fetchAIQuestions(token);
-  };
-
-  window.dqTurnstileErrorCallback = function() {
-    if (turnstileSettled) return;
-    turnstileSettled = true;
-    if (turnstileTimeoutHandle) clearTimeout(turnstileTimeoutHandle);
-    console.warn('[dq] Turnstile errored · using inline pool fallback');
-    bootWithFallback('fallback');
-  };
-
-  // Timeout: if Turnstile doesn't fire its callback within 10s, fall back.
-  // This handles cases where the script is blocked by an extension / CSP /
-  // ad-blocker · common enough that we can't assume Turnstile will load.
-  turnstileTimeoutHandle = setTimeout(function() {
-    if (turnstileSettled) return;
-    turnstileSettled = true;
-    console.warn('[dq] Turnstile timed out · using inline pool fallback');
-    bootWithFallback('fallback');
-  }, TURNSTILE_TIMEOUT_MS);
-
-  // Some browsers / ad-blockers strip the Turnstile script entirely. In that
-  // case `window.turnstile` is undefined after a tick. We don't wait · the
-  // timeout above catches it. But we DO check for the existence after a
-  // short delay so we can fail fast with a clearer log.
-  setTimeout(function() {
-    if (typeof window.turnstile === 'undefined' && !turnstileSettled) {
-      console.warn('[dq] Turnstile script not loaded · waiting for timeout');
-    }
-  }, 2000);
+  // Turnstile gate removed · the Cloudflare dev/test key forced a visible
+  // challenge and gated loading for no real protection pre-launch. Boot
+  // directly: AI-first with graceful inline-pool fallback (fetchAIQuestions
+  // handles any non-2xx / malformed / thrown response). Re-add a real
+  // invisible-mode key before public launch if bot abuse appears.
+  fetchAIQuestions(null);
 
   function bootWithFallback(reason) {
     var freshQuestions = shuffleInlinePool();
@@ -798,7 +749,7 @@
           // Show a quota-specific banner via the fallback path
           bootWithFallback('fallback');
           if (sourceBanner) {
-            sourceBanner.innerHTML = '⏱ <strong style="font-weight:700">Daily limit reached</strong> · IPs are limited to 25 AI calls per 24h. Using the local pool for this attempt. Sign up for unlimited retakes after.';
+            sourceBanner.innerHTML = '<strong>Daily limit reached</strong> · you\'re on the curated set for this attempt. Sign up for unlimited fresh question sets.';
           }
           return;
         }
