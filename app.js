@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v7.51.1
+// Network+ AI Quiz — app.js  v7.52.0
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '7.51.1';
+const APP_VERSION = '7.52.0';
 // v4.99.45 (Phase 6b): expose APP_VERSION on window so the web-vitals
 // collector (lib/web-vitals-collector.js, loaded BEFORE app.js so its
 // PerformanceObservers attach earlier) can stamp this version onto every
@@ -5620,20 +5620,6 @@ function _showProWaitlist() {
   var dismiss = document.getElementById('pro-waitlist-dismiss');
   if (dismiss) dismiss.addEventListener('click', function () { modal.remove(); });
   modal.addEventListener('click', function (e) { if (e.target === modal) modal.remove(); });
-}
-
-// Click-through helper — picks the first topic in a domain and routes to
-// the focus drill (existing wrong-bank-style focus). Topics are looked up
-// via TOPIC_DOMAINS reverse-map.
-function focusFirstTopicInDomain(domainKey) {
-  if (typeof TOPIC_DOMAINS === 'undefined') { goSetup(); return; }
-  const topics = Object.keys(TOPIC_DOMAINS).filter(t => TOPIC_DOMAINS[t] === domainKey);
-  if (topics.length === 0) { goSetup(); return; }
-  if (typeof focusTopic === 'function') {
-    focusTopic(topics[0]);
-  } else {
-    goSetup();
-  }
 }
 
 // "View report" CTA on the home Pass Plan tile.
