@@ -100,6 +100,11 @@
     ];
   }
 
+  // v7.52.0: expose the cert registry so app.js can render the Pass Plan account section.
+  window.getAvailableCerts = getAvailableCerts;
+  // v7.52.0: expose the in-app sign-in URL builder so the conversion block's "Save it free" has a reliable fallback.
+  window.buildSignInUrl = buildSignInUrl;
+
   function getActiveCertId() {
     try {
       var dev = localStorage.getItem(CERT_OVERRIDE_KEY);

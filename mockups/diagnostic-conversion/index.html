@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Diagnostic → Free/Pro conversion · mockup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:oklch(0.975 0.007 85);
+    --surface:oklch(0.945 0.008 85);
+    --surface3:oklch(0.915 0.008 85);
+    --border:oklch(0.85 0.011 85);
+    --accent:oklch(0.50 0.155 55);
+    --accent-light:oklch(0.58 0.150 55);
+    --accent-dim:color-mix(in oklab, oklch(0.50 0.155 55) 10%, transparent);
+    --accent-tint:color-mix(in oklab, oklch(0.50 0.155 55) 5%, var(--bg));
+    --text:oklch(0.26 0.015 280);
+    --text-mid:oklch(0.42 0.014 280);
+    --text-dim:oklch(0.50 0.013 280);
+    --green:oklch(0.50 0.15 150);
+    --radius:14px; --radius-sm:10px;
+    --ease:cubic-bezier(0.23,1,0.32,1);
+    --lnum:"lnum" 1,"tnum" 1;
+  }
+  *{box-sizing:border-box}
+  body{margin:0; background:var(--bg); color:var(--text); font-family:Inter,-apple-system,system-ui,sans-serif; -webkit-font-smoothing:antialiased; padding:40px 20px 80px}
+  .wrap{max-width:1180px; margin:0 auto}
+  .page-head h1{font-family:Fraunces,serif; font-weight:600; font-size:26px; letter-spacing:-0.01em; margin:0 0 6px}
+  .page-head p{color:var(--text-mid); font-size:14px; line-height:1.6; margin:0; max-width:74ch}
+  .skill-legend{display:flex; gap:8px; flex-wrap:wrap; margin:14px 0 26px}
+  .skill-legend span{font-size:11px; font-weight:600; letter-spacing:0.06em; text-transform:uppercase; color:var(--accent); border:1px solid var(--border); border-radius:999px; padding:5px 11px; background:var(--accent-tint)}
+  .section-h{font-family:Fraunces,serif; font-weight:600; font-size:19px; margin:38px 0 4px; letter-spacing:-0.01em}
+  .section-h.first{margin-top:8px}
+  .section-note{color:var(--text-mid); font-size:13px; margin:0 0 22px; max-width:74ch; line-height:1.55}
+
+  .frames{display:flex; gap:28px; flex-wrap:wrap; align-items:flex-start}
+  .frame-col{flex:0 0 360px; max-width:360px}
+  .frame-col.wide{flex-basis:560px; max-width:560px}
+  .frame-caption{margin:0 0 12px}
+  .frame-caption .state{font-weight:700; font-size:14px; display:flex; align-items:center; gap:8px}
+  .frame-caption .state .dot{width:7px;height:7px;border-radius:50%;background:var(--accent)}
+  .frame-caption .state .dot.pro{background:var(--green)}
+  .frame-caption .why{color:var(--text-mid); font-size:12.5px; line-height:1.55; margin-top:5px}
+
+  .phone{background:var(--bg); border:1px solid var(--border); border-radius:30px; padding:14px; box-shadow:0 24px 60px color-mix(in oklab, var(--text) 9%, transparent); position:relative; overflow:hidden}
+  .desktop{background:var(--bg); border:1px solid var(--border); border-radius:16px; box-shadow:0 24px 60px color-mix(in oklab, var(--text) 9%, transparent); overflow:hidden}
+  .desktop-bar{height:34px; background:var(--surface); border-bottom:1px solid var(--border); display:flex; align-items:center; gap:6px; padding:0 12px}
+  .desktop-bar i{width:9px;height:9px;border-radius:50%;background:var(--surface3)}
+  .desktop-body{padding:22px}
+  .phone-inner{border-radius:18px; overflow:hidden; background:var(--bg)}
+  .topbar{display:flex; align-items:center; gap:8px; padding:6px 4px 16px}
+  .topbar.between{justify-content:space-between}
+  .logo-row{display:flex;align-items:center;gap:8px}
+  .logo-mark{width:24px;height:24px;border-radius:7px;background:var(--surface3);display:flex;align-items:center;justify-content:center}
+  .logo-mark svg{width:16px;height:16px}
+  .logo-name{font-family:Fraunces,serif; font-weight:600; font-size:15px; letter-spacing:-0.01em}
+  .acct-pill{display:flex;align-items:center;gap:7px;border:1px solid var(--border);border-radius:999px;padding:4px 10px 4px 5px;font-size:12px;font-weight:600;color:var(--text-mid)}
+  .acct-av{width:20px;height:20px;border-radius:50%;background:var(--accent);color:var(--bg);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700}
+  .acct-pill.is-pro .acct-av{background:var(--green)}
+  .pro-badge{font-size:10px;font-weight:700;letter-spacing:0.06em;color:var(--green);border:1px solid color-mix(in oklab,var(--green) 35%,var(--border));border-radius:999px;padding:2px 7px}
+
+  .plan-context{padding:0 4px; -webkit-mask-image:linear-gradient(transparent,#000 40%); mask-image:linear-gradient(transparent,#000 40%)}
+  .pc-h{font-family:Fraunces,serif; font-weight:600; font-size:13px; color:var(--text-dim); display:flex; justify-content:space-between; margin:0 0 10px}
+  .pc-row{display:flex; justify-content:space-between; align-items:center; padding:9px 0; border-top:1px solid var(--border); font-size:12.5px; color:var(--text-mid)}
+  .pc-bar{height:5px; width:120px; border-radius:5px; background:var(--surface3); overflow:hidden}
+  .pc-bar i{display:block; height:100%; background:var(--accent); border-radius:5px}
+
+  .conv{padding:20px 4px 6px}
+  .save-panel{border:1px solid color-mix(in oklab, var(--accent) 32%, var(--border)); background:var(--accent-tint); border-radius:var(--radius); padding:18px 16px 16px}
+  .save-eyebrow{font-size:11px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:var(--accent); margin:0 0 7px}
+  .save-h{font-family:Fraunces,serif; font-weight:600; font-size:21px; line-height:1.15; letter-spacing:-0.01em; margin:0 0 7px}
+  .save-sub{font-size:13px; line-height:1.5; color:var(--text-mid); margin:0 0 15px}
+  .email-row{display:flex; gap:8px; margin-bottom:10px}
+  .email-input{flex:1; min-width:0; height:46px; border:1px solid var(--border); border-radius:var(--radius-sm); background:var(--bg); padding:0 13px; font:500 14px Inter,sans-serif; color:var(--text)}
+  .email-input::placeholder{color:var(--text-dim)}
+  .btn{border:0; border-radius:var(--radius-sm); cursor:pointer; font:700 14px Inter,sans-serif; height:46px; padding:0 18px; display:inline-flex; align-items:center; justify-content:center; gap:7px; transition:filter .15s var(--ease), transform .12s var(--ease); white-space:nowrap}
+  .btn:active{transform:scale(0.97)}
+  .btn-primary{background:var(--accent); color:var(--bg)}
+  .btn-primary:hover{filter:brightness(1.07)}
+  .btn-full{width:100%}
+  .btn-sm{height:38px;font-size:13px;padding:0 14px}
+  .save-micro{font-size:12px; color:var(--text-dim); display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin:0}
+  .save-micro b{color:var(--text-mid); font-weight:600}
+  .save-micro .sep{width:3px;height:3px;border-radius:50%;background:var(--text-dim);display:inline-block}
+  .save-home{font-size:12px;color:var(--text-dim);margin:9px 0 0;display:flex;align-items:center;gap:6px}
+  .save-home svg{width:13px;height:13px;flex:none}
+
+  .pro{margin-top:12px; border:1px solid var(--border); border-radius:var(--radius); background:var(--surface); padding:15px 16px}
+  .pro-top{display:flex; justify-content:space-between; align-items:baseline; gap:10px}
+  .pro-h{font-weight:700; font-size:14px}
+  .pro-tag{font-size:10.5px; font-weight:700; letter-spacing:0.07em; text-transform:uppercase; color:var(--accent); border:1px solid color-mix(in oklab,var(--accent) 30%,var(--border)); border-radius:999px; padding:3px 8px}
+  .pro-sub{font-size:12.5px; color:var(--text-mid); margin:5px 0 13px; line-height:1.5}
+  .pro-price{font-feature-settings:var(--lnum); color:var(--text); font-weight:700}
+  .btn-ghost{background:transparent; color:var(--accent); border:1px solid color-mix(in oklab,var(--accent) 42%,var(--border)); width:100%}
+  .btn-ghost:hover{background:var(--accent-dim)}
+  .escape{display:block; text-align:center; margin:16px auto 4px; font-size:13px; font-weight:500; color:var(--text-dim); text-decoration:none; padding:10px}
+  .escape:hover{color:var(--text-mid)}
+  .affirm{display:flex; align-items:center; gap:8px; font-size:13px; color:var(--green); font-weight:600; margin:0 0 6px; justify-content:center}
+  .affirm svg{width:16px;height:16px}
+  .affirm-link{display:block;text-align:center;font-size:12.5px;color:var(--accent);font-weight:600;text-decoration:none;margin:0 0 14px}
+  .pro-soft{margin-top:14px; text-align:center; font-size:12.5px; color:var(--text-mid)}
+  .pro-soft a{color:var(--accent); font-weight:600; text-decoration:none}
+
+  .sheet-stage{position:relative; height:560px; border-radius:18px; overflow:hidden; background:var(--bg)}
+  .sheet-dim{position:absolute; inset:0; background:color-mix(in oklab,var(--text) 30%,transparent)}
+  .sheet{position:absolute; left:0; right:0; bottom:0; background:var(--bg); border-top-left-radius:20px; border-top-right-radius:20px; padding:10px 16px 18px; box-shadow:0 -14px 40px color-mix(in oklab,var(--text) 14%,transparent)}
+  .sheet-grip{width:38px;height:4px;border-radius:4px;background:var(--border);margin:0 auto 14px}
+  .dimmed-plan{padding:18px 16px 0; filter:saturate(0.7)}
+  .dimmed-plan .pc-h{font-size:15px;color:var(--text)}
+  svg.ca-mark path{stroke-width:7;stroke-linecap:round}
+
+  .acct-title{font-family:Fraunces,serif;font-weight:600;font-size:20px;margin:4px 4px 6px;display:flex;align-items:center;gap:9px}
+  .acct-row{display:flex;justify-content:space-between;align-items:center;padding:13px 4px;border-top:1px solid var(--border);font-size:13px}
+  .acct-row .k{color:var(--text-mid)} .acct-row .v{font-weight:600}
+  .sub-label{font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-dim);margin:14px 4px 10px}
+  .plan-card{border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);padding:16px;margin:0 0 14px}
+  .plan-card .pcard-eyebrow{font-size:10.5px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-dim);display:flex;justify-content:space-between;margin-bottom:12px}
+  .pcard-main{display:flex;gap:15px;align-items:center}
+  .prob-ring{width:62px;height:62px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;background:conic-gradient(var(--accent) 0 72%, var(--surface3) 72% 100%)}
+  .prob-ring .inner{width:48px;height:48px;border-radius:50%;background:var(--surface);display:flex;flex-direction:column;align-items:center;justify-content:center}
+  .prob-ring .pct{font-family:Fraunces,serif;font-weight:600;font-size:17px;font-feature-settings:var(--lnum);line-height:1}
+  .prob-ring .lbl{font-size:8px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.05em}
+  .pcard-detail .meta{font-size:12.5px;color:var(--text-mid);margin:0 0 7px;font-feature-settings:var(--lnum)}
+  .pcard-detail .weak{font-size:12.5px;color:var(--text)}
+  .pcard-detail .weak b{color:var(--accent)}
+  .pcard-cta{display:flex;gap:8px;margin-top:14px}
+
+  /* free upsell · locked other certs */
+  .locked-certs{border:1px solid var(--border);border-radius:var(--radius);background:var(--accent-tint);padding:15px 16px}
+  .locked-h{font-weight:700;font-size:14px;margin:0 0 4px}
+  .locked-sub{font-size:12.5px;color:var(--text-mid);margin:0 0 12px;line-height:1.5}
+  .cert-chips{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:14px}
+  .cert-chip{display:flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;color:var(--text-dim);border:1px solid var(--border);border-radius:999px;padding:5px 11px;background:var(--bg)}
+  .cert-chip svg{width:11px;height:11px;opacity:0.7}
+
+  /* pro · multi-plan list */
+  .plan-list{display:flex;flex-direction:column;gap:8px;margin:0 0 12px}
+  .plan-item{display:flex;align-items:center;gap:12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);padding:11px 13px}
+  .pi-ring{width:36px;height:36px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font-size:11.5px;font-weight:700;font-feature-settings:var(--lnum);color:var(--bg)}
+  .pi-body{flex:1;min-width:0}
+  .pi-cert{font-weight:700;font-size:13px}
+  .pi-meta{font-size:11.5px;color:var(--text-mid);font-feature-settings:var(--lnum)}
+  .pi-go{color:var(--text-dim);font-size:17px;font-weight:600}
+  .add-cert{display:flex;align-items:center;justify-content:center;gap:7px;border:1px dashed color-mix(in oklab,var(--accent) 45%,var(--border));border-radius:var(--radius-sm);background:transparent;color:var(--accent);font:700 13px Inter,sans-serif;height:46px;width:100%;cursor:pointer}
+
+  /* plan detail · clickable weak topics */
+  .detail-h{font-family:Fraunces,serif;font-weight:600;font-size:18px;margin:2px 4px 2px;display:flex;justify-content:space-between;align-items:baseline}
+  .detail-sub{font-size:12px;color:var(--text-dim);margin:0 4px 16px;font-feature-settings:var(--lnum)}
+  .weak-list{display:flex;flex-direction:column;gap:8px;margin:0 0 14px}
+  .weak-item{display:flex;align-items:center;gap:11px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);padding:11px 13px;cursor:pointer;transition:border-color .15s var(--ease)}
+  .weak-item:hover{border-color:color-mix(in oklab,var(--accent) 50%,var(--border))}
+  .weak-item .wbar{flex:none;width:44px;height:5px;border-radius:5px;background:var(--surface3);overflow:hidden}
+  .weak-item .wbar i{display:block;height:100%;background:var(--accent)}
+  .weak-item .wname{flex:1;font-weight:600;font-size:13px}
+  .weak-item .wpct{font-size:12px;color:var(--text-mid);font-feature-settings:var(--lnum)}
+  .weak-item .wdrill{font-size:11.5px;font-weight:700;color:var(--accent);border:1px solid color-mix(in oklab,var(--accent) 40%,var(--border));border-radius:999px;padding:4px 11px}
+
+  /* custom quiz builder */
+  .picker{border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);padding:16px}
+  .picker-h{font-weight:700;font-size:14px;margin:0 0 3px}
+  .picker-note{font-size:12px;color:var(--text-mid);margin:0 0 15px;line-height:1.5}
+  .pick-label{font-size:10.5px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-dim);margin:0 0 8px}
+  .chip-wrap{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:16px}
+  .tchip{font-size:12px;font-weight:600;border-radius:999px;padding:6px 12px;border:1px solid var(--border);color:var(--text-mid);background:var(--bg);cursor:pointer}
+  .tchip.sel{background:var(--accent);color:var(--bg);border-color:var(--accent)}
+  .seg{display:flex;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;margin-bottom:16px}
+  .seg button{flex:1;border:0;background:var(--bg);color:var(--text-mid);font:600 12.5px Inter,sans-serif;height:38px;cursor:pointer;border-right:1px solid var(--border)}
+  .seg button:last-child{border-right:0}
+  .seg button.on{background:var(--accent);color:var(--bg)}
+  .seg button.locked{color:var(--accent);background:var(--accent-tint);font-weight:700}
+  .quota-note{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:11.5px;color:var(--text-mid);background:var(--accent-tint);border:1px solid color-mix(in oklab,var(--accent) 22%,var(--border));border-radius:var(--radius-sm);padding:9px 12px;margin:0 0 16px}
+  .quota-note b{color:var(--text);font-weight:700;font-feature-settings:var(--lnum)}
+  .cap-hint{font-weight:600;letter-spacing:0;text-transform:none;color:var(--text-dim);font-size:10px;margin-left:7px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="page-head">
+  <h1>Diagnostic → free / Pro conversion + a permanent home</h1>
+  <p>The full Pass Plan stays as it is. This adds a soft conversion moment at the bottom of the result page, and gives the saved plan a permanent home on the account page that differs by tier: Free keeps one plan (one cert) with a Pro upsell for the rest; Pro keeps a plan for every cert. Light theme (your primary). Free is 15 questions a day plus 5 reviews. Pro is a waitlist teaser with no purchase link, so the app stays App Store safe until StoreKit ships in Phase G. One responsive build covers desktop, Safari, and iOS.</p>
+</div>
+<div class="skill-legend">
+  <span>design-taste</span><span>emil-design-eng</span><span>humanizer</span><span>marketing-psychology</span>
+</div>
+
+<h2 class="section-h first">1 · The conversion moment</h2>
+<p class="section-note">At the bottom of the Pass Plan, where today there is only a single "Start today's session" button.</p>
+
+<div class="frames">
+
+  <div class="frame-col">
+    <div class="frame-caption">
+      <div class="state"><span class="dot"></span>Anonymous user · the full moment</div>
+      <div class="why">Loss-aversion leads (they just built this plan: IKEA / endowment). One primary action, inline email kills activation energy, "no card" kills regret. Pro $9.99 anchors so free reads generous.</div>
+    </div>
+    <div class="phone"><div class="phone-inner">
+      <div class="topbar"><span class="logo-mark"><svg viewBox="0 0 100 100" fill="none" class="ca-mark"><path d="M58 12 C42 6,16 16,14 34 C12 52,22 62,42 64" stroke="var(--accent)"/><line x1="30" y1="84" x2="70" y2="16" stroke="var(--text-dim)" stroke-width="5" stroke-linecap="round"/><path d="M46 88 L64 50 L82 88 M53 74 L75 74" stroke="var(--accent)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="logo-name">CertAnvil</span></div>
+      <div class="plan-context">
+        <div class="pc-h"><span>YOUR PASS PLAN</span><span>72% pass probability</span></div>
+        <div class="pc-row"><span>Subnetting</span><span class="pc-bar"><i style="width:40%"></i></span></div>
+        <div class="pc-row"><span>Network security</span><span class="pc-bar"><i style="width:55%"></i></span></div>
+        <div class="pc-row"><span>14 cards seeded to review</span><span>first session: tomorrow</span></div>
+      </div>
+      <div class="conv">
+        <div class="save-panel">
+          <p class="save-eyebrow">Before you start</p>
+          <h2 class="save-h">Don't lose your Pass Plan</h2>
+          <p class="save-sub">Right now it lives only on this device. Save it free and pick up where you left off on any device.</p>
+          <div class="email-row"><input class="email-input" type="email" placeholder="you@email.com" aria-label="Email"><button class="btn btn-primary">Save it free</button></div>
+          <p class="save-micro"><b>Just your email.</b> No password <span class="sep"></span> no card <span class="sep"></span> 15 questions a day</p>
+          <p class="save-home"><svg viewBox="0 0 24 24" fill="none"><path d="M5 12h14M12 5v14" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"/></svg>It lands on your account page, ready whenever you come back.</p>
+        </div>
+        <div class="pro">
+          <div class="pro-top"><span class="pro-h">Going all in?</span><span class="pro-tag">At launch</span></div>
+          <p class="pro-sub">CertAnvil Pro: unlimited questions, every cert, the topology builder and labs. <span class="pro-price">$9.99/mo</span> when it ships.</p>
+          <button class="btn btn-ghost">Get Pro at launch</button>
+        </div>
+        <a href="#" class="escape">Start today's session without saving</a>
+      </div>
+    </div></div>
+  </div>
+
+  <div class="frame-col">
+    <div class="frame-caption">
+      <div class="state"><span class="dot"></span>Signed-in free user</div>
+      <div class="why">Already saved, so no signup pitch. It auto-saves to their account; we point them to where it lives. Pro sits as one quiet line.</div>
+    </div>
+    <div class="phone"><div class="phone-inner">
+      <div class="topbar"><span class="logo-mark"><svg viewBox="0 0 100 100" fill="none" class="ca-mark"><path d="M58 12 C42 6,16 16,14 34 C12 52,22 62,42 64" stroke="var(--accent)"/><line x1="30" y1="84" x2="70" y2="16" stroke="var(--text-dim)" stroke-width="5" stroke-linecap="round"/><path d="M46 88 L64 50 L82 88 M53 74 L75 74" stroke="var(--accent)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="logo-name">CertAnvil</span></div>
+      <div class="plan-context">
+        <div class="pc-h"><span>YOUR PASS PLAN</span><span>72% pass probability</span></div>
+        <div class="pc-row"><span>Subnetting</span><span class="pc-bar"><i style="width:40%"></i></span></div>
+        <div class="pc-row"><span>Network security</span><span class="pc-bar"><i style="width:55%"></i></span></div>
+        <div class="pc-row"><span>14 cards seeded to review</span><span>first session: tomorrow</span></div>
+      </div>
+      <div class="conv">
+        <p class="affirm"><svg viewBox="0 0 24 24" fill="none"><path d="M20 6 9 17l-5-5" stroke="var(--green)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>Saved to your account</p>
+        <a href="#" class="affirm-link">View it on your account page</a>
+        <button class="btn btn-primary btn-full">Start today's session</button>
+        <p class="pro-soft">Want unlimited questions and every cert? <a href="#">Get Pro at launch · $9.99/mo</a></p>
+      </div>
+    </div></div>
+  </div>
+
+  <div class="frame-col">
+    <div class="frame-caption">
+      <div class="state"><span class="dot"></span>Pro user</div>
+      <div class="why">Nothing to sell. Just the next step, plus a small acknowledgement (peak-end: it ends clean and respectful).</div>
+    </div>
+    <div class="phone"><div class="phone-inner">
+      <div class="topbar"><span class="logo-mark"><svg viewBox="0 0 100 100" fill="none" class="ca-mark"><path d="M58 12 C42 6,16 16,14 34 C12 52,22 62,42 64" stroke="var(--accent)"/><line x1="30" y1="84" x2="70" y2="16" stroke="var(--text-dim)" stroke-width="5" stroke-linecap="round"/><path d="M46 88 L64 50 L82 88 M53 74 L75 74" stroke="var(--accent)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="logo-name">CertAnvil</span></div>
+      <div class="plan-context">
+        <div class="pc-h"><span>YOUR PASS PLAN</span><span>72% pass probability</span></div>
+        <div class="pc-row"><span>Subnetting</span><span class="pc-bar"><i style="width:40%"></i></span></div>
+        <div class="pc-row"><span>Network security</span><span class="pc-bar"><i style="width:55%"></i></span></div>
+        <div class="pc-row"><span>14 cards seeded to review</span><span>first session: tomorrow</span></div>
+      </div>
+      <div class="conv">
+        <p class="affirm"><svg viewBox="0 0 24 24" fill="none"><path d="M20 6 9 17l-5-5" stroke="var(--green)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>Pro · synced and unlimited</p>
+        <button class="btn btn-primary btn-full">Start today's session</button>
+      </div>
+    </div></div>
+  </div>
+
+  <div class="frame-col">
+    <div class="frame-caption">
+      <div class="state"><span class="dot"></span>Alternative: bottom sheet</div>
+      <div class="why">Same content, but it rises on tapping "Start today's session" instead of sitting inline. Catches them at the exit, keeps the page shorter. Converts a touch harder, feels a touch more like a gate.</div>
+    </div>
+    <div class="phone"><div class="phone-inner">
+      <div class="sheet-stage">
+        <div class="dimmed-plan">
+          <div class="pc-h"><span>Your Pass Plan</span><span>72%</span></div>
+          <div class="pc-row"><span>Subnetting</span><span class="pc-bar"><i style="width:40%"></i></span></div>
+          <div class="pc-row"><span>Network security</span><span class="pc-bar"><i style="width:55%"></i></span></div>
+          <div class="pc-row"><span>Routing</span><span class="pc-bar"><i style="width:70%"></i></span></div>
+        </div>
+        <div class="sheet-dim"></div>
+        <div class="sheet">
+          <div class="sheet-grip"></div>
+          <div class="save-panel" style="background:transparent;border:0;padding:4px 0 0">
+            <p class="save-eyebrow">Before you start</p>
+            <h2 class="save-h">Don't lose your Pass Plan</h2>
+            <p class="save-sub">It lives only on this device. Save it free and study from anywhere.</p>
+            <div class="email-row"><input class="email-input" type="email" placeholder="you@email.com" aria-label="Email"><button class="btn btn-primary">Save it free</button></div>
+            <p class="save-micro"><b>Just your email.</b> No password <span class="sep"></span> no card <span class="sep"></span> 15 a day</p>
+          </div>
+          <a href="#" class="escape">Continue without saving</a>
+        </div>
+      </div>
+    </div></div>
+  </div>
+
+</div>
+
+<h2 class="section-h">2 · The account page · Free vs Pro</h2>
+<p class="section-note">The saved plan lives here permanently. Free has one plan (one cert) and the locked certs become the Pro pitch. Pro keeps a plan for every cert. The data already cloud-syncs, so this is a view on top of it. One responsive build (the desktop frame shows the same surface reflowed).</p>
+
+<div class="frames">
+
+  <!-- FREE account (phone) -->
+  <div class="frame-col">
+    <div class="frame-caption">
+      <div class="state"><span class="dot"></span>Free account · one plan + upsell</div>
+      <div class="why">Their one plan, with retake (after the 7-day cooldown). The other certs sit right below as a locked Pro pitch, so the limit becomes the upsell at the exact moment they would want more (contrast + aspiration, not a wall).</div>
+    </div>
+    <div class="phone"><div class="phone-inner">
+      <div class="topbar between">
+        <div class="logo-row"><span class="logo-mark"><svg viewBox="0 0 100 100" fill="none" class="ca-mark"><path d="M58 12 C42 6,16 16,14 34 C12 52,22 62,42 64" stroke="var(--accent)"/><line x1="30" y1="84" x2="70" y2="16" stroke="var(--text-dim)" stroke-width="5" stroke-linecap="round"/><path d="M46 88 L64 50 L82 88 M53 74 L75 74" stroke="var(--accent)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="logo-name">CertAnvil</span></div>
+        <span class="acct-pill"><span class="acct-av">S</span>Free</span>
+      </div>
+      <div style="padding:8px 0 0">
+        <h2 class="acct-title">Account</h2>
+        <div class="sub-label">Your Pass Plan</div>
+        <div class="plan-card">
+          <div class="pcard-eyebrow"><span>Network+ N10-009</span><span>Taken Jun 14</span></div>
+          <div class="pcard-main">
+            <div class="prob-ring"><div class="inner"><span class="pct">72%</span><span class="lbl">pass</span></div></div>
+            <div class="pcard-detail"><p class="meta">15 of 20 correct</p><p class="weak">Weakest: <b>Subnetting</b>, <b>Network security</b></p></div>
+          </div>
+          <div class="pcard-cta"><button class="btn btn-primary btn-sm">View full plan</button><button class="btn btn-ghost btn-sm" style="width:auto">Retake</button></div>
+        </div>
+        <div class="locked-certs">
+          <p class="locked-h">A plan for every cert</p>
+          <p class="locked-sub">Free covers one cert. Pro unlocks a Pass Plan for each of these, plus unlimited questions.</p>
+          <div class="cert-chips">
+            <span class="cert-chip"><svg viewBox="0 0 24 24" fill="none"><rect x="5" y="11" width="14" height="9" rx="2" stroke="var(--text-dim)" stroke-width="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3" stroke="var(--text-dim)" stroke-width="2"/></svg>Security+</span>
+            <span class="cert-chip"><svg viewBox="0 0 24 24" fill="none"><rect x="5" y="11" width="14" height="9" rx="2" stroke="var(--text-dim)" stroke-width="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3" stroke="var(--text-dim)" stroke-width="2"/></svg>A+ Core 1</span>
+            <span class="cert-chip"><svg viewBox="0 0 24 24" fill="none"><rect x="5" y="11" width="14" height="9" rx="2" stroke="var(--text-dim)" stroke-width="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3" stroke="var(--text-dim)" stroke-width="2"/></svg>A+ Core 2</span>
+            <span class="cert-chip"><svg viewBox="0 0 24 24" fill="none"><rect x="5" y="11" width="14" height="9" rx="2" stroke="var(--text-dim)" stroke-width="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3" stroke="var(--text-dim)" stroke-width="2"/></svg>Azure</span>
+            <span class="cert-chip"><svg viewBox="0 0 24 24" fill="none"><rect x="5" y="11" width="14" height="9" rx="2" stroke="var(--text-dim)" stroke-width="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3" stroke="var(--text-dim)" stroke-width="2"/></svg>AWS</span>
+          </div>
+          <button class="btn btn-primary btn-full btn-sm" style="height:44px">Get Pro at launch · $9.99/mo</button>
+        </div>
+      </div>
+    </div></div>
+  </div>
+
+  <!-- PRO account (phone) -->
+  <div class="frame-col">
+    <div class="frame-caption">
+      <div class="state"><span class="dot pro"></span>Pro account · a plan per cert</div>
+      <div class="why">A list of plans, one per cert they have run, each with its readiness and a way in. "Diagnose another cert" is open because Pro has them all. Goal-gradient: they can see their whole certification path in one place.</div>
+    </div>
+    <div class="phone"><div class="phone-inner">
+      <div class="topbar between">
+        <div class="logo-row"><span class="logo-mark"><svg viewBox="0 0 100 100" fill="none" class="ca-mark"><path d="M58 12 C42 6,16 16,14 34 C12 52,22 62,42 64" stroke="var(--accent)"/><line x1="30" y1="84" x2="70" y2="16" stroke="var(--text-dim)" stroke-width="5" stroke-linecap="round"/><path d="M46 88 L64 50 L82 88 M53 74 L75 74" stroke="var(--accent)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="logo-name">CertAnvil</span></div>
+        <span class="acct-pill is-pro"><span class="acct-av">S</span>Pro</span>
+      </div>
+      <div style="padding:8px 0 0">
+        <h2 class="acct-title">Account <span class="pro-badge">PRO</span></h2>
+        <div class="sub-label">Your Pass Plans</div>
+        <div class="plan-list">
+          <div class="plan-item"><span class="pi-ring" style="background:var(--accent)">72%</span><span class="pi-body"><span class="pi-cert">Network+ N10-009</span><div class="pi-meta">Taken Jun 14 · weakest: Subnetting</div></span><span class="pi-go">›</span></div>
+          <div class="plan-item"><span class="pi-ring" style="background:oklch(0.55 0.16 40)">64%</span><span class="pi-body"><span class="pi-cert">Security+ SY0-701</span><div class="pi-meta">Taken Jun 10 · weakest: Cryptography</div></span><span class="pi-go">›</span></div>
+          <div class="plan-item"><span class="pi-ring" style="background:var(--green)">81%</span><span class="pi-body"><span class="pi-cert">A+ Core 1</span><div class="pi-meta">Taken Jun 2 · weakest: Networking</div></span><span class="pi-go">›</span></div>
+        </div>
+        <button class="add-cert"><svg viewBox="0 0 24 24" fill="none" width="15" height="15"><path d="M5 12h14M12 5v14" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"/></svg>Diagnose another cert</button>
+        <div class="acct-row" style="margin-top:6px"><span class="k">Plan</span><span class="v" style="color:var(--green)">Pro · unlimited</span></div>
+      </div>
+    </div></div>
+  </div>
+
+  <!-- PRO account (desktop) -->
+  <div class="frame-col wide">
+    <div class="frame-caption">
+      <div class="state"><span class="dot pro"></span>Pro account · desktop / Safari</div>
+      <div class="why">The same list reflows wide. One responsive build, no separate desktop work. (Free reflows the same way.)</div>
+    </div>
+    <div class="desktop">
+      <div class="desktop-bar"><i></i><i></i><i></i></div>
+      <div class="desktop-body">
+        <h2 class="acct-title" style="margin-left:0">Account <span class="pro-badge">PRO</span></h2>
+        <div class="sub-label" style="margin-left:0">Your Pass Plans · 3 certs</div>
+        <div class="plan-list">
+          <div class="plan-item"><span class="pi-ring" style="background:var(--accent)">72%</span><span class="pi-body"><span class="pi-cert">Network+ N10-009</span><div class="pi-meta">Taken Jun 14 · 15 of 20 · weakest: Subnetting, Network security</div></span><button class="btn btn-ghost btn-sm" style="width:auto">View plan</button><span class="pi-go">›</span></div>
+          <div class="plan-item"><span class="pi-ring" style="background:oklch(0.55 0.16 40)">64%</span><span class="pi-body"><span class="pi-cert">Security+ SY0-701</span><div class="pi-meta">Taken Jun 10 · 13 of 20 · weakest: Cryptography, IAM</div></span><button class="btn btn-ghost btn-sm" style="width:auto">View plan</button><span class="pi-go">›</span></div>
+          <div class="plan-item"><span class="pi-ring" style="background:var(--green)">81%</span><span class="pi-body"><span class="pi-cert">A+ Core 1 · 220-1101</span><div class="pi-meta">Taken Jun 2 · 16 of 20 · weakest: Networking, Virtualization</div></span><button class="btn btn-ghost btn-sm" style="width:auto">View plan</button><span class="pi-go">›</span></div>
+        </div>
+        <button class="add-cert" style="max-width:260px"><svg viewBox="0 0 24 24" fill="none" width="15" height="15"><path d="M5 12h14M12 5v14" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"/></svg>Diagnose another cert</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<h2 class="section-h">3 · From plan to practice</h2>
+<p class="section-note">Open a saved plan and the weakest topics are tappable. Tap one, or drill them all, and the existing Custom Quiz builder opens pre-loaded with those topics. You confirm count and difficulty, then it builds the quiz on exactly those topics. No new quiz engine. For a free user the builder shows how many of their 15 daily questions are left and caps the count to that (the 5 daily reviews are a separate pool); at zero left it shows a gentle back-tomorrow wall with the Pro nudge instead of starting a quiz that dead-ends. Re-diagnostic uses the section 2 entry points: Retake a cert after its 7-day cooldown, or Diagnose another cert on Pro.</p>
+
+<div class="frames">
+
+  <div class="frame-col">
+    <div class="frame-caption">
+      <div class="state"><span class="dot"></span>Full plan · weak topics are tappable</div>
+      <div class="why">The plan you opened from your account. Each weak topic is a tap target; "Drill all weak topics" sends the whole set at once.</div>
+    </div>
+    <div class="phone"><div class="phone-inner">
+      <div class="topbar between">
+        <div class="logo-row"><span class="logo-mark"><svg viewBox="0 0 100 100" fill="none" class="ca-mark"><path d="M58 12 C42 6,16 16,14 34 C12 52,22 62,42 64" stroke="var(--accent)"/><line x1="30" y1="84" x2="70" y2="16" stroke="var(--text-dim)" stroke-width="5" stroke-linecap="round"/><path d="M46 88 L64 50 L82 88 M53 74 L75 74" stroke="var(--accent)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="logo-name">CertAnvil</span></div>
+        <span class="acct-pill"><span class="acct-av">S</span>Free</span>
+      </div>
+      <div style="padding:6px 0 0">
+        <div class="detail-h"><span>Your Pass Plan</span><span style="font-size:13px;color:var(--accent);font-weight:700">72%</span></div>
+        <p class="detail-sub">Network+ N10-009 · taken Jun 14 · predicted 781 / 900</p>
+        <div class="sub-label" style="margin-left:0">Weakest topics · tap to drill</div>
+        <div class="weak-list">
+          <div class="weak-item"><span class="wbar"><i style="width:40%"></i></span><span class="wname">Subnetting</span><span class="wpct">40%</span><span class="wdrill">Drill</span></div>
+          <div class="weak-item"><span class="wbar"><i style="width:55%"></i></span><span class="wname">Network security</span><span class="wpct">55%</span><span class="wdrill">Drill</span></div>
+          <div class="weak-item"><span class="wbar"><i style="width:48%"></i></span><span class="wname">IPv6 addressing</span><span class="wpct">48%</span><span class="wdrill">Drill</span></div>
+        </div>
+        <button class="btn btn-primary btn-full">Drill all weak topics</button>
+      </div>
+    </div></div>
+  </div>
+
+  <div class="frame-col">
+    <div class="frame-caption">
+      <div class="state"><span class="dot"></span>Custom Quiz builder · pre-loaded</div>
+      <div class="why">The existing builder opens with your weak topics already selected (the work is done), but you stay in control of difficulty and count. Build, and the quiz loads on exactly those topics.</div>
+    </div>
+    <div class="phone"><div class="phone-inner">
+      <div class="topbar between">
+        <div class="logo-row"><span class="logo-mark"><svg viewBox="0 0 100 100" fill="none" class="ca-mark"><path d="M58 12 C42 6,16 16,14 34 C12 52,22 62,42 64" stroke="var(--accent)"/><line x1="30" y1="84" x2="70" y2="16" stroke="var(--text-dim)" stroke-width="5" stroke-linecap="round"/><path d="M46 88 L64 50 L82 88 M53 74 L75 74" stroke="var(--accent)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="logo-name">CertAnvil</span></div>
+        <span class="acct-pill"><span class="acct-av">S</span>Free</span>
+      </div>
+      <div style="padding:6px 0 0">
+        <div class="picker">
+          <p class="picker-h">Build a custom quiz</p>
+          <p class="picker-note">From your Pass Plan. Your weak topics are pre-selected.</p>
+          <div class="quota-note"><span>Free plan</span><b>8 of 15 questions left today</b></div>
+          <p class="pick-label">Topics</p>
+          <div class="chip-wrap">
+            <span class="tchip sel">Subnetting</span>
+            <span class="tchip sel">Network security</span>
+            <span class="tchip sel">IPv6 addressing</span>
+            <span class="tchip">Routing</span>
+            <span class="tchip">VLANs</span>
+            <span class="tchip">Wireless</span>
+          </div>
+          <p class="pick-label">Difficulty</p>
+          <div class="seg"><button>Easy</button><button class="on">Mixed</button><button>Hard</button></div>
+          <p class="pick-label">Questions <span class="cap-hint">capped to your 8 left today</span></p>
+          <div class="seg"><button>5</button><button class="on">8</button><button class="locked">Unlimited · Pro</button></div>
+          <button class="btn btn-primary btn-full">Build quiz · 8 questions</button>
+        </div>
+      </div>
+    </div></div>
+  </div>
+
+</div>
+
+</div>
+</body>
+</html>

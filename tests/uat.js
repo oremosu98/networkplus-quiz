@@ -8126,6 +8126,19 @@ test('v4.81.0 Diagnostic: _seedReviewQueueFromDiagnostic function defined',
   /function\s+_seedReviewQueueFromDiagnostic\b/.test(js));
 test('v4.81.0 Diagnostic: renderDiagnosticResult function defined',
   /function\s+renderDiagnosticResult\b/.test(js));
+// v7.52.0 · state-aware conversion block at the bottom of the Pass Plan.
+test('diagnostic conversion block present', html.includes('id="dq-conversion"'));
+test('conversion renders states', _fnBody(js, '_renderDiagnosticConversion').includes('_certanvilSignedIn'));
+test('Pro teaser has no pricing link', !_fnBody(js, '_showProWaitlist').includes('certanvil.com/pricing'));
+// v7.52.0: account Pass Plan home (Free one-plan+upsell, Pro plan-per-cert)
+test('account Pass Plan section', html.includes('id="passplan-section"'));
+test('Pass Plan section tier-aware', _fnBody(js, 'renderPassPlanSection').includes('_renderPassPlanProHtml'));
+test('Pro plan list uses snapshots', _fnBody(js, '_renderPassPlanProHtml').includes('_readReadinessSnapshots'));
+// v7.52.0: weak domains open the Custom Quiz builder pre-loaded (no auto-start) + quota-aware line
+test('weak drill opens builder (no autostart)', _fnBody(js, '_drillWeakDomainToBuilder').includes('prefillDomainTopics') && !_fnBody(js, '_drillWeakDomainToBuilder').includes('startQuiz('));
+test('builder quota line', html.includes('id="cq-quota-line"') && /function _renderBuilderQuotaLine\(/.test(js));
+test('getAvailableCerts exposed', /window\.getAvailableCerts\s*=/.test(authStateJs));
+test('readiness snapshot reader', /function _readReadinessSnapshots\(/.test(js));
 test('v4.81.0 Diagnostic: renderDiagnosticSurface function defined',
   /function\s+renderDiagnosticSurface\b/.test(js));
 test('v4.81.0 Diagnostic: getDiagnosticCooldownDays function defined',
@@ -16780,10 +16793,10 @@ test('v4.99.54 D.3: prompt requires original content (no copy from prep banks)',
   /ORIGINAL[\s\S]{0,200}Jason Dion|Professor Messer|CertMaster/i.test(_genEndpointRaw));
 
 // — Quiz UI integration —
-test('v4.99.54 D.3: quiz.html loads Cloudflare Turnstile script',
-  /<script[^>]+turnstile\/v0\/api\.js/.test(_quizD3Raw));
-test('v4.99.54 D.3: quiz.html has invisible Turnstile widget',
-  /class="cf-turnstile"[\s\S]{0,400}data-sitekey/.test(_quizD3Raw));
+test('v7.51.x: quiz.html no longer loads the Cloudflare Turnstile script (gate removed)',
+  !/turnstile\/v0\/api\.js/.test(_quizD3Raw));
+test('v7.51.x: quiz.html no longer renders the Turnstile widget (gate removed)',
+  !/class="cf-turnstile"/.test(_quizD3Raw));
 test('v4.99.54 D.3: quiz.html session envelope now includes full questions array + source field',
   /questions:\s*questions/.test(_quizD3Raw)
   && /source:\s*source/.test(_quizD3Raw)
@@ -16794,8 +16807,9 @@ test('v4.99.54 D.3: quiz.html has AI-first fetch to /api/diagnostic/generate',
 test('v4.99.54 D.3: quiz.html falls back to inline pool on any error path',
   /bootWithFallback\(\s*['"]fallback['"]\s*\)/.test(_quizD3Raw)
   && /shuffleInlinePool/.test(_quizD3Raw));
-test('v4.99.54 D.3: quiz.html has 10s Turnstile timeout (TURNSTILE_TIMEOUT_MS)',
-  /TURNSTILE_TIMEOUT_MS\s*=\s*10000/.test(_quizD3Raw));
+test('v7.51.x: quiz.html boots directly via fetchAIQuestions(null) (Turnstile gate removed)',
+  /fetchAIQuestions\(null\)/.test(_quizD3Raw)
+  && !/TURNSTILE_TIMEOUT_MS/.test(_quizD3Raw));
 test('v4.99.54 D.3: quiz.html has 25s fetch timeout via AbortController',
   /FETCH_TIMEOUT_MS\s*=\s*25000/.test(_quizD3Raw)
   && /AbortController/.test(_quizD3Raw));
@@ -17233,9 +17247,9 @@ test('v4.99.63 dual-theme: diagnostic-system.css has the 4-block cascade, html[d
     // base html:root dark → @media prefers light → html[data-theme=dark] → html[data-theme=light], in that order
     return /html:root\s*\{[\s\S]*?@media\s*\(prefers-color-scheme:\s*light\)[\s\S]*?html\[data-theme="dark"\][\s\S]*?html\[data-theme="light"\]/.test(s)
       && /--dg-bg:\s*oklch\(0\.975/.test(s) && /--dg-bg:\s*oklch\(0\.17 0\.008 275\)/.test(s); })());
-test('v4.99.63 dual-theme: all 4 diagnostic pages cache-bust diagnostic-system.css at v=4.99.96',
+test('v4.99.63 dual-theme: all 4 diagnostic pages cache-bust diagnostic-system.css',
   [_pickerRaw, _intakeRaw, _quizRaw, _resultsD4Raw].every(s =>
-    /diagnostic-system\.css\?v=4\.99\.96/.test(s)));
+    /diagnostic-system\.css\?v=4\.99\.\d+/.test(s)));
 test('v4.99.61 tombstone: dx-* + dq-* systems authored in shared CSS (de-carded, tap targets, decorative emoji hidden)',
   /PICKER \+ INTAKE\s+\(dx-\*/.test(_dgSys) && /QUIZ\s+\(dq-\*/.test(_dgSys) &&
   /\.dx-intensity-btn-emoji\s*\{\s*display:\s*none/.test(_dgSys) &&

@@ -540,6 +540,9 @@ html[data-theme] body #page-setup details.custom-quiz-section{background:none;bo
 html[data-theme] body #custom-quiz-section .cq-section-head{border-bottom:1px solid var(--border);}
 html[data-theme] body #custom-quiz-section .cq-section-title{color:var(--text-dim);}
 #custom-quiz-section .cq-section-ico,#custom-quiz-section .cq-mode-ico,#custom-quiz-section .cq-generate-ico{display:none!important;}
+/* v7.52.0: quota-aware builder line — bronze-tinted hairline pill (full border, symmetric radius). */
+html[data-theme] body #custom-quiz-section .cq-quota-line{display:block;font-size:11.5px;color:var(--text-mid);background:color-mix(in oklab,var(--accent) 6%,var(--bg));border:1px solid color-mix(in oklab,var(--accent) 22%,var(--border));border-radius:var(--radius-sm);padding:9px 12px;margin:0 0 14px;}
+html[data-theme] body #custom-quiz-section .cq-quota-line[hidden]{display:none!important;}
 html[data-theme] body #custom-quiz-section .topic-quickpicks{border-bottom:1px solid var(--border);}
 html[data-theme] body #custom-quiz-section .topic-domain-prefill{border-bottom:1px solid var(--border);}
 
@@ -3856,3 +3859,83 @@ mark.gnt-hinge{background:color-mix(in oklab,var(--red) 26%,transparent);color:i
 .wn-vd-score b{color:var(--accent);}
 .wn-vd-call{font-size:13.5px;color:var(--text-mid);margin:8px auto 18px;max-width:38ch;}
 .wn-vd-call b{color:var(--red);}
+
+/* v7.52.0 diagnostic conversion */
+#dq-conversion{display:block;margin-top:20px}
+#dq-conversion[hidden]{display:none!important}
+#dq-conversion .dq-save-panel{border:1px solid color-mix(in oklab,var(--accent) 32%,var(--border));background:color-mix(in oklab,var(--accent) 6%,var(--bg));border-radius:var(--radius);padding:18px 16px 16px}
+#dq-conversion .dq-save-eyebrow{font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--accent);margin:0 0 7px}
+#dq-conversion .dq-save-h{font-family:Fraunces,Georgia,serif;font-weight:600;font-size:21px;line-height:1.15;letter-spacing:-0.01em;margin:0 0 7px;color:var(--text)}
+#dq-conversion .dq-save-sub{font-size:13px;line-height:1.5;color:var(--text-mid);margin:0 0 15px}
+#dq-conversion .dq-email-row{display:flex;gap:8px;margin-bottom:10px}
+#dq-conversion .dq-email-input{flex:1;min-width:0;height:46px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);padding:0 13px;font:500 14px Inter,sans-serif;color:var(--text)}
+#dq-conversion .dq-email-input::placeholder{color:var(--text-dim)}
+#dq-conversion .dq-email-row .btn{height:46px;white-space:nowrap;flex:none}
+#dq-conversion .dq-save-micro{font-size:12px;color:var(--text-dim);display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:0}
+#dq-conversion .dq-save-micro b{color:var(--text-mid);font-weight:600}
+#dq-conversion .dq-sep{width:3px;height:3px;border-radius:50%;background:var(--text-dim);display:inline-block}
+#dq-conversion .dq-save-home{font-size:12px;color:var(--text-dim);margin:9px 0 0;display:flex;align-items:center;gap:6px}
+#dq-conversion .dq-save-home svg{width:13px;height:13px;flex:none}
+#dq-conversion .dq-pro{margin-top:12px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);padding:15px 16px}
+#dq-conversion .dq-pro-top{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+#dq-conversion .dq-pro-h{font-weight:700;font-size:14px;color:var(--text)}
+#dq-conversion .dq-pro-tag{font-size:10.5px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:var(--accent);border:1px solid color-mix(in oklab,var(--accent) 30%,var(--border));border-radius:999px;padding:3px 8px}
+#dq-conversion .dq-pro-sub{font-size:12.5px;color:var(--text-mid);margin:5px 0 13px;line-height:1.5}
+#dq-conversion .dq-pro-price{color:var(--text);font-weight:700;font-variant-numeric:lining-nums tabular-nums;font-feature-settings:"lnum","tnum"}
+#dq-conversion .dq-btn-ghost{background:transparent;color:var(--accent);border:1px solid color-mix(in oklab,var(--accent) 42%,var(--border));width:100%}
+#dq-conversion .dq-btn-ghost:hover{background:var(--accent-dim)}
+#dq-conversion .dq-escape{display:block;text-align:center;margin:16px auto 4px;font-size:13px;font-weight:500;color:var(--text-dim);text-decoration:none;padding:10px}
+#dq-conversion .dq-escape:hover{color:var(--text-mid)}
+#dq-conversion .dq-affirm{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--green);font-weight:600;margin:0 0 6px;justify-content:center}
+#dq-conversion .dq-affirm svg{width:16px;height:16px;flex:none}
+#dq-conversion .dq-affirm-link{display:block;text-align:center;font-size:12.5px;color:var(--accent);font-weight:600;text-decoration:none;margin:0 0 14px}
+#dq-conversion .dq-pro-soft{margin-top:14px;text-align:center;font-size:12.5px;color:var(--text-mid)}
+#dq-conversion .dq-pro-soft a{color:var(--accent);font-weight:600;text-decoration:none}
+
+/* v7.52.0: account Pass Plan home (ported from mockup Section 2, app tokens) */
+#passplan-section{padding:0;background:transparent;border:none}
+#passplan-section .sub-label{font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-dim);margin:0 4px 10px}
+#passplan-section .plan-card{border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);padding:16px;margin:0 0 14px}
+#passplan-section .pcard-eyebrow{font-size:10.5px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-dim);display:flex;justify-content:space-between;gap:10px;margin-bottom:12px}
+#passplan-section .pcard-main{display:flex;gap:15px;align-items:center}
+#passplan-section .prob-ring{width:62px;height:62px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center}
+#passplan-section .prob-ring .inner{width:48px;height:48px;border-radius:50%;background:var(--surface);display:flex;flex-direction:column;align-items:center;justify-content:center}
+#passplan-section .prob-ring .pct{font-family:Fraunces,Georgia,serif;font-weight:600;font-size:17px;font-feature-settings:var(--lnum);line-height:1;color:var(--text)}
+#passplan-section .prob-ring .lbl{font-size:8px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.05em}
+#passplan-section .pcard-detail .meta{font-size:12.5px;color:var(--text-mid);margin:0 0 7px;font-feature-settings:var(--lnum)}
+#passplan-section .pcard-detail .weak{font-size:12.5px;color:var(--text);margin:0}
+#passplan-section .pcard-detail .weak b{color:var(--accent)}
+#passplan-section .pcard-cta{display:flex;gap:8px;margin-top:14px}
+#passplan-section .pp-empty{text-align:center}
+#passplan-section .pp-empty-h{font-family:Fraunces,Georgia,serif;font-weight:600;font-size:18px;margin:0 0 6px;color:var(--text)}
+#passplan-section .pp-empty-sub{font-size:12.5px;color:var(--text-mid);line-height:1.5;margin:0 0 14px}
+/* free upsell · locked other certs */
+#passplan-section .locked-certs{border:1px solid color-mix(in oklab,var(--accent) 32%,var(--border));border-radius:var(--radius);background:color-mix(in oklab,var(--accent) 6%,var(--bg));padding:15px 16px}
+#passplan-section .locked-h{font-weight:700;font-size:14px;margin:0 0 4px;color:var(--text)}
+#passplan-section .locked-sub{font-size:12.5px;color:var(--text-mid);margin:0 0 12px;line-height:1.5}
+#passplan-section .cert-chips{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:14px}
+#passplan-section .cert-chip{display:flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;color:var(--text-dim);border:1px solid var(--border);border-radius:999px;padding:5px 11px;background:var(--bg)}
+#passplan-section .cert-chip svg{width:11px;height:11px;opacity:0.7}
+/* pro · multi-plan list */
+#passplan-section .plan-list{display:flex;flex-direction:column;gap:8px;margin:0 0 12px}
+#passplan-section .plan-item{display:flex;align-items:center;gap:12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);padding:11px 13px;cursor:pointer;transition:border-color .15s var(--ease)}
+#passplan-section .plan-item:hover{border-color:color-mix(in oklab,var(--accent) 50%,var(--border))}
+#passplan-section .pi-ring{width:36px;height:36px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center}
+#passplan-section .pi-ring-inner{width:27px;height:27px;border-radius:50%;background:var(--surface);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;font-feature-settings:var(--lnum);color:var(--text)}
+#passplan-section .pi-body{flex:1;min-width:0}
+#passplan-section .pi-cert{font-weight:700;font-size:13px;color:var(--text);display:block}
+#passplan-section .pi-meta{font-size:11.5px;color:var(--text-mid);font-feature-settings:var(--lnum)}
+#passplan-section .pi-go{color:var(--text-dim);font-size:17px;font-weight:600}
+#passplan-section .add-cert{display:flex;align-items:center;justify-content:center;gap:7px;border:1px dashed color-mix(in oklab,var(--accent) 45%,var(--border));border-radius:var(--radius-sm);background:transparent;color:var(--accent);font:700 13px Inter,sans-serif;height:46px;width:100%;cursor:pointer}
+/* pro · diagnose-another picker */
+#pp-cert-picker .pp-pick-list{display:flex;flex-direction:column;gap:8px;margin:12px 0 14px;text-align:left}
+#pp-cert-picker .pp-pick-row{display:flex;align-items:center;gap:11px;width:100%;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);padding:10px 12px;cursor:pointer;transition:border-color .15s var(--ease)}
+#pp-cert-picker .pp-pick-row:hover{border-color:color-mix(in oklab,var(--accent) 50%,var(--border))}
+#pp-cert-picker .pp-pick-glyph{flex:none;width:34px;height:34px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;color:var(--accent);background:color-mix(in oklab,var(--accent) 10%,var(--bg));border:1px solid color-mix(in oklab,var(--accent) 28%,var(--border))}
+#pp-cert-picker .pp-pick-name{display:block;font-weight:700;font-size:13px;color:var(--text)}
+#pp-cert-picker .pp-pick-code{display:block;font-size:11.5px;color:var(--text-mid);font-feature-settings:var(--lnum)}
+/* desktop reflow · same markup widened (mockup desktop frame) */
+@media (min-width:720px){
+  #passplan-section .plan-list{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+  #passplan-section .add-cert{max-width:280px}
+}
