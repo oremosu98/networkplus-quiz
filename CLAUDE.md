@@ -112,6 +112,7 @@ npx playwright test              # E2E (tests/e2e/app.spec.js)
 
 | Version | Features Added |
 |---|---|
+| v7.53.2 | Tech debt: carve out false-positive dead _renderAna* funcs + re-baseline stale file-size thresholds |
 | v7.53.1 | Fix Pass Plan settings section squished on desktop (missing grid-column span) |
 | v7.53.0 | Pass Plan IA: per-cert in browser settings, all certs in installed app + a cross-cert Your Pass Plans section on /account |
 | v7.52.0 | In-app diagnostic conversion ending + account Pass Plan home (Free/Pro) + plan-to-practice + quota-aware builder |
