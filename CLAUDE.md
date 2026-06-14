@@ -115,47 +115,8 @@ npx playwright test              # E2E (tests/e2e/app.spec.js)
 | v7.53.2 | Tech debt: carve out false-positive dead _renderAna* funcs + re-baseline stale file-size thresholds |
 | v7.53.1 | Fix Pass Plan settings section squished on desktop (missing grid-column span) |
 | v7.53.0 | Pass Plan IA: per-cert in browser settings, all certs in installed app + a cross-cert Your Pass Plans section on /account |
-| v7.52.0 | In-app diagnostic conversion ending + account Pass Plan home (Free/Pro) + plan-to-practice + quota-aware builder |
-| v7.51.1 | En/em-dash cleanup in cert-app visible copy (readiness scale, drills note, exam abandon, quota line, Pro modal) |
-| v7.51.0 | Forged-bronze audit sweep — cert-app brand/emoji/dark-mode fixes + ACL hint-modal close handler |
-| v7.50.0 | Why-Not — second flagship drill: score the reasons, not just the answer; combined landing section |
-| v7.49.0 | Gauntlet run topic strip — the topic shows above the ladder throughout the run |
-| v7.48.1 | Gauntlet back routing — desktop returns Home, never the mobile-only drills page |
-| v7.48.0 | Reword Gauntlet — flagship drill: one concept five ways, crack on 5/5, Pro-only |
-| v7.47.0 | Mistake Autopsy — wrong-bank questions return re-worded, beating the concept not the question |
-| v7.46.1 | Pro-gate polish — modal rebuilt in house design language, per-feature copy, pill consolidation |
-| v7.46.0 | Free-tier hard gates — exam sim, marathons, Deep Scan, Drill Mistakes Pro-only; custom quiz capped at 15 for free |
-| v7.45.0 | In-app account deletion — Settings danger-zone row + confirm flow, Apple 5.1.1(v) (GAP-6) |
-| v7.44.0 | Log-exam-result gated as Pro on /account per mockup (GAP-5) |
-| v7.43.0 | Cross-cert analytics gated as Pro feature with upsell state for free users (GAP-4) |
-| v7.42.0 | Settings tier locks — Daily Goal + Daily Review controls pro-locked for free users (GAP-3) |
-| v7.41.0 | Free tier pre-emptive daily-limit screen — oversized sessions blocked before start with right-size option (GAP-2) |
-| v7.40.0 | Free tier 15 questions + 5 review cards per day (GAP-1 of tier-logic sweep) |
-| v7.39.0 | Manage-subscription static UI lift — plan card, Pro pricing, Stripe-ready seams |
-| v7.38.0 | Account-pages lift phase 2 — Go Pro card + upsell sheet + auth modal lift (mobile, <900px) |
-| v7.37.0 | Account-pages mobile lift — viewport-gated cert-ios reskin of landing /account + /analytics |
-| v7.36.1 | Viewport-gate the cert-ios lift — mobile keeps the new look, desktop restores the classic layout |
-| v7.36.0 | Mockup lift: cert-ios design language on all app surfaces — centered column + tab bar chrome, quiz/results/review/settings/home/progress/analytics/SR-review lifts, net-new Drills tab, exam-date sheet, day-0 + capped states |
-| v7.35.0 | Mobile Home redesign (Start-first, collapsible Practice/Exam/Drill, readiness strip) + in-view signed-out prompt, top-strip update banner, 44px tap targets, sticky Results CTA; desktop readiness/PROD polish |
-| v7.34.0 | Desktop home polish — compress empty readiness hero (no-score state) + hide PROD badge from live users |
-| v7.33.0 | Free-tier cert lock: one cert until Pro (web + native) |
-| v7.32.0 | Onboarding rollout gate (app_config) + activation telemetry — shipped OFF |
-| v7.31.0 | admin=Pro + console cert switcher + setup walkthrough tour (gated, ?onb=1) |
-| v7.30.0 | Onboarding: lobby router + first-run activation (short calibration) + tier chrome (quota meter + Pro switcher), gated behind ?onb=1 |
-| v7.29.1 | Dark-mode fix: cert-switcher lettermark glyphs were near-white on cream (invisible) |
-| v7.29.0 | SR cloud cert-keying — metadata.sr.<certId> (gated; prevents cross-cert overwrite) |
-| v7.28.0 | Post-ship fixes: cert-specific page titles + theme-toggle icon + Settings desktop layout |
-| v7.27.0 | SR #8 top-up AI fallback — generate fresh weak-topic practice when no spare review cards |
-| v7.26.0 | SR Phase 6b: #8 top-up light-day practice — extra practice on weak topics, never reschedules |
-| v7.25.0 | SR Phase 6a: lapse-aware partial reset (#3) — wrong drops interval to ~30% of prior, not hard 1 |
-| v7.24.0 | SR Phase 5: exam-aware scheduling (#7) — interval cap to exam day, weak/blueprint front-load, countdown |
-| v7.23.0 | SR Phase 4: review forecast (#6) — 7-day due-by-day projection on home tile + complete screen |
-| v7.22.0 | SR Phase 3 — right-sized sessions (#8): session-size setting + cap 30 + Daily Review settings group |
-| v7.21.0 | SR Phase 2 — missed-card recap (#2) + review feeds the daily streak (#4) |
-| v7.20.0 | SR Phase 1 — same-session retry (#1) + why-it's-due microcopy (#5) |
-| v7.19.5 | Strip tablet-audit (~40MB dev-only) from prod deploy + build.test guard; CLAUDE.md size-figure refresh + version-history trim; /ship skill + git-mv convention |
-| v7.19.4 | Mobile fit #2 — My Certs modal scroll, landing iOS input zoom, hamburger drawer full-height on phones (touch-only; desktop unchanged) |
-| v7.19.3 | P2-density mobile fit — readiness ribbon, drill-by-domain, mastery stats, Progress topic names fit on phones (touch-only; desktop unchanged) |
+
+_Older releases (v7.19.3 and back) live in [CHANGELOG.md](./CHANGELOG.md) — trimmed here during the 2026-06-14 consolidation._
 
 ## CSS Theme System
 Dark theme in `:root`, light theme in `[data-theme="light"]`. Key variables: `--bg`, `--surface`, `--accent`, `--text`, `--green`, `--red`, `--yellow`. Toggle via `toggleTheme()`.
