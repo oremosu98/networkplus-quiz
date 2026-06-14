@@ -60,6 +60,7 @@
   var elSubTierLabel = document.getElementById('sub-tier-label');
   var elBtnUpgrade = document.getElementById('btn-upgrade');
   var elEntList = document.getElementById('ent-list');
+  var elPassPlansList = document.getElementById('passplans-list');  // cross-cert Pass Plans
   var elErList = document.getElementById('er-list');  // v4.93.0 exam results list
 
   var elSecurityEmailMono = document.getElementById('security-email-mono');
@@ -231,6 +232,9 @@
     // Cert entitlements (status now reflects metadata.cert_results when present)
     if (elEntList) elEntList.innerHTML = renderEntitlements(role, profile);
 
+    // Pass Plans: cross-cert baseline-diagnostic plans from readiness snapshots
+    if (elPassPlansList) elPassPlansList.innerHTML = renderPassPlans(role, profile);
+
     // Exam results section (v4.93.0)
     if (elErList) elErList.innerHTML = renderExamResultsList(role, profile);
 
@@ -300,6 +304,77 @@
         +   '<button class="' + btnClass + ' ent-cta-btn" ' + ctaAttrs + '>' + escapeHtml(c.cta.label) + '</button>'
         + '</div>';
     }).join('');
+  }
+
+  // ── Pass Plans (cross-cert baseline diagnostics) ────────────────────────
+  // Reads the per-cert readiness snapshot map
+  // profile.metadata.nplus_readiness_snapshots = { netplus:{score,computed_at,
+  // weak_domain,...}, secplus:{...}, ... } · the same map the analytics page
+  // reads · and lists every cert that has a plan together. Each row mirrors
+  // the entitlements grammar (.ent-row): a glyph chip with the readiness
+  // score%, cert name + code, "Taken <date> · weakest: <domain>", and a
+  // "View plan ›" link into that cert's subdomain app. Empty → short prompt.
+  function renderPassPlans(role, profile) {
+    var snapshots = (profile && profile.metadata && profile.metadata.nplus_readiness_snapshots) || {};
+    // Cert display metadata + subdomain CTA come from the same source the
+    // entitlements list uses, so a plan opens in that cert's app.
+    var certs = getCertEntitlements(role);
+    var rows = certs.map(function (c) {
+      var snap = snapshots[c.id];
+      if (!snap || typeof snap.score !== 'number') return '';
+      return renderPassPlanRow(c, snap);
+    }).filter(Boolean);
+
+    if (!rows.length) {
+      return '<p class="er-empty">Take a baseline diagnostic to start a Pass Plan.</p>';
+    }
+    return rows.join('');
+  }
+
+  function renderPassPlanRow(cert, snap) {
+    var fmt = EXAM_FORMATS[cert.id] || { maxScore: 900 };
+    // Readiness score is a CompTIA-style scaled band, expressed as a percent
+    // of the cert's max for the glyph chip, matching the mockup ("72%").
+    var pct = Math.max(0, Math.min(100, Math.round((snap.score / fmt.maxScore) * 100)));
+    var taken = snap.computed_at ? humanPlanDate(snap.computed_at) : null;
+    var weak = snap.weak_domain || snap.weak_topic || null;
+    var metaPieces = [];
+    if (taken) metaPieces.push('Taken ' + taken);
+    if (weak) metaPieces.push('weakest: ' + weak);
+    var metaLine = metaPieces.length ? metaPieces.join(' · ') : 'Plan ready';
+    // "View plan ›" opens the cert's app on its own subdomain (same href map
+    // the entitlements "Open →" CTA uses). Disabled certs fall back to text.
+    var href = (cert.cta && !cert.cta.disabled && cert.cta.href) || '';
+    var ctaHtml = href
+      ? '<button class="btn-ghost-sm ent-cta-btn" data-href="' + escapeHtml(href) + '">View plan ›</button>'
+      : '<span class="ent-status-pill">Locked</span>';
+    return ''
+      + '<div class="ent-row">'
+      +   '<div class="ent-glyph ' + cert.glyphClass + '">' + pct + '%</div>'
+      +   '<div class="ent-info">'
+      +     '<div class="ent-name-row">'
+      +       '<span class="ent-name">' + escapeHtml(cert.name) + '</span>'
+      +     '</div>'
+      +     '<div class="ent-meta">' + escapeHtml(cert.code) + ' · ' + escapeHtml(metaLine) + '</div>'
+      +   '</div>'
+      +   ctaHtml
+      + '</div>';
+  }
+
+  function humanPlanDate(iso) {
+    // ISO → "12 Jun" / "12 Jun 2025"-style, matching the mockup copy.
+    try {
+      var d = new Date(iso);
+      if (isNaN(d.getTime())) return null;
+      var now = new Date();
+      var sameYear = d.getFullYear() === now.getFullYear();
+      var opts = sameYear
+        ? { day: 'numeric', month: 'short' }
+        : { day: 'numeric', month: 'short', year: 'numeric' };
+      return d.toLocaleDateString('en-GB', opts);
+    } catch (e) {
+      return null;
+    }
   }
 
   // ── Exam results (v4.93.0) ──────────────────────────────────────────────
@@ -725,14 +800,18 @@
   }
 
   // ── Cert entitlement CTAs ──────────────────────────────────────────────
+  // Shared delegation for the entitlements list AND the Pass Plans list:
+  // both emit .ent-cta-btn[data-href] rows that open a cert's subdomain app.
   function wireEntitlementCtas() {
-    if (!elEntList) return;
-    elEntList.addEventListener('click', function (e) {
-      var btn = e.target.closest('.ent-cta-btn[data-href]');
-      if (!btn || btn.hasAttribute('disabled')) return;
-      var href = btn.getAttribute('data-href');
-      if (!href || href === '#') return;
-      window.location.href = href;
+    [elEntList, elPassPlansList].forEach(function (host) {
+      if (!host) return;
+      host.addEventListener('click', function (e) {
+        var btn = e.target.closest('.ent-cta-btn[data-href]');
+        if (!btn || btn.hasAttribute('disabled')) return;
+        var href = btn.getAttribute('data-href');
+        if (!href || href === '#') return;
+        window.location.href = href;
+      });
     });
   }
 
