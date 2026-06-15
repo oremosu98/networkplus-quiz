@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CertAnvil · Free Gauntlet entry states mockup</title>
+<style>
+  /* Tokens copied verbatim from mockups/reword-gauntlet.html (BRAND.md §3 / dg-system.css) */
+  :root, [data-theme="dark"] {
+    --bg: oklch(0.17 0.008 275); --surface: oklch(0.205 0.009 275); --surface-2: oklch(0.23 0.009 275);
+    --ink: oklch(0.96 0.006 275); --ink-soft: oklch(0.80 0.012 275); --muted: oklch(0.725 0.013 275);
+    --border: oklch(0.32 0.011 275); --border-soft: oklch(0.255 0.010 275);
+    --accent: oklch(0.80 0.155 64); --accent-deep: oklch(0.86 0.135 64); --on-accent: oklch(0.18 0.020 275);
+    --pass: oklch(0.74 0.150 152); --fail: oklch(0.66 0.17 25);
+    --ease: cubic-bezier(0.16, 1, 0.3, 1);
+    --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+    --page-bg: oklch(0.13 0.008 275); --page-ink: oklch(0.96 0.006 275); --page-dim: oklch(0.66 0.012 275);
+  }
+  [data-theme="light"] {
+    --bg: oklch(0.975 0.007 85); --surface: oklch(0.992 0.004 85); --surface-2: oklch(0.965 0.010 84);
+    --ink: oklch(0.22 0.015 280); --ink-soft: oklch(0.36 0.014 280); --muted: oklch(0.50 0.013 280);
+    --border: oklch(0.86 0.008 85); --border-soft: oklch(0.91 0.006 85);
+    --accent: oklch(0.50 0.155 55); --accent-deep: oklch(0.42 0.150 52); --on-accent: oklch(0.985 0.010 85);
+    --pass: oklch(0.50 0.15 150); --fail: oklch(0.52 0.19 25);
+    --page-bg: oklch(0.94 0.008 85); --page-ink: oklch(0.22 0.015 280); --page-dim: oklch(0.50 0.013 280);
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body { background: var(--page-bg); color: var(--page-ink); font: 400 14px/1.5 Inter, -apple-system, sans-serif; padding: 34px 22px 60px; -webkit-font-smoothing: antialiased; }
+
+  /* Focus-visible: keyboard users get a clear bronze ring; mouse/touch presses stay quiet. */
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+  :focus:not(:focus-visible) { outline: none; }
+
+  .stage-head { max-width: 1180px; margin: 0 auto 26px; }
+  .stage-eyebrow { font: 800 10.5px/1 Inter, sans-serif; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); margin-bottom: 9px; }
+  .stage-title { font-family: Fraunces, Georgia, serif; font-weight: 600; font-size: 25px; letter-spacing: -0.012em; }
+  .stage-sub { color: var(--page-dim); font-size: 13px; margin-top: 8px; max-width: 76ch; line-height: 1.55; }
+  .stage-sub b { color: var(--page-ink); }
+  .theme-toggle { position: fixed; top: 22px; right: 22px; z-index: 50; background: var(--surface); color: var(--ink); border: 1px solid var(--border); border-radius: 999px; padding: 9px 14px; font: 650 12px/1 Inter, sans-serif; cursor: pointer; transition: transform 0.16s var(--ease-out), border-color 0.16s ease; }
+  .theme-toggle:active { transform: scale(0.96); }
+  @media (hover: hover) and (pointer: fine) { .theme-toggle:hover { border-color: color-mix(in oklab, var(--accent) 40%, var(--border)); } }
+
+  .phones { display: flex; flex-wrap: wrap; gap: 30px; justify-content: center; max-width: 1900px; margin: 0 auto; }
+  .unit { width: 390px; }
+  .unit-label { display: inline-flex; align-items: baseline; gap: 8px; font: 700 11px/1 Inter, sans-serif; letter-spacing: 0.12em; text-transform: uppercase; color: var(--page-dim); margin: 0 0 11px 6px; }
+  .unit-label .seq { font-variant-numeric: tabular-nums; color: var(--page-ink); }
+  .unit-note { font-size: 12px; color: var(--page-dim); line-height: 1.5; margin: 13px 6px 0; }
+  .unit-note b { color: var(--page-ink); }
+
+  .phone { width: 390px; border-radius: 46px; padding: 10px; background: #050505; box-shadow: 0 24px 70px -30px rgba(0,0,0,0.7); }
+  .screen { position: relative; border-radius: 38px; background: var(--bg); color: var(--ink); overflow: hidden; min-height: 720px; display: flex; flex-direction: column; }
+  .notch { position: absolute; top: 9px; left: 50%; transform: translateX(-50%); width: 112px; height: 26px; border-radius: 16px; background: #050505; z-index: 5; }
+  .statusbar { display: flex; justify-content: space-between; padding: 16px 26px 4px; font: 650 12.5px/1 Inter, sans-serif; }
+
+  .hdr { display: flex; align-items: center; justify-content: space-between; padding: 12px 18px 8px; }
+  .hdr h1 { font: 650 16px/1 Inter, sans-serif; letter-spacing: -0.01em; }
+  .hdr .back { display: inline-flex; align-items: center; justify-content: center; background: none; border: 0; border-radius: 10px; color: var(--ink-soft); width: 34px; height: 34px; cursor: pointer; transition: color 0.16s ease, background 0.16s ease, transform 0.16s var(--ease-out); }
+  .hdr .back:active { transform: scale(0.92); }
+  @media (hover: hover) and (pointer: fine) { .hdr .back:hover { color: var(--ink); background: var(--surface-2); } }
+  .hdr svg { width: 21px; height: 21px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+  .body { flex: 1; padding: 8px 22px 22px; display: flex; flex-direction: column; gap: 14px; }
+  .drills-lede { color: var(--muted); font-size: 12.5px; line-height: 1.5; }
+  .body-foot { margin-top: auto; }
+
+  /* atoms */
+  .pill { font: 800 10px/1 Inter, sans-serif; letter-spacing: 0.10em; text-transform: uppercase; color: var(--accent-deep); background: color-mix(in oklab, var(--accent) 14%, transparent); border: 1px solid color-mix(in oklab, var(--accent) 32%, var(--border)); border-radius: 999px; padding: 4px 9px; display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+  .pill svg { width: 11px; height: 11px; stroke: currentColor; fill: none; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+  .pill.is-muted { color: var(--muted); background: var(--surface-2); border-color: var(--border); }
+  /* The payoff badge lands just after the Pro spine sweeps, so "Unlimited" reads as the reward arriving. */
+  .pill.is-pro { color: var(--on-accent); background: var(--accent); border-color: var(--accent); animation: pill-land 0.4s var(--ease-out) 0.46s both; }
+  @keyframes pill-land { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+  .cta { width: 100%; border: 0; border-radius: 12px; padding: 14px; cursor: pointer; background: var(--accent); color: var(--on-accent); font: 700 14.5px/1 Inter, sans-serif; display: inline-flex; align-items: center; justify-content: center; gap: 8px; transition: transform 0.16s var(--ease-out), filter 0.16s ease, border-color 0.16s ease; }
+  .cta svg { width: 17px; height: 17px; stroke: currentColor; fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; transition: transform 0.18s var(--ease-out); }
+  /* Press feedback: whole button settles, then the arrow nudges forward to echo "go". */
+  .cta:active { transform: scale(0.97); }
+  .cta:active svg { transform: translateX(2px); }
+  .cta.is-pro { background: transparent; color: var(--accent-deep); border: 1px solid color-mix(in oklab, var(--accent) 42%, var(--border)); }
+  @media (hover: hover) and (pointer: fine) {
+    .cta:hover { filter: brightness(1.04); }
+    .cta.is-pro:hover { filter: none; border-color: color-mix(in oklab, var(--accent) 64%, var(--border)); background: color-mix(in oklab, var(--accent) 7%, transparent); }
+  }
+  .ghost { width: 100%; background: transparent; border: 1px solid var(--border); border-radius: 12px; padding: 13px; color: var(--ink); font: 600 13px/1 Inter, sans-serif; cursor: pointer; transition: transform 0.16s var(--ease-out), border-color 0.16s ease; }
+  .ghost:active { transform: scale(0.98); }
+
+  /* drills card (mirrors app .drills-card / .gnt-drills-hero) */
+  .drills-card { position: relative; border: 1px solid var(--border); border-radius: 16px; background: var(--surface); padding: 18px; }
+  /* Card settles in on load. Staggered across the three units so they read A then B then C, the way a day unfolds. */
+  @keyframes card-rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  .drills-card { animation: card-rise 0.5s var(--ease-out) both; }
+  .unit:nth-child(1) .drills-card { animation-delay: 0.04s; }
+  .unit:nth-child(2) .drills-card { animation-delay: 0.13s; }
+  .unit:nth-child(3) .drills-card { animation-delay: 0.22s; }
+  .drills-card.hero { border-color: color-mix(in oklab, var(--accent) 30%, var(--border)); background: color-mix(in oklab, var(--accent) 5%, var(--surface)); }
+  /* State accent spine: a single top edge that colour-codes the state at a glance */
+  .drills-card.hero::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 3px; border-radius: 16px 16px 0 0; background: var(--accent); }
+  .drills-card.is-spent { background: var(--surface); border-color: var(--border-soft); }
+  .drills-card.is-spent::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 3px; border-radius: 16px 16px 0 0; background: var(--border); }
+  .drills-card.is-pro { border-color: color-mix(in oklab, var(--accent) 44%, var(--border)); background: color-mix(in oklab, var(--accent) 8%, var(--surface)); }
+  /* Pro spine sweeps the full width on arrival: the reward landing, not just sitting there. */
+  .drills-card.is-pro::before { background: var(--accent-deep); transform: scaleX(0); transform-origin: left center; animation: spine-sweep 0.55s var(--ease-out) 0.30s forwards; }
+  @keyframes spine-sweep { to { transform: scaleX(1); } }
+
+  .card-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 11px; }
+  .card-title { font: 650 17px/1.2 Inter, sans-serif; display: inline-flex; align-items: center; gap: 9px; }
+  .card-note { color: var(--ink-soft); font-size: 13px; line-height: 1.5; }
+  .card-foot { margin-top: 16px; }
+
+  /* rungs: makes "one concept, asked five ways" legible instead of a buried comma list */
+  .rungs { display: flex; gap: 6px; margin: 13px 0 2px; }
+  .rung { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .rung .dot { position: relative; width: 100%; height: 5px; border-radius: 999px; background: color-mix(in oklab, var(--accent) 38%, var(--surface-2)); overflow: hidden; }
+  /* The five rungs fill left-to-right on entry: it shows "one concept, asked five ways" as a ladder. */
+  .rung .dot::after { content: ""; position: absolute; inset: 0; border-radius: inherit; background: var(--accent); transform: scaleX(0); transform-origin: left center; }
+  .rung .lbl { font: 700 8.5px/1 Inter, sans-serif; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); }
+  .is-spent .rung .dot { background: var(--border); }
+  .is-spent .rung .lbl { color: color-mix(in oklab, var(--muted) 70%, var(--surface)); }
+  .is-pro .rung .dot { background: color-mix(in oklab, var(--accent) 55%, var(--surface-2)); }
+
+  /* Rung fill choreography. Available + Pro light up; spent stays quiet (no reward to replay). */
+  @keyframes rung-fill { to { transform: scaleX(1); } }
+  .drills-card.hero .rung .dot::after { background: var(--accent); }
+  .drills-card.is-pro .rung .dot::after { background: var(--accent-deep); }
+  .drills-card.hero .rung .dot::after,
+  .drills-card.is-pro .rung .dot::after { animation: rung-fill 0.42s var(--ease-out) forwards; }
+  .drills-card.hero .rung:nth-child(1) .dot::after, .drills-card.is-pro .rung:nth-child(1) .dot::after { animation-delay: 0.34s; }
+  .drills-card.hero .rung:nth-child(2) .dot::after, .drills-card.is-pro .rung:nth-child(2) .dot::after { animation-delay: 0.40s; }
+  .drills-card.hero .rung:nth-child(3) .dot::after, .drills-card.is-pro .rung:nth-child(3) .dot::after { animation-delay: 0.46s; }
+  .drills-card.hero .rung:nth-child(4) .dot::after, .drills-card.is-pro .rung:nth-child(4) .dot::after { animation-delay: 0.52s; }
+  .drills-card.hero .rung:nth-child(5) .dot::after, .drills-card.is-pro .rung:nth-child(5) .dot::after { animation-delay: 0.58s; }
+
+  /* the load-bearing product-truth line, promoted to a framed claim instead of a muted footnote */
+  .truth { display: flex; align-items: flex-start; gap: 9px; margin-top: 14px; padding: 11px 13px; border-radius: 11px; background: var(--surface-2); border: 1px solid var(--border-soft); }
+  /* The product-truth line settles in after the rungs finish filling, so it reads as the takeaway. */
+  .truth { animation: chip-settle 0.45s var(--ease-out) 0.62s both; }
+  .truth svg { width: 16px; height: 16px; stroke: var(--accent); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; margin-top: 1px; }
+  .truth p { font: 600 12px/1.4 Inter, sans-serif; color: var(--ink-soft); }
+  .truth p b { color: var(--ink); font-weight: 700; }
+
+  .reset-chip { display: inline-flex; align-items: center; gap: 7px; font: 650 12px/1 Inter, sans-serif; color: var(--ink-soft); border: 1px solid var(--border-soft); border-radius: 999px; padding: 8px 13px; background: var(--surface-2); margin-top: 14px; }
+  .reset-chip svg { width: 13px; height: 13px; stroke: var(--muted); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  /* The reset chip settles in calmly, no pulse: it is information, not a countdown to act on. */
+  .reset-chip { animation: chip-settle 0.45s var(--ease-out) 0.30s both; }
+  @keyframes chip-settle { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* upsell as a "locked door": Pro is the thing on the other side, not fake urgency */
+  .upsell { margin-top: 16px; border: 1px solid color-mix(in oklab, var(--accent) 26%, var(--border)); border-radius: 13px; background: color-mix(in oklab, var(--accent) 7%, var(--surface)); padding: 14px; }
+  /* The ask arrives last, once the run is felt as spent: it follows the chip, never races it. */
+  .body-foot { animation: card-rise 0.5s var(--ease-out) 0.5s both; }
+  .upsell-head { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; }
+  .upsell-head svg { width: 14px; height: 14px; stroke: var(--accent-deep); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+  .upsell-k { font: 800 10px/1 Inter, sans-serif; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent-deep); }
+  .upsell p { font-size: 12.5px; line-height: 1.5; color: var(--ink-soft); }
+
+  /* Reduced motion: drop every movement and the staged reveals. Keep gentle fades so nothing
+     pops in jarringly, and keep the press scale (it is feedback the finger expects, not decoration). */
+  @media (prefers-reduced-motion: reduce) {
+    .drills-card, .body-foot, .reset-chip, .truth {
+      animation: rm-fade 0.2s ease both;
+    }
+    .unit:nth-child(1) .drills-card, .unit:nth-child(2) .drills-card, .unit:nth-child(3) .drills-card,
+    .body-foot, .reset-chip, .truth { animation-delay: 0s; }
+    @keyframes rm-fade { from { opacity: 0; } to { opacity: 1; } }
+    /* Rungs and Pro spine simply rest in their filled state, no sweep. */
+    .drills-card.hero .rung .dot::after, .drills-card.is-pro .rung .dot::after,
+    .drills-card.is-pro::before { animation: none; transform: scaleX(1); }
+    .pill.is-pro { animation: rm-fade 0.2s ease both; }
+    .cta svg { transition: none; }
+    .cta:active svg { transform: none; }
+  }
+</style>
+</head>
+<body>
+  <button class="theme-toggle" onclick="document.documentElement.setAttribute('data-theme', document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark')">Toggle theme</button>
+
+  <div class="stage-head">
+    <p class="stage-eyebrow">Reword Gauntlet · Free tier</p>
+    <h1 class="stage-title">Your run, every day</h1>
+    <p class="stage-sub">The drills entry as a free user sees it across one day, and what a Pro sees. Your daily Gauntlet run is a <b>bonus on top of the 15 daily questions</b>, so running it never spends them. New users pick their own topic on the first run.</p>
+  </div>
+
+  <div class="phones">
+
+    <!-- STATE A: free, available today -->
+    <div class="unit">
+      <p class="unit-label"><span class="seq">A</span> Free · available today</p>
+      <div class="phone"><div class="screen">
+        <div class="notch"></div>
+        <div class="statusbar"><span>9:41</span><span>CertAnvil</span></div>
+        <div class="hdr"><button class="back"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button><h1>Drills</h1><span style="width:34px"></span></div>
+        <div class="body">
+          <p class="drills-lede">Quick passes that check whether a concept really stuck. Pick one and go.</p>
+          <div class="drills-card hero">
+            <div class="card-head">
+              <span class="card-title">Reword Gauntlet</span>
+              <span class="pill"><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>Yours today</span>
+            </div>
+            <p class="card-note">Today's run is yours. One concept, asked five ways. Crack all five and you own it in any wording.</p>
+            <div class="rungs">
+              <span class="rung"><span class="dot"></span><span class="lbl">Plain</span></span>
+              <span class="rung"><span class="dot"></span><span class="lbl">Scene</span></span>
+              <span class="rung"><span class="dot"></span><span class="lbl">Best</span></span>
+              <span class="rung"><span class="dot"></span><span class="lbl">Not</span></span>
+              <span class="rung"><span class="dot"></span><span class="lbl">Twist</span></span>
+            </div>
+            <div class="truth">
+              <svg viewBox="0 0 24 24"><path d="M12 2v20M2 12h20"/></svg>
+              <p>A <b>bonus</b> run, separate from your 15 daily questions. Running it never spends them.</p>
+            </div>
+            <div class="card-foot"><button class="cta"><svg viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>Claim today's run</button></div>
+          </div>
+        </div>
+      </div></div>
+      <p class="unit-note"><b>Yours.</b> No Pro lock. "Yours today" and "claim" tell the user the run already belongs to them. They are picking up something they have, not earning their way past a paywall.</p>
+    </div>
+
+    <!-- STATE B: free, used today -->
+    <div class="unit">
+      <p class="unit-label"><span class="seq">B</span> Free · used today</p>
+      <div class="phone"><div class="screen">
+        <div class="notch"></div>
+        <div class="statusbar"><span>9:41</span><span>CertAnvil</span></div>
+        <div class="hdr"><button class="back"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button><h1>Drills</h1><span style="width:34px"></span></div>
+        <div class="body">
+          <p class="drills-lede">Quick passes that check whether a concept really stuck. Pick one and go.</p>
+          <div class="drills-card is-spent">
+            <div class="card-head">
+              <span class="card-title">Reword Gauntlet</span>
+              <span class="pill is-muted"><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>Done today</span>
+            </div>
+            <p class="card-note">Nice work, you cleared today's run. The next one is already lined up for you.</p>
+            <div class="rungs">
+              <span class="rung"><span class="dot"></span><span class="lbl">Plain</span></span>
+              <span class="rung"><span class="dot"></span><span class="lbl">Scene</span></span>
+              <span class="rung"><span class="dot"></span><span class="lbl">Best</span></span>
+              <span class="rung"><span class="dot"></span><span class="lbl">Not</span></span>
+              <span class="rung"><span class="dot"></span><span class="lbl">Twist</span></span>
+            </div>
+            <div class="reset-chip"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Your next free run lands at midnight</div>
+          </div>
+          <div class="body-foot">
+            <div class="upsell">
+              <div class="upsell-head">
+                <svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+                <span class="upsell-k">On a roll?</span>
+              </div>
+              <p>Free is <b>1 run a day</b>. Pro makes it <b>unlimited</b> on every cert, so you can start the next one now instead of tomorrow.</p>
+            </div>
+            <div class="card-foot"><button class="cta is-pro">See Pro and skip the wait</button></div>
+          </div>
+        </div>
+      </div></div>
+      <p class="unit-note"><b>Spent.</b> A fixed midnight return, no ticking timer. The ask puts "1 a day" next to "unlimited" so Pro reads as relief from the wait. It only shows up after the run is done.</p>
+    </div>
+
+    <!-- STATE C: pro, unlimited -->
+    <div class="unit">
+      <p class="unit-label"><span class="seq">C</span> Pro · unlimited</p>
+      <div class="phone"><div class="screen">
+        <div class="notch"></div>
+        <div class="statusbar"><span>9:41</span><span>CertAnvil</span></div>
+        <div class="hdr"><button class="back"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button><h1>Drills</h1><span style="width:34px"></span></div>
+        <div class="body">
+          <p class="drills-lede">Quick passes that check whether a concept really stuck. Pick one and go.</p>
+          <div class="drills-card is-pro">
+            <div class="card-head">
+              <span class="card-title">Reword Gauntlet</span>
+              <span class="pill is-pro">Unlimited</span>
+            </div>
+            <p class="card-note">One concept, asked five ways. Crack all five and you own it in any wording.</p>
+            <div class="rungs">
+              <span class="rung"><span class="dot"></span><span class="lbl">Plain</span></span>
+              <span class="rung"><span class="dot"></span><span class="lbl">Scene</span></span>
+              <span class="rung"><span class="dot"></span><span class="lbl">Best</span></span>
+              <span class="rung"><span class="dot"></span><span class="lbl">Not</span></span>
+              <span class="rung"><span class="dot"></span><span class="lbl">Twist</span></span>
+            </div>
+            <div class="truth">
+              <svg viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+              <p>Run it <b>as often as you like</b>, on any cert. Nothing counts down and nothing waits for midnight.</p>
+            </div>
+            <div class="card-foot"><button class="cta"><svg viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>Run the Gauntlet</button></div>
+          </div>
+        </div>
+      </div></div>
+      <p class="unit-note"><b>Pro.</b> Same card, no counter. "Nothing waits for midnight" answers the exact wait the spent state complained about, so unlimited feels like the wait is over rather than a list of perks.</p>
+    </div>
+
+  </div>
+</body>
+</html>

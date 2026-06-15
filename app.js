@@ -670,7 +670,7 @@ function _showQuotaExceededUI(detail) {
     '<div class="quota-exceeded-card">' +
       '<div class="quota-exceeded-icon">&#128267;</div>' +
       '<div class="quota-exceeded-title">You&rsquo;ve used today&rsquo;s free questions</div>' +
-      '<div class="quota-exceeded-sub">' + _streakPrefix + 'Free is 15 questions a day, every day, no card required &middot; resets in <strong>' + resetText + '</strong> (midnight UTC).</div>' +
+      '<div class="quota-exceeded-sub">' + _streakPrefix + 'Free is 15 questions a day, plus a separate Reword Gauntlet run, every day, no card required &middot; resets in <strong>' + resetText + '</strong> (midnight UTC).</div>' +
       '<div class="quota-exceeded-actions">' +
         _srBtnHtml +
         '<a class="quota-exceeded-cta" href="https://certanvil.com/pricing" target="_blank" rel="noopener">Upgrade to Pro &middot; $9.99/mo &rarr;</a>' +
@@ -1035,6 +1035,7 @@ const STORAGE = {
   DAILY_GOAL: 'nplus_daily_goal',
   DAILY_CHALLENGE: 'nplus_daily_challenge',
   GAUNTLET_CRACKED: 'nplus_gauntlet_cracked', // v7.48.0 Reword Gauntlet: [{concept, topic, certId, date, attempts}]
+  GAUNTLET_FREE_COUNT: 'nplus_gauntlet_free_count', // v7.54.0 free-tier daily Gauntlet runs ({date, count}) — separate from the 15-question quota
   DEEP_DIVE_USES: 'nplus_deep_dive_uses',
   ERROR_LOG: 'nplus_error_log',
   GH_TOKEN: 'nplus_gh_monitor_token',
@@ -6923,6 +6924,51 @@ function loadGauntletCracked() {
 
 // Entry points (Drills hero card + Home Practice tile). The entry screen is
 // viewable by free users (funnel tease) — the Pro gate fires on Start.
+// v7.54.0 — Reword Gauntlet free daily allowance. The free tier gets ONE run a
+// day as a BONUS that does NOT consume the 15-question quota (the run is fetched
+// non-metered for free users in _fetchGauntletRun). Pro / admin / anonymous are
+// uncapped. Mirrors the GAP-1 SR free-cap helpers (_srFreeReviewedToday etc).
+const GAUNTLET_FREE_DAILY_CAP = 1;
+function _gauntletFreeRunsToday() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(STORAGE.GAUNTLET_FREE_COUNT) || 'null');
+    if (raw && raw.date === new Date().toISOString().slice(0, 10)) return raw.count || 0;
+  } catch (_) {}
+  return 0;
+}
+function _bumpGauntletFreeRun() {
+  // Only the free tier accrues a count; Pro / admin / anonymous never do.
+  if (!(_quotaState && _quotaState.tier === 'free')) return;
+  try {
+    localStorage.setItem(STORAGE.GAUNTLET_FREE_COUNT, JSON.stringify({
+      date: new Date().toISOString().slice(0, 10),
+      count: _gauntletFreeRunsToday() + 1
+    }));
+  } catch (_) {}
+}
+// Gate for gauntletStart. Returns true to proceed, false (and shows the
+// "today's free run done" modal) when a free user has used today's run.
+function _gateGauntletDaily() {
+  // State still hydrating, or anonymous BYOK (self-pay) → allow. Matches the
+  // optimistic-allow contract in _gateProOnly; anonymous users are uncapped.
+  if (!_quotaState) return true;
+  // Pro / admin / unlimited → always allow.
+  if (_quotaState.tier === 'pro') return true;
+  if (typeof _quotaState.daily_limit === 'number' && _quotaState.daily_limit < 0) return true;
+  // Free tier → one run a day.
+  if (_gauntletFreeRunsToday() >= GAUNTLET_FREE_DAILY_CAP) {
+    if (typeof _showProOnlyUI === 'function') {
+      _showProOnlyUI({
+        feature: 'Reword Gauntlet',
+        title: "That's today's free Gauntlet done",
+        body: 'Free includes one Reword Gauntlet run a day, a bonus on top of your 15 questions. Your next free run unlocks at midnight UTC. Go Pro to run it as often as you like, on every cert.'
+      });
+    }
+    return false;
+  }
+  return true;
+}
+
 function startRewordGauntlet() {
   _gauntletTopic = null;
   // v7.48.1: remember the entry origin — Back must never route a desktop
@@ -7016,8 +7062,10 @@ async function _fetchGauntletRun(topicName, forcedConcept) {
       'anthropic-version': '2023-06-01',
       'anthropic-dangerous-direct-browser-access': 'true'
     },
-    // _metered: true — counts toward quota + the global kill-switch.
-    body: JSON.stringify({ model: CLAUDE_MODEL, max_tokens: MAX_TOKENS_GENERATION, messages: [{ role: 'user', content: prompt }], _metered: true })
+    // v7.54.0: the free-tier daily Gauntlet is a BONUS, separate from the
+    // 15-question quota, so it is sent NON-metered for free users. Pro
+    // (unlimited) and anonymous (BYOK) keep _metered: true exactly as before.
+    body: JSON.stringify({ model: CLAUDE_MODEL, max_tokens: MAX_TOKENS_GENERATION, messages: [{ role: 'user', content: prompt }], _metered: !(_quotaState && _quotaState.tier === 'free') })
   });
   if (!res.ok) throw new Error('gauntlet API error ' + res.status);
   const data = await res.json();
@@ -7044,15 +7092,17 @@ async function _fetchGauntletRun(topicName, forcedConcept) {
 async function gauntletStart(opts) {
   opts = opts || {};
   if (_gauntletBusy) return; // double-tap guard
-  if (typeof _gateProOnly === 'function' && !_gateProOnly('Reword Gauntlet', {
-    title: 'The Reword Gauntlet is a Pro feature',
-    body: 'One concept, asked five ways. Crack all five and you own it in any wording. Go Pro to run the Gauntlet on every cert in the library.'
-  })) return;
+  // v7.54.0: free users get one Gauntlet run a day (was Pro-only). _gateGauntletDaily
+  // allows Pro / anonymous freely and caps the free tier at 1/day with its own modal.
+  if (typeof _gateGauntletDaily === 'function' && !_gateGauntletDaily()) return;
   if (typeof navigator !== 'undefined' && navigator.onLine === false) {
     showToast('The Gauntlet forges fresh questions, so it needs a connection.', 'info');
     return;
   }
-  if (typeof _canMakeMeteredCall === 'function' && !_canMakeMeteredCall('Reword Gauntlet')) return;
+  // v7.54.0: the free daily Gauntlet is non-metered (a bonus separate from the
+  // 15-question quota), so the metered-quota gate must not block free users.
+  // Pro (unlimited) and anonymous (BYOK) still pass through it unchanged.
+  if (!(_quotaState && _quotaState.tier === 'free') && typeof _canMakeMeteredCall === 'function' && !_canMakeMeteredCall('Reword Gauntlet')) return;
 
   let topicName = opts.topic || _gauntletTopic || null;
   if (!topicName) { const w = getWeakTopic(); topicName = (w && w.topic) || null; }
@@ -7088,6 +7138,9 @@ async function gauntletStart(opts) {
   _gauntletBusy = false;
 
   _gauntletRun = { concept: run.concept, topic: topicName, results: [], attempts: (opts.attempts || 0) + 1 };
+  // v7.54.0: consume the free-tier daily Gauntlet allowance. After a successful
+  // fetch only, so a forge misfire (caught above) never burns the free run.
+  if (typeof _bumpGauntletFreeRun === 'function') _bumpGauntletFreeRun();
   gauntletMode = true;
   wrongDrillMode = false;
   examMode = false;
