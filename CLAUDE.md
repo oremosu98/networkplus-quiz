@@ -112,6 +112,7 @@ npx playwright test              # E2E (tests/e2e/app.spec.js)
 
 | Version | Features Added |
 |---|---|
+| v7.54.0 | Free tier: 1 Reword Gauntlet run/day, separate from the 15-q quota |
 | v7.53.2 | Tech debt: carve out false-positive dead _renderAna* funcs + re-baseline stale file-size thresholds |
 | v7.53.1 | Fix Pass Plan settings section squished on desktop (missing grid-column span) |
 | v7.53.0 | Pass Plan IA: per-cert in browser settings, all certs in installed app + a cross-cert Your Pass Plans section on /account |
