@@ -115,10 +115,8 @@ npx playwright test              # E2E (tests/e2e/app.spec.js)
 | v7.54.1 | Drills card: free-tier daily Gauntlet state pill (1 free today / done today) |
 | v7.54.0 | Free tier: 1 Reword Gauntlet run/day, separate from the 15-q quota |
 | v7.53.2 | Tech debt: carve out false-positive dead _renderAna* funcs + re-baseline stale file-size thresholds |
-| v7.53.1 | Fix Pass Plan settings section squished on desktop (missing grid-column span) |
-| v7.53.0 | Pass Plan IA: per-cert in browser settings, all certs in installed app + a cross-cert Your Pass Plans section on /account |
 
-_Older releases (v7.19.3 and back) live in [CHANGELOG.md](./CHANGELOG.md) — trimmed here during the 2026-06-14 consolidation._
+_Older releases (v7.53.1 and back) live in [CHANGELOG.md](./CHANGELOG.md) — trimmed here during the 2026-06-15 free-Gauntlet consolidation (v7.53.0 + v7.53.1 ported to CHANGELOG)._
 
 ## CSS Theme System
 Dark theme in `:root`, light theme in `[data-theme="light"]`. Key variables: `--bg`, `--surface`, `--accent`, `--text`, `--green`, `--red`, `--yellow`. Toggle via `toggleTheme()`.
