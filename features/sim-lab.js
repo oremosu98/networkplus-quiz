@@ -358,6 +358,33 @@
     return root;
   }
 
+  // --- fillin renderer ---
+  function _slRenderFillin(step, onChange) {
+    var vals = {};
+    var root = _el('div', 'sl-fillin');
+    root.appendChild(_el('p', 'sl-prompt', _esc(step.prompt)));
+    step.payload.fields.forEach(function (f) {
+      var wrap = _el('label', 'sl-field');
+      wrap.appendChild(_el('span', 'sl-field-label', _esc(f.label)));
+      var input = document.createElement('input');
+      input.type = 'text';
+      input.className = 'sl-field-input';
+      input.setAttribute('data-field', f.id);
+      input.setAttribute('inputmode', f.inputmode || 'text');
+      input.setAttribute('autocomplete', 'off');
+      input.setAttribute('autocapitalize', 'none');
+      input.setAttribute('spellcheck', 'false');
+      input.addEventListener('input', function () {
+        vals[f.id] = input.value;
+        onChange(Object.assign({}, vals));
+      });
+      wrap.appendChild(input);
+      root.appendChild(wrap);
+    });
+    onChange({});
+    return root;
+  }
+
   // --- renderStep dispatcher ---
   function simLabRenderStep(step, onChange) {
     switch (step.type) {
@@ -365,7 +392,7 @@
       case 'categorize': return _slRenderCategorize(step, onChange);
       case 'match': return _slRenderMatch(step, onChange);
       case 'analyze': return _slRenderAnalyze(step, onChange);
-      // fillin added in later tasks
+      case 'fillin': return _slRenderFillin(step, onChange);
       default: return _el('div', 'sl-unknown', 'Unsupported step');
     }
   }

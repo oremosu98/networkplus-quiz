@@ -281,3 +281,20 @@ test('analyze renderer toggles selected line ids', async ({ page }) => {
   });
   expect(sel).toEqual(['l2']);
 });
+
+test('fillin renderer reports typed values keyed by field id with numeric inputmode', async ({ page }) => {
+  await gotoApp(page);
+  const out = await page.evaluate(() => {
+    const step = { id:'s', type:'fillin', prompt:'subnet',
+      payload:{ fields:[{id:'mask',label:'Mask', inputmode:'decimal'}] },
+      answer:{ mask:['/26'] } };
+    let last = null;
+    const el = window._simLab.renderStep(step, (r)=>{ last = r; });
+    document.body.appendChild(el);
+    const input = el.querySelector('[data-field="mask"]');
+    input.value = '/26'; input.dispatchEvent(new Event('input', { bubbles:true }));
+    return { val: last.mask, mode: input.getAttribute('inputmode') };
+  });
+  expect(out.val).toBe('/26');
+  expect(out.mode).toBe('decimal');
+});
