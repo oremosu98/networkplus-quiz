@@ -338,3 +338,19 @@ test('orchestrator submit fires onSubmit exactly once per click (no double-fire)
   });
   expect(count).toBe(1);
 });
+
+test('feedback reveals explanation for wrong steps, withholds for right ones (free mode)', async ({ page }) => {
+  await gotoApp(page);
+  const html = await page.evaluate(() => {
+    const scn = { steps:[
+      { id:'a', type:'fillin', prompt:'mask', explanation:'WHY_A', payload:{fields:[{id:'f'}]}, answer:{ f:['/26'] } },
+      { id:'b', type:'fillin', prompt:'hosts', explanation:'WHY_B', payload:{fields:[{id:'g'}]}, answer:{ g:['62'] } }
+    ]};
+    const score = { perStep:{ a:true, b:false }, correct:1, total:2, fraction:0.5 };
+    const host = document.createElement('div');
+    window._simLab.renderFeedback(host, scn, score, { mode:'free' });
+    return host.innerHTML;
+  });
+  expect(html).not.toContain('WHY_A'); // right step: withheld in free mode
+  expect(html).toContain('WHY_B');     // wrong step: revealed
+});

@@ -14064,6 +14064,13 @@ body.is-pro-tier .tier-free-only { display: none !important; }
 .sl-scn-logs{font-family:ui-monospace,Menlo,monospace;font-size:12px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px;overflow:auto}
 .sl-step{margin:16px 0;padding-top:14px;border-top:1px solid var(--border)}
 .sl-step-k{font-size:11px;opacity:.6;text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px}
+.sl-fb-score{font-size:18px;font-weight:700;margin-bottom:12px}
+.sl-fb-row{padding:10px 12px;border:1px solid var(--border);border-radius:8px;margin-bottom:8px}
+.sl-fb-row.sl-ok{background:color-mix(in srgb,var(--green) 10%,transparent)}
+.sl-fb-row.sl-bad{background:color-mix(in srgb,var(--red) 10%,transparent)}
+.sl-fb-ic{font-weight:700;margin-right:8px}
+.sl-fb-why{margin:8px 0 0;font-size:14px;line-height:1.5}
+.sl-fb-locked{margin:8px 0 0;font-size:13px;opacity:.7}
 body.is-state-resolved:not(.is-pro-tier) #count-group .chip[data-v="20"] .chip-count-sub { display: none; }
 .settings-lock-bignum {
   display: flex;

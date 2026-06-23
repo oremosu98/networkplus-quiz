@@ -432,6 +432,31 @@
 
   function simLabSubmitScenario() { if (window.__slActiveSubmit) window.__slActiveSubmit(); }
 
+  // --- hybrid feedback renderer (Task 11) ---
+  function _slRenderFeedback(host, scn, score, opts) {
+    var mode = (opts && opts.mode) || 'free';
+    host.innerHTML = '';
+    var root = _el('div', 'sl-feedback');
+    var pct = Math.round(score.fraction * 100);
+    root.appendChild(_el('div', 'sl-fb-score', score.correct + ' / ' + score.total + ' steps · ' + pct + '%'));
+
+    scn.steps.forEach(function (st, i) {
+      var ok = score.perStep[st.id];
+      var row = _el('div', 'sl-fb-row ' + (ok ? 'sl-ok' : 'sl-bad'));
+      row.appendChild(_el('span', 'sl-fb-ic', ok ? '✓' : '✗'));
+      row.appendChild(_el('span', 'sl-fb-t', 'Step ' + (i + 1) + ' · ' + _esc(st.prompt)));
+      var reveal = (mode === 'pro') || !ok;
+      if (reveal) {
+        row.appendChild(_el('p', 'sl-fb-why', _esc(st.explanation)));
+      } else {
+        var lock = _el('p', 'sl-fb-locked', 'You nailed this one. Pro shows the full reasoning on every step.');
+        row.appendChild(lock);
+      }
+      root.appendChild(row);
+    });
+    host.appendChild(root);
+  }
+
   // --- exports (more added in later tasks) ---
   window.simLabValidateScenario = simLabValidateScenario;
   window.simLabScoreScenario = simLabScoreScenario;
@@ -442,5 +467,6 @@
   window._simLab.bindMovable = _slBindMovable;
   window._simLab.renderStep = simLabRenderStep;
   window._simLab.mountScenario = _slMountScenario;
+  window._simLab.renderFeedback = _slRenderFeedback;
   window._simLab.__test_moveOrder = function (el, id, idx) { el.__moveTo(id, idx); };
 })();
