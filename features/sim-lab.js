@@ -52,8 +52,62 @@
     return { ok: errs.length === 0, errors: errs };
   }
 
+  // --- scoring (Task 2) ---
+
+  // Temporary stub — Task 3 replaces with full normalization logic
+  function _simLabNormalizeMatch(given, accept) { return accept.indexOf(given) !== -1; }
+
+  function _arrEq(a, b) {
+    if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length) return false;
+    for (var i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
+    return true;
+  }
+
+  function _setEq(a, b) {
+    if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length) return false;
+    var sa = a.slice().sort(), sb = b.slice().sort();
+    return _arrEq(sa, sb);
+  }
+
+  function _scoreStep(step, resp) {
+    if (!resp) return false;
+    switch (step.type) {
+      case 'order':
+        return _arrEq(resp.order, step.answer.correctOrder);
+      case 'categorize':
+        return Object.keys(step.answer.map).every(function (itemId) {
+          return resp.map && resp.map[itemId] === step.answer.map[itemId];
+        }) && resp.map && Object.keys(resp.map).length === Object.keys(step.answer.map).length;
+      case 'match':
+        return Object.keys(step.answer.pairs).every(function (l) {
+          return resp.pairs && resp.pairs[l] === step.answer.pairs[l];
+        }) && resp.pairs && Object.keys(resp.pairs).length === Object.keys(step.answer.pairs).length;
+      case 'analyze':
+        return _setEq(resp.selected, step.answer.selected);
+      case 'fillin':
+        return step.payload.fields.every(function (f) {
+          var accept = step.answer[f.id] || [];
+          var given = resp && resp[f.id];
+          return _simLabNormalizeMatch(given, accept); // defined fully in Task 3
+        });
+      default: return false;
+    }
+  }
+
+  function simLabScoreScenario(scn, responses) {
+    var perStep = {}, correct = 0;
+    scn.steps.forEach(function (st) {
+      var ok = _scoreStep(st, responses ? responses[st.id] : null);
+      perStep[st.id] = ok;
+      if (ok) correct++;
+    });
+    var total = scn.steps.length;
+    return { perStep: perStep, correct: correct, total: total, fraction: total ? correct / total : 0 };
+  }
+
   // --- exports (more added in later tasks) ---
   window.simLabValidateScenario = simLabValidateScenario;
+  window.simLabScoreScenario = simLabScoreScenario;
   window._simLab = window._simLab || {};
   window._simLab.STEP_TYPES = STEP_TYPES;
 })();

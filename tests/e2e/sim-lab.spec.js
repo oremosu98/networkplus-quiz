@@ -111,3 +111,19 @@ test('rejects null input', async ({ page }) => {
   const res = await page.evaluate(() => window.simLabValidateScenario(null));
   expect(res.ok).toBe(false);
 });
+
+test('scoreScenario gives all-or-nothing per step and a scenario fraction', async ({ page }) => {
+  await gotoApp(page);
+  const res = await page.evaluate(() => {
+    const scn = { steps: [
+      { id: 'a', type: 'fillin', payload: { fields: [{ id: 'f1' }] }, answer: { f1: ['/26'] } },
+      { id: 'b', type: 'order', payload: { items: [{id:'x'},{id:'y'}] }, answer: { correctOrder: ['x','y'] } }
+    ]};
+    const responses = { a: { f1: '/26' }, b: { order: ['y','x'] } }; // a right, b wrong
+    return window.simLabScoreScenario(scn, responses);
+  });
+  expect(res.perStep).toEqual({ a: true, b: false });
+  expect(res.correct).toBe(1);
+  expect(res.total).toBe(2);
+  expect(Math.round(res.fraction * 100)).toBe(50);
+});
