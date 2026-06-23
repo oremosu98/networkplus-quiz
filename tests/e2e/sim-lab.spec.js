@@ -424,3 +424,42 @@ test('practice page renders a scenario, submits, shows verdict, exits to drills'
   // sim-lab page should no longer be active, drills should be
   await expect(page.locator('#page-sim-lab')).not.toHaveClass(/active/);
 });
+
+test('drills page shows a Sim Lab card with a daily-state pill', async ({ page }) => {
+  await gotoApp(page);
+  await page.waitForFunction(() => typeof window.renderSimLabDrillsCard === 'function');
+  // Navigate to drills page so #page-drills exists as active container before calling render.
+  await page.evaluate(() => {
+    window._quotaState = { tier: 'free' };
+    localStorage.removeItem('nplus_pbq_free_count');
+    if (typeof showPage === 'function') showPage('drills');
+    window.renderSimLabDrillsCard();
+  });
+  await expect(page.locator('#drills-simlab-state')).toContainText('1 free today');
+});
+
+test('drills Sim Lab card shows Done today when free cap reached', async ({ page }) => {
+  await gotoApp(page);
+  await page.waitForFunction(() => typeof window.renderSimLabDrillsCard === 'function');
+  await page.evaluate(() => {
+    window._quotaState = { tier: 'free' };
+    // Bump the free run count to cap
+    var cap = window.PBQ_FREE_DAILY_CAP || 1;
+    var today = new Date().toISOString().slice(0, 10);
+    localStorage.setItem('nplus_pbq_free_count', JSON.stringify({ date: today, count: cap }));
+    if (typeof showPage === 'function') showPage('drills');
+    window.renderSimLabDrillsCard();
+  });
+  await expect(page.locator('#drills-simlab-state')).toContainText('Done today');
+});
+
+test('drills Sim Lab card shows Pro pill for pro tier', async ({ page }) => {
+  await gotoApp(page);
+  await page.waitForFunction(() => typeof window.renderSimLabDrillsCard === 'function');
+  await page.evaluate(() => {
+    window._quotaState = { tier: 'pro' };
+    if (typeof showPage === 'function') showPage('drills');
+    window.renderSimLabDrillsCard();
+  });
+  await expect(page.locator('#drills-simlab-state')).toContainText('Pro');
+});

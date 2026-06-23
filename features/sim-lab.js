@@ -602,6 +602,41 @@
   }
   window.simLabStart = simLabStart;
 
+  // --- Task 16: Drills-page card with daily-state pill ---
+
+  function renderSimLabDrillsCard() {
+    var host = document.getElementById('page-drills');
+    if (!host) return;
+    var existing = document.getElementById('drills-simlab-card');
+    if (existing) existing.remove();
+    var pro = _slIsPro();
+    var used = (typeof window._pbqFreeRunsToday === 'function') ? window._pbqFreeRunsToday() : 0;
+    var cap = window.PBQ_FREE_DAILY_CAP || 1;
+    var pill;
+    if (!pro) {
+      pill = (used >= cap)
+        ? '<span id="drills-simlab-state" class="gnt-daily-pill">Done today</span>'
+        : '<span id="drills-simlab-state" class="gnt-daily-pill">1 free today</span>';
+    } else {
+      pill = '<span id="drills-simlab-state" class="gnt-daily-pill">Pro</span>';
+    }
+    var card = document.createElement('div');
+    card.className = 'drills-card';
+    card.id = 'drills-simlab-card';
+    card.innerHTML =
+      '<div class="drills-card-head"><span class="drills-card-title">Sim Lab ' + pill + '</span></div>' +
+      '<p class="drills-card-note">Practice the hands-on PBQs the exam throws first. One free sim a day.</p>' +
+      '<button type="button" class="drills-btn" data-action="simLabLaunch">Start a sim →</button>';
+    host.appendChild(card);
+  }
+
+  function simLabLaunch() {
+    simLabStart({ cert: window.CURRENT_CERT || 'netplus' });
+  }
+
+  window.renderSimLabDrillsCard = renderSimLabDrillsCard;
+  window.simLabLaunch = simLabLaunch;
+
   // --- exports (more added in later tasks) ---
   window.simLabValidateScenario = simLabValidateScenario;
   window.simLabScoreScenario = simLabScoreScenario;
