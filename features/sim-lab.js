@@ -54,8 +54,19 @@
 
   // --- scoring (Task 2) ---
 
-  // Temporary stub — Task 3 replaces with full normalization logic
-  function _simLabNormalizeMatch(given, accept) { return accept.indexOf(given) !== -1; }
+  function _norm(v) {
+    if (v == null) return '';
+    return String(v).trim().toLowerCase().replace(/\s+/g, ' ');
+  }
+
+  function _simLabNormalizeMatch(given, acceptList) {
+    if (given == null || String(given).trim() === '') return false;
+    var g = _norm(given);
+    for (var i = 0; i < acceptList.length; i++) {
+      if (_norm(acceptList[i]) === g) return true;
+    }
+    return false;
+  }
 
   function _arrEq(a, b) {
     if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length) return false;
@@ -110,4 +121,5 @@
   window.simLabScoreScenario = simLabScoreScenario;
   window._simLab = window._simLab || {};
   window._simLab.STEP_TYPES = STEP_TYPES;
+  window._simLab.normalizeMatch = _simLabNormalizeMatch;
 })();

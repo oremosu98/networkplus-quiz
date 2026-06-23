@@ -112,6 +112,20 @@ test('rejects null input', async ({ page }) => {
   expect(res.ok).toBe(false);
 });
 
+test('fillin normalization is case/space tolerant and CIDR-aware', async ({ page }) => {
+  await gotoApp(page);
+  const r = await page.evaluate(() => ({
+    spaces: window._simLab.normalizeMatch('  /26 ', ['/26']),
+    case:   window._simLab.normalizeMatch('255.255.255.192', ['255.255.255.192']),
+    wrong:  window._simLab.normalizeMatch('/24', ['/26']),
+    empty:  window._simLab.normalizeMatch('', ['/26'])
+  }));
+  expect(r.spaces).toBe(true);
+  expect(r.case).toBe(true);
+  expect(r.wrong).toBe(false);
+  expect(r.empty).toBe(false);
+});
+
 test('scoreScenario gives all-or-nothing per step and a scenario fraction', async ({ page }) => {
   await gotoApp(page);
   const res = await page.evaluate(() => {
