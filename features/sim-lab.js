@@ -205,6 +205,63 @@
     return { clearPicked: clearPicked };
   }
 
+  // --- shared DOM helpers ---
+  function _el(tag, cls, html) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (html != null) e.innerHTML = html;
+    return e;
+  }
+  function _esc(s) { var d = document.createElement('div'); d.textContent = s == null ? '' : s; return d.innerHTML; }
+
+  // --- order renderer ---
+  function _slRenderOrder(step, onChange) {
+    var order = step.payload.items.map(function (it) { return it.id; }); // initial = given order
+    var root = _el('div', 'sl-order');
+    root.appendChild(_el('p', 'sl-prompt', _esc(step.prompt)));
+    var list = _el('div', 'sl-order-list');
+    root.appendChild(list);
+
+    function labelFor(id) {
+      var it = step.payload.items.filter(function (x) { return x.id === id; })[0];
+      return it ? it.label : id;
+    }
+    function moveTo(itemId, index) {
+      var from = order.indexOf(itemId);
+      if (from === -1) return;
+      order.splice(from, 1);
+      order.splice(index, 0, itemId);
+      paint();
+      onChange({ order: order.slice() });
+    }
+    function paint() {
+      list.innerHTML = '';
+      order.forEach(function (id, i) {
+        var row = _el('button', 'sl-item sl-order-row');
+        row.setAttribute('type', 'button');
+        row.setAttribute('data-item', id);
+        row.setAttribute('aria-label', 'Move ' + labelFor(id));
+        row.innerHTML = '<span class="sl-grip" aria-hidden="true">⋮⋮</span>' + _esc(labelFor(id));
+        // tap/keyboard: clicking a row swaps it up one slot (simple, predictable)
+        row.addEventListener('click', function () { if (i > 0) moveTo(id, i - 1); });
+        list.appendChild(row);
+      });
+    }
+    paint();
+    onChange({ order: order.slice() }); // report initial state
+    root.__moveTo = moveTo; // test hook
+    return root;
+  }
+
+  // --- renderStep dispatcher ---
+  function simLabRenderStep(step, onChange) {
+    switch (step.type) {
+      case 'order': return _slRenderOrder(step, onChange);
+      // categorize/match/analyze/fillin added in later tasks
+      default: return _el('div', 'sl-unknown', 'Unsupported step');
+    }
+  }
+
   // --- exports (more added in later tasks) ---
   window.simLabValidateScenario = simLabValidateScenario;
   window.simLabScoreScenario = simLabScoreScenario;
@@ -212,4 +269,6 @@
   window._simLab.STEP_TYPES = STEP_TYPES;
   window._simLab.normalizeMatch = _simLabNormalizeMatch;
   window._simLab.bindMovable = _slBindMovable;
+  window._simLab.renderStep = simLabRenderStep;
+  window._simLab.__test_moveOrder = function (el, id, idx) { el.__moveTo(id, idx); };
 })();

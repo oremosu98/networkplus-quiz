@@ -215,3 +215,18 @@ test('input controller: a real mouse drag drops once and does not leave the item
   const picked = await item.evaluate(el => el.classList.contains('sl-picked'));
   expect(picked).toBe(false);                                 // not left re-picked by stray click
 });
+
+test('order renderer reports the current sequence on reorder', async ({ page }) => {
+  await gotoApp(page);
+  const seq = await page.evaluate(() => {
+    const step = { id:'s', type:'order', prompt:'order them',
+      payload:{ items:[{id:'a',label:'A'},{id:'b',label:'B'},{id:'c',label:'C'}] },
+      answer:{ correctOrder:['a','b','c'] } };
+    let last = null;
+    const el = window._simLab.renderStep(step, (r) => { last = r; });
+    document.body.appendChild(el);
+    window._simLab.__test_moveOrder(el, 'c', 0); // move c to front
+    return last.order;
+  });
+  expect(seq[0]).toBe('c');
+});
