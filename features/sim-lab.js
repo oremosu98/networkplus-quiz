@@ -253,11 +253,47 @@
     return root;
   }
 
+  // --- categorize renderer ---
+  function _slRenderCategorize(step, onChange) {
+    var map = {};                 // itemId -> bucketId
+    var root = _el('div', 'sl-cat');
+    root.appendChild(_el('p', 'sl-prompt', _esc(step.prompt)));
+    var tray = _el('div', 'sl-cat-tray');
+    var cols = _el('div', 'sl-cat-cols');
+    root.appendChild(tray); root.appendChild(cols);
+
+    step.payload.items.forEach(function (it) {
+      var b = _el('button', 'sl-item sl-chip', _esc(it.label));
+      b.setAttribute('type', 'button'); b.setAttribute('data-item', it.id);
+      tray.appendChild(b);
+    });
+    step.payload.buckets.forEach(function (bk) {
+      var col = _el('div', 'sl-cat-col');
+      col.innerHTML = '<div class="sl-cat-h">' + _esc(bk.label) + '</div>';
+      var drop = _el('div', 'sl-target sl-cat-drop'); drop.setAttribute('data-target', bk.id);
+      col.appendChild(drop); cols.appendChild(col);
+    });
+
+    _slBindMovable(root, {
+      itemSel: '.sl-chip', targetSel: '.sl-cat-drop',
+      onPlace: function (itemId, bucketId) {
+        map[itemId] = bucketId;
+        var chip = root.querySelector('.sl-chip[data-item="' + itemId + '"]');
+        var drop = root.querySelector('.sl-cat-drop[data-target="' + bucketId + '"]');
+        if (chip && drop) drop.appendChild(chip);
+        onChange({ map: Object.assign({}, map) });
+      }
+    });
+    onChange({ map: {} });
+    return root;
+  }
+
   // --- renderStep dispatcher ---
   function simLabRenderStep(step, onChange) {
     switch (step.type) {
       case 'order': return _slRenderOrder(step, onChange);
-      // categorize/match/analyze/fillin added in later tasks
+      case 'categorize': return _slRenderCategorize(step, onChange);
+      // match/analyze/fillin added in later tasks
       default: return _el('div', 'sl-unknown', 'Unsupported step');
     }
   }

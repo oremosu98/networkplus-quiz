@@ -216,6 +216,23 @@ test('input controller: a real mouse drag drops once and does not leave the item
   expect(picked).toBe(false);                                 // not left re-picked by stray click
 });
 
+test('categorize renderer maps item to bucket on place', async ({ page }) => {
+  await gotoApp(page);
+  const map = await page.evaluate(() => {
+    const step = { id:'s', type:'categorize', prompt:'sort',
+      payload:{ items:[{id:'cat6',label:'Cat6'},{id:'om4',label:'OM4'}],
+                buckets:[{id:'cu',label:'Copper'},{id:'fi',label:'Fiber'}] },
+      answer:{ map:{ cat6:'cu', om4:'fi' } } };
+    let last = null;
+    const el = window._simLab.renderStep(step, (r) => { last = r; });
+    document.body.appendChild(el);
+    el.querySelector('[data-item="cat6"]').click();      // pick
+    el.querySelector('[data-target="cu"]').click();      // drop in Copper
+    return last.map;
+  });
+  expect(map.cat6).toBe('cu');
+});
+
 test('order renderer reports the current sequence on reorder', async ({ page }) => {
   await gotoApp(page);
   const seq = await page.evaluate(() => {
