@@ -397,13 +397,48 @@
     }
   }
 
+  // --- scenario orchestrator (Task 10) ---
+  function _slMountScenario(host, scn, opts) {
+    var responses = {};
+    host.innerHTML = '';
+    var wrap = _el('div', 'sl-scenario');
+    wrap.appendChild(_el('div', 'sl-scn-prose', _esc(scn.scenario)));
+    if (scn.assets && Array.isArray(scn.assets.logs) && scn.assets.logs.length) {
+      var pre = _el('pre', 'sl-scn-logs');
+      pre.textContent = scn.assets.logs.join('\n');
+      wrap.appendChild(pre);
+    }
+    scn.steps.forEach(function (st, i) {
+      var stepWrap = _el('div', 'sl-step');
+      stepWrap.appendChild(_el('div', 'sl-step-k', 'Step ' + (i + 1) + ' of ' + scn.steps.length));
+      var el = simLabRenderStep(st, function (resp) { responses[st.id] = resp; });
+      stepWrap.appendChild(el);
+      wrap.appendChild(stepWrap);
+    });
+    var submit = _el('button', 'btn btn-primary gnt-cta', 'Submit answers');
+    submit.setAttribute('type', 'button');
+    submit.setAttribute('data-action', 'simLabSubmitScenario');
+    submit.addEventListener('click', function () { simLabSubmitScenario(); });
+    wrap.appendChild(submit);
+    host.appendChild(wrap);
+
+    window.__slActiveSubmit = function () {
+      var score = simLabScoreScenario(scn, responses);
+      opts.onSubmit(Object.assign({ responses: responses, scenario: scn }, score));
+    };
+  }
+
+  function simLabSubmitScenario() { if (window.__slActiveSubmit) window.__slActiveSubmit(); }
+
   // --- exports (more added in later tasks) ---
   window.simLabValidateScenario = simLabValidateScenario;
   window.simLabScoreScenario = simLabScoreScenario;
+  window.simLabSubmitScenario = simLabSubmitScenario;
   window._simLab = window._simLab || {};
   window._simLab.STEP_TYPES = STEP_TYPES;
   window._simLab.normalizeMatch = _simLabNormalizeMatch;
   window._simLab.bindMovable = _slBindMovable;
   window._simLab.renderStep = simLabRenderStep;
+  window._simLab.mountScenario = _slMountScenario;
   window._simLab.__test_moveOrder = function (el, id, idx) { el.__moveTo(id, idx); };
 })();

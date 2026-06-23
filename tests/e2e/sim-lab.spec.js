@@ -298,3 +298,24 @@ test('fillin renderer reports typed values keyed by field id with numeric inputm
   expect(out.val).toBe('/26');
   expect(out.mode).toBe('decimal');
 });
+
+test('orchestrator renders all steps and returns a score on submit', async ({ page }) => {
+  await gotoApp(page);
+  const res = await page.evaluate(() => {
+    const scn = { id:'s1', cert:'netplus', objective:'1.4', topic:'IPv4', title:'t',
+      scenario:'Branch cannot reach HQ.', estMinutes:5,
+      steps:[
+        { id:'st1', type:'fillin', prompt:'mask?', points:1, explanation:'/26 = 255.255.255.192',
+          payload:{ fields:[{id:'mask',label:'Mask'}] }, answer:{ mask:['/26'] } }
+      ]};
+    return new Promise((resolve) => {
+      const host = document.createElement('div'); document.body.appendChild(host);
+      window._simLab.mountScenario(host, scn, { onSubmit: (result) => resolve(result) });
+      host.querySelector('[data-field="mask"]').value = '/26';
+      host.querySelector('[data-field="mask"]').dispatchEvent(new Event('input',{bubbles:true}));
+      host.querySelector('[data-action="simLabSubmitScenario"]').click();
+    });
+  });
+  expect(res.correct).toBe(1);
+  expect(res.total).toBe(1);
+});
