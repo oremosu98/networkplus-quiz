@@ -14,18 +14,18 @@
         return Array.isArray(p.items) && p.items.length >= 2 &&
                Array.isArray(a.correctOrder) && a.correctOrder.length === p.items.length;
       case 'categorize':
-        return Array.isArray(p.items) && Array.isArray(p.buckets) && p.buckets.length >= 2 &&
-               a.map && typeof a.map === 'object';
+        return Array.isArray(p.items) && p.items.length >= 1 && Array.isArray(p.buckets) && p.buckets.length >= 2 &&
+               a.map && !Array.isArray(a.map) && typeof a.map === 'object';
       case 'match':
         return Array.isArray(p.left) && Array.isArray(p.right) &&
-               p.left.length === p.right.length && a.pairs && typeof a.pairs === 'object';
+               p.left.length >= 2 && p.left.length === p.right.length && a.pairs && typeof a.pairs === 'object';
       case 'analyze':
         return Array.isArray(p.lines) && p.lines.length >= 2 &&
                Array.isArray(a.selected) && a.selected.length >= 1;
       case 'fillin':
         return Array.isArray(p.fields) && p.fields.length >= 1 &&
                a && typeof a === 'object' &&
-               p.fields.every(function (f) { return Array.isArray(a[f.id]) && a[f.id].length >= 1; });
+               p.fields.every(function (f) { return typeof f.id === 'string' && f.id && Array.isArray(a[f.id]) && a[f.id].length >= 1; });
       default: return false;
     }
   }

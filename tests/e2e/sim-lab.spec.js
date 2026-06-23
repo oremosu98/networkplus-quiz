@@ -30,3 +30,84 @@ test('validateScenario accepts a well-formed single-step scenario', async ({ pag
   );
   expect(res.ok).toBe(true);
 });
+
+test('rejects a match step with mismatched left/right lengths', async ({ page }) => {
+  await gotoApp(page);
+  const res = await page.evaluate(() =>
+    window.simLabValidateScenario({
+      id: 's2', cert: 'netplus', objective: '1.4', topic: 'IPv4', title: 't',
+      scenario: 'x', estMinutes: 5,
+      steps: [{ id: 'st1', type: 'match', prompt: 'match?', points: 1,
+        explanation: 'because',
+        payload: { left: ['A', 'B'], right: ['X'] },
+        answer: { pairs: { A: 'X' } } }]
+    })
+  );
+  expect(res.ok).toBe(false);
+});
+
+test('rejects a match step with empty left/right arrays', async ({ page }) => {
+  await gotoApp(page);
+  const res = await page.evaluate(() =>
+    window.simLabValidateScenario({
+      id: 's3', cert: 'netplus', objective: '1.4', topic: 'IPv4', title: 't',
+      scenario: 'x', estMinutes: 5,
+      steps: [{ id: 'st1', type: 'match', prompt: 'match?', points: 1,
+        explanation: 'because',
+        payload: { left: [], right: [] },
+        answer: { pairs: {} } }]
+    })
+  );
+  expect(res.ok).toBe(false);
+});
+
+test('rejects an order step whose correctOrder length != items length', async ({ page }) => {
+  await gotoApp(page);
+  const res = await page.evaluate(() =>
+    window.simLabValidateScenario({
+      id: 's4', cert: 'netplus', objective: '1.4', topic: 'IPv4', title: 't',
+      scenario: 'x', estMinutes: 5,
+      steps: [{ id: 'st1', type: 'order', prompt: 'order?', points: 1,
+        explanation: 'because',
+        payload: { items: ['a', 'b', 'c'] },
+        answer: { correctOrder: ['a', 'b'] } }]
+    })
+  );
+  expect(res.ok).toBe(false);
+});
+
+test('accepts a well-formed categorize step', async ({ page }) => {
+  await gotoApp(page);
+  const res = await page.evaluate(() =>
+    window.simLabValidateScenario({
+      id: 's5', cert: 'netplus', objective: '1.4', topic: 'IPv4', title: 't',
+      scenario: 'x', estMinutes: 5,
+      steps: [{ id: 'st1', type: 'categorize', prompt: 'categorize?', points: 1,
+        explanation: 'because',
+        payload: { items: ['item1', 'item2'], buckets: ['bucket1', 'bucket2'] },
+        answer: { map: { item1: 'bucket1', item2: 'bucket2' } } }]
+    })
+  );
+  expect(res.ok).toBe(true);
+});
+
+test('accepts a well-formed analyze step', async ({ page }) => {
+  await gotoApp(page);
+  const res = await page.evaluate(() =>
+    window.simLabValidateScenario({
+      id: 's6', cert: 'netplus', objective: '1.4', topic: 'IPv4', title: 't',
+      scenario: 'x', estMinutes: 5,
+      steps: [{ id: 'st1', type: 'analyze', prompt: 'analyze?', points: 1,
+        explanation: 'because',
+        payload: { lines: [{ id: 'l1', text: 'line 1' }, { id: 'l2', text: 'line 2' }] },
+        answer: { selected: ['l1'] } }]
+    })
+  );
+  expect(res.ok).toBe(true);
+});
+
+test('rejects null input', async ({ page }) => {
+  await gotoApp(page);
+  const res = await page.evaluate(() => window.simLabValidateScenario(null));
+  expect(res.ok).toBe(false);
+});
