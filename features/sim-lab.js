@@ -521,6 +521,40 @@
     });
   }
 
+  // --- Task 14: launcher + free-gating ---
+
+  function _slIsPro() {
+    return !!(window._quotaState && (window._quotaState.tier === 'pro' || window._quotaState.tier === 'admin'));
+  }
+
+  function simLabStart(opts) {
+    opts = opts || {};
+    var cert = opts.cert || (window.CURRENT_CERT || 'netplus');
+    var pro = _slIsPro();
+    if (!pro) {
+      var used = (typeof window._pbqFreeRunsToday === 'function') ? window._pbqFreeRunsToday() : 0;
+      var cap = window.PBQ_FREE_DAILY_CAP || 1;
+      if (used >= cap) {
+        return Promise.resolve(window._gateProOnly('Sim Lab', {
+          title: "You have used today's free Sim Lab",
+          body: 'PBQs are the part most people fail on. Go Pro for unlimited sims on every cert, plus the full reasoning on every step.'
+        }));
+      }
+    }
+    if (!opts.__test && typeof window._slMeteredGenerate === 'function') {
+      window._simLab.__setFetcher(window._slMeteredGenerate);
+    }
+    return _slGenerateScenario(cert, opts.objective).then(function (scn) {
+      if (opts.__test) return true;
+      if (typeof _slRenderPracticePage === 'function') { _slRenderPracticePage(scn, pro); return true; }
+      return true; // Task 15 adds the page render
+    }).catch(function () {
+      if (typeof showToast === 'function') showToast('Sim Lab is not available for this cert yet.', 'info');
+      return false;
+    });
+  }
+  window.simLabStart = simLabStart;
+
   // --- exports (more added in later tasks) ---
   window.simLabValidateScenario = simLabValidateScenario;
   window.simLabScoreScenario = simLabScoreScenario;

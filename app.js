@@ -1118,6 +1118,7 @@ const STORAGE = {
   // we cap the show frequency at "once per 7 days" so a returning user who
   // hasn't installed yet but also hasn't actively dismissed gets a calm cadence.
   A2HS_LAST_SHOWN_AT: 'nplus_a2hs_last_shown_at',
+  PBQ_FREE_COUNT: 'nplus_pbq_free_count', // v7.55.0 Sim Lab: free-tier daily PBQ drill runs ({date, count}) — mirrors GAUNTLET_FREE_COUNT shape
 };
 // v4.81.2: how many daily snapshots to keep before pruning oldest
 const AUTOBACKUP_KEEP_DAYS = 7;
@@ -6973,6 +6974,54 @@ function _gateGauntletDaily() {
   }
   return true;
 }
+
+// v7.55.0 — Sim Lab (PBQ drill) free daily allowance. Mirrors the Gauntlet
+// helpers above exactly (same date-key format, same JSON shape, no cloudFlush
+// needed — ephemeral daily counter, not user progress data).
+const PBQ_FREE_DAILY_CAP = 1;
+function _pbqFreeRunsToday() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(STORAGE.PBQ_FREE_COUNT) || 'null');
+    if (raw && raw.date === new Date().toISOString().slice(0, 10)) return raw.count || 0;
+  } catch (_) {}
+  return 0;
+}
+function _bumpPbqFreeRun() {
+  // Only the free tier accrues a count; Pro / admin / anonymous never do.
+  if (!(_quotaState && _quotaState.tier === 'free')) return;
+  try {
+    localStorage.setItem(STORAGE.PBQ_FREE_COUNT, JSON.stringify({
+      date: new Date().toISOString().slice(0, 10),
+      count: _pbqFreeRunsToday() + 1
+    }));
+  } catch (_) {}
+}
+window._pbqFreeRunsToday = _pbqFreeRunsToday;
+window._bumpPbqFreeRun = _bumpPbqFreeRun;
+window.PBQ_FREE_DAILY_CAP = PBQ_FREE_DAILY_CAP;
+
+// Thin metered-generate wrapper for Sim Lab. Reuses the exact same transport
+// as _fetchWhyNotSession (_claudeFetch + _metered:true) and returns a parsed
+// JSON object (not a Response). The prompt is built by sim-lab.js internally.
+async function _slMeteredGenerate(prompt) {
+  const res = await _claudeFetch({
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true'
+    },
+    body: JSON.stringify({ model: CLAUDE_MODEL, max_tokens: MAX_TOKENS_GENERATION, messages: [{ role: 'user', content: prompt }], _metered: true })
+  });
+  if (!res.ok) throw new Error('sim-lab API error ' + res.status);
+  const data = await res.json();
+  const raw = (data.content && data.content[0] && data.content[0].text) || '';
+  const m = raw.match(/\{[\s\S]*\}/);
+  if (!m) throw new Error('sim-lab: no JSON object in response');
+  return JSON.parse(m[0]);
+}
+window._slMeteredGenerate = _slMeteredGenerate;
 
 function startRewordGauntlet() {
   _gauntletTopic = null;

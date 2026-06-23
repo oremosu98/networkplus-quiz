@@ -375,3 +375,23 @@ test('practice timer counts up and fires the pacing nudge past estMinutes', asyn
   });
   expect(fired).toBe(true);
 });
+
+test('free user gets 1 practice run, second is gated to Pro', async ({ page }) => {
+  await gotoApp(page);
+  const r = await page.evaluate(async () => {
+    localStorage.removeItem('nplus_pbq_free_count');
+    window._quotaState = { tier: 'free', daily_limit: 0 };
+    let gateShown = 0;
+    const realGate = window._gateProOnly;
+    window._gateProOnly = (label) => { gateShown++; return false; };
+    window._simLab.__setFetcher(async () => ({})); // force seed fallback
+    const first  = await window.simLabStart({ cert: 'netplus', __test: true });
+    window._bumpPbqFreeRun(); // first run consumes the free credit
+    const second = await window.simLabStart({ cert: 'netplus', __test: true });
+    window._gateProOnly = realGate;
+    return { first, second, gateShown };
+  });
+  expect(r.first).toBe(true);
+  expect(r.second).toBe(false);
+  expect(r.gateShown).toBe(1);
+});
