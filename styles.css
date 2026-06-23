@@ -14033,6 +14033,11 @@ body.is-pro-tier .tier-free-only { display: none !important; }
   border-color: var(--border, rgba(255,255,255,0.12));
 }
 .gnt-daily-pill[hidden] { display: none; }
+.sl-item{cursor:grab;touch-action:manipulation;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+.sl-item.sl-picked{outline:2px solid var(--accent);outline-offset:2px}
+.sl-item.sl-dragging{cursor:grabbing;opacity:.85;z-index:5;position:relative}
+.sl-target{min-height:44px;border:1px dashed var(--border);border-radius:8px}
+@media (prefers-reduced-motion: reduce){ .sl-item{transition:none} }
 body.is-state-resolved:not(.is-pro-tier) #count-group .chip[data-v="20"] .chip-count-sub { display: none; }
 .settings-lock-bignum {
   display: flex;

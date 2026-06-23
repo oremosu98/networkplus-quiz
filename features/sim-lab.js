@@ -116,10 +116,83 @@
     return { perStep: perStep, correct: correct, total: total, fraction: total ? correct / total : 0 };
   }
 
+  // --- per-gesture input controller (Task 4) ---
+
+  function _slBindMovable(container, opts) {
+    var picked = null; // currently picked-up item element
+
+    function clearPicked() {
+      if (picked) picked.classList.remove('sl-picked');
+      picked = null;
+    }
+    function pick(itemEl) {
+      if (picked === itemEl) { clearPicked(); return; }
+      clearPicked();
+      picked = itemEl;
+      itemEl.classList.add('sl-picked');
+    }
+    function drop(targetEl) {
+      if (!picked) return;
+      var itemId = picked.getAttribute('data-item');
+      var targetId = targetEl.getAttribute('data-target');
+      clearPicked();
+      opts.onPlace(itemId, targetId);
+    }
+
+    // Tap-to-place + keyboard (universal baseline). 'click' fires for mouse tap,
+    // touch tap, and keyboard Enter/Space on a focusable button.
+    container.addEventListener('click', function (e) {
+      var item = e.target.closest(opts.itemSel);
+      if (item && container.contains(item)) { pick(item); return; }
+      var target = e.target.closest(opts.targetSel);
+      if (target && container.contains(target)) { drop(target); }
+    });
+
+    // Drag layer — ONLY for mouse/pen. Touch never drags. Movement threshold
+    // distinguishes drag from click.
+    var DRAG_THRESHOLD = 6;
+    container.addEventListener('pointerdown', function (e) {
+      if (e.pointerType === 'touch') return;        // touch uses tap path above
+      var item = e.target.closest(opts.itemSel);
+      if (!item || !container.contains(item)) return;
+      var startX = e.clientX, startY = e.clientY, dragging = false;
+      item.setPointerCapture(e.pointerId);
+
+      function move(ev) {
+        if (!dragging && Math.hypot(ev.clientX - startX, ev.clientY - startY) > DRAG_THRESHOLD) {
+          dragging = true;
+          item.classList.add('sl-dragging');
+          pick(item);
+        }
+        if (dragging) {
+          item.style.transform = 'translate(' + (ev.clientX - startX) + 'px,' + (ev.clientY - startY) + 'px)';
+        }
+      }
+      function up(ev) {
+        item.releasePointerCapture(e.pointerId);
+        item.removeEventListener('pointermove', move);
+        item.removeEventListener('pointerup', up);
+        item.style.transform = '';
+        item.classList.remove('sl-dragging');
+        if (dragging) {
+          var under = document.elementFromPoint(ev.clientX, ev.clientY);
+          var target = under && under.closest(opts.targetSel);
+          if (target && container.contains(target)) drop(target);
+          else clearPicked();
+        }
+      }
+      item.addEventListener('pointermove', move);
+      item.addEventListener('pointerup', up);
+    });
+
+    return { clearPicked: clearPicked };
+  }
+
   // --- exports (more added in later tasks) ---
   window.simLabValidateScenario = simLabValidateScenario;
   window.simLabScoreScenario = simLabScoreScenario;
   window._simLab = window._simLab || {};
   window._simLab.STEP_TYPES = STEP_TYPES;
   window._simLab.normalizeMatch = _simLabNormalizeMatch;
+  window._simLab.bindMovable = _slBindMovable;
 })();

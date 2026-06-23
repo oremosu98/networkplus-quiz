@@ -141,3 +141,47 @@ test('scoreScenario gives all-or-nothing per step and a scenario fraction', asyn
   expect(res.total).toBe(2);
   expect(Math.round(res.fraction * 100)).toBe(50);
 });
+
+test('input controller: tap item then tap target places it (touch/keyboard path)', async ({ page }) => {
+  await gotoApp(page);
+  const placed = await page.evaluate(() => {
+    return new Promise((resolve) => {
+      const root = document.createElement('div');
+      root.innerHTML =
+        '<button class="sl-item" data-item="x">X</button>' +
+        '<div class="sl-target" data-target="b1"></div>';
+      document.body.appendChild(root);
+      let lastDrop = null;
+      window._simLab.bindMovable(root, {
+        itemSel: '.sl-item', targetSel: '.sl-target',
+        onPlace: (itemId, targetId) => { lastDrop = [itemId, targetId]; }
+      });
+      root.querySelector('.sl-item').click();   // pick up
+      root.querySelector('.sl-target').click(); // drop
+      resolve(lastDrop);
+    });
+  });
+  expect(placed).toEqual(['x', 'b1']);
+});
+
+test('input controller works on mobile-safari (touch taps place)', async ({ page }) => {
+  await gotoApp(page);
+  const placed = await page.evaluate(() => {
+    return new Promise((resolve) => {
+      const root = document.createElement('div');
+      root.innerHTML =
+        '<button class="sl-item" data-item="x">X</button>' +
+        '<div class="sl-target" data-target="b1"></div>';
+      document.body.appendChild(root);
+      let lastDrop = null;
+      window._simLab.bindMovable(root, {
+        itemSel: '.sl-item', targetSel: '.sl-target',
+        onPlace: (itemId, targetId) => { lastDrop = [itemId, targetId]; }
+      });
+      root.querySelector('.sl-item').click();
+      root.querySelector('.sl-target').click();
+      resolve(lastDrop);
+    });
+  });
+  expect(placed).toEqual(['x', 'b1']);
+});
