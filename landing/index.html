@@ -11,7 +11,7 @@
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="apple-touch-icon" href="favicon.svg">
 <link rel="stylesheet" href="styles.css">
-<link rel="stylesheet" href="dg-system.css?v=4.99.94">
+<link rel="stylesheet" href="dg-system.css?v=4.99.95">
 
 <!-- hero-v2 type: warm display serif + UI sans. Conscious production
      choice · preconnect + display=swap, robust serif/sans fallbacks in
@@ -2380,6 +2380,73 @@
       } else { start(); }
     })();
   </script>
+</section>
+
+<!-- ══════════════════════════════════════════
+     SIM LAB · PBQ drill section (v1) · lifted verbatim from
+     mockups/sim-lab-session-4-landing-concept.html.
+     Tokens scoped to #simlab-sec so the legacy purple --accent on
+     landing :root can never leak in (lift-safety pattern, same as
+     #gauntlet). No script — static demo panel only.
+══════════════════════════════════════════ -->
+<style id="simlab-styles">
+  /* scoped bronze tokens — override landing :root purple */
+  #simlab-sec {
+    --bg: oklch(0.975 0.007 85); --surface: oklch(0.992 0.004 85); --surface-2: oklch(0.965 0.010 84);
+    --ink: oklch(0.22 0.015 280); --ink-soft: oklch(0.36 0.014 280); --muted: oklch(0.50 0.013 280);
+    --border: oklch(0.86 0.008 85); --border-soft: oklch(0.91 0.006 85);
+    --accent: oklch(0.50 0.155 55); --accent-deep: oklch(0.42 0.150 52); --on-accent: oklch(0.985 0.010 85);
+    --pass: oklch(0.50 0.15 150); --ease: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  #simlab-sec{background:var(--bg);color:var(--ink);padding:clamp(32px,6vw,72px) clamp(20px,5vw,64px)}
+  #simlab-sec .sl-wrap{max-width:1080px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:clamp(28px,5vw,64px);align-items:center}
+  @media(max-width:820px){#simlab-sec .sl-wrap{grid-template-columns:1fr}}
+  #simlab-sec .sl-kicker{display:inline-flex;align-items:center;gap:7px;font-size:11px;font-weight:800;letter-spacing:0.13em;text-transform:uppercase;color:var(--accent);margin-bottom:16px}
+  #simlab-sec .sl-kicker svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  #simlab-sec h2{font-family:Fraunces,Georgia,serif;font-weight:600;font-size:clamp(28px,3.6vw,42px);line-height:1.07;letter-spacing:-0.02em;color:var(--ink)}
+  #simlab-sec h2 em{font-style:italic;color:var(--accent)}
+  #simlab-sec .sl-lede{font-size:16px;color:var(--ink-soft);margin-top:16px;max-width:46ch;line-height:1.6}
+  #simlab-sec .sl-lede b{color:var(--ink);font-weight:600}
+  #simlab-sec .sl-proof{font-size:14px;color:var(--muted);margin-top:14px;max-width:46ch}
+  #simlab-sec .sl-badges{display:flex;gap:8px;flex-wrap:wrap;margin-top:22px}
+  #simlab-sec .sl-badge{font-size:12px;font-weight:600;color:var(--ink-soft);background:var(--surface);border:1px solid var(--border);border-radius:999px;padding:6px 12px}
+  /* demo panel */
+  #simlab-sec .sl-panel{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:20px;box-shadow:0 1px 0 color-mix(in oklab,var(--ink) 4%,transparent),0 22px 50px -28px color-mix(in oklab,var(--ink) 30%,transparent)}
+  #simlab-sec .sl-demo-k{display:flex;align-items:center;justify-content:space-between;font-size:11px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:14px}
+  #simlab-sec .sl-demo-k .sl-ct{color:var(--accent)}
+  #simlab-sec .sl-concept{font-size:15px;font-weight:600;color:var(--ink);margin-bottom:14px}
+  #simlab-sec .sl-rows{display:flex;flex-direction:column;gap:8px}
+  #simlab-sec .sl-row{display:flex;align-items:center;gap:11px;background:var(--surface-2);border:1px solid var(--border-soft);border-radius:11px;padding:11px 13px}
+  #simlab-sec .sl-row .sl-n{width:22px;height:22px;border-radius:7px;display:grid;place-items:center;font-size:12px;font-weight:800;color:var(--on-accent);background:var(--accent);flex:none}
+  #simlab-sec .sl-row .sl-t{font-size:13.5px;font-weight:600;color:var(--ink)}
+  #simlab-sec .sl-row .sl-t span{display:block;font-size:12px;font-weight:400;color:var(--muted);margin-top:1px}
+  #simlab-sec .sl-row .sl-grip{margin-left:auto;color:var(--muted);font-size:14px;letter-spacing:-1px}
+  #simlab-sec .sl-seal{margin-top:14px;text-align:center;font-size:13px;font-weight:700;color:var(--pass);background:color-mix(in oklab,var(--pass) 11%,transparent);border:1px solid color-mix(in oklab,var(--pass) 28%,var(--border));border-radius:10px;padding:9px}
+</style>
+<section id="simlab-sec">
+  <div class="sl-wrap">
+    <div class="sl-copy">
+      <span class="sl-kicker"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h10M4 17h7"></path><path d="M15 15l2.5 2.5L22 13"></path></svg>The PBQ drill · Sim Lab</span>
+      <h2>The exam opens with the part you <em>can't</em> practise anywhere else.</h2>
+      <p class="sl-lede">PBQs are the hands-on tasks: order the steps, sort the items, read the output, fix the config. They come first, when nerves are highest, and <b>most question banks never let you touch the format</b>. Plenty of people meet their first one on exam day.</p>
+      <p class="sl-proof">Sim Lab puts you in the real task types with partial-credit scoring and a "why" on every step, so the format is muscle memory before it counts.</p>
+      <div class="sl-badges">
+        <span class="sl-badge">Order · categorize · match · analyze · fill-in</span>
+        <span class="sl-badge">One free session a day</span>
+      </div>
+    </div>
+    <div class="sl-panel" aria-hidden="true">
+      <div class="sl-demo-k"><span>Sim Lab</span><span class="sl-ct">Round 2 / 5</span></div>
+      <div class="sl-concept">Put the DHCP lease steps in order</div>
+      <div class="sl-rows">
+        <div class="sl-row"><span class="sl-n">1</span><span class="sl-t">Discover<span>Client broadcasts to find a server</span></span><span class="sl-grip">⋮⋮</span></div>
+        <div class="sl-row"><span class="sl-n">2</span><span class="sl-t">Offer<span>Server offers an address</span></span><span class="sl-grip">⋮⋮</span></div>
+        <div class="sl-row"><span class="sl-n">3</span><span class="sl-t">Request<span>Client requests that offer</span></span><span class="sl-grip">⋮⋮</span></div>
+        <div class="sl-row"><span class="sl-n">4</span><span class="sl-t">Acknowledge<span>Server confirms the lease</span></span><span class="sl-grip">⋮⋮</span></div>
+      </div>
+      <div class="sl-seal">&#x2713; Sim cleared · on to round 3</div>
+    </div>
+  </div>
 </section>
 
 <!-- ══════════════════════════════════════════
