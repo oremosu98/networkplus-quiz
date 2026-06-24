@@ -540,13 +540,9 @@
     var t = document.getElementById('sle-target');
     if (t) t.textContent = 'Mixed · ' + ((window.CERT_PACK && window.CERT_PACK.meta && window.CERT_PACK.meta.examName) || 'Network+ N10-009');
     _slSyncRoundChips();
-    // Activate the entry page directly so the transition is synchronous
-    // (avoids the animationend-deferred path in showPage for reliable test + UX).
-    var pages = document.querySelectorAll('.page');
-    Array.prototype.forEach.call(pages, function (p) { p.classList.remove('active', 'page-exit'); });
-    var entry = document.getElementById('page-sim-lab-entry');
-    if (entry) entry.classList.add('active');
-    window.scrollTo(0, 0);
+    // Real routing — showPage syncs the sidebar active state, topbar crumb,
+    // clears stale error boxes, and closes the mobile drawer. Never bypass it.
+    if (typeof showPage === 'function') showPage('sim-lab-entry');
   }
   function _slSyncRoundChips() {
     var chips = document.querySelectorAll('#sle-rounds .sle-chip');

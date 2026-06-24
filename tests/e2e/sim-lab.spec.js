@@ -579,6 +579,8 @@ test('entry: Home tile opens entry; picking 10 on free gates to Pro; 5 starts a 
     let gate = 0; window._gateProOnly = () => { gate++; return false; };
     await new Promise(res => window._ensureSimLabLoaded(res));
     window.startSimLabHome();
+    // showPage transitions via animationend (300ms fallback) — wait for it.
+    await new Promise(res => setTimeout(res, 450));
     const onEntry = document.getElementById('page-sim-lab-entry').classList.contains('active');
     document.querySelector('.sle-chip[data-rounds="10"]').click();
     const gatedOn10 = gate === 1 && window._simLab.sessionRounds() !== 10;
