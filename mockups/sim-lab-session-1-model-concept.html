@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sim Lab · round model</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root, [data-theme="dark"] {
+    --bg: oklch(0.17 0.008 275); --surface: oklch(0.205 0.009 275); --surface-2: oklch(0.23 0.009 275);
+    --ink: oklch(0.96 0.006 275); --ink-soft: oklch(0.80 0.012 275); --muted: oklch(0.725 0.013 275);
+    --border: oklch(0.32 0.011 275); --border-soft: oklch(0.255 0.010 275);
+    --accent: oklch(0.80 0.155 64); --accent-deep: oklch(0.86 0.135 64); --on-accent: oklch(0.18 0.020 275);
+    --pass: oklch(0.74 0.150 152); --fail: oklch(0.66 0.17 25);
+    --ease: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg); color: var(--ink);
+    font-family: Inter, system-ui, sans-serif; line-height: 1.5;
+    padding: clamp(20px, 4vw, 48px); max-width: 1080px; margin: 0 auto;
+    -webkit-font-smoothing: antialiased;
+  }
+  .eyebrow { font-size: 11px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); margin-bottom: 14px; }
+  h1 { font-family: Fraunces, Georgia, serif; font-weight: 600; font-size: clamp(28px, 4.5vw, 42px); letter-spacing: -0.02em; line-height: 1.05; }
+  h1 em { font-style: italic; color: var(--accent); }
+  .sub { color: var(--ink-soft); font-size: 15px; max-width: 60ch; margin-top: 12px; }
+
+  /* flow strip */
+  .flow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 28px 0 36px; padding: 16px 18px; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; }
+  .flow .step { font-size: 12.5px; font-weight: 600; color: var(--ink-soft); padding: 7px 12px; border-radius: 8px; background: var(--surface-2); border: 1px solid var(--border-soft); white-space: nowrap; }
+  .flow .step.load { color: var(--accent); border-color: color-mix(in oklab, var(--accent) 30%, var(--border)); background: color-mix(in oklab, var(--accent) 9%, transparent); }
+  .flow .step.end { color: var(--on-accent); background: var(--accent); border-color: var(--accent); }
+  .flow .arr { color: var(--muted); font-size: 13px; }
+
+  .cards { display: grid; gap: 16px; }
+  .option {
+    position: relative; text-align: left; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 16px; padding: 22px 24px; cursor: pointer;
+    transition: transform 160ms var(--ease), border-color 160ms var(--ease), background 160ms var(--ease);
+  }
+  .option:active { transform: scale(0.99); }
+  .option.rec { border-color: color-mix(in oklab, var(--accent) 36%, var(--border)); }
+  .option.selected { border-color: var(--accent); background: color-mix(in oklab, var(--accent) 7%, var(--surface)); }
+  @media (hover: hover) and (pointer: fine) { .option:hover { border-color: color-mix(in oklab, var(--accent) 45%, var(--border)); transform: translateY(-1px); } }
+  .opt-head { display: flex; align-items: baseline; gap: 12px; margin-bottom: 4px; }
+  .opt-letter { font-family: Fraunces, serif; font-weight: 600; font-size: 22px; color: var(--accent); line-height: 1; }
+  .opt-title { font-size: 18px; font-weight: 700; letter-spacing: -0.01em; }
+  .pill { font-size: 10px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: var(--on-accent); background: var(--accent); padding: 4px 9px; border-radius: 999px; margin-left: auto; align-self: center; }
+  .tiers { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; margin-top: 16px; background: var(--border-soft); border: 1px solid var(--border-soft); border-radius: 11px; overflow: hidden; }
+  .tier { background: var(--surface); padding: 13px 15px; }
+  .tier h4 { font-size: 10px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+  .tier.pro h4 { color: var(--accent); }
+  .tier p { font-size: 13.5px; color: var(--ink-soft); }
+  .why { margin-top: 14px; font-size: 13px; color: var(--muted); }
+  .why b { color: var(--ink-soft); font-weight: 600; }
+  .footnote { margin-top: 28px; font-size: 13px; color: var(--muted); }
+  .footnote b { color: var(--ink-soft); }
+  @media (prefers-reduced-motion: reduce) { .option { transition: none; } }
+</style>
+</head>
+<body>
+  <div class="eyebrow">Sim Lab · design · 1 of 4</div>
+  <h1>One sim and done feels thin. How should <em>rounds</em> work?</h1>
+  <p class="sub">Today a sim is a single scenario, then back to Home. Its siblings run multiples: Reword Gauntlet is five rungs, Why-Not scores four reasons. The real decision is how a multi-round session splits across Free and Pro.</p>
+
+  <div class="flow" aria-label="proposed session flow">
+    <span class="step">Pick rounds</span><span class="arr">→</span>
+    <span class="step">Round 1</span><span class="arr">→</span>
+    <span class="step load">Loading…</span><span class="arr">→</span>
+    <span class="step">Round 2</span><span class="arr">→</span>
+    <span class="step">Round 3</span><span class="arr">→</span>
+    <span class="step end">Summary</span>
+  </div>
+
+  <div class="cards">
+    <div class="option rec" data-choice="A" onclick="toggleSelect(this)">
+      <div class="opt-head">
+        <span class="opt-letter">A</span>
+        <span class="opt-title">Free short session, Pro goes long and unlimited</span>
+        <span class="pill">Recommended</span>
+      </div>
+      <div class="tiers">
+        <div class="tier"><h4>Free</h4><p>Pick 3 or 5 rounds, one session a day. The session is your free sim.</p></div>
+        <div class="tier pro"><h4>Pro</h4><p>Unlimited sessions, exam-length runs up to 10, weak-spot tracking across rounds.</p></div>
+      </div>
+      <p class="why"><b>Why this one:</b> it mirrors the free Reword Gauntlet (five rungs, one run a day), so all three drills feel like the same product. Free gets richer; Pro earns its price on length plus tracking, not on locking you out.</p>
+    </div>
+
+    <div class="option" data-choice="B" onclick="toggleSelect(this)">
+      <div class="opt-head">
+        <span class="opt-letter">B</span>
+        <span class="opt-title">Keep one free scenario, multi-round is the Pro hook</span>
+      </div>
+      <div class="tiers">
+        <div class="tier"><h4>Free</h4><p>One single scenario a day. Exactly today's behaviour.</p></div>
+        <div class="tier pro"><h4>Pro</h4><p>Multi-round Exam-mode sessions plus the analytics.</p></div>
+      </div>
+      <p class="why"><b>Why this one:</b> the original Plan 1 / Plan 2 split, the most conservative on AI cost. The downside is the one you just felt: Free stays one-and-done.</p>
+    </div>
+
+    <div class="option" data-choice="C" onclick="toggleSelect(this)">
+      <div class="opt-head">
+        <span class="opt-letter">C</span>
+        <span class="opt-title">A fixed 3-round session for everyone</span>
+      </div>
+      <div class="tiers">
+        <div class="tier"><h4>Free</h4><p>A set three-round session, one a day. No length picker.</p></div>
+        <div class="tier pro"><h4>Pro</h4><p>Unlimited sessions plus the analytics.</p></div>
+      </div>
+      <p class="why"><b>Why this one:</b> simplest to build and explain. But it drops the part you asked for, choosing how many rounds.</p>
+    </div>
+  </div>
+
+  <p class="footnote"><b>Note on the daily cap:</b> with A or C, "1 free sim a day" becomes "1 free <b>session</b> a day", so a session of N rounds still counts as the single daily free. That keeps the Pro upsell intact and the paywall copy honest.</p>
+</body>
+</html>

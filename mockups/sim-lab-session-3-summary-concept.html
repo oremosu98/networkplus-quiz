@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sim Lab · session summary</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root, [data-theme="dark"] {
+    --bg: oklch(0.17 0.008 275); --surface: oklch(0.205 0.009 275); --surface-2: oklch(0.23 0.009 275);
+    --ink: oklch(0.96 0.006 275); --ink-soft: oklch(0.80 0.012 275); --muted: oklch(0.725 0.013 275);
+    --border: oklch(0.32 0.011 275); --border-soft: oklch(0.255 0.010 275);
+    --accent: oklch(0.80 0.155 64); --accent-deep: oklch(0.86 0.135 64); --on-accent: oklch(0.18 0.020 275);
+    --pass: oklch(0.74 0.150 152); --fail: oklch(0.66 0.17 25);
+    --ease: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--ink); font-family: Inter, system-ui, sans-serif; line-height: 1.5; padding: clamp(20px,4vw,44px); -webkit-font-smoothing: antialiased; }
+  .eyebrow { font-size: 11px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); margin-bottom: 12px; text-align: center; }
+  .wrap { max-width: 460px; margin: 0 auto; }
+
+  .shell { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 26px 24px 24px; box-shadow: 0 1px 0 color-mix(in oklab, var(--ink) 5%, transparent), 0 18px 44px -22px color-mix(in oklab, #000 62%, transparent); }
+  .seal { display: inline-flex; align-items: center; gap: 7px; font-size: 11px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: var(--pass); background: color-mix(in oklab, var(--pass) 12%, transparent); border: 1px solid color-mix(in oklab, var(--pass) 30%, var(--border)); padding: 5px 11px; border-radius: 999px; }
+  .score { display: flex; flex-direction: column; align-items: baseline; margin: 18px 0 4px; }
+  .score-n { font-family: Fraunces, Georgia, serif; font-weight: 600; font-size: 76px; line-height: 1; letter-spacing: -0.03em; color: var(--ink); font-variant-numeric: lining-nums tabular-nums; font-feature-settings: "lnum","tnum"; }
+  .score-n small { font-size: 30px; color: var(--muted); }
+  .score-cap { margin-top: 12px; font-size: 13px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+
+  .rounds { margin: 22px 0 18px; border-top: 1px solid var(--border-soft); }
+  .r { display: flex; align-items: center; gap: 12px; padding: 13px 2px; border-bottom: 1px solid var(--border-soft); }
+  .r-ic { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 800; flex: none; }
+  .r-ic.ok { color: var(--pass); background: color-mix(in oklab, var(--pass) 14%, transparent); }
+  .r-ic.no { color: var(--fail); background: color-mix(in oklab, var(--fail) 14%, transparent); }
+  .r-body { flex: 1; min-width: 0; }
+  .r-title { font-size: 14px; font-weight: 600; }
+  .r-why { font-size: 12.5px; color: var(--muted); margin-top: 2px; }
+  .r-why.locked { color: color-mix(in oklab, var(--accent) 70%, var(--muted)); display: inline-flex; align-items: center; gap: 5px; }
+  .r-why.locked svg { width: 11px; height: 11px; fill: none; stroke: currentColor; stroke-width: 2; }
+  .r-score { font-size: 12.5px; font-weight: 700; color: var(--ink-soft); font-variant-numeric: tabular-nums; flex: none; }
+
+  /* weak-spot note — full tinted hairline, NOT a left-border callout */
+  .insight { margin: 20px 0; padding: 14px 16px; border: 1px solid color-mix(in oklab, var(--accent) 26%, var(--border)); background: color-mix(in oklab, var(--accent) 7%, transparent); border-radius: 13px; }
+  .insight-k { font-size: 10px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); display: inline-flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+  .insight-k svg { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 2; }
+  .insight p { font-size: 13.5px; color: var(--ink-soft); }
+  .insight b { color: var(--ink); font-weight: 600; }
+
+  .cta { display: block; width: 100%; text-align: center; font-size: 15px; font-weight: 700; border-radius: 11px; padding: 13px; cursor: pointer; }
+  .cta-primary { color: var(--on-accent); background: var(--accent); border: 1px solid var(--accent-deep); }
+  .cta-ghost { margin-top: 9px; color: var(--accent); background: transparent; border: 1px solid color-mix(in oklab, var(--accent) 30%, var(--border)); }
+  .foot { margin-top: 26px; font-size: 13px; color: var(--muted); text-align: center; max-width: 460px; margin-left: auto; margin-right: auto; }
+  .foot b { color: var(--ink-soft); }
+</style>
+</head>
+<body>
+  <div class="eyebrow">Sim Lab · design · 3 of 4</div>
+  <div class="wrap">
+    <div class="shell">
+      <span class="seal">✓ Session complete</span>
+      <div class="score">
+        <span class="score-n">82<small>%</small></span>
+        <span class="score-cap">4 of 5 sims passed · 11 of 13 steps</span>
+      </div>
+
+      <div class="rounds">
+        <div class="r">
+          <span class="r-ic ok">✓</span>
+          <div class="r-body"><div class="r-title">Ports and protocols</div><div class="r-why">Nailed it. You knew 443 and 22 cold.</div></div>
+          <span class="r-score">2/2</span>
+        </div>
+        <div class="r">
+          <span class="r-ic no">✗</span>
+          <div class="r-body"><div class="r-title">Subnetting</div><div class="r-why">/26 gives 62 usable, not 64. Network and broadcast are never assignable.</div></div>
+          <span class="r-score">1/2</span>
+        </div>
+        <div class="r">
+          <span class="r-ic ok">✓</span>
+          <div class="r-body"><div class="r-title">DHCP / APIPA</div><div class="r-why locked"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>Pro shows the why on the ones you got right too</div></div>
+          <span class="r-score">3/3</span>
+        </div>
+        <div class="r">
+          <span class="r-ic no">✗</span>
+          <div class="r-body"><div class="r-title">DNS records</div><div class="r-why">CNAME is an alias, not the mail server. MX names the mail host.</div></div>
+          <span class="r-score">2/3</span>
+        </div>
+        <div class="r">
+          <span class="r-ic ok">✓</span>
+          <div class="r-body"><div class="r-title">Troubleshooting order</div><div class="r-why locked"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>Pro shows the why on the ones you got right too</div></div>
+          <span class="r-score">3/3</span>
+        </div>
+      </div>
+
+      <div class="insight">
+        <div class="insight-k"><svg viewBox="0 0 24 24"><path d="M12 2v4M12 18v4M2 12h4M18 12h4"></path><circle cx="12" cy="12" r="4"></circle></svg>Where you slipped</div>
+        <p>Both misses were <b>addressing</b> — subnetting math and a DNS record type. Pro tracks this across every session and pulls your weak domains back in automatically.</p>
+      </div>
+
+      <span class="cta cta-primary">Back to Practice</span>
+      <span class="cta cta-ghost">Go Pro · exam-length runs + weak-spot tracking</span>
+    </div>
+  </div>
+
+  <p class="foot"><b>Open question:</b> free reveals the "why" on <b>missed</b> steps only; the locked rows are the Pro upsell. Keep that split here, or reveal every "why" for free and make Pro purely about length plus tracking?</p>
+</body>
+</html>
