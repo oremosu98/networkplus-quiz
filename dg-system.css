@@ -3975,7 +3975,8 @@ mark.gnt-hinge{background:color-mix(in oklab,var(--red) 26%,transparent);color:i
 #page-sim-lab-result .sls-r-why.sls-why-locked svg{width:11px;height:11px;fill:none;stroke:currentColor;stroke-width:2;flex:none}
 #page-sim-lab-result .sls-r-score{font:700 12.5px/1 Inter,sans-serif;color:var(--text-mid);font-variant-numeric:tabular-nums;flex:none}
 #page-sim-lab-result .sls-insight{margin:20px 0;padding:14px 16px;border:1px solid color-mix(in oklab,var(--accent) 26%,var(--border));background:color-mix(in oklab,var(--accent) 7%,transparent);border-radius:13px}
-#page-sim-lab-result .sls-insight-k{font:800 10px/1 Inter,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:6px}
+#page-sim-lab-result .sls-insight-k{display:inline-flex;align-items:center;gap:6px;font:800 10px/1 Inter,sans-serif;letter-spacing:.13em;text-transform:uppercase;color:var(--accent);margin-bottom:6px}
+#page-sim-lab-result .sls-insight-k svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:2}
 #page-sim-lab-result .sls-insight p{font:400 13.5px/1.5 Inter,sans-serif;color:var(--text-mid)}
 
 /* Sim Lab session: in-round chrome + loader (Task 5, lifted from mockup panels 2-3) */

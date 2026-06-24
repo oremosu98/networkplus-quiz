@@ -660,7 +660,7 @@
     _slSession = null;
     var p = document.getElementById('sl-round-pill'); if (p) p.classList.add('is-hidden');
     var d = document.getElementById('sl-dots'); if (d) d.classList.add('is-hidden');
-    // Return to the Home (setup) page — that's where the Sim Lab entry now lives.
+    // Return to the Home (setup) page: that's where the Sim Lab entry now lives.
     if (typeof showPage === 'function') { showPage('setup'); return; }
     // Safety no-op (showPage is always defined by app.js before features/sim-lab.js runs)
     if (typeof console !== 'undefined') console.warn('simLab: showPage not available');
@@ -833,7 +833,7 @@
     var cluster = _slWeakCluster(_slSession.results);
     if (cluster) {
       var ins = _el('div', 'sls-insight');
-      ins.innerHTML = '<div class="sls-insight-k">Where you slipped</div><p>' + _esc(cluster) + '</p>';
+      ins.innerHTML = '<div class="sls-insight-k"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2v4M12 18v4M2 12h4M18 12h4"></path><circle cx="12" cy="12" r="4"></circle></svg>Where you slipped</div><p>' + _esc(cluster) + '</p>';
       root.appendChild(ins);
     }
     var back = _el('button', 'btn btn-primary gnt-cta', 'Back to Practice');
@@ -853,9 +853,14 @@
     return steps.length ? steps[0].explanation : '';
   }
   function _slWeakCluster(results) {
-    var missed = results.filter(function (r) { return !r.passed; }).map(function (r) { return r.scenario.topic; });
-    if (!missed.length) return null;
-    return 'Your misses were in ' + missed.join(' and ') + '. Pro tracks this across every session and pulls your weak domains back in automatically.';
+    var uniq = [];
+    results.forEach(function (r) {
+      if (r.passed) return;
+      var t = r.scenario.topic;
+      if (t && uniq.indexOf(t) === -1) uniq.push(t);
+    });
+    if (!uniq.length) return null;
+    return 'Your misses were in ' + uniq.join(' and ') + '. Pro tracks this across every session and pulls your weak domains back in automatically.';
   }
   function simLabSummaryUpsell() {
     window._gateProOnly('Sim Lab', { title: 'Go Pro for the full sim.', body: 'Exam-length 10-round runs, unlimited sessions on every cert, the full reasoning on every step, and weak-spot tracking that pulls your misses back in.' });
