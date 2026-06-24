@@ -668,3 +668,22 @@ test('weak-spots: Pro persists missed topics, free does not', async ({ page }) =
   expect(r.sub).toBe(1);
   expect(r.dns).toBe(1);
 });
+
+test('cap: a second session the same day is gated to Pro', async ({ page }) => {
+  await gotoApp(page);
+  const r = await page.evaluate(async () => {
+    window._quotaState = { tier: 'free' };
+    // simulate today's free session already consumed
+    localStorage.setItem('nplus_pbq_free_count', JSON.stringify({ date: new Date().toISOString().slice(0,10), count: 1 }));
+    window.CURRENT_CERT = 'netplus';
+    let gate = 0; window._gateProOnly = () => { gate++; return false; };
+    await new Promise(res => window._ensureSimLabLoaded(res));
+    window.simLabOpenEntry();
+    await new Promise(res => setTimeout(res, 450));
+    window.simLabSessionStart();
+    await new Promise(res => setTimeout(res, 200));
+    return { gate, onSession: document.getElementById('page-sim-lab').classList.contains('active') };
+  });
+  expect(r.gate).toBe(1);          // the Pro gate fired
+  expect(r.onSession).toBe(false); // no session page — gated before start
+});
