@@ -1,9 +1,9 @@
 // ══════════════════════════════════════════
-// Network+ AI Quiz — app.js  v7.55.1
+// Network+ AI Quiz — app.js  v7.55.2
 // ══════════════════════════════════════════
 
 // ── CONSTANTS ──
-const APP_VERSION = '7.55.1';
+const APP_VERSION = '7.55.2';
 // v4.99.45 (Phase 6b): expose APP_VERSION on window so the web-vitals
 // collector (lib/web-vitals-collector.js, loaded BEFORE app.js so its
 // PerformanceObservers attach earlier) can stamp this version onto every
@@ -2444,6 +2444,10 @@ function showPage(name) {
   if (typeof updateTopbarCrumb === 'function') updateTopbarCrumb(name);
   // Task 17: lazy-load Sim Lab on first drills visit; card renders post-load.
   if (name === 'drills') _ensureSimLabLoaded(function () { if (typeof window.renderSimLabDrillsCard === 'function') window.renderSimLabDrillsCard(); });
+  // v7.55.2: surface the Sim Lab entry in the Home → Practice section. Renders
+  // without loading the feature module (cert/pro/daily-state are in app.js); the
+  // module lazy-loads on click via startSimLabHome().
+  if (name === 'setup' && typeof renderSimLabHomeEntry === 'function') renderSimLabHomeEntry();
   // v4.53.0: auto-close mobile drawer when navigating
   try { document.body.classList.remove('sidebar-open'); } catch (_) {}
   // v4.85.16: clear any stale .err-box banners on every page change so a
@@ -7037,6 +7041,46 @@ function _bumpPbqFreeRun() {
 window._pbqFreeRunsToday = _pbqFreeRunsToday;
 window._bumpPbqFreeRun = _bumpPbqFreeRun;
 window.PBQ_FREE_DAILY_CAP = PBQ_FREE_DAILY_CAP;
+
+// v7.55.2 — Sim Lab Home entry (Home → Practice section). The drill must live
+// where the other drills are, not only on the legacy #page-drills page. This
+// renders WITHOUT loading the feature module (cert/pro/daily-state all live
+// here); the module lazy-loads on click via startSimLabHome().
+const _SL_PBQ_CERTS_HOME = ['netplus', 'secplus', 'aplus-core1', 'aplus-core2'];
+function renderSimLabHomeEntry() {
+  const btn = document.getElementById('sl-home-opt');
+  if (!btn) return;
+  // Sim Lab (PBQs) only exists on CompTIA certs — hide everywhere else.
+  if (_SL_PBQ_CERTS_HOME.indexOf(window.CURRENT_CERT || 'netplus') === -1) { btn.classList.add('is-hidden'); return; }
+  btn.classList.remove('is-hidden');
+  const sub = document.getElementById('sl-home-sub');
+  if (sub) {
+    const pro = !!(typeof _quotaState !== 'undefined' && _quotaState && (_quotaState.tier === 'pro' || _quotaState.tier === 'admin'));
+    if (pro) {
+      sub.textContent = 'Hands-on PBQs, unlimited';
+    } else {
+      const used = _pbqFreeRunsToday();
+      sub.textContent = used >= PBQ_FREE_DAILY_CAP
+        ? 'Hands-on PBQs · done today, Pro for more'
+        : 'Hands-on PBQs, one free sim a day';
+    }
+  }
+}
+function startSimLabHome() {
+  if (typeof _ensureSimLabLoaded === 'function') {
+    _ensureSimLabLoaded(function () { if (typeof window.simLabLaunch === 'function') window.simLabLaunch(); });
+  }
+}
+window.renderSimLabHomeEntry = renderSimLabHomeEntry;
+window.startSimLabHome = startSimLabHome;
+// Initial paint: the Home page is default-active at boot (no showPage('setup')
+// call fires on first load), so render the entry once the DOM is ready. The
+// active cert is resolved before app.js runs, so the cert gate is correct here.
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', function () { try { renderSimLabHomeEntry(); } catch (_) {} });
+} else {
+  try { renderSimLabHomeEntry(); } catch (_) {}
+}
 
 // Thin metered-generate wrapper for Sim Lab. Reuses the exact same transport
 // as _fetchWhyNotSession (_claudeFetch + _metered:true) and returns a parsed

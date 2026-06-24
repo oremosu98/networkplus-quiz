@@ -112,6 +112,7 @@ npx playwright test              # E2E (tests/e2e/app.spec.js)
 
 | Version | Features Added |
 |---|---|
+| v7.55.2 | Sim Lab: surface the drill in Home Practice (was orphaned on the unreachable drills page) |
 | v7.55.1 | Sim Lab + paywall: 4-stage copy polish (gate/lock/nudge/card + Pro drills line) |
 | v7.55.0 | Sim Lab: free daily PBQ practice taster (Net+) |
 | v7.54.1 | Drills card: free-tier daily Gauntlet state pill (1 free today / done today) |

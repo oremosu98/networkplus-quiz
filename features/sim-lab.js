@@ -574,7 +574,7 @@
         body.innerHTML = '';
         _slRenderFeedback(body, scn, result, { mode: pro ? 'pro' : 'free' });
         var footer = _el('div', 'gnt-result-footer');
-        var exit = _el('button', 'btn gnt-ghost', 'Back to Drills');
+        var exit = _el('button', 'btn gnt-ghost', 'Back to Practice');
         exit.setAttribute('type', 'button'); exit.setAttribute('data-action', 'simLabExit');
         footer.appendChild(exit);
         body.appendChild(footer);
@@ -586,8 +586,8 @@
   function simLabExit() {
     if (_slTimer) { _slTimer.stop(); _slTimer = null; }
     _slMode = null;
-    // Return to drills page using the real routing function
-    if (typeof showPage === 'function') { showPage('drills'); return; }
+    // Return to the Home (setup) page — that's where the Sim Lab entry now lives.
+    if (typeof showPage === 'function') { showPage('setup'); return; }
     // Safety no-op (showPage is always defined by app.js before features/sim-lab.js runs)
     if (typeof console !== 'undefined') console.warn('simLab: showPage not available');
   }

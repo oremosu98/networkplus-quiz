@@ -407,6 +407,10 @@
           <button type="button" class="opt" data-action="startRewordGauntlet"><span class="on">Reword Gauntlet</span><span class="od">One concept, five disguises</span></button>
           <!-- v7.50.0: Why-Not entry (second flagship) -->
           <button type="button" class="opt" data-action="startWhyNot"><span class="on">Why-Not</span><span class="od">Score the reasons, not just the answer</span></button>
+          <!-- v7.55.2: Sim Lab (PBQ drill) entry. Hidden by default; renderSimLabHomeEntry()
+               unhides on CompTIA certs and sets the daily-state subtitle. The feature module
+               lazy-loads only on click via startSimLabHome(). -->
+          <button type="button" class="opt is-hidden" id="sl-home-opt" onclick="startSimLabHome()"><span class="on">Sim Lab</span><span class="od" id="sl-home-sub">Hands-on PBQs, one free sim a day</span></button>
         </div>
       </section>
 
@@ -767,7 +771,7 @@
     <span class="hero-icon">&#9889;</span>
     <h1>Network+ AI Quiz</h1>
     <p>AI-generated MCQs every session. Never the same quiz twice.</p>
-    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:color-mix(in oklab,var(--accent) 12%,transparent);border:1px solid color-mix(in oklab,var(--accent) 30%,transparent);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v7.55.1</span>
+    <span id="version-badge" style="display:inline-block;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--accent-light);background:color-mix(in oklab,var(--accent) 12%,transparent);border:1px solid color-mix(in oklab,var(--accent) 30%,transparent);padding:3px 10px;border-radius:99px;cursor:default;user-select:none">v7.55.2</span>
     <div id="streak-badge" class="streak-badge"></div>
     <div id="stats-card" class="hero-stats-strip is-hidden">
       <div class="stats-grid" id="stats-grid"></div>
