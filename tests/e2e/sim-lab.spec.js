@@ -397,6 +397,8 @@ test('free user gets 1 practice run, second is gated to Pro', async ({ page }) =
     window._gateProOnly = (label) => { gateShown++; return false; };
     window._simLab.__setFetcher(async () => ({})); // force seed fallback
     const first  = await window.simLabStart({ cert: 'netplus', __test: true });
+    // Simulate the session-start bump (Task 2: cap is now per-session, not per-scenario).
+    window._simLab.sessionBumpOnce();
     const second = await window.simLabStart({ cert: 'netplus', __test: true });
     window._gateProOnly = realGate;
     return { first, second, gateShown };
@@ -551,4 +553,19 @@ test('session core: pickSeedFresh returns null when no valid seeds remain', asyn
   });
   expect(r.empty).toBe(null);
   expect(r.wrongCert).toBe(null);
+});
+
+test('cap: one free SESSION per day, bumped once regardless of rounds', async ({ page }) => {
+  await gotoApp(page);
+  const r = await page.evaluate(async () => {
+    window._quotaState = { tier: 'free' };
+    localStorage.removeItem('nplus_pbq_free_count');
+    const before = window._pbqFreeRunsToday();
+    window._simLab.sessionBumpOnce();
+    window._simLab.sessionBumpOnce(); // guarded: must not double-count within a session
+    const after = window._pbqFreeRunsToday();
+    return { before, after };
+  });
+  expect(r.before).toBe(0);
+  expect(r.after).toBe(1);
 });

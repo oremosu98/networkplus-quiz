@@ -523,6 +523,14 @@
     return { passed: passed, rounds: results.length, stepsCorrect: stepsCorrect, stepsTotal: stepsTotal, pct: pct };
   }
 
+  // Session-level free-cap guard: bump the daily counter at most once per session.
+  var _slSessionBumped = false;
+  function _slSessionBumpOnce() {
+    if (_slSessionBumped) return;
+    _slSessionBumped = true;
+    if (typeof window._bumpPbqFreeRun === 'function') window._bumpPbqFreeRun();
+  }
+
   // Pull up to 2 hand-reviewed seeds of distinct step types from the bank to use
   // as few-shot format/quality exemplars. Reads the live bank so they never drift.
   function _slPickExemplars(cert) {
@@ -641,7 +649,6 @@
       window._simLab.__setFetcher(window._slMeteredGenerate);
     }
     return _slGenerateScenario(cert, opts.objective).then(function (scn) {
-      if (!pro && typeof window._bumpPbqFreeRun === 'function') window._bumpPbqFreeRun(); // consume the free run on a successful start
       if (opts.__test) return true;
       if (typeof _slRenderPracticePage === 'function') { _slRenderPracticePage(scn, pro); return true; }
       return true; // Task 15 adds the page render
@@ -706,4 +713,5 @@
   window._simLab.__setFetcher = function (fn) { _slFetcher = fn; };
   window._simLab.pickSeedFresh = _slPickSeedFresh;
   window._simLab.aggregateSession = _slAggregateSession;
+  window._simLab.sessionBumpOnce = function () { _slSessionBumpOnce(); };
 })();
