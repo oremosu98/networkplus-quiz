@@ -651,3 +651,20 @@ test('session: completing all rounds shows the summary with aggregate', async ({
   await expect(page.locator('.sls-score-n')).toBeVisible();
   await expect(page.locator('.sls-r')).toHaveCount(3);
 });
+
+test('weak-spots: Pro persists missed topics, free does not', async ({ page }) => {
+  await gotoApp(page);
+  const r = await page.evaluate(() => {
+    localStorage.removeItem('nplus_simlab_weak');
+    window._quotaState = { tier: 'free' };
+    window._slRecordWeakSpots(['Subnetting']);
+    const afterFree = Object.keys(window._slGetWeakSpots()).length;
+    window._quotaState = { tier: 'pro' };
+    window._slRecordWeakSpots(['Subnetting', 'DNS records']);
+    const afterPro = window._slGetWeakSpots();
+    return { afterFree, sub: afterPro['Subnetting'], dns: afterPro['DNS records'] };
+  });
+  expect(r.afterFree).toBe(0);
+  expect(r.sub).toBe(1);
+  expect(r.dns).toBe(1);
+});

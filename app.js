@@ -1120,6 +1120,7 @@ const STORAGE = {
   // hasn't installed yet but also hasn't actively dismissed gets a calm cadence.
   A2HS_LAST_SHOWN_AT: 'nplus_a2hs_last_shown_at',
   PBQ_FREE_COUNT: 'nplus_pbq_free_count', // v7.55.0 Sim Lab: free-tier daily PBQ drill runs ({date, count}) — mirrors GAUNTLET_FREE_COUNT shape
+  SIMLAB_WEAK: 'nplus_simlab_weak',       // v7.56 Sim Lab: Pro cross-session weak-spot map ({topic: count})
 };
 // v4.81.2: how many daily snapshots to keep before pruning oldest
 const AUTOBACKUP_KEEP_DAYS = 7;
@@ -7041,6 +7042,23 @@ function _bumpPbqFreeRun() {
 window._pbqFreeRunsToday = _pbqFreeRunsToday;
 window._bumpPbqFreeRun = _bumpPbqFreeRun;
 window.PBQ_FREE_DAILY_CAP = PBQ_FREE_DAILY_CAP;
+
+// v7.56 — Sim Lab Pro cross-session weak-spot tracking. Pro persists missed
+// topics across sessions; free does not (the within-session cluster shows to all).
+function _slRecordWeakSpots(topics) {
+  if (!(_quotaState && (_quotaState.tier === 'pro' || _quotaState.tier === 'admin'))) return; // Pro-only
+  try {
+    var cur = JSON.parse(localStorage.getItem(STORAGE.SIMLAB_WEAK) || '{}');
+    topics.forEach(function (t) { if (t) cur[t] = (cur[t] || 0) + 1; });
+    localStorage.setItem(STORAGE.SIMLAB_WEAK, JSON.stringify(cur));
+    if (typeof _cloudFlush === 'function') _cloudFlush(STORAGE.SIMLAB_WEAK);
+  } catch (_) {}
+}
+function _slGetWeakSpots() {
+  try { return JSON.parse(localStorage.getItem(STORAGE.SIMLAB_WEAK) || '{}'); } catch (_) { return {}; }
+}
+window._slRecordWeakSpots = _slRecordWeakSpots;
+window._slGetWeakSpots = _slGetWeakSpots;
 
 // v7.55.2 — Sim Lab Home entry (Home → Practice section). The drill must live
 // where the other drills are, not only on the legacy #page-drills page. This

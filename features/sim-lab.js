@@ -836,6 +836,10 @@
       ins.innerHTML = '<div class="sls-insight-k"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2v4M12 18v4M2 12h4M18 12h4"></path><circle cx="12" cy="12" r="4"></circle></svg>Where you slipped</div><p>' + _esc(cluster) + '</p>';
       root.appendChild(ins);
     }
+    if (pro && typeof window._slRecordWeakSpots === 'function') {
+      var missedTopics = _slSession.results.filter(function (r) { return !r.passed; }).map(function (r) { return r.scenario.topic; });
+      window._slRecordWeakSpots(missedTopics);
+    }
     var back = _el('button', 'btn btn-primary gnt-cta', 'Back to Practice');
     back.setAttribute('type', 'button'); back.setAttribute('data-action', 'simLabExit');
     root.appendChild(back);
