@@ -630,3 +630,24 @@ test('prefetch: round N+1 is fetched during round N', async ({ page }) => {
   });
   expect(had).toBe(true);
 });
+
+test('session: completing all rounds shows the summary with aggregate', async ({ page }) => {
+  await gotoApp(page);
+  await page.evaluate(async () => {
+    window._quotaState = { tier: 'free' }; localStorage.removeItem('nplus_pbq_free_count');
+    window.CURRENT_CERT = 'netplus';
+    await new Promise(res => window._ensureSimLabLoaded(res));
+    window._slMeteredGenerate = async () => ({ bad: true });
+    window.simLabOpenEntry();
+    await new Promise(res => setTimeout(res, 450));
+    document.querySelector('.sle-chip[data-rounds="3"]').click();
+    window.simLabSessionStart();
+  });
+  for (let i = 0; i < 3; i++) {
+    await page.waitForSelector('[data-action="simLabSubmitScenario"]', { timeout: 8000 });
+    await page.click('[data-action="simLabSubmitScenario"]');
+  }
+  await expect(page.locator('#page-sim-lab-result')).toHaveClass(/active/, { timeout: 8000 });
+  await expect(page.locator('.sls-score-n')).toBeVisible();
+  await expect(page.locator('.sls-r')).toHaveCount(3);
+});

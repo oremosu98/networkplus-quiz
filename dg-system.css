@@ -3957,6 +3957,27 @@ mark.gnt-hinge{background:color-mix(in oklab,var(--red) 26%,transparent);color:i
 @media (hover:hover) and (pointer:fine){#page-sim-lab-entry .sle-chip:hover{border-color:color-mix(in oklab,var(--accent) 40%,var(--border))}}
 @media (prefers-reduced-motion:reduce){#page-sim-lab-entry .sle-chip{transition:none}}
 
+/* Sim Lab session: end-of-session verdict (Task 7, lifted from mockup-3) */
+#page-sim-lab-result .sls-seal{display:inline-flex;align-items:center;gap:7px;font:800 11px/1 Inter,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:var(--green,var(--pass));background:color-mix(in oklab,var(--green,var(--pass)) 12%,transparent);border:1px solid color-mix(in oklab,var(--green,var(--pass)) 30%,var(--border));padding:5px 11px;border-radius:999px}
+#page-sim-lab-result .sls-score{display:flex;flex-direction:column;align-items:baseline;margin:18px 0 4px}
+#page-sim-lab-result .sls-score-n{font-family:Fraunces,Georgia,serif;font-weight:600;font-size:76px;line-height:1;letter-spacing:-.03em;color:var(--text);font-variant-numeric:lining-nums tabular-nums;font-feature-settings:"lnum","tnum"}
+#page-sim-lab-result .sls-score-n small{font-size:30px;color:var(--text-dim)}
+#page-sim-lab-result .sls-score-cap{margin-top:12px;font:600 13px/1 Inter,sans-serif;letter-spacing:.06em;text-transform:uppercase;color:var(--text-dim)}
+#page-sim-lab-result .sls-rounds{margin:22px 0 18px;border-top:1px solid var(--border-soft,var(--border))}
+#page-sim-lab-result .sls-r{display:flex;align-items:center;gap:12px;padding:13px 2px;border-bottom:1px solid var(--border-soft,var(--border))}
+#page-sim-lab-result .sls-r-ic{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font:800 12px/1 Inter,sans-serif;flex:none}
+#page-sim-lab-result .sls-r-ic.ok{color:var(--green,var(--pass));background:color-mix(in oklab,var(--green,var(--pass)) 14%,transparent)}
+#page-sim-lab-result .sls-r-ic.no{color:var(--red,var(--fail));background:color-mix(in oklab,var(--red,var(--fail)) 14%,transparent)}
+#page-sim-lab-result .sls-r-body{flex:1;min-width:0}
+#page-sim-lab-result .sls-r-title{font:600 14px/1.3 Inter,sans-serif;color:var(--text)}
+#page-sim-lab-result .sls-r-why{font:400 12.5px/1.4 Inter,sans-serif;color:var(--text-dim);margin-top:2px}
+#page-sim-lab-result .sls-r-why.sls-why-locked{color:color-mix(in oklab,var(--accent) 70%,var(--text-dim));display:inline-flex;align-items:center;gap:5px}
+#page-sim-lab-result .sls-r-why.sls-why-locked svg{width:11px;height:11px;fill:none;stroke:currentColor;stroke-width:2;flex:none}
+#page-sim-lab-result .sls-r-score{font:700 12.5px/1 Inter,sans-serif;color:var(--text-mid);font-variant-numeric:tabular-nums;flex:none}
+#page-sim-lab-result .sls-insight{margin:20px 0;padding:14px 16px;border:1px solid color-mix(in oklab,var(--accent) 26%,var(--border));background:color-mix(in oklab,var(--accent) 7%,transparent);border-radius:13px}
+#page-sim-lab-result .sls-insight-k{font:800 10px/1 Inter,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:6px}
+#page-sim-lab-result .sls-insight p{font:400 13.5px/1.5 Inter,sans-serif;color:var(--text-mid)}
+
 /* Sim Lab session: in-round chrome + loader (Task 5, lifted from mockup panels 2-3) */
 #page-sim-lab .slr-round-pill{font:800 11px/1 Inter,sans-serif;letter-spacing:.06em;color:var(--accent);border:1px solid color-mix(in oklab,var(--accent) 30%,var(--border));background:color-mix(in oklab,var(--accent) 8%,transparent);padding:3px 9px;border-radius:999px;margin-left:8px}
 #page-sim-lab .slr-dots{display:flex;gap:5px;margin:0 0 16px}

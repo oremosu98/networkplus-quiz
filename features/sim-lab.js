@@ -657,6 +657,9 @@
   function simLabExit() {
     if (_slTimer) { _slTimer.stop(); _slTimer = null; }
     _slMode = null;
+    _slSession = null;
+    var p = document.getElementById('sl-round-pill'); if (p) p.classList.add('is-hidden');
+    var d = document.getElementById('sl-dots'); if (d) d.classList.add('is-hidden');
     // Return to the Home (setup) page — that's where the Sim Lab entry now lives.
     if (typeof showPage === 'function') { showPage('setup'); return; }
     // Safety no-op (showPage is always defined by app.js before features/sim-lab.js runs)
@@ -800,7 +803,63 @@
     }).catch(function () { return null; });
     _slSession.prefetch = { idx: nextIdx, promise: p };
   }
-  function _slRenderSummary() {}        // real implementation lands in Task 7
+  function _slRenderSummary() {
+    var pill = document.getElementById('sl-round-pill'); if (pill) pill.classList.add('is-hidden');
+    var dots = document.getElementById('sl-dots'); if (dots) dots.classList.add('is-hidden');
+    var agg = _slAggregateSession(_slSession.results);
+    var pro = _slSession.pro;
+    var root = document.getElementById('sl-result-root');
+    root.innerHTML = '';
+    root.appendChild(_el('span', 'sls-seal', '&#x2713; Session complete'));
+    var score = _el('div', 'sls-score');
+    score.innerHTML = '<span class="sls-score-n">' + agg.pct + '<small>%</small></span>' +
+      '<span class="sls-score-cap">' + agg.passed + ' of ' + agg.rounds + ' sims passed &middot; ' + agg.stepsCorrect + ' of ' + agg.stepsTotal + ' steps</span>';
+    root.appendChild(score);
+    var rounds = _el('div', 'sls-rounds');
+    _slSession.results.forEach(function (r) {
+      var row = _el('div', 'sls-r');
+      var ok = r.passed;
+      row.appendChild(_el('span', 'sls-r-ic ' + (ok ? 'ok' : 'no'), ok ? '&#x2713;' : '&#x2717;'));
+      var bodyc = _el('div', 'sls-r-body');
+      bodyc.appendChild(_el('div', 'sls-r-title', _esc(r.scenario.topic || 'PBQ')));
+      var reveal = pro || !ok; // free reveals "why" on missed rounds only
+      if (reveal) bodyc.appendChild(_el('div', 'sls-r-why', _esc(_slFirstWhy(r))));
+      else { var lk = _el('div', 'sls-r-why sls-why-locked'); lk.innerHTML = '<svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>Pro shows the why on the ones you got right too'; bodyc.appendChild(lk); }
+      row.appendChild(bodyc);
+      row.appendChild(_el('span', 'sls-r-score', r.score.correct + '/' + r.score.total));
+      rounds.appendChild(row);
+    });
+    root.appendChild(rounds);
+    var cluster = _slWeakCluster(_slSession.results);
+    if (cluster) {
+      var ins = _el('div', 'sls-insight');
+      ins.innerHTML = '<div class="sls-insight-k">Where you slipped</div><p>' + _esc(cluster) + '</p>';
+      root.appendChild(ins);
+    }
+    var back = _el('button', 'btn btn-primary gnt-cta', 'Back to Practice');
+    back.setAttribute('type', 'button'); back.setAttribute('data-action', 'simLabExit');
+    root.appendChild(back);
+    if (!pro) {
+      var up = _el('button', 'btn gnt-ghost', 'Go Pro &middot; exam-length runs + weak-spot tracking');
+      up.setAttribute('type', 'button'); up.setAttribute('data-action', 'simLabSummaryUpsell');
+      root.appendChild(up);
+    }
+    if (typeof showPage === 'function') showPage('sim-lab-result');
+    if (typeof window.renderSimLabHomeEntry === 'function') window.renderSimLabHomeEntry();
+  }
+  function _slFirstWhy(r) {
+    var steps = r.scenario.steps || [];
+    for (var i = 0; i < steps.length; i++) { if (r.score.perStep[steps[i].id] === false) return steps[i].explanation; }
+    return steps.length ? steps[0].explanation : '';
+  }
+  function _slWeakCluster(results) {
+    var missed = results.filter(function (r) { return !r.passed; }).map(function (r) { return r.scenario.topic; });
+    if (!missed.length) return null;
+    return 'Your misses were in ' + missed.join(' and ') + '. Pro tracks this across every session and pulls your weak domains back in automatically.';
+  }
+  function simLabSummaryUpsell() {
+    window._gateProOnly('Sim Lab', { title: 'Go Pro for the full sim.', body: 'Exam-length 10-round runs, unlimited sessions on every cert, the full reasoning on every step, and weak-spot tracking that pulls your misses back in.' });
+  }
 
   // --- Task 16: Drills-page card with daily-state pill ---
 
@@ -838,6 +897,7 @@
 
   window.renderSimLabDrillsCard = renderSimLabDrillsCard;
   window.simLabLaunch = simLabLaunch;
+  window.simLabSummaryUpsell = simLabSummaryUpsell;
 
   // --- exports (more added in later tasks) ---
   window.simLabValidateScenario = simLabValidateScenario;
