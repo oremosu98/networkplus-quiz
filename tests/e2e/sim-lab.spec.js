@@ -569,3 +569,23 @@ test('cap: one free SESSION per day, bumped once regardless of rounds', async ({
   expect(r.before).toBe(0);
   expect(r.after).toBe(1);
 });
+
+test('entry: Home tile opens entry; picking 10 on free gates to Pro; 5 starts a session', async ({ page }) => {
+  await gotoApp(page);
+  const r = await page.evaluate(async () => {
+    window._quotaState = { tier: 'free' };
+    localStorage.removeItem('nplus_pbq_free_count');
+    window.CURRENT_CERT = 'netplus';
+    let gate = 0; window._gateProOnly = () => { gate++; return false; };
+    await new Promise(res => window._ensureSimLabLoaded(res));
+    window.startSimLabHome();
+    const onEntry = document.getElementById('page-sim-lab-entry').classList.contains('active');
+    document.querySelector('.sle-chip[data-rounds="10"]').click();
+    const gatedOn10 = gate === 1 && window._simLab.sessionRounds() !== 10;
+    document.querySelector('.sle-chip[data-rounds="3"]').click();
+    return { onEntry, gatedOn10, rounds: window._simLab.sessionRounds() };
+  });
+  expect(r.onEntry).toBe(true);
+  expect(r.gatedOn10).toBe(true);
+  expect(r.rounds).toBe(3);
+});

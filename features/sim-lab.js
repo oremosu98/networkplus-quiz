@@ -531,6 +531,49 @@
     if (typeof window._bumpPbqFreeRun === 'function') window._bumpPbqFreeRun();
   }
 
+  var _slSession = null;
+  var _slPickedRounds = 5;
+
+  function simLabOpenEntry() {
+    _slBindRoundChips();
+    _slPickedRounds = 5;
+    var t = document.getElementById('sle-target');
+    if (t) t.textContent = 'Mixed · ' + ((window.CERT_PACK && window.CERT_PACK.meta && window.CERT_PACK.meta.examName) || 'Network+ N10-009');
+    _slSyncRoundChips();
+    // Activate the entry page directly so the transition is synchronous
+    // (avoids the animationend-deferred path in showPage for reliable test + UX).
+    var pages = document.querySelectorAll('.page');
+    Array.prototype.forEach.call(pages, function (p) { p.classList.remove('active', 'page-exit'); });
+    var entry = document.getElementById('page-sim-lab-entry');
+    if (entry) entry.classList.add('active');
+    window.scrollTo(0, 0);
+  }
+  function _slSyncRoundChips() {
+    var chips = document.querySelectorAll('#sle-rounds .sle-chip');
+    Array.prototype.forEach.call(chips, function (c) {
+      var on = parseInt(c.getAttribute('data-rounds'), 10) === _slPickedRounds;
+      c.classList.toggle('is-on', on);
+      c.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+  }
+  function _slBindRoundChips() {
+    var host = document.getElementById('sle-rounds');
+    if (!host || host.__bound) return; host.__bound = true;
+    host.addEventListener('click', function (e) {
+      var chip = e.target.closest('.sle-chip'); if (!chip) return;
+      var n = parseInt(chip.getAttribute('data-rounds'), 10);
+      if (n === 10 && !_slIsPro()) {
+        window._gateProOnly('Sim Lab', {
+          title: 'Exam-length runs are a Pro sim.',
+          body: 'Free runs 3 or 5 rounds. Pro opens the full 10-round exam-length sim on every cert, plus weak-spot tracking across sessions.'
+        });
+        return;
+      }
+      _slPickedRounds = n; _slSyncRoundChips();
+    });
+  }
+  function simLabEntryBack() { if (typeof showPage === 'function') showPage('setup'); }
+
   // Pull up to 2 hand-reviewed seeds of distinct step types from the bank to use
   // as few-shot format/quality exemplars. Reads the live bank so they never drift.
   function _slPickExemplars(cert) {
@@ -714,4 +757,7 @@
   window._simLab.pickSeedFresh = _slPickSeedFresh;
   window._simLab.aggregateSession = _slAggregateSession;
   window._simLab.sessionBumpOnce = function () { _slSessionBumpOnce(); };
+  window.simLabOpenEntry = simLabOpenEntry;
+  window.simLabEntryBack = simLabEntryBack;
+  window._simLab.sessionRounds = function () { return _slPickedRounds; };
 })();

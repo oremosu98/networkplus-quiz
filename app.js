@@ -7067,9 +7067,10 @@ function renderSimLabHomeEntry() {
   }
 }
 function startSimLabHome() {
-  if (typeof _ensureSimLabLoaded === 'function') {
-    _ensureSimLabLoaded(function () { if (typeof window.simLabLaunch === 'function') window.simLabLaunch(); });
-  }
+  if (typeof _ensureSimLabLoaded !== 'function') return;
+  _ensureSimLabLoaded(function () {
+    if (typeof window.simLabOpenEntry === 'function') window.simLabOpenEntry();
+  });
 }
 window.renderSimLabHomeEntry = renderSimLabHomeEntry;
 window.startSimLabHome = startSimLabHome;
