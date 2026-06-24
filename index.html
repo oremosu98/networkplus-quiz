@@ -32,7 +32,7 @@
   html[data-theme="light"] body { color: #1a1a2e; }
 </style>
 <link rel="stylesheet" href="styles.css">
-<link rel="stylesheet" href="dg-system.css?v=7.53.1">
+<link rel="stylesheet" href="dg-system.css?v=7.56.0">
 <link rel="stylesheet" href="dg-depurple.css?v=7.13.5">
 <!-- v7.36.1: the cert-ios lift is viewport-gated — phone/tablet-portrait
      viewports get the mockup column + tab bar; desktop keeps the classic
@@ -1768,6 +1768,31 @@
       <button type="button" class="btn gnt-ghost" data-action="simLabExit">Leave</button>
     </div>
     <div id="sl-body"></div>
+  </div>
+</div>
+
+<!-- Sim Lab session mode — entry screen (Task 3): pick rounds before starting -->
+<div id="page-sim-lab-entry" class="page">
+  <div class="gnt-shell">
+    <div class="gnt-hdr">
+      <button type="button" class="back-btn" data-action="simLabEntryBack" aria-label="Back"><svg viewBox="0 0 24 24" aria-hidden="true" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"></path></svg><span class="back-btn-label">Back</span></button>
+      <h1 class="gnt-hdr-title">Sim Lab</h1>
+      <span class="pro-lock-pill tier-free-only"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>Pro</span>
+    </div>
+    <div class="gnt-mark" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h10M4 17h7"></path><path d="M15 15l2.5 2.5L22 13"></path></svg></div>
+    <h2 class="gnt-entry-title">Practice the hands-on <i>PBQs</i></h2>
+    <p class="gnt-entry-lede">The exam opens with them. Run a few back to back and the format stops being a surprise.</p>
+    <div class="gnt-target">
+      <div class="gnt-target-k">Today's target</div>
+      <div class="gnt-target-v" id="sle-target">Mixed · Network+ N10-009</div>
+    </div>
+    <div class="sle-pick-k">How many rounds</div>
+    <div class="sle-chips" id="sle-rounds" role="group" aria-label="Number of rounds">
+      <button type="button" class="sle-chip" data-rounds="3">3 rounds</button>
+      <button type="button" class="sle-chip is-on" data-rounds="5" aria-pressed="true">5 rounds</button>
+      <button type="button" class="sle-chip sle-chip-pro" data-rounds="10"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>10 · exam length</button>
+    </div>
+    <button type="button" class="btn btn-primary gnt-cta" id="sle-start" data-action="simLabSessionStart">Start the sim →</button>
   </div>
 </div>
 
