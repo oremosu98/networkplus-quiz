@@ -668,8 +668,61 @@
     });
   }
 
-  // Stub — filled in Task 3.
-  function _slExamStart() {}
+  function _slRenderExamLoader(host) {
+    host.innerHTML = '';
+    var box = _el('div', 'slr-loader');
+    box.innerHTML = '<div class="slr-spin" aria-hidden="true"></div>' +
+      '<div class="slr-loader-t">Building your exam…</div>' +
+      '<div class="slr-loader-s">Generating every round up front so the clock never waits on us.</div>';
+    host.appendChild(box);
+  }
+
+  // Pre-generate ALL rounds before the clock starts (§3.6). Each round: AI →
+  // seed fallback, no-repeat across the batch via a growing used-id set. If the
+  // bank can't fill N (won't happen: 50 ≫ 10) we return what we have and log.
+  function _slExamGenerateAll(cert, rounds) {
+    var used = new Set();
+    var out = [];
+    function next(i) {
+      if (i >= rounds) return Promise.resolve(out);
+      return _slGenerateScenarioFresh(cert, used).then(function (scn) {
+        if (scn && simLabValidateScenario(scn).ok && !used.has(scn.id)) {
+          used.add(scn.id); out.push(scn);
+        } else {
+          var alt = _slPickSeedFresh(cert, used);
+          if (alt) { used.add(alt.id); out.push(alt); }
+        }
+        return next(i + 1);
+      });
+    }
+    return next(0).then(function (arr) {
+      if (arr.length < rounds && typeof console !== 'undefined') {
+        console.warn('Sim Lab exam: only filled ' + arr.length + ' of ' + rounds + ' rounds for ' + cert);
+      }
+      return arr;
+    });
+  }
+
+  // Stubs — filled in Tasks 4/5/6.
+  function _slStartCountdown() {}
+  function _slExamShowExamChrome() {}
+  function _slRenderRound() {}
+
+  function _slExamStart() {
+    if (typeof window._slMeteredGenerate === 'function') window._simLab.__setFetcher(window._slMeteredGenerate);
+    // Exam is Pro-only and unlimited — never calls _bumpPbqFreeRun (§3.7).
+    if (typeof showPage === 'function') showPage('sim-lab');
+    var body = document.getElementById('sl-body');
+    if (body) _slRenderExamLoader(body);
+    return _slExamGenerateAll(window.CURRENT_CERT || 'netplus', _slPickedRounds).then(function (scns) {
+      var budgetMs = _slExamBudgetMs(scns);
+      _slSession = _slExamBlankState(scns, budgetMs);
+      _slSession.deadlineMs = Date.now() + budgetMs;
+      _slStartCountdown(_slSession.deadlineMs);   // Task 4
+      _slExamShowExamChrome();                     // Task 4 (badge + palette container visibility)
+      _slRenderRound(0);                           // Task 4 (exam round wrapper)
+    });
+  }
 
   function _slSessionStartDispatch() {
     if (_slPickedMode === 'exam') {
@@ -1090,4 +1143,5 @@
   };
   window._simLab.examBudgetMs = _slExamBudgetMs;
   window._simLab.examParMs = _slExamParMs;
+  window._simLab.examGenerateAll = _slExamGenerateAll;
 })();

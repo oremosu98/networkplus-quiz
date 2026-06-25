@@ -751,3 +751,20 @@ test('exam entry: free tapping Exam gates; Pro toggles Exam + shows budget; CTA 
   expect(r.budgetShown).toBe(true);
   expect(r.cta).toContain('Start exam sim');
 });
+
+test('exam pre-gen: builds ALL rounds up front (seed fallback), distinct ids, budget set', async ({ page }) => {
+  await gotoApp(page);
+  const r = await page.evaluate(async () => {
+    window._quotaState = { tier: 'pro' };
+    window.CURRENT_CERT = 'netplus';
+    await new Promise(res => window._ensureSimLabLoaded(res));
+    window._slMeteredGenerate = async () => ({ bad: true });   // force seed fallback for every round
+    const scns = await window._simLab.examGenerateAll('netplus', 3);
+    const ids = scns.map(s => s.id);
+    const distinct = new Set(ids).size === ids.length;
+    return { count: scns.length, distinct, allValid: scns.every(s => window.simLabValidateScenario(s).ok) };
+  });
+  expect(r.count).toBe(3);
+  expect(r.distinct).toBe(true);
+  expect(r.allValid).toBe(true);
+});
