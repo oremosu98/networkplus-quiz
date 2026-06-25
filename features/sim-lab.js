@@ -703,9 +703,58 @@
     });
   }
 
-  // Stubs — filled in Tasks 4/5/6.
-  function _slStartCountdown() {}
-  function _slExamShowExamChrome() {}
+  // Task 4: wall-clock countdown handlers (removed after _slStopCountdown)
+  var _slVisHandler = null, _slFocusHandler = null;
+
+  function _slStartCountdown(deadlineMs) {
+    _slStopCountdown();
+    var slot = document.getElementById('sl-clock-slot');
+    if (!slot) return;
+    slot.innerHTML = '';
+    var clk = _el('span', 'sl-clock');
+    clk.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="8"></circle><path d="M12 9v4l2 2M9 2h6"></path></svg><span class="sl-clock-t">' +
+      _slFmtClock(deadlineMs - Date.now()) + '</span> <span class="cap">left</span>';
+    slot.appendChild(clk);
+    _slSession.clock = setInterval(_slTickClock, 1000);
+    _slTickClock();
+    _slVisHandler = function () { if (document.visibilityState === 'visible') _slTickClock(); };
+    _slFocusHandler = function () { _slTickClock(); };
+    document.addEventListener('visibilitychange', _slVisHandler);
+    window.addEventListener('focus', _slFocusHandler);
+  }
+
+  function _slStopCountdown() {
+    if (_slSession && _slSession.clock) { clearInterval(_slSession.clock); _slSession.clock = null; }
+    if (_slVisHandler) { document.removeEventListener('visibilitychange', _slVisHandler); _slVisHandler = null; }
+    if (_slFocusHandler) { window.removeEventListener('focus', _slFocusHandler); _slFocusHandler = null; }
+  }
+
+  // Build the clock node once; ticks only mutate the time string (digits never
+  // transition — §6.5). Amber latches via .is-low.
+  function _slTickClock() {
+    if (!_slSession || _slSession.mode !== 'exam') return;
+    var remaining = _slSession.deadlineMs - Date.now();   // wall-clock truth, never decremented
+    var clk = document.querySelector('#sl-clock-slot .sl-clock');
+    var t = clk && clk.querySelector('.sl-clock-t');
+    if (t) t.textContent = _slFmtClock(Math.max(0, remaining));
+    // amber latch at ≤10% remaining (one-way)
+    if (!_slSession.amber && remaining <= _slSession.budgetMs * 0.10) {
+      _slSession.amber = true;
+      if (clk) clk.classList.add('is-low');
+    }
+    if (remaining <= 0) { _slStopCountdown(); _slExamSubmit(true); }   // time-up (Task 8); reason='time'
+  }
+
+  function _slExamShowExamChrome() {
+    var badge = document.getElementById('sl-exam-badge'); if (badge) badge.classList.remove('is-hidden');
+    var dots = document.getElementById('sl-dots'); if (dots) dots.classList.add('is-hidden');   // palette replaces dots in exam
+    var pal = document.getElementById('sl-palette'); if (pal) pal.classList.remove('is-hidden');
+  }
+
+  // Stub — Task 8 replaces with full submit logic.
+  function _slExamSubmit() { if (window._simLab.__examSubmitSpy) window._simLab.__examSubmitSpy(); }
+
+  // Stub — filled in Tasks 5/6.
   function _slRenderRound() {}
 
   function _slExamStart() {
@@ -1153,4 +1202,6 @@
   window._simLab.examBudgetMs = _slExamBudgetMs;
   window._simLab.examParMs = _slExamParMs;
   window._simLab.examGenerateAll = _slExamGenerateAll;
+  window._simLab.tickClock = _slTickClock;             // lets tests drive a tick after mocking Date.now
+  window._simLab.examSession = function () { return _slSession; };
 })();

@@ -768,3 +768,42 @@ test('exam pre-gen: builds ALL rounds up front (seed fallback), distinct ids, bu
   expect(r.distinct).toBe(true);
   expect(r.allValid).toBe(true);
 });
+
+test('exam countdown: derived from deadline; amber latches; background expiry auto-submits', async ({ page }) => {
+  await gotoApp(page);
+  const r = await page.evaluate(async () => {
+    window._quotaState = { tier: 'pro' };
+    window.CURRENT_CERT = 'netplus';
+    await new Promise(res => window._ensureSimLabLoaded(res));
+    window._slMeteredGenerate = async () => ({ bad: true });
+    let submitted = false;
+    // spy on submit before starting (Task 8 routes time-up here)
+    const realNow = Date.now;
+    const base = realNow.call(Date);
+    let nowVal = base;
+    Date.now = () => nowVal;
+    window._simLab.__examSubmitSpy = () => { submitted = true; };
+    window.simLabOpenEntry();
+    document.querySelector('#sle-mode .sle-seg-opt[data-mode="exam"]').click();
+    document.querySelector('.sle-chip[data-rounds="3"]').click();
+    await window._simLab.examGenerateAll ? null : null; // ensure module ready
+    window.simLabSessionStart();
+    // wait for pre-gen + clock start
+    await new Promise(res => setTimeout(res, 400));
+    const sess = window._simLab.examSession();
+    const budget = sess.budgetMs;
+    // advance Date.now to 95% elapsed → into the ≤10% amber band
+    nowVal = base + Math.ceil(budget * 0.95);
+    window._simLab.tickClock();
+    const amber = sess.amber === true;
+    const lowClass = !!document.querySelector('#sl-clock-slot .sl-clock.is-low');
+    // jump past deadline (simulate backgrounded device past the clock)
+    nowVal = base + budget + 5000;
+    window._simLab.tickClock();
+    Date.now = realNow;
+    return { amber, lowClass, submitted };
+  });
+  expect(r.amber).toBe(true);
+  expect(r.lowClass).toBe(true);
+  expect(r.submitted).toBe(true);
+});
