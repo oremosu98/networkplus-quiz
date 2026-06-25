@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sim Lab · Exam mode concept</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root, [data-theme="dark"] {
+    --bg: oklch(0.17 0.008 275); --surface: oklch(0.205 0.009 275); --surface-2: oklch(0.23 0.009 275);
+    --ink: oklch(0.96 0.006 275); --ink-soft: oklch(0.80 0.012 275); --muted: oklch(0.725 0.013 275);
+    --border: oklch(0.32 0.011 275); --border-soft: oklch(0.255 0.010 275);
+    --accent: oklch(0.80 0.155 64); --accent-deep: oklch(0.86 0.135 64); --on-accent: oklch(0.18 0.020 275);
+    --pass: oklch(0.74 0.150 152); --warn: oklch(0.80 0.130 75);
+    --ease: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--ink); font-family: Inter, system-ui, sans-serif; line-height: 1.5; padding: clamp(20px,4vw,44px); -webkit-font-smoothing: antialiased; }
+  .eyebrow { font-size: 11px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); margin-bottom: 12px; }
+  h1 { font-family: Fraunces, Georgia, serif; font-weight: 600; font-size: clamp(26px,4vw,38px); letter-spacing: -0.02em; line-height: 1.06; }
+  h1 i { font-style: italic; color: var(--accent); }
+  .sub { color: var(--ink-soft); font-size: 15px; max-width: 70ch; margin: 12px 0 30px; }
+
+  .seq { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 22px; align-items: start; }
+  .panel-label { font-size: 11px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
+  .panel-label b { color: var(--accent); }
+
+  .shell { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 22px 22px 24px; box-shadow: 0 1px 0 color-mix(in oklab, var(--ink) 5%, transparent), 0 18px 40px -22px color-mix(in oklab, #000 60%, transparent); }
+  .hdr { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+  .back { display: inline-flex; align-items: center; gap: 5px; font-size: 13px; font-weight: 600; color: var(--ink-soft); }
+  .hdr-title { font-size: 14px; font-weight: 700; letter-spacing: 0.01em; }
+  .pro-pill { margin-left: auto; display: inline-flex; align-items: center; gap: 4px; font-size: 10px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); border: 1px solid color-mix(in oklab, var(--accent) 32%, var(--border)); padding: 3px 8px; border-radius: 999px; }
+  .pro-pill svg { width: 11px; height: 11px; fill: none; stroke: currentColor; stroke-width: 2; }
+  .mark { width: 34px; height: 34px; border-radius: 9px; display: grid; place-items: center; color: var(--accent); background: color-mix(in oklab, var(--accent) 10%, transparent); border: 1px solid color-mix(in oklab, var(--accent) 24%, var(--border)); margin-bottom: 14px; }
+  .mark svg { width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .entry-title { font-family: Fraunces, serif; font-weight: 600; font-size: 24px; letter-spacing: -0.02em; line-height: 1.1; }
+  .entry-title i { font-style: italic; color: var(--accent); }
+  .lede { color: var(--ink-soft); font-size: 14px; margin: 7px 0 18px; }
+
+  /* mode toggle (practice | exam) */
+  .pick-k { font-size: 10px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin-bottom: 9px; }
+  .seg { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 4px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 12px; margin-bottom: 18px; }
+  .seg-opt { display: flex; flex-direction: column; gap: 2px; text-align: left; padding: 10px 12px; border-radius: 9px; cursor: pointer; border: 1px solid transparent; }
+  .seg-opt .t { font-size: 13.5px; font-weight: 700; display: inline-flex; align-items: center; gap: 6px; }
+  .seg-opt .d { font-size: 11.5px; color: var(--muted); font-weight: 500; }
+  .seg-opt.on { background: var(--surface); border-color: color-mix(in oklab, var(--accent) 30%, var(--border)); }
+  .seg-opt.on .t { color: var(--accent); }
+  .seg-opt svg { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 2; }
+
+  .target { background: var(--surface-2); border: 1px solid var(--border-soft); border-radius: 12px; padding: 12px 14px; margin-bottom: 16px; display:flex; justify-content:space-between; gap:10px; }
+  .target-k { font-size: 10px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+  .target-v { font-size: 15px; font-weight: 600; margin-top: 3px; }
+  .target .r { text-align:right; }
+  .target .r .target-v { color: var(--accent); font-variant-numeric: tabular-nums; }
+  .chips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
+  .chip { font-size: 13px; font-weight: 600; color: var(--ink-soft); background: var(--surface-2); border: 1px solid var(--border); border-radius: 9px; padding: 9px 14px; cursor: pointer; }
+  .chip.on { color: var(--on-accent); background: var(--accent); border-color: var(--accent); }
+  .cta { display: block; width: 100%; text-align: center; font-size: 15px; font-weight: 700; color: var(--on-accent); background: var(--accent); border: 1px solid var(--accent-deep); border-radius: 11px; padding: 13px; cursor: pointer; }
+  .cta.ghost { color: var(--accent); background: color-mix(in oklab, var(--accent) 9%, transparent); border-color: color-mix(in oklab, var(--accent) 30%, var(--border)); }
+  .cta-row { display:flex; gap:9px; }
+  .cta-row .cta { flex:1; }
+  .note { font-size: 12px; color: var(--muted); margin-top: 11px; text-align:center; }
+
+  /* in-session exam topbar */
+  .sbar { display: flex; align-items: center; gap: 10px; padding-bottom: 14px; margin-bottom: 14px; border-bottom: 1px solid var(--border-soft); }
+  .sbar-strip { font-size: 13px; font-weight: 600; color: var(--ink-soft); }
+  .exam-badge { font-size: 9.5px; font-weight: 800; letter-spacing: 0.1em; text-transform:uppercase; color: var(--accent); border: 1px solid color-mix(in oklab, var(--accent) 32%, var(--border)); padding: 2px 7px; border-radius: 999px; }
+  .clock { margin-left: auto; display:inline-flex; align-items:center; gap:6px; font-size: 14px; font-weight: 700; color: var(--ink); font-variant-numeric: lining-nums tabular-nums; background: var(--surface-2); border:1px solid var(--border); padding:5px 11px; border-radius: 999px; transition: color 220ms var(--ease), border-color 220ms var(--ease); }
+  @media (prefers-reduced-motion: reduce) { .clock { transition: none; } }
+  /* seg Pro marker + locked chip (free-view anticipation) */
+  .seg-pro { font-size: 8.5px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); border: 1px solid color-mix(in oklab, var(--accent) 32%, var(--border)); padding: 1px 5px; border-radius: 999px; margin-left: 6px; vertical-align: middle; }
+  .chip.locked { color: var(--muted); display: inline-flex; align-items: center; gap: 6px; }
+  .chip.locked svg { width: 11px; height: 11px; fill: none; stroke: currentColor; stroke-width: 2; }
+  .clock svg { width:13px; height:13px; fill:none; stroke: var(--muted); stroke-width:2; }
+  .clock.low { color: var(--warn); border-color: color-mix(in oklab, var(--warn) 40%, var(--border)); }
+  .clock.low svg { stroke: var(--warn); }
+  .clock .cap { font-size:10px; font-weight:700; color:var(--muted); letter-spacing:0.04em; }
+
+  /* question palette (free-nav, jump targets, 4 states) */
+  .palette { display:flex; gap:7px; margin: 0 0 16px; flex-wrap:wrap; }
+  .pq { position:relative; width: 30px; height: 30px; border-radius: 8px; display:grid; place-items:center; font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; cursor:pointer; background: var(--surface-2); border: 1px solid var(--border); color: var(--muted); }
+  .pq.answered { background: color-mix(in oklab, var(--pass) 16%, transparent); border-color: color-mix(in oklab, var(--pass) 38%, var(--border)); color: var(--pass); }
+  .pq.now { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+  .pq.flagged::after { content:""; position:absolute; top:-3px; right:-3px; width:9px; height:9px; border-radius:50%; background: var(--warn); border: 1.5px solid var(--surface); }
+  .palette-key { display:flex; gap:14px; flex-wrap:wrap; font-size:11px; color:var(--muted); margin:-6px 0 16px; }
+  .palette-key span { display:inline-flex; align-items:center; gap:5px; }
+  .kdot { width:10px; height:10px; border-radius:3px; border:1px solid var(--border); }
+  .kdot.answered { background: color-mix(in oklab, var(--pass) 16%, transparent); border-color: color-mix(in oklab, var(--pass) 38%, var(--border)); }
+  .kdot.now { background: var(--accent); border-color: var(--accent); }
+  .kdot.flag { background: var(--warn); border-color: var(--warn); border-radius:50%; }
+
+  .step-k { font-size: 10px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+  .prompt { font-size: 15px; font-weight: 600; margin-bottom: 14px; }
+  .tray { display: flex; gap: 7px; flex-wrap: wrap; margin-bottom: 12px; }
+  .tok { font-size: 12.5px; font-weight: 600; background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; padding: 7px 11px; }
+  .buckets { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; margin-bottom: 16px; }
+  .bucket { border: 1px dashed var(--border); border-radius: 11px; padding: 10px; min-height: 56px; }
+  .bucket-h { font-size: 11px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin-bottom: 7px; }
+  .tok.placed { background: color-mix(in oklab, var(--accent) 12%, transparent); border-color: color-mix(in oklab, var(--accent) 30%, var(--border)); color: var(--ink); }
+
+  /* exam footer: flag + prev/next + review */
+  .examfoot { display:flex; align-items:center; gap:9px; margin-top: 4px; }
+  .flagbtn { display:inline-flex; align-items:center; gap:7px; font-size:13px; font-weight:600; color:var(--ink-soft); background:var(--surface-2); border:1px solid var(--border); border-radius:10px; padding:11px 14px; cursor:pointer; }
+  .flagbtn svg { width:14px; height:14px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+  .flagbtn.on { color:var(--warn); border-color: color-mix(in oklab, var(--warn) 40%, var(--border)); background: color-mix(in oklab, var(--warn) 10%, transparent); }
+  .flagbtn.on svg { fill: color-mix(in oklab, var(--warn) 30%, transparent); }
+  .nav { margin-left:auto; display:flex; gap:9px; }
+  .navbtn { font-size:13px; font-weight:700; padding:11px 16px; border-radius:10px; cursor:pointer; }
+  .navbtn.prev { color:var(--ink-soft); background:var(--surface-2); border:1px solid var(--border); }
+  .navbtn.next { color:var(--on-accent); background:var(--accent); border:1px solid var(--accent-deep); }
+
+  /* review screen */
+  .rev-h { font-family:Fraunces,serif; font-weight:600; font-size:21px; letter-spacing:-0.01em; margin-bottom:4px; }
+  .rev-sub { font-size:13px; color:var(--ink-soft); margin-bottom:16px; }
+  .rev-counts { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px; }
+  .rc { font-size:11.5px; font-weight:700; padding:5px 10px; border-radius:999px; border:1px solid var(--border); color:var(--ink-soft); }
+  .rc.ok { color:var(--pass); border-color: color-mix(in oklab, var(--pass) 36%, var(--border)); background: color-mix(in oklab, var(--pass) 10%, transparent); }
+  .rc.flag { color:var(--warn); border-color: color-mix(in oklab, var(--warn) 38%, var(--border)); background: color-mix(in oklab, var(--warn) 10%, transparent); }
+  .rc.miss { color:var(--muted); }
+  .rev-list { display:flex; flex-direction:column; gap:8px; margin-bottom:18px; }
+  .rev-row { display:flex; align-items:center; gap:11px; padding:11px 13px; border:1px solid var(--border); border-radius:12px; background:var(--surface-2); cursor:pointer; }
+  .rev-n { width:26px; height:26px; border-radius:7px; display:grid; place-items:center; font-size:12px; font-weight:700; background:var(--surface); border:1px solid var(--border); color:var(--muted); font-variant-numeric:tabular-nums; }
+  .rev-t { font-size:13.5px; font-weight:600; }
+  .rev-o { font-size:11.5px; color:var(--muted); }
+  .rev-status { margin-left:auto; font-size:11.5px; font-weight:700; display:inline-flex; align-items:center; gap:6px; }
+  .rev-status.ok { color:var(--pass); } .rev-status.flag { color:var(--warn); } .rev-status.miss { color:var(--muted); }
+  .rev-status svg { width:13px; height:13px; fill:none; stroke:currentColor; stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round; }
+
+  /* verdict pace block */
+  .verdict-mini { font-size:12px; color:var(--muted); margin-bottom:14px; }
+  .score-row { display:flex; align-items:baseline; gap:12px; margin-bottom:18px; }
+  .score-fig { font-family:Fraunces,serif; font-weight:600; font-size:52px; line-height:1.05; letter-spacing:-0.02em; color:var(--ink); font-variant-numeric: lining-nums tabular-nums; font-feature-settings:"lnum","tnum"; }
+  .score-cap { font-size:11px; font-weight:800; letter-spacing:0.1em; text-transform:uppercase; color:var(--muted); }
+  .pace-card { background:var(--surface-2); border:1px solid var(--border-soft); border-radius:14px; padding:16px; margin-top:6px; }
+  .pace-eyebrow { font-size:10px; font-weight:800; letter-spacing:0.13em; text-transform:uppercase; color:var(--accent); margin-bottom:10px; }
+  .pace-head { display:flex; align-items:baseline; justify-content:space-between; gap:10px; margin-bottom:4px; }
+  .pace-time { font-family:Fraunces,serif; font-weight:600; font-size:28px; letter-spacing:-0.01em; font-variant-numeric: lining-nums tabular-nums; font-feature-settings:"lnum","tnum"; }
+  .pace-verdict { font-size:12.5px; font-weight:700; color:var(--pass); }
+  .pace-sub { font-size:12px; color:var(--muted); margin-bottom:14px; }
+  /* par instrument */
+  .par-track { position:relative; height:8px; border-radius:999px; background: color-mix(in oklab, var(--border) 65%, transparent); margin: 18px 0 8px; }
+  .par-fill { position:absolute; left:0; top:0; bottom:0; border-radius:999px; width:88%; background: linear-gradient(90deg, color-mix(in oklab, var(--pass) 55%, var(--accent)), var(--pass)); }
+  .par-tick { position:absolute; top:-7px; bottom:-7px; width:2px; background: var(--ink-soft); left:100%; }
+  .par-tick .lab { position:absolute; top:-16px; left:50%; transform:translateX(-50%); font-size:9.5px; font-weight:800; letter-spacing:0.08em; text-transform:uppercase; color:var(--muted); white-space:nowrap; }
+  .par-scale { display:flex; justify-content:space-between; font-size:10.5px; color:var(--muted); font-variant-numeric:tabular-nums; }
+  /* per-round rows */
+  .pr-rows { margin-top:16px; display:flex; flex-direction:column; gap:9px; }
+  .pr-row { display:grid; grid-template-columns: 58px 1fr 52px; align-items:center; gap:10px; }
+  .pr-lab { font-size:11.5px; color:var(--ink-soft); font-weight:600; }
+  .pr-bar { height:6px; border-radius:999px; background:color-mix(in oklab, var(--border) 65%, transparent); position:relative; }
+  .pr-bar i { position:absolute; left:0; top:0; bottom:0; border-radius:999px; }
+  .pr-bar i.under { background:var(--pass); }
+  .pr-bar i.over { background:var(--warn); }
+  .pr-bar .partick { position:absolute; top:-3px; bottom:-3px; width:2px; background:var(--muted); }
+  .pr-val { font-size:11px; text-align:right; font-variant-numeric:tabular-nums; color:var(--muted); }
+  .pr-val.over { color:var(--warn); } .pr-val.under { color:var(--pass); }
+
+  .foot { margin-top: 30px; font-size: 13px; color: var(--muted); max-width:74ch; }
+  .foot b { color: var(--ink-soft); }
+  .foot .q { color: var(--accent); font-weight:700; }
+</style>
+</head>
+<body>
+  <div class="eyebrow">Sim Lab · Exam mode · design concept</div>
+  <h1>Exam mode: one clock, free movement, a <i>pace verdict</i></h1>
+  <p class="sub">Practice mode stays exactly as it is. Exam mode is the Pro layer that makes a session feel like the real PBQ section: one countdown for the whole run, flag a round and come back, a review pass before you submit, and a pacing read at the end against an exam-pace target (a tightened sum of each round's estimated time, so the clock bites like the real one).</p>
+
+  <div class="seq">
+    <!-- 1 · entry with mode toggle -->
+    <div>
+      <div class="panel-label"><b>1</b> · Entry · pick the mode</div>
+      <div class="shell">
+        <div class="hdr">
+          <span class="back">‹ Back</span>
+          <span class="hdr-title">Sim Lab</span>
+          <span class="pro-pill"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>Pro</span>
+        </div>
+        <div class="mark"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h10M4 17h7"></path><path d="M15 15l2.5 2.5L22 13"></path></svg></div>
+        <div class="entry-title">Run the hands-on <i>PBQs</i></div>
+        <p class="lede">Practice to learn the format. Switch to Exam to feel the clock the way test day will.</p>
+        <div class="pick-k">Mode</div>
+        <div class="seg">
+          <div class="seg-opt"><span class="t">Practice</span><span class="d">Relaxed · count-up timer</span></div>
+          <div class="seg-opt on"><span class="t"><svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"></circle><path d="M12 9v4l2 2M9 2h6"></path></svg> Exam<span class="seg-pro">Pro</span></span><span class="d">One clock · flag &amp; return</span></div>
+        </div>
+        <div class="target">
+          <div><div class="target-k">Today's target</div><div class="target-v">Mixed · Network+</div></div>
+          <div class="r"><div class="target-k">Exam-pace budget</div><div class="target-v">25:00</div></div>
+        </div>
+        <div class="pick-k">How many rounds</div>
+        <div class="chips">
+          <span class="chip">3</span><span class="chip on">5</span><span class="chip">10 · exam length</span>
+        </div>
+        <span class="cta">Start exam sim →</span>
+        <div class="note">Pro · one clock for all 5 rounds · budget 25:00 (tightened to exam pace)</div>
+      </div>
+    </div>
+
+    <!-- 2 · an exam round, mid-session -->
+    <div>
+      <div class="panel-label"><b>2</b> · A round · countdown + flag + free nav</div>
+      <div class="shell">
+        <div class="sbar">
+          <span class="sbar-strip">Sim Lab</span>
+          <span class="exam-badge">Exam</span>
+          <span class="clock"><svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"></circle><path d="M12 9v4l2 2M9 2h6"></path></svg>22:41 <span class="cap">left</span></span>
+        </div>
+        <div class="palette">
+          <span class="pq answered">1</span>
+          <span class="pq now flagged">2</span>
+          <span class="pq answered">3</span>
+          <span class="pq flagged">4</span>
+          <span class="pq">5</span>
+        </div>
+        <div class="palette-key">
+          <span><i class="kdot now"></i>This round</span>
+          <span><i class="kdot answered"></i>Answered</span>
+          <span><i class="kdot"></i>Not yet</span>
+          <span><i class="kdot flag"></i>Flagged</span>
+        </div>
+        <div class="step-k">Round 2</div>
+        <div class="prompt">Sort each service under the transport protocol it uses by default.</div>
+        <div class="tray"><span class="tok">SSH</span><span class="tok">TFTP</span><span class="tok">SNMP</span></div>
+        <div class="buckets">
+          <div class="bucket"><div class="bucket-h">TCP</div><span class="tok placed">HTTP</span></div>
+          <div class="bucket"><div class="bucket-h">UDP</div><span class="tok placed">DHCP</span></div>
+        </div>
+        <div class="examfoot">
+          <span class="flagbtn on"><svg viewBox="0 0 24 24"><path d="M5 21V4M5 4h11l-2 4 2 4H5"></path></svg>Flagged</span>
+          <span class="nav">
+            <span class="navbtn prev">‹ Prev</span>
+            <span class="navbtn next">Next ›</span>
+          </span>
+        </div>
+        <div class="note">On the last round, Next becomes "Review →". You can also tap any palette square to jump.</div>
+      </div>
+    </div>
+
+    <!-- 3 · review before submit -->
+    <div>
+      <div class="panel-label"><b>3</b> · Review before you submit</div>
+      <div class="shell">
+        <div class="sbar">
+          <span class="sbar-strip">Sim Lab</span>
+          <span class="exam-badge">Exam</span>
+          <span class="clock low"><svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"></circle><path d="M12 9v4l2 2M9 2h6"></path></svg>2:18 <span class="cap">left</span></span>
+        </div>
+        <div class="rev-h">Review before you submit</div>
+        <div class="rev-sub">Tap any round to jump back. Flagged rounds are highlighted.</div>
+        <div class="rev-counts">
+          <span class="rc ok">4 answered</span>
+          <span class="rc flag">1 flagged</span>
+          <span class="rc miss">1 not answered</span>
+        </div>
+        <div class="rev-list">
+          <div class="rev-row"><span class="rev-n">2</span><span><span class="rev-t">Transport protocols</span><br><span class="rev-o">Objective 1.5</span></span><span class="rev-status flag"><svg viewBox="0 0 24 24"><path d="M5 21V4M5 4h11l-2 4 2 4H5"></path></svg>Flagged</span></div>
+          <div class="rev-row"><span class="rev-n">5</span><span><span class="rev-t">Subnet sizing</span><br><span class="rev-o">Objective 1.4</span></span><span class="rev-status miss"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v4M12 16h.01"></path></svg>Not answered</span></div>
+          <div class="rev-row"><span class="rev-n">1</span><span><span class="rev-t">Troubleshooting order</span><br><span class="rev-o">Objective 5.1</span></span><span class="rev-status ok"><svg viewBox="0 0 24 24"><path d="M5 12l4 4L19 7"></path></svg>Answered</span></div>
+        </div>
+        <div class="cta-row">
+          <span class="cta ghost">Back to flagged</span>
+          <span class="cta">Submit exam</span>
+        </div>
+        <div class="note">If rounds are unanswered, Submit confirms once: "1 round unanswered. Submit anyway?"</div>
+      </div>
+    </div>
+
+    <!-- 4 · verdict + pace -->
+    <div>
+      <div class="panel-label"><b>4</b> · Verdict · the new Pace block</div>
+      <div class="shell">
+        <div class="sbar">
+          <span class="sbar-strip">Sim Lab</span>
+          <span class="exam-badge">Exam · complete</span>
+        </div>
+        <div class="score-row">
+          <span class="score-fig">4<span style="font-size:24px;color:var(--muted)">/5</span></span>
+          <span><span class="score-cap">Rounds passed</span><br><span class="rev-o" style="color:var(--ink-soft)">82% of steps correct</span></span>
+        </div>
+
+        <div class="pace-card">
+          <div class="pace-eyebrow">Pace</div>
+          <div class="pace-head">
+            <span class="pace-time">23:30</span>
+            <span class="pace-verdict">On exam pace ✓</span>
+          </div>
+          <div class="pace-sub">1:30 to spare. On the real exam that leaves room to revisit a hard PBQ.</div>
+          <div class="par-track">
+            <span class="par-fill" style="width:94%"></span>
+            <span class="par-tick"><span class="lab">Target 25:00</span></span>
+          </div>
+          <div class="par-scale"><span>0:00</span><span>your time 23:30</span></div>
+
+          <div class="pr-rows">
+            <div class="pr-row"><span class="pr-lab">Round 1</span><span class="pr-bar"><i class="under" style="width:62%"></i><span class="partick" style="left:80%"></span></span><span class="pr-val under">-1:10</span></div>
+            <div class="pr-row"><span class="pr-lab">Round 2</span><span class="pr-bar"><i class="over" style="width:96%"></i><span class="partick" style="left:80%"></span></span><span class="pr-val over">+0:48</span></div>
+            <div class="pr-row"><span class="pr-lab">Round 3</span><span class="pr-bar"><i class="under" style="width:55%"></i><span class="partick" style="left:80%"></span></span><span class="pr-val under">-1:30</span></div>
+          </div>
+        </div>
+        <div class="note">Below the Pace block: the per-round ✓/✗ rows and weak-spot cluster you already ship.</div>
+      </div>
+    </div>
+  </div>
+
+  <p class="foot"><b>What's new vs practice:</b> a whole-session countdown (budget = Σ round estMinutes, tightened ×0.9 to exam pace), a flag toggle + free movement between rounds, a Review screen before final submit, and the Pace block on the verdict. <span class="q">Decisions locked:</span> numbered palette squares for nav · clock turns amber under a low-time threshold · budget tightened ~×0.9 so it bites like the real exam. This concept is the build contract.</p>
+</body>
+</html>
