@@ -723,3 +723,31 @@ test('exam core: blank exam state + pace math (under and over par)', async ({ pa
   expect(r.overOn).toBe(false);
   expect(r.overDelta).toBe(-2 * 60000);
 });
+
+test('exam entry: free tapping Exam gates; Pro toggles Exam + shows budget; CTA copy flips', async ({ page }) => {
+  await gotoApp(page);
+  const r = await page.evaluate(async () => {
+    window.CURRENT_CERT = 'netplus';
+    await new Promise(res => window._ensureSimLabLoaded(res));
+    // free → Exam gates
+    window._quotaState = { tier: 'free' };
+    let gate = 0, gTitle = '';
+    window._gateProOnly = (feat, opts) => { gate++; gTitle = opts && opts.title; return false; };
+    window.simLabOpenEntry();
+    document.querySelector('#sle-mode .sle-seg-opt[data-mode="exam"]').click();
+    const freeGated = gate === 1 && /real exam is timed/.test(gTitle);
+    const stillPractice = document.querySelector('#sle-mode .sle-seg-opt[data-mode="practice"]').classList.contains('is-on');
+    // Pro → Exam toggles, budget + note appear, CTA flips
+    window._quotaState = { tier: 'pro' };
+    document.querySelector('#sle-mode .sle-seg-opt[data-mode="exam"]').click();
+    const examOn = document.querySelector('#sle-mode .sle-seg-opt[data-mode="exam"]').classList.contains('is-on');
+    const budgetShown = !document.getElementById('sle-budget').classList.contains('is-hidden');
+    const cta = document.getElementById('sle-start').textContent;
+    return { freeGated, stillPractice, examOn, budgetShown, cta };
+  });
+  expect(r.freeGated).toBe(true);
+  expect(r.stillPractice).toBe(true);
+  expect(r.examOn).toBe(true);
+  expect(r.budgetShown).toBe(true);
+  expect(r.cta).toContain('Start exam sim');
+});

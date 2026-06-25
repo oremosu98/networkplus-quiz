@@ -32,7 +32,7 @@
   html[data-theme="light"] body { color: #1a1a2e; }
 </style>
 <link rel="stylesheet" href="styles.css">
-<link rel="stylesheet" href="dg-system.css?v=7.56.0">
+<link rel="stylesheet" href="dg-system.css?v=7.57.0">
 <link rel="stylesheet" href="dg-depurple.css?v=7.13.5">
 <!-- v7.36.1: the cert-ios lift is viewport-gated — phone/tablet-portrait
      viewports get the mockup column + tab bar; desktop keeps the classic
@@ -1787,9 +1787,19 @@
     <div class="gnt-mark" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h10M4 17h7"></path><path d="M15 15l2.5 2.5L22 13"></path></svg></div>
     <h2 class="gnt-entry-title">Practice the hands-on <i>PBQs</i></h2>
     <p class="gnt-entry-lede">The exam opens with them. Run a few back to back and the format stops being a surprise.</p>
+    <div class="sle-pick-k">Mode</div>
+    <div class="sle-seg" id="sle-mode" role="group" aria-label="Practice or Exam mode">
+      <button type="button" class="sle-seg-opt is-on" data-mode="practice" aria-pressed="true">
+        <span class="t">Practice</span><span class="d">Relaxed · count-up timer</span>
+      </button>
+      <button type="button" class="sle-seg-opt" data-mode="exam" aria-pressed="false">
+        <span class="t"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="8"></circle><path d="M12 9v4l2 2M9 2h6"></path></svg> Exam<span class="sle-seg-pro">Pro</span></span>
+        <span class="d">One clock · flag &amp; return</span>
+      </button>
+    </div>
     <div class="gnt-target">
-      <div class="gnt-target-k">Today's target</div>
-      <div class="gnt-target-v" id="sle-target">Mixed · Network+ N10-009</div>
+      <div><div class="gnt-target-k">Today's target</div><div class="gnt-target-v" id="sle-target">Mixed · Network+ N10-009</div></div>
+      <div class="sle-budget is-hidden" id="sle-budget"><div class="gnt-target-k">Exam-pace budget</div><div class="gnt-target-v" id="sle-budget-v">25:00</div></div>
     </div>
     <div class="sle-pick-k">How many rounds</div>
     <div class="sle-chips" id="sle-rounds" role="group" aria-label="Number of rounds">
@@ -1798,6 +1808,7 @@
       <button type="button" class="sle-chip sle-chip-pro" data-rounds="10" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>10 · exam length</button>
     </div>
     <button type="button" class="btn btn-primary gnt-cta" id="sle-start" data-action="simLabSessionStart">Start the sim →</button>
+    <div class="sle-note is-hidden" id="sle-note">Pro · one clock for all 5 rounds · budget 25:00 (tightened to exam pace)</div>
   </div>
 </div>
 

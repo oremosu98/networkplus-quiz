@@ -608,13 +608,86 @@
 
   var _slSession = null;
   var _slPickedRounds = 5;
+  var _slPickedMode = 'practice';
+
+  // Spec §4 — the revenue tap. EXACT copy; do not paraphrase.
+  function _slExamGateCopy() {
+    return {
+      title: 'The real exam is timed. Practice that way.',
+      body: 'Exam mode runs one clock across the whole session. Flag a PBQ, move on, come back, then review before you submit, just like the N10-009 PBQ section. Practice mode stays free and unlimited. Unlock Exam mode with Pro to train under real pressure.',
+      primary: 'Unlock Exam mode',
+      secondary: 'Keep practicing (free)'
+    };
+  }
+
+  function _slFmtClock(ms) {
+    var s = Math.max(0, Math.round(ms / 1000)), m = Math.floor(s / 60);
+    return m + ':' + String(s % 60).padStart(2, '0');
+  }
+
+  function _slSyncMode() {
+    var opts = document.querySelectorAll('#sle-mode .sle-seg-opt');
+    Array.prototype.forEach.call(opts, function (o) {
+      var on = o.getAttribute('data-mode') === _slPickedMode;
+      o.classList.toggle('is-on', on);
+      o.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+    var isExam = _slPickedMode === 'exam';
+    var budget = document.getElementById('sle-budget');
+    var note = document.getElementById('sle-note');
+    var start = document.getElementById('sle-start');
+    if (budget) budget.classList.toggle('is-hidden', !isExam);
+    if (note) note.classList.toggle('is-hidden', !isExam);
+    if (start) start.textContent = isExam ? 'Start exam sim →' : 'Start the sim →';
+    if (isExam) _slSyncBudgetReadout();
+  }
+
+  // Estimate the budget readout from the seed bank's median estMinutes x rounds
+  // x 0.9 (the real budget is computed from the actual pre-generated rounds at
+  // start; this readout is the anticipated figure for the entry screen).
+  function _slSyncBudgetReadout() {
+    var bank = _slBank(window.CURRENT_CERT || 'netplus');
+    var per = bank.length
+      ? bank.reduce(function (a, s) { return a + (s.estMinutes || 6); }, 0) / bank.length
+      : 6;
+    var ms = Math.round(per * _slPickedRounds * 0.9 * 60000);
+    var v = document.getElementById('sle-budget-v');
+    var note = document.getElementById('sle-note');
+    if (v) v.textContent = _slFmtClock(ms);
+    if (note) note.textContent = 'Pro · one clock for all ' + _slPickedRounds + ' rounds · budget ' + _slFmtClock(ms) + ' (tightened to exam pace)';
+  }
+
+  function _slBindModeToggle() {
+    var host = document.getElementById('sle-mode');
+    if (!host || host.__bound) return; host.__bound = true;
+    host.addEventListener('click', function (e) {
+      var opt = e.target.closest('.sle-seg-opt'); if (!opt) return;
+      var m = opt.getAttribute('data-mode');
+      if (m === 'exam' && !_slIsPro()) { window._gateProOnly('Sim Lab', _slExamGateCopy()); return; }
+      _slPickedMode = m; _slSyncMode();
+    });
+  }
+
+  // Stub — filled in Task 3.
+  function _slExamStart() {}
+
+  function _slSessionStartDispatch() {
+    if (_slPickedMode === 'exam') {
+      if (!_slIsPro()) { window._gateProOnly('Sim Lab', _slExamGateCopy()); return; }
+      return _slExamStart();   // Task 3
+    }
+    return _slSessionStart();  // existing practice path
+  }
 
   function simLabOpenEntry() {
     _slBindRoundChips();
+    _slBindModeToggle();
     _slPickedRounds = 5;
+    _slPickedMode = 'practice';
     var t = document.getElementById('sle-target');
     if (t) t.textContent = 'Mixed · ' + ((window.CERT_PACK && window.CERT_PACK.meta && window.CERT_PACK.meta.examName) || 'Network+ N10-009');
     _slSyncRoundChips();
+    _slSyncMode();
     // Real routing — showPage syncs the sidebar active state, topbar crumb,
     // clears stale error boxes, and closes the mobile drawer. Never bypass it.
     if (typeof showPage === 'function') showPage('sim-lab-entry');
@@ -641,6 +714,7 @@
         return;
       }
       _slPickedRounds = n; _slSyncRoundChips();
+      if (_slPickedMode === 'exam') _slSyncBudgetReadout();
     });
   }
   function simLabEntryBack() { if (typeof showPage === 'function') showPage('setup'); }
@@ -1007,7 +1081,7 @@
   window._simLab.sessionBumpOnce = function () { _slSessionBumpOnce(); };
   window.simLabOpenEntry = simLabOpenEntry;
   window.simLabEntryBack = simLabEntryBack;
-  window.simLabSessionStart = _slSessionStart;
+  window.simLabSessionStart = _slSessionStartDispatch;
   window._simLab.sessionRounds = function () { return _slPickedRounds; };
   window._simLab.hasPrefetch = function () { return !!(_slSession && _slSession.prefetch); };
   window._simLab.examBlankState = _slExamBlankState;
