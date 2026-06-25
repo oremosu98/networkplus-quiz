@@ -813,8 +813,29 @@
     var pal = document.getElementById('sl-palette'); if (pal) pal.classList.remove('is-hidden');
   }
 
-  // Stub — Task 8 replaces with full submit logic.
-  function _slExamSubmit() { if (window._simLab.__examSubmitSpy) window._simLab.__examSubmitSpy(); }
+  // Stub — Task 9 fills this in; routing hook for Task 8.
+  function _slRenderExamResult() {}
+
+  function _slExamSubmit(timeUp) {
+    if (window._simLab.__examSubmitSpy) window._simLab.__examSubmitSpy();   // test hook (Task 4)
+    if (!_slSession || _slSession.mode !== 'exam' || _slSession.__submitted) return;
+    _slSession.__submitted = true;
+    // capture the round in view (if a round, not the review screen)
+    if (_slSession.view === 'round') {
+      _slSession.roundMs[_slSession.idx] += Math.max(0, Date.now() - _slSession.roundEnteredAt);
+      _slCaptureAnswer(_slSession.idx);
+    }
+    var remaining = Math.max(0, _slSession.deadlineMs - Date.now());
+    _slSession.elapsedMs = _slSession.budgetMs - remaining;
+    _slStopCountdown();
+    _slSession.results = _slSession.scenarios.map(function (scn, i) {
+      var resp = _slSession.answers[i] || {};
+      var score = simLabScoreScenario(scn, resp);
+      return { scenario: scn, score: score, passed: score.fraction === 1 };
+    });
+    _slSession.timeUp = !!timeUp;
+    _slRenderExamResult();   // Task 9
+  }
 
   // Task 5 — palette helpers
   function _slIsAnswered(idx) {
@@ -1452,6 +1473,7 @@
   window._simLab.examGenerateAll = _slExamGenerateAll;
   window._simLab.tickClock = _slTickClock;             // lets tests drive a tick after mocking Date.now
   window._simLab.examSession = function () { return _slSession; };
+  window._simLab.examSubmit = function (t) { _slExamSubmit(t); };
   window._simLab.renderPalette = _slRenderPalette;
   window._simLab.examNav = _slExamNav;
   window._simLab.toggleFlag = _slToggleFlag;

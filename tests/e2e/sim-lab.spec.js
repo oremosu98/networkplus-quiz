@@ -1037,3 +1037,57 @@ test('exam review: submit with unanswered rounds triggers confirm dialog', async
   // View stays 'review' because we dismissed the confirm
   expect(r.view).toBe('review');
 });
+
+// Task 8: exam submit scores all rounds, stops clock, builds results, never bumps free-run counter
+test('exam submit: scores all rounds, stops the clock, builds results', async ({ page }) => {
+  await gotoApp(page);
+  const r = await page.evaluate(async () => {
+    window._quotaState = { tier: 'pro' };
+    window.CURRENT_CERT = 'netplus';
+    await new Promise(res => window._ensureSimLabLoaded(res));
+    // Stub AI fetcher so scenarios build from seed instantly
+    window._slMeteredGenerate = async () => ({ bad: true });
+
+    // Spy on _bumpPbqFreeRun — exam must NEVER call it (§3.7 / Pro/unlimited)
+    let bumpCalled = false;
+    window._bumpPbqFreeRun = function () { bumpCalled = true; };
+
+    window.simLabOpenEntry();
+    document.querySelector('#sle-mode .sle-seg-opt[data-mode="exam"]').click();
+    document.querySelector('.sle-chip[data-rounds="3"]').click();
+    window.simLabSessionStart();
+
+    // Deterministic readiness poll — wait until seed scenarios are loaded
+    await new Promise(res => {
+      const check = () => {
+        const s = window._simLab.examSession && window._simLab.examSession();
+        if (s && s.scenarios && s.scenarios.length > 0) return res();
+        setTimeout(check, 30);
+      };
+      check();
+    });
+
+    const sess = window._simLab.examSession();
+    const roundCount = sess.scenarios.length;
+
+    // Call examSubmit (the public test-API handle)
+    window._simLab.examSubmit(false);
+
+    return {
+      roundCount,
+      resultsLength: sess.results ? sess.results.length : -1,
+      clockStopped: sess.clock === null,
+      hasElapsed: typeof sess.elapsedMs === 'number',
+      bumpCalled
+    };
+  });
+
+  // All rounds scored into results
+  expect(r.resultsLength).toBe(r.roundCount);
+  // Clock stopped after submit
+  expect(r.clockStopped).toBe(true);
+  // Elapsed time recorded
+  expect(r.hasElapsed).toBe(true);
+  // Exam is Pro/unlimited — _bumpPbqFreeRun must NOT be called
+  expect(r.bumpCalled).toBe(false);
+});
