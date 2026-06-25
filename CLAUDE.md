@@ -115,11 +115,8 @@ npx playwright test              # E2E (tests/e2e/app.spec.js)
 | v7.56.0 | Sim Lab: multi-round sessions (pick 3/5, Pro 10) + prefetch + verdict summary + landing section |
 | v7.55.2 | Sim Lab: surface the drill in Home Practice (was orphaned on the unreachable drills page) |
 | v7.55.1 | Sim Lab + paywall: 4-stage copy polish (gate/lock/nudge/card + Pro drills line) |
-| v7.55.0 | Sim Lab: free daily PBQ practice taster (Net+) |
-| v7.54.1 | Drills card: free-tier daily Gauntlet state pill (1 free today / done today) |
-| v7.54.0 | Free tier: 1 Reword Gauntlet run/day, separate from the 15-q quota |
 
-_Older releases (v7.53.2 and back) live in [CHANGELOG.md](./CHANGELOG.md) — v7.53.2 trimmed here during the 2026-06-23 Sim Lab consolidation; v7.53.0 + v7.53.1 ported during the 2026-06-15 free-Gauntlet consolidation._
+_Older releases (v7.55.0 and back) live in [CHANGELOG.md](./CHANGELOG.md) — v7.55.0 + v7.54.1 + v7.54.0 ported during the 2026-06-25 v7.56.0 night-end consolidation (Sim Lab session-mode marathon)._
 
 ## CSS Theme System
 Dark theme in `:root`, light theme in `[data-theme="light"]`. Key variables: `--bg`, `--surface`, `--accent`, `--text`, `--green`, `--red`, `--yellow`. Toggle via `toggleTheme()`.
