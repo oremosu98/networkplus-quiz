@@ -687,3 +687,39 @@ test('cap: a second session the same day is gated to Pro', async ({ page }) => {
   expect(r.gate).toBe(1);          // the Pro gate fired
   expect(r.onSession).toBe(false); // no session page — gated before start
 });
+
+test('exam core: blank exam state + pace math (under and over par)', async ({ page }) => {
+  await gotoApp(page);
+  const r = await page.evaluate(() => {
+    const S = window._simLab;
+    // blank exam state for 3 rounds
+    const st = S.examBlankState(['x', 'y', 'z'], 18 * 60000);
+    const shape = st.mode === 'exam' && st.scenarios.length === 3 &&
+      st.answers.length === 3 && st.roundMs.length === 3 &&
+      (st.visited instanceof Set) && (st.flagged instanceof Set) &&
+      st.view === 'round' && st.amber === false && st.budgetMs === 18 * 60000;
+    // under par: spent 16:00 of an 18:00 budget → onPace, 2:00 to spare
+    const under = S.computePace(
+      [{ score: { fraction: 1 } }, { score: { fraction: 1 } }, { score: { fraction: 0.5 } }],
+      [5 * 60000, 5 * 60000, 5 * 60000],   // roundMs
+      18 * 60000,                          // budgetMs
+      16 * 60000                           // elapsedMs
+    );
+    // over par: spent 20:00 of an 18:00 budget → not onPace, 2:00 over
+    const over = S.computePace([{ score: { fraction: 1 } }], [20 * 60000], 18 * 60000, 20 * 60000);
+    return {
+      shape,
+      underOn: under.onPace, underTotal: under.totalMs, underDelta: under.deltaMs,
+      perRoundLen: under.perRound.length, r0over: under.perRound[0].over,
+      overOn: over.onPace, overDelta: over.deltaMs
+    };
+  });
+  expect(r.shape).toBe(true);
+  expect(r.underOn).toBe(true);
+  expect(r.underTotal).toBe(16 * 60000);
+  expect(r.underDelta).toBe(2 * 60000);
+  expect(r.perRoundLen).toBe(3);
+  expect(r.r0over).toBe(false);        // round 0 par = est? handled via roundMs vs budget-share; see impl
+  expect(r.overOn).toBe(false);
+  expect(r.overDelta).toBe(-2 * 60000);
+});

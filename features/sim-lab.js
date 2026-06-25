@@ -537,6 +537,67 @@
     return { passed: passed, rounds: results.length, stepsCorrect: stepsCorrect, stepsTotal: stepsTotal, pct: pct };
   }
 
+  // Blank exam-session state. scenarios is the pre-generated round array;
+  // budgetMs is Σ estMinutes × 0.9 × 60000 (computed by the caller). Wall-clock
+  // deadlineMs is set at clock-start, not here (state is generated before the
+  // clock starts — §3.3).
+  function _slExamBlankState(scenarios, budgetMs) {
+    return {
+      mode: 'exam',
+      rounds: scenarios.length,
+      idx: 0,
+      pro: _slIsPro(),
+      cert: (window.CURRENT_CERT || 'netplus'),
+      results: [],
+      usedSeedIds: new Set(scenarios.map(function (s) { return s.id; })),
+      timer: null,
+      // exam-only
+      scenarios: scenarios.slice(),
+      answers: scenarios.map(function () { return null; }),     // per-round in-flight responses
+      visited: new Set(),
+      flagged: new Set(),
+      deadlineMs: 0,                                            // set in _slStartCountdown
+      budgetMs: budgetMs,
+      roundMs: scenarios.map(function () { return 0; }),        // accrued active time per round
+      view: 'round',                                           // 'round' | 'review'
+      clock: null,                                             // setInterval handle
+      amber: false,                                            // latched
+      roundEnteredAt: 0                                        // Date.now() when current round was shown
+    };
+  }
+
+  // Pace math (§3.5). totalMs (headline "your time") = elapsedMs = budgetMs − remaining
+  // at submit. deltaMs = budgetMs − totalMs (positive = under par = "to spare").
+  // onPace = deltaMs >= 0. Per-round bars compare roundMs[i] against that round's
+  // par. Par per round comes from the scenario estMinutes × 0.9; the caller passes
+  // the par array so this stays pure.
+  function _slComputePace(results, roundMs, budgetMs, elapsedMs, parMs) {
+    var totalMs = elapsedMs;
+    var deltaMs = budgetMs - totalMs;
+    var onPace = deltaMs >= 0;
+    var perRound = roundMs.map(function (ms, i) {
+      var par = (parMs && typeof parMs[i] === 'number') ? parMs[i] : (budgetMs / roundMs.length);
+      return { roundMs: ms, parMs: par, deltaMs: par - ms, over: ms > par };
+    });
+    return { totalMs: totalMs, deltaMs: deltaMs, onPace: onPace, perRound: perRound };
+  }
+
+  // Budget = Σ estMinutes × 0.9 × 60000 (§2 decision 2). Pure helper.
+  function _slExamBudgetMs(scenarios) {
+    var minutes = scenarios.reduce(function (acc, s) {
+      return acc + (typeof s.estMinutes === 'number' && s.estMinutes > 0 ? s.estMinutes : 6);
+    }, 0);
+    return Math.round(minutes * 0.9 * 60000);
+  }
+
+  // Per-round par array (estMinutes × 0.9 × 60000) for the per-round bars.
+  function _slExamParMs(scenarios) {
+    return scenarios.map(function (s) {
+      var m = (typeof s.estMinutes === 'number' && s.estMinutes > 0) ? s.estMinutes : 6;
+      return Math.round(m * 0.9 * 60000);
+    });
+  }
+
   // Session-level free-cap guard: bump the daily counter at most once per session.
   var _slSessionBumped = false;
   function _slSessionBumpOnce() {
@@ -949,4 +1010,10 @@
   window.simLabSessionStart = _slSessionStart;
   window._simLab.sessionRounds = function () { return _slPickedRounds; };
   window._simLab.hasPrefetch = function () { return !!(_slSession && _slSession.prefetch); };
+  window._simLab.examBlankState = _slExamBlankState;
+  window._simLab.computePace = function (results, roundMs, budgetMs, elapsedMs, parMs) {
+    return _slComputePace(results, roundMs, budgetMs, elapsedMs, parMs);
+  };
+  window._simLab.examBudgetMs = _slExamBudgetMs;
+  window._simLab.examParMs = _slExamParMs;
 })();
