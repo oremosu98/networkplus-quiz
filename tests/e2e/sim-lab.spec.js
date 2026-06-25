@@ -1091,3 +1091,51 @@ test('exam submit: scores all rounds, stops the clock, builds results', async ({
   // Exam is Pro/unlimited — _bumpPbqFreeRun must NOT be called
   expect(r.bumpCalled).toBe(false);
 });
+
+// Task 9: Pace block on verdict — under-par and over-par copy variants
+test('exam pace verdict: under-par shows "On exam pace", over-par shows coaching copy', async ({ page }) => {
+  await gotoApp(page);
+  const r = await page.evaluate(async () => {
+    window._quotaState = { tier: 'pro' };
+    window.CURRENT_CERT = 'netplus';
+    await new Promise(res => window._ensureSimLabLoaded(res));
+    window._slMeteredGenerate = async () => ({ bad: true });
+    window.simLabOpenEntry();
+    document.querySelector('#sle-mode .sle-seg-opt[data-mode="exam"]').click();
+    document.querySelector('.sle-chip[data-rounds="3"]').click();
+    window.simLabSessionStart();
+    await new Promise(res => {
+      const check = () => {
+        const s = window._simLab.examSession && window._simLab.examSession();
+        if (s && s.scenarios && s.scenarios.length > 0) return res();
+        setTimeout(check, 30);
+      };
+      check();
+    });
+    const sess = window._simLab.examSession();
+    // under par: set deadlineMs so elapsed = 50% of budget (plenty of time remaining)
+    sess.deadlineMs = Date.now() + Math.round(sess.budgetMs * 0.5);
+    sess.roundMs = sess.scenarios.map(() => 0);
+    window._simLab.examSubmit(false);
+    const underVerdict = document.querySelector('#sl-result-root .slp-pace-verdict').textContent;
+    // over par: directly set session state and call renderExamResult (examSubmit clamps elapsedMs via max(0,remaining))
+    sess.elapsedMs = Math.round(sess.budgetMs * 1.2); // 20% over budget
+    sess.roundMs = sess.scenarios.map((s, i) => i === 1 ? sess.budgetMs : 0); // round 2 ran long
+    // ensure results exist (examSubmit already set them; reuse)
+    if (!sess.results || !sess.results.length) {
+      sess.results = sess.scenarios.map(scn => ({ scenario: scn, score: { correct: 0, total: 1, fraction: 0, perStep: {} }, passed: false }));
+    }
+    window._simLab.renderExamResult();
+    const overV = document.querySelector('#sl-result-root .slp-pace-verdict');
+    return {
+      underVerdict,
+      overVerdict: overV.textContent,
+      overClass: overV.classList.contains('over'),
+      coaching: document.querySelector('#sl-result-root .slp-pace-sub').textContent
+    };
+  });
+  expect(r.underVerdict).toContain('On exam pace');
+  expect(r.overVerdict).toContain('over exam pace');
+  expect(r.overClass).toBe(true);
+  expect(r.coaching).toContain('triage');
+});

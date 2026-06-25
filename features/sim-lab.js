@@ -813,8 +813,117 @@
     var pal = document.getElementById('sl-palette'); if (pal) pal.classList.remove('is-hidden');
   }
 
-  // Stub — Task 9 fills this in; routing hook for Task 8.
-  function _slRenderExamResult() {}
+  function _slSignedClock(ms) {
+    var sign = ms >= 0 ? '-' : '+';   // under par (positive delta) shows as "-" time vs par (faster); over shows "+"
+    return sign + _slFmtClock(Math.abs(ms));
+  }
+
+  function _slRenderPaceBlock(host, pace, scenarios) {
+    var card = _el('div', 'slp-pace-card');
+    card.appendChild(_el('div', 'slp-pace-eyebrow', 'Pace'));
+    var head = _el('div', 'slp-pace-head');
+    head.appendChild(_el('span', 'slp-pace-time', _slFmtClock(pace.totalMs)));
+    var verdict = _el('span', 'slp-pace-verdict' + (pace.onPace ? '' : ' over'),
+      pace.onPace ? 'On exam pace ✓' : (_slFmtClock(Math.abs(pace.deltaMs)) + ' over exam pace'));
+    head.appendChild(verdict);
+    card.appendChild(head);
+    var sub;
+    if (pace.onPace) {
+      sub = _slFmtClock(pace.deltaMs) + ' to spare. On the real exam that leaves room to revisit a hard PBQ.';
+    } else {
+      // worst over-par round (1-based) for the coaching line
+      var worst = 0, worstOver = -Infinity;
+      pace.perRound.forEach(function (p, i) { var over = p.roundMs - p.parMs; if (over > worstOver) { worstOver = over; worst = i; } });
+      sub = 'Round ' + (worst + 1) + ' ran long. On test day that\'s the round to triage: flag it and move.';
+    }
+    card.appendChild(_el('div', 'slp-pace-sub', sub));
+    // par instrument — fill capped at 100% (overflow carried by the figure)
+    var pct = Math.min(100, Math.round((pace.totalMs / pace.budgetMs) * 100));
+    var track = _el('div', 'slp-par-track');
+    var fill = _el('span', 'slp-par-fill'); fill.style.width = pct + '%';
+    var tick = _el('span', 'slp-par-tick'); tick.innerHTML = '<span class="lab">Target ' + _slFmtClock(pace.budgetMs) + '</span>';
+    track.appendChild(fill); track.appendChild(tick);
+    card.appendChild(track);
+    var scale = _el('div', 'slp-par-scale');
+    scale.innerHTML = '<span>0:00</span><span>your time ' + _slFmtClock(pace.totalMs) + '</span>';
+    card.appendChild(scale);
+    // per-round rows
+    var rows = _el('div', 'slp-pr-rows');
+    pace.perRound.forEach(function (p, i) {
+      var row = _el('div', 'slp-pr-row');
+      row.appendChild(_el('span', 'slp-pr-lab', 'Round ' + (i + 1)));
+      var bar = _el('span', 'slp-pr-bar');
+      var max = Math.max(p.roundMs, p.parMs) * 1.25 || 1;
+      var fillPct = Math.min(100, Math.round((p.roundMs / max) * 100));
+      var parPct = Math.min(100, Math.round((p.parMs / max) * 100));
+      var i2 = _el('i', p.over ? 'over' : 'under'); i2.style.width = fillPct + '%';
+      var pt = _el('span', 'partick'); pt.style.left = parPct + '%';
+      bar.appendChild(i2); bar.appendChild(pt);
+      row.appendChild(bar);
+      row.appendChild(_el('span', 'slp-pr-val ' + (p.over ? 'over' : 'under'), _slSignedClock(p.deltaMs)));
+      rows.appendChild(row);
+    });
+    card.appendChild(rows);
+    host.appendChild(card);
+    // animate bars once (GPU scaleX, stagger), unless reduced-motion (CSS already finals)
+    if (!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches)) {
+      var bars = card.querySelectorAll('.slp-par-fill, .slp-pr-bar i');
+      var io = new IntersectionObserver(function (entries, obs) {
+        entries.forEach(function (en) {
+          if (!en.isIntersecting) return;
+          Array.prototype.forEach.call(bars, function (b, n) { setTimeout(function () { b.classList.add('is-in'); }, n * 70); });
+          obs.disconnect();
+        });
+      });
+      io.observe(card);
+    } else {
+      Array.prototype.forEach.call(card.querySelectorAll('.slp-par-fill, .slp-pr-bar i'), function (b) { b.classList.add('is-in'); });
+    }
+  }
+
+  function _slRenderExamResult() {
+    var pace = _slComputePace(_slSession.results, _slSession.roundMs, _slSession.budgetMs,
+      _slSession.elapsedMs, _slExamParMs(_slSession.scenarios));
+    var root = document.getElementById('sl-result-root');
+    root.innerHTML = '';
+    // exam topbar-style seal + optional time-up note
+    var seal = _el('span', 'sls-seal', _slSession.timeUp ? '⏱ Time’s up' : '✓ Exam complete');
+    root.appendChild(seal);
+    // Pace block FIRST (prepended above the verdict rows)
+    _slRenderPaceBlock(root, pace, _slSession.scenarios);
+    // reuse the existing aggregate + per-round rows + weak-spot cluster (same as practice summary)
+    var agg = _slAggregateSession(_slSession.results);
+    var score = _el('div', 'sls-score');
+    score.innerHTML = '<span class="sls-score-n">' + agg.passed + '<small>/' + agg.rounds + '</small></span>' +
+      '<span class="sls-score-cap">Rounds passed · ' + agg.pct + '% of steps correct</span>';
+    root.appendChild(score);
+    var rounds = _el('div', 'sls-rounds');
+    _slSession.results.forEach(function (r) {
+      var row = _el('div', 'sls-r');
+      var ok = r.passed;
+      row.appendChild(_el('span', 'sls-r-ic ' + (ok ? 'ok' : 'no'), ok ? '&#x2713;' : '&#x2717;'));
+      var bodyc = _el('div', 'sls-r-body');
+      bodyc.appendChild(_el('div', 'sls-r-title', _esc(r.scenario.topic || 'PBQ')));
+      bodyc.appendChild(_el('div', 'sls-r-why', _esc(_slFirstWhy(r))));   // exam is Pro-only — always reveal
+      row.appendChild(bodyc);
+      row.appendChild(_el('span', 'sls-r-score', r.score.correct + '/' + r.score.total));
+      rounds.appendChild(row);
+    });
+    root.appendChild(rounds);
+    var cluster = _slWeakCluster(_slSession.results);
+    if (cluster) {
+      var ins = _el('div', 'sls-insight');
+      ins.innerHTML = '<div class="sls-insight-k">Where you slipped</div><p>' + _esc(cluster) + '</p>';
+      root.appendChild(ins);
+    }
+    if (typeof window._slRecordWeakSpots === 'function') {
+      window._slRecordWeakSpots(_slSession.results.filter(function (r) { return !r.passed; }).map(function (r) { return r.scenario.topic; }));
+    }
+    var back = _el('button', 'btn btn-primary gnt-cta', 'Back to Practice');
+    back.setAttribute('type', 'button'); back.setAttribute('data-action', 'simLabExit');
+    root.appendChild(back);
+    if (typeof showPage === 'function') showPage('sim-lab-result');
+  }
 
   function _slExamSubmit(timeUp) {
     if (window._simLab.__examSubmitSpy) window._simLab.__examSubmitSpy();   // test hook (Task 4)
@@ -1479,4 +1588,6 @@
   window._simLab.toggleFlag = _slToggleFlag;
   window._simLab.renderRound = _slRenderRound;
   window._simLab.renderReview = _slRenderReview;
+  window._simLab.renderExamResult = _slRenderExamResult;
+  window._simLab.renderPaceBlock = _slRenderPaceBlock;
 })();

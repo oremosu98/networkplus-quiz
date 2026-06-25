@@ -4065,3 +4065,30 @@ mark.gnt-hinge{background:color-mix(in oklab,var(--red) 26%,transparent);color:i
 #page-sim-lab .slv-cta-row{display:flex;gap:9px}
 #page-sim-lab .slv-cta-row .btn{flex:1}
 @media (prefers-reduced-motion:reduce){#page-sim-lab .slv-rev-row{transition:none}}
+/* Sim Lab exam: Pace block on verdict (Task 9, lifted from mockup panel 4) — v7.57.2 */
+#page-sim-lab-result .slp-pace-card{background:var(--surface-2,var(--surface));border:1px solid var(--border-soft,var(--border));border-radius:14px;padding:16px;margin:6px 0 22px}
+#page-sim-lab-result .slp-pace-eyebrow{font:800 10px/1 Inter,sans-serif;letter-spacing:.13em;text-transform:uppercase;color:var(--accent);margin-bottom:10px}
+#page-sim-lab-result .slp-pace-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:4px}
+#page-sim-lab-result .slp-pace-time{font-family:Fraunces,Georgia,serif;font-weight:600;font-size:28px;letter-spacing:-.01em;color:var(--text);font-variant-numeric:lining-nums tabular-nums;font-feature-settings:"lnum","tnum"}
+#page-sim-lab-result .slp-pace-verdict{font:700 12.5px/1 Inter,sans-serif;color:var(--green,var(--pass))}
+#page-sim-lab-result .slp-pace-verdict.over{color:var(--yellow,var(--warn))}
+#page-sim-lab-result .slp-pace-sub{font:400 12px/1.4 Inter,sans-serif;color:var(--text-mid);margin-bottom:14px}
+#page-sim-lab-result .slp-par-track{position:relative;height:8px;border-radius:999px;background:color-mix(in oklab,var(--border) 65%,transparent);margin:18px 0 8px}
+#page-sim-lab-result .slp-par-fill{position:absolute;left:0;top:0;bottom:0;border-radius:999px;background:linear-gradient(90deg,color-mix(in oklab,var(--green,var(--pass)) 55%,var(--accent)),var(--green,var(--pass)));transform-origin:left center;transform:scaleX(0);transition:transform 900ms cubic-bezier(.16,1,.3,1)}
+#page-sim-lab-result .slp-par-fill.is-in{transform:scaleX(1)}
+#page-sim-lab-result .slp-par-tick{position:absolute;top:-7px;bottom:-7px;width:2px;background:var(--text-mid);left:100%}
+#page-sim-lab-result .slp-par-tick .lab{position:absolute;top:-16px;left:50%;transform:translateX(-50%);font:800 9.5px/1 Inter,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim);white-space:nowrap}
+#page-sim-lab-result .slp-par-scale{display:flex;justify-content:space-between;font:400 10.5px/1 Inter,sans-serif;color:var(--text-dim);font-variant-numeric:tabular-nums}
+#page-sim-lab-result .slp-pr-rows{margin-top:16px;display:flex;flex-direction:column;gap:9px}
+#page-sim-lab-result .slp-pr-row{display:grid;grid-template-columns:58px 1fr 52px;align-items:center;gap:10px}
+#page-sim-lab-result .slp-pr-lab{font:600 11.5px/1 Inter,sans-serif;color:var(--text-mid)}
+#page-sim-lab-result .slp-pr-bar{height:6px;border-radius:999px;background:color-mix(in oklab,var(--border) 65%,transparent);position:relative}
+#page-sim-lab-result .slp-pr-bar i{position:absolute;left:0;top:0;bottom:0;border-radius:999px;transform-origin:left center;transform:scaleX(0);transition:transform 900ms cubic-bezier(.16,1,.3,1)}
+#page-sim-lab-result .slp-pr-bar i.is-in{transform:scaleX(1)}
+#page-sim-lab-result .slp-pr-bar i.under{background:var(--green,var(--pass))}
+#page-sim-lab-result .slp-pr-bar i.over{background:var(--yellow,var(--warn))}
+#page-sim-lab-result .slp-pr-bar .partick{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--text-mid)}
+#page-sim-lab-result .slp-pr-val{font:600 11px/1 Inter,sans-serif;text-align:right;font-variant-numeric:tabular-nums}
+#page-sim-lab-result .slp-pr-val.over{color:var(--yellow,var(--warn))}
+#page-sim-lab-result .slp-pr-val.under{color:var(--green,var(--pass))}
+@media (prefers-reduced-motion:reduce){#page-sim-lab-result .slp-par-fill,#page-sim-lab-result .slp-pr-bar i{transition:none;transform:scaleX(1)}}
