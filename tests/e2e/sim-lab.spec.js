@@ -848,3 +848,33 @@ test('exam palette: 4 states render (now/answered/not-yet/flagged) with ≥44pt 
   expect(r.w).toBeGreaterThanOrEqual(44);
   expect(r.h).toBeGreaterThanOrEqual(44);
 });
+
+test('exam nav: flag toggles + per-round answers persist across Prev/Next', async ({ page }) => {
+  await gotoApp(page);
+  const r = await page.evaluate(async () => {
+    window._quotaState = { tier: 'pro' };
+    window.CURRENT_CERT = 'netplus';
+    await new Promise(res => window._ensureSimLabLoaded(res));
+    window._slMeteredGenerate = async () => ({ bad: true });
+    window.simLabOpenEntry();
+    document.querySelector('#sle-mode .sle-seg-opt[data-mode="exam"]').click();
+    document.querySelector('.sle-chip[data-rounds="3"]').click();
+    window.simLabSessionStart();
+    await new Promise(res => setTimeout(res, 400));
+    const sess = window._simLab.examSession();
+    // flag round 0 via the footer button
+    document.querySelector('#sl-body .sl-flagbtn').click();
+    const flaggedAfter = sess.flagged.has(0);
+    // simulate an answer on round 0, navigate away, come back, answer retained
+    window.__slResponses = { st1: { order: ['z'] } };
+    window._simLab.examNav(1);      // leaves 0 → snapshots answer
+    const savedOn0 = !!(sess.answers[0] && sess.answers[0].st1);
+    window._simLab.examNav(0);      // back to 0 → seeds responses
+    const reseeded = !!(window.__slResponses && window.__slResponses.st1);
+    return { flaggedAfter, savedOn0, reseeded, idx: sess.idx };
+  });
+  expect(r.flaggedAfter).toBe(true);
+  expect(r.savedOn0).toBe(true);
+  expect(r.reseeded).toBe(true);
+  expect(r.idx).toBe(0);
+});

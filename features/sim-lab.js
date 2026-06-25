@@ -796,11 +796,80 @@
     host.appendChild(key);
   }
 
-  // Stub — Task 6 fills navigation logic.
-  function _slExamNav() {}
+  // Snapshot the current round's in-flight responses into answers[idx].
+  // The active mount writes responses into window.__slResponses (a plain object
+  // keyed by step id). Capturing it preserves edits across free navigation.
+  function _slCaptureAnswer(idx) {
+    if (window.__slResponses) _slSession.answers[idx] = Object.assign({}, window.__slResponses);
+  }
 
-  // Stub — filled in Task 6.
-  function _slRenderRound() {}
+  function _slExamNav(toIdx) {
+    if (!_slSession || toIdx < 0 || toIdx >= _slSession.rounds) return;
+    // Accrue active time for the round being left, then snapshot its answer.
+    _slSession.roundMs[_slSession.idx] += Math.max(0, Date.now() - _slSession.roundEnteredAt);
+    _slCaptureAnswer(_slSession.idx);
+    _slRenderRound(toIdx);
+  }
+
+  function _slRenderRound(idx) {
+    _slSession.idx = idx;
+    _slSession.visited.add(idx);
+    _slSession.view = 'round';
+    _slSession.roundEnteredAt = Date.now();
+    var scn = _slSession.scenarios[idx];
+    var topic = document.getElementById('sl-topic');
+    if (topic) topic.textContent = scn.topic || 'PBQ';
+    _slRenderPalette();
+    var body = document.getElementById('sl-body');
+    // Clear body so _slMountScenario + footer start fresh.
+    body.innerHTML = '';
+    // Reset the live responses object; _slMountScenario will populate it.
+    window.__slResponses = {};
+    _slMountScenario(body, scn, { onSubmit: function () {} }); // exam never per-round-submits
+    // Restore any saved answer so edits survive free navigation.
+    if (_slSession.answers[idx]) {
+      Object.assign(window.__slResponses, _slSession.answers[idx]);
+    }
+    _slRenderExamFooter(idx);
+  }
+
+  function _slRenderExamFooter(idx) {
+    var body = document.getElementById('sl-body');
+    // Remove any existing footer to avoid stacking on re-render (flag toggle).
+    var old = body.querySelector('.sl-examfoot');
+    if (old) old.remove();
+    var foot = _el('div', 'sl-examfoot');
+    var flagged = _slSession.flagged.has(idx);
+    var flag = _el('button', 'sl-flagbtn' + (flagged ? ' is-on' : ''),
+      '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V4M5 4h11l-2 4 2 4H5"></path></svg>' +
+      (flagged ? 'Flagged' : 'Flag'));
+    flag.setAttribute('type', 'button');
+    flag.addEventListener('click', function () { _slToggleFlag(idx); });
+    foot.appendChild(flag);
+    var nav = _el('span', 'sl-nav');
+    var prev = _el('button', 'sl-navbtn prev', '‹ Prev');
+    prev.setAttribute('type', 'button');
+    if (idx === 0) prev.setAttribute('disabled', 'disabled');
+    prev.addEventListener('click', function () { if (idx > 0) _slExamNav(idx - 1); });
+    var isLast = idx === _slSession.rounds - 1;
+    var next = _el('button', 'sl-navbtn next', isLast ? 'Review →' : 'Next ›');
+    next.setAttribute('type', 'button');
+    next.addEventListener('click', function () { if (isLast) _slRenderReview(); else _slExamNav(idx + 1); });
+    nav.appendChild(prev);
+    nav.appendChild(next);
+    foot.appendChild(nav);
+    body.appendChild(foot);
+  }
+
+  function _slToggleFlag(idx) {
+    if (_slSession.flagged.has(idx)) _slSession.flagged.delete(idx);
+    else _slSession.flagged.add(idx);
+    _slRenderPalette();
+    _slRenderExamFooter(idx);
+  }
+
+  // Stub — Task 7 implements the review body-state.
+  function _slRenderReview() {}
 
   function _slExamStart() {
     if (typeof window._slMeteredGenerate === 'function') window._simLab.__setFetcher(window._slMeteredGenerate);
@@ -1250,4 +1319,7 @@
   window._simLab.tickClock = _slTickClock;             // lets tests drive a tick after mocking Date.now
   window._simLab.examSession = function () { return _slSession; };
   window._simLab.renderPalette = _slRenderPalette;
+  window._simLab.examNav = _slExamNav;
+  window._simLab.toggleFlag = _slToggleFlag;
+  window._simLab.renderRound = _slRenderRound;
 })();
