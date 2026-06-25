@@ -112,6 +112,7 @@ npx playwright test              # E2E (tests/e2e/app.spec.js)
 
 | Version | Features Added |
 |---|---|
+| v7.57.1 | Sim Lab entry: cert-neutral Today's target (drop hardcoded Network+ that misled on Sec+) |
 | v7.57.0 | Sim Lab Exam mode (Pro): whole-session countdown + flag-and-return + pacing report; Sec+ 50-seed bank |
 | v7.56.0 | Sim Lab: multi-round sessions (pick 3/5, Pro 10) + prefetch + verdict summary + landing section |
 | v7.55.2 | Sim Lab: surface the drill in Home Practice (was orphaned on the unreachable drills page) |

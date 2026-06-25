@@ -1174,7 +1174,11 @@
     _slPickedRounds = 5;
     _slPickedMode = 'practice';
     var t = document.getElementById('sle-target');
-    if (t) t.textContent = 'Mixed · ' + ((window.CERT_PACK && window.CERT_PACK.meta && window.CERT_PACK.meta.examName) || 'Network+ N10-009');
+    if (t) {
+      // Cert-driven exam name; never hardcode a cert (was misleading "Network+ N10-009" on Sec+/other certs).
+      var slExam = (window.CERT_PACK && window.CERT_PACK.meta && window.CERT_PACK.meta.examName) || '';
+      t.textContent = slExam ? ('Mixed · ' + slExam) : 'Mixed';
+    }
     _slSyncRoundChips();
     _slSyncMode();
     // Real routing — showPage syncs the sidebar active state, topbar crumb,
