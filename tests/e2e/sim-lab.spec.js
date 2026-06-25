@@ -1142,3 +1142,30 @@ test('exam pace verdict: under-par shows "On exam pace", over-par shows coaching
   expect(r.overClass).toBe(true);
   expect(r.coaching).toContain('ran long. On test day that\'s the round to triage: flag it and move.');
 });
+
+// Task 10: simLabExit cleanup + exam chrome teardown
+test('exam exit: stops the clock and tears down exam chrome', async ({ page }) => {
+  await gotoApp(page);
+  const r = await page.evaluate(async () => {
+    window._quotaState = { tier: 'pro' };
+    window.CURRENT_CERT = 'netplus';
+    await new Promise(res => window._ensureSimLabLoaded(res));
+    window._slMeteredGenerate = async () => ({ bad: true });
+    window.simLabOpenEntry();
+    document.querySelector('#sle-mode .sle-seg-opt[data-mode="exam"]').click();
+    document.querySelector('.sle-chip[data-rounds="3"]').click();
+    window.simLabSessionStart();
+    await new Promise(res => setTimeout(res, 400));
+    window.simLabExit();
+    return {
+      session: window._simLab.examSession(),
+      badgeHidden: document.getElementById('sl-exam-badge').classList.contains('is-hidden'),
+      paletteHidden: document.getElementById('sl-palette').classList.contains('is-hidden'),
+      clockEmpty: document.getElementById('sl-clock-slot').innerHTML === ''
+    };
+  });
+  expect(r.session).toBe(null);
+  expect(r.badgeHidden).toBe(true);
+  expect(r.paletteHidden).toBe(true);
+  expect(r.clockEmpty).toBe(true);
+});

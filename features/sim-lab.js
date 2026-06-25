@@ -1298,10 +1298,14 @@
 
   function simLabExit() {
     if (_slTimer) { _slTimer.stop(); _slTimer = null; }
+    if (_slSession && _slSession.mode === 'exam') _slStopCountdown();   // clear interval + visibility/focus listeners
     _slMode = null;
     _slSession = null;
     var p = document.getElementById('sl-round-pill'); if (p) p.classList.add('is-hidden');
     var d = document.getElementById('sl-dots'); if (d) d.classList.add('is-hidden');
+    var badge = document.getElementById('sl-exam-badge'); if (badge) badge.classList.add('is-hidden');
+    var pal = document.getElementById('sl-palette'); if (pal) { pal.classList.add('is-hidden'); pal.innerHTML = ''; }
+    var clk = document.getElementById('sl-clock-slot'); if (clk) clk.innerHTML = '';
     // Return to the Home (setup) page: that's where the Sim Lab entry now lives.
     if (typeof showPage === 'function') { showPage('setup'); return; }
     // Safety no-op (showPage is always defined by app.js before features/sim-lab.js runs)
