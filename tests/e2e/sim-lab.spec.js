@@ -807,3 +807,44 @@ test('exam countdown: derived from deadline; amber latches; background expiry au
   expect(r.lowClass).toBe(true);
   expect(r.submitted).toBe(true);
 });
+
+test('exam palette: 4 states render (now/answered/not-yet/flagged) with ≥44pt squares', async ({ page }) => {
+  await gotoApp(page);
+  const r = await page.evaluate(async () => {
+    window._quotaState = { tier: 'pro' };
+    window.CURRENT_CERT = 'netplus';
+    await new Promise(res => window._ensureSimLabLoaded(res));
+    // build a minimal exam session with 3 rounds
+    const S = window._simLab;
+    const scns = [
+      { id: 's1', estMinutes: 6, topic: 'Routing' },
+      { id: 's2', estMinutes: 6, topic: 'Switching' },
+      { id: 's3', estMinutes: 6, topic: 'Security' }
+    ];
+    const sess = S.examBlankState(scns, 18 * 60000);
+    // prime the live session reference via examSession()
+    // inject into the module's internal _slSession by starting exam machinery
+    window.simLabOpenEntry();
+    document.querySelector('#sle-mode .sle-seg-opt[data-mode="exam"]').click();
+    document.querySelector('.sle-chip[data-rounds="3"]').click();
+    window.simLabSessionStart();
+    await new Promise(res => setTimeout(res, 400));
+    const liveSess = S.examSession();
+    // mark round 1 answered, round 2 flagged; current is 0
+    liveSess.answers[1] = { st1: { order: ['a'] } };
+    liveSess.flagged.add(2);
+    S.renderPalette();
+    const sq = document.querySelectorAll('#sl-palette .pq');
+    const now0 = sq[0].classList.contains('now');
+    const ans1 = sq[1].classList.contains('answered');
+    const flag2 = sq[2].classList.contains('flagged');
+    const rect = sq[0].getBoundingClientRect();
+    return { count: sq.length, now0, ans1, flag2, w: Math.round(rect.width), h: Math.round(rect.height) };
+  });
+  expect(r.count).toBe(3);
+  expect(r.now0).toBe(true);
+  expect(r.ans1).toBe(true);
+  expect(r.flag2).toBe(true);
+  expect(r.w).toBeGreaterThanOrEqual(44);
+  expect(r.h).toBeGreaterThanOrEqual(44);
+});

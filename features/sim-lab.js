@@ -754,7 +754,50 @@
   // Stub — Task 8 replaces with full submit logic.
   function _slExamSubmit() { if (window._simLab.__examSubmitSpy) window._simLab.__examSubmitSpy(); }
 
-  // Stub — filled in Tasks 5/6.
+  // Task 5 — palette helpers
+  function _slIsAnswered(idx) {
+    var a = _slSession.answers[idx];
+    if (!a) return false;
+    // any non-empty saved response object counts as answered
+    return Object.keys(a).some(function (k) {
+      var v = a[k];
+      if (v == null) return false;
+      if (Array.isArray(v)) return v.length > 0;
+      if (typeof v === 'object') return Object.keys(v).length > 0;
+      return String(v).trim().length > 0;
+    });
+  }
+
+  function _slRenderPalette() {
+    var host = document.getElementById('sl-palette');
+    if (!host) return;
+    host.classList.remove('is-hidden');
+    host.innerHTML = '';
+    _slSession.scenarios.forEach(function (scn, i) {
+      var cls = 'pq';
+      if (i === _slSession.idx) cls += ' now';
+      else if (_slIsAnswered(i)) cls += ' answered';
+      if (_slSession.flagged.has(i)) cls += ' flagged';
+      var sq = _el('button', cls, String(i + 1));
+      sq.setAttribute('type', 'button');
+      sq.setAttribute('data-jump', String(i));
+      sq.setAttribute('aria-label', 'Jump to round ' + (i + 1));
+      sq.addEventListener('click', function () { _slExamNav(i); });   // Task 6
+      host.appendChild(sq);
+    });
+    // legend (lifted copy)
+    var key = _el('div', 'sl-palette-key');
+    key.innerHTML = '<span><i class="kdot now"></i>This round</span>' +
+      '<span><i class="kdot answered"></i>Answered</span>' +
+      '<span><i class="kdot"></i>Not yet</span>' +
+      '<span><i class="kdot flag"></i>Flagged</span>';
+    host.appendChild(key);
+  }
+
+  // Stub — Task 6 fills navigation logic.
+  function _slExamNav() {}
+
+  // Stub — filled in Task 6.
   function _slRenderRound() {}
 
   function _slExamStart() {
@@ -1204,4 +1247,5 @@
   window._simLab.examGenerateAll = _slExamGenerateAll;
   window._simLab.tickClock = _slTickClock;             // lets tests drive a tick after mocking Date.now
   window._simLab.examSession = function () { return _slSession; };
+  window._simLab.renderPalette = _slRenderPalette;
 })();
