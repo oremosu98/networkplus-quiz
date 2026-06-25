@@ -938,7 +938,14 @@ test('exam review: counts answered/flagged/unanswered + tap-to-jump', async ({ p
     document.querySelector('#sle-mode .sle-seg-opt[data-mode="exam"]').click();
     document.querySelector('.sle-chip[data-rounds="3"]').click();
     window.simLabSessionStart();
-    await new Promise(res => setTimeout(res, 400));
+    await new Promise(res => {
+      const check = () => {
+        const s = window._simLab.examSession && window._simLab.examSession();
+        if (s && s.scenarios && s.scenarios.length > 0) return res();
+        setTimeout(check, 30);
+      };
+      check();
+    });
     const sess = window._simLab.examSession();
     const roundCount = sess.scenarios.length;
     // Mark round 0 as answered (direct write into answers array)
@@ -991,7 +998,14 @@ test('exam review: submit with unanswered rounds triggers confirm dialog', async
     document.querySelector('#sle-mode .sle-seg-opt[data-mode="exam"]').click();
     document.querySelector('.sle-chip[data-rounds="3"]').click();
     window.simLabSessionStart();
-    await new Promise(res => setTimeout(res, 400));
+    await new Promise(res => {
+      const check = () => {
+        const s = window._simLab.examSession && window._simLab.examSession();
+        if (s && s.scenarios && s.scenarios.length > 0) return res();
+        setTimeout(check, 30);
+      };
+      check();
+    });
     const sess = window._simLab.examSession();
     const roundCount = sess.scenarios.length;
     // Leave all rounds unanswered, then open review

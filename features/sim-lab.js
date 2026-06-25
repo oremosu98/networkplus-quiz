@@ -878,8 +878,11 @@
 
   function _slExamNav(toIdx) {
     if (!_slSession || toIdx < 0 || toIdx >= _slSession.rounds) return;
-    // Accrue active time for the round being left, then snapshot its answer.
-    _slSession.roundMs[_slSession.idx] += Math.max(0, Date.now() - _slSession.roundEnteredAt);
+    // Accrue active time only when leaving an actual round, not the review screen
+    // (spec §3.5: review/idle time must NOT be attributed to any round).
+    if (_slSession.view === 'round') {
+      _slSession.roundMs[_slSession.idx] += Math.max(0, Date.now() - _slSession.roundEnteredAt);
+    }
     _slCaptureAnswer(_slSession.idx);
     _slRenderRound(toIdx);
   }
