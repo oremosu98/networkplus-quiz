@@ -816,8 +816,9 @@
   // suppression in Task 6. Here: render + advance on submit.
   function _dlAdvance() {
     _dlSession.idx++;
-    if (_dlSession.idx >= _dlSession.rounds) { _dlRenderResult(); }
-    else { _dlRunRound(); }
+    if (_dlSession.idx >= _dlSession.rounds) {
+      if (_dlSession.mode === 'exam') { _dlExamSubmit(false); } else { _dlRenderResult(); }
+    } else { _dlRunRound(); }
   }
 
   function _dlRunRound() {
@@ -850,8 +851,40 @@
     });
   }
 
-  function _dlStartExamStyle() { _dlRunRound(); }   // wired in Task 6
-  function _dlRenderResult() {}                       // wired in Task 8
+  // Budget = Σ per-decision estMinutes × 1.0 × 60000 (spec §3.6 — no tightening v1).
+  function _dlExamBudgetMs(scenarios) {
+    var minutes = scenarios.reduce(function (a, s) {
+      return a + (typeof s.estMinutes === 'number' && s.estMinutes > 0 ? s.estMinutes : 3);
+    }, 0);
+    return Math.round(minutes * 60000);
+  }
+
+  function _dlStartExamStyle() {
+    _dlSession.budgetMs = _dlExamBudgetMs(_dlSession.scenarios);
+    _dlSession.deadlineMs = Date.now() + _dlSession.budgetMs;
+    _slStartCountdown(_dlSession.deadlineMs);   // shared wall-clock countdown
+    _dlRunRound();                               // feedback suppressed inside (mode==='exam')
+  }
+
+  // Time-up or last-round submit → score everything + route to verdict (retro-reveal lives there).
+  function _dlExamSubmit(timeUp) {
+    if (!_dlSession || _dlSession.__submitted) return;
+    _dlSession.__submitted = true;
+    _slStopCountdown();
+    // any rounds not yet answered score as missed (responses absent)
+    while (_dlSession.results.length < _dlSession.rounds) {
+      var i = _dlSession.results.length;
+      var scn = _dlSession.scenarios[i];
+      var score = simLabScoreScenario(scn, {});
+      _dlSession.results.push({ scenario: scn, score: score, passed: false, responses: {} });
+    }
+    _dlSession.timeUp = !!timeUp;
+    _dlRenderResult();
+  }
+
+  function _dlRenderResult() {                        // verdict content wired in Task 8
+    if (typeof showPage === 'function') showPage('decision-lab-result');
+  }
 
   function _dlSessionStartDispatch() {
     if (_dlPickedMode === 'exam' && !_slIsPro()) { window._gateProOnly('Decision Lab', _dlGateCopy('exam')); return; }
@@ -970,16 +1003,27 @@
   // Task 4: wall-clock countdown handlers (removed after _slStopCountdown)
   var _slVisHandler = null, _slFocusHandler = null;
 
+  // The countdown serves whichever exam-style session is active. Sim Lab uses
+  // _slSession (mode 'exam'); Decision Lab uses _dlSession (mode 'exam'). One
+  // accessor keeps _slStartCountdown/_slTickClock shared (spec §3.1).
+  function _activeExamSession() {
+    if (_slSession && _slSession.mode === 'exam') return _slSession;
+    if (_dlSession && _dlSession.mode === 'exam') return _dlSession;
+    return null;
+  }
+
   function _slStartCountdown(deadlineMs) {
     _slStopCountdown();
-    var slot = document.getElementById('sl-clock-slot');
+    var sess = _activeExamSession(); if (!sess) return;
+    var slotId = (sess === _dlSession) ? 'dl-clock-slot' : 'sl-clock-slot';
+    var slot = document.getElementById(slotId);
     if (!slot) return;
     slot.innerHTML = '';
     var clk = _el('span', 'sl-clock');
     clk.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="8"></circle><path d="M12 9v4l2 2M9 2h6"></path></svg><span class="sl-clock-t">' +
       _slFmtClock(deadlineMs - Date.now()) + '</span> <span class="cap">left</span>';
     slot.appendChild(clk);
-    _slSession.clock = setInterval(_slTickClock, 1000);
+    sess.clock = setInterval(_slTickClock, 1000);
     _slTickClock();
     _slVisHandler = function () { if (document.visibilityState === 'visible') _slTickClock(); };
     _slFocusHandler = function () { _slTickClock(); };
@@ -988,7 +1032,7 @@
   }
 
   function _slStopCountdown() {
-    if (_slSession && _slSession.clock) { clearInterval(_slSession.clock); _slSession.clock = null; }
+    [_slSession, _dlSession].forEach(function (s) { if (s && s.clock) { clearInterval(s.clock); s.clock = null; } });
     if (_slVisHandler) { document.removeEventListener('visibilitychange', _slVisHandler); _slVisHandler = null; }
     if (_slFocusHandler) { window.removeEventListener('focus', _slFocusHandler); _slFocusHandler = null; }
   }
@@ -996,17 +1040,20 @@
   // Build the clock node once; ticks only mutate the time string (digits never
   // transition — §6.5). Amber latches via .is-low.
   function _slTickClock() {
-    if (!_slSession || _slSession.mode !== 'exam') return;
-    var remaining = _slSession.deadlineMs - Date.now();   // wall-clock truth, never decremented
-    var clk = document.querySelector('#sl-clock-slot .sl-clock');
+    var sess = _activeExamSession(); if (!sess) return;
+    var remaining = sess.deadlineMs - Date.now();   // wall-clock truth, never decremented
+    var clk = document.querySelector('.sl-clock');
     var t = clk && clk.querySelector('.sl-clock-t');
     if (t) t.textContent = _slFmtClock(Math.max(0, remaining));
     // amber latch at ≤10% remaining (one-way)
-    if (!_slSession.amber && remaining <= _slSession.budgetMs * 0.10) {
-      _slSession.amber = true;
+    if (!sess.amber && remaining <= sess.budgetMs * 0.10) {
+      sess.amber = true;
       if (clk) clk.classList.add('is-low');
     }
-    if (remaining <= 0) { _slStopCountdown(); _slExamSubmit(true); }   // time-up (Task 8); reason='time'
+    if (remaining <= 0) {
+      _slStopCountdown();
+      if (sess === _dlSession) _dlExamSubmit(true); else _slExamSubmit(true);
+    }
   }
 
   function _slExamShowExamChrome() {
@@ -1842,4 +1889,6 @@
   window.decisionLabSessionStart = _dlSessionStartDispatch;
   window._simLab.dlBuildSet = _dlBuildSet;
   window._simLab.dlSession = function () { return _dlSession; };
+  window._simLab.dlExamSubmit = function (t) { _dlExamSubmit(t); };
+  window._simLab.dlTick = _slTickClock;
 })();

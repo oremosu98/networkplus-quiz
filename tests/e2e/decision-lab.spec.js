@@ -207,3 +207,35 @@ test('dl practice grade: submitting a wrong pick reveals per-option why + teach,
   expect(r.idxBefore).toBe(0);
   expect(r.idxAfter).toBe(1);
 });
+
+test('dl exam-style: suppresses per-round feedback; countdown time-up auto-submits to verdict', async ({ page }) => {
+  await gotoApp(page);
+  await installSeedFixture(page, 'DECISION_LAB_SEED_AZ900', 5);
+  const r = await page.evaluate(async () => {
+    window._quotaState = { tier: 'pro' };
+    window.CURRENT_CERT = 'az900';
+    window.CERT_PACK = { meta: { name: 'Azure Fundamentals', code: 'AZ-900' } };
+    const realNow = Date.now; const base = realNow.call(Date); let nowVal = base; Date.now = () => nowVal;
+    window.decisionLabOpenEntry();
+    document.querySelector('#dl-mode .dl-seg-opt[data-mode="exam"]').click();
+    document.querySelector('#dl-decisions .dl-chip[data-decisions="5"]').click();
+    window.decisionLabSessionStart();
+    const sess = window._simLab.dlSession();
+    const clockShown = !!document.querySelector('#dl-clock-slot .sl-clock');
+    // submit round 1 — exam-style must NOT reveal feedback
+    document.querySelector('#dl-body .sl-analyze-line').click();
+    document.querySelector('#dl-body [data-action="simLabSubmitScenario"]').click();
+    const noReveal = !document.querySelector('#dl-body .dl-graded') && sess.idx === 1;
+    // jump past the deadline + tick → auto-submit to verdict
+    nowVal = base + sess.budgetMs + 5000;
+    window._simLab.dlTick();
+    Date.now = realNow;
+    return { clockShown, noReveal, results: sess.results.length, timeUp: sess.timeUp };
+  });
+  // _dlRenderResult navigates to the result page asynchronously (showPage transition)
+  await page.waitForFunction(() => document.getElementById('page-decision-lab-result').classList.contains('active'));
+  expect(r.clockShown).toBe(true);
+  expect(r.noReveal).toBe(true);
+  expect(r.results).toBe(5);
+  expect(r.timeUp).toBe(true);
+});
