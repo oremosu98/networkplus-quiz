@@ -849,6 +849,62 @@
         if (next.scrollIntoView) next.scrollIntoView({ block: 'nearest' });
       }
     });
+    // Shared-responsibility sorter: if the round's step is a categorize with a
+    // services array, mount the service selector that shifts the boundary (Task 7).
+    var first = scn.steps[0];
+    if (first && first.type === 'categorize' && first.payload && first.payload.services) {
+      var host2 = body.querySelector('.sl-scenario') || body;
+      _dlBindServiceSelector(host2, first);
+    }
+  }
+
+  // Shared-responsibility sorter (spec §7). The step is a normal `categorize`
+  // step PLUS payload.services: [{ id, label, map:{itemId:bucketId} }]. Selecting
+  // a service swaps the step's answer map to that service's boundary (the
+  // boundary-shift) and re-grades on Submit. Placed tokens follow the new map.
+  function _dlBindServiceSelector(host, step) {
+    var services = step.payload && step.payload.services;
+    if (!Array.isArray(services) || !services.length) return;
+    var bar = _el('div', 'dl-srv-sel');
+    var active = 0;
+    services.forEach(function (svc, i) {
+      var b = _el('button', 'dl-srv' + (i === 0 ? ' on' : ''), _esc(svc.label));
+      b.setAttribute('type', 'button'); b.setAttribute('data-svc', svc.id);
+      b.addEventListener('click', function () {
+        if (active === i) return;
+        active = i;
+        Array.prototype.forEach.call(bar.children, function (c, n) { c.classList.toggle('on', n === i); });
+        // boundary-shift: swap the answer map so Submit grades the new service.
+        step.answer = step.answer || {};
+        step.answer.map = Object.assign({}, services[i].map);
+        _dlReplaceTokens(host, step, services[i].map);
+      });
+      bar.appendChild(b);
+    });
+    // initial boundary = first service
+    step.answer = step.answer || {};
+    step.answer.map = Object.assign({}, services[0].map);
+    var stepEl = host.querySelector('.sl-cat');
+    if (stepEl && stepEl.parentNode) stepEl.parentNode.insertBefore(bar, stepEl);
+    else host.insertBefore(bar, host.firstChild);
+    var shift = _el('div', 'dl-shift',
+      '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h18M14 7l5 5-5 5"></path></svg>' +
+      'Switch the service and the boundary moves. That shift is the trap.');
+    host.appendChild(shift);
+  }
+
+  // Move already-placed tokens (those sitting inside a drop column) to the column
+  // the new boundary map expects. The graded response is the learner's placement;
+  // this keeps the visible board consistent with the active service's boundary.
+  function _dlReplaceTokens(host, step, map) {
+    Object.keys(map).forEach(function (itemId) {
+      var item = host.querySelector('.sl-chip[data-item="' + _slAttr(itemId) + '"]');
+      var col = host.querySelector('.sl-cat-drop[data-target="' + _slAttr(map[itemId]) + '"]');
+      if (item && col && item.parentNode && item.parentNode.classList &&
+          item.parentNode.classList.contains('sl-cat-drop') && item.parentNode !== col) {
+        col.appendChild(item);
+      }
+    });
   }
 
   // Budget = Σ per-decision estMinutes × 1.0 × 60000 (spec §3.6 — no tightening v1).

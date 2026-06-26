@@ -239,3 +239,44 @@ test('dl exam-style: suppresses per-round feedback; countdown time-up auto-submi
   expect(r.results).toBe(5);
   expect(r.timeUp).toBe(true);
 });
+
+test('dl sorter: service selector swaps the boundary and re-grades on submit', async ({ page }) => {
+  await gotoApp(page);
+  const r = await page.evaluate(async () => {
+    // a single-scenario fixture whose only step is a shared-responsibility categorize
+    window.DECISION_LAB_SEED_AZ900 = [{
+      id: 'sorter1', cert: 'az900', objective: '2.1', topic: 'Shared responsibility',
+      title: 'Who owns it', scenario: 'Sort each task under who owns it.', estMinutes: 2,
+      family: 'Shared responsibility',
+      steps: [{
+        id: 's1', type: 'categorize', points: 1, prompt: 'Who is responsible?',
+        explanation: 'The service tier moves the line.',
+        payload: {
+          items: [{ id: 'os', label: 'Patch the guest OS' }],
+          buckets: [{ id: 'cust', label: 'Customer' }, { id: 'aws', label: 'AWS' }],
+          services: [
+            { id: 'ec2', label: 'EC2', map: { os: 'cust' } },
+            { id: 'rds', label: 'RDS (managed)', map: { os: 'aws' } }
+          ]
+        },
+        answer: { map: { os: 'cust' } }
+      }]
+    }];
+    window._quotaState = { tier: 'pro' };
+    window.CURRENT_CERT = 'az900';
+    window.CERT_PACK = { meta: { name: 'Azure Fundamentals', code: 'AZ-900' } };
+    window.decisionLabOpenEntry();
+    document.querySelector('#dl-decisions .dl-chip[data-decisions="5"]').click();
+    window.decisionLabSessionStart();
+    const step = window._simLab.dlSession().scenarios[0].steps[0];
+    const initialMap = JSON.stringify(step.answer.map);
+    const srvShown = !!document.querySelector('#dl-body .dl-srv-sel');
+    document.querySelectorAll('#dl-body .dl-srv')[1].click();
+    const shiftedMap = JSON.stringify(step.answer.map);
+    return { srvShown, initialMap, shiftedMap, hasShiftNote: !!document.querySelector('#dl-body .dl-shift') };
+  });
+  expect(r.srvShown).toBe(true);
+  expect(r.initialMap).toBe('{"os":"cust"}');
+  expect(r.shiftedMap).toBe('{"os":"aws"}');
+  expect(r.hasShiftNote).toBe(true);
+});
