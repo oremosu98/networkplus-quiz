@@ -1851,6 +1851,24 @@
   </div>
 </div>
 
+<!-- Decision Lab: runner -->
+<div id="page-decision-lab" class="page">
+  <div class="dl-shell">
+    <div class="dl-sbar">
+      <span class="dl-sbar-strip">Decision Lab</span>
+      <span class="dl-round-pill is-hidden" id="dl-round-pill">Decision 1 of 10</span>
+      <span id="dl-clock-slot"></span>
+      <button type="button" class="btn gnt-ghost" data-action="decisionLabExit">Leave</button>
+    </div>
+    <div class="dl-dots is-hidden" id="dl-dots" aria-hidden="true"></div>
+    <div id="dl-body"></div>
+  </div>
+</div>
+
+<div id="page-decision-lab-result" class="page">
+  <div class="gnt-shell gnt-shell-result" id="dl-result-root"></div>
+</div>
+
 <!-- v4.63.0: import map for the 3D View mode (issue #199). Resolves bare
      `three` + `three/addons/*` imports in vendored files + tb3d.js. Loaded
      BEFORE app.js so tbOpen3DView's dynamic import() picks it up. Three.js

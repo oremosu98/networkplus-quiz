@@ -758,7 +758,91 @@
     return 'Mixed';
   }
 
-  function _dlSessionStartDispatch() {}  // wired in Task 4
+  // --- Decision Lab runner / session (Task 4) ---
+  var _dlSession = null;
+
+  // Build a set of `count` Decision Lab scenarios for `cert` from _dlBank,
+  // no-repeat, rotating by minute so re-runs vary. Returns [] if the bank is
+  // empty (the runner then shows the empty state).
+  function _dlBuildSet(cert, count) {
+    var bank = _dlBank(cert).filter(function (s) { return simLabValidateScenario(s).ok; });
+    if (!bank.length) return [];
+    var start = (new Date().getMinutes()) % bank.length;
+    var out = [];
+    for (var i = 0; i < bank.length && out.length < count; i++) {
+      out.push(bank[(start + i) % bank.length]);
+    }
+    return out;
+  }
+
+  function _dlUpdateChrome() {
+    var pill = document.getElementById('dl-round-pill');
+    if (pill) {
+      pill.classList.remove('is-hidden');
+      pill.textContent = 'Decision ' + (_dlSession.idx + 1) + ' of ' + _dlSession.rounds;
+    }
+    var dots = document.getElementById('dl-dots');
+    if (dots) {
+      dots.classList.remove('is-hidden');
+      dots.innerHTML = '';
+      for (var i = 0; i < _dlSession.rounds; i++) {
+        var cls = 'dl-dot' + (i < _dlSession.idx ? ' done' : (i === _dlSession.idx ? ' now' : ''));
+        dots.appendChild(_el('span', cls));
+      }
+    }
+  }
+
+  function _dlSessionStart() {
+    var cert = window.CURRENT_CERT || 'az900';
+    var set = _dlBuildSet(cert, _dlPickedDecisions);
+    _dlSession = {
+      mode: _dlPickedMode, rounds: set.length, idx: 0, pro: _slIsPro(),
+      cert: cert, scenarios: set, results: [],
+      deadlineMs: 0, budgetMs: 0, clock: null, amber: false, view: 'round'
+    };
+    if (typeof showPage === 'function') showPage('decision-lab');
+    if (!set.length) { _dlRenderEmpty(); return; }
+    if (_dlSession.mode === 'exam') { _dlStartExamStyle(); return; }   // Task 6
+    _dlRunRound();
+  }
+
+  function _dlRenderEmpty() {
+    var body = document.getElementById('dl-body');
+    if (body) body.innerHTML = '<p class="dl-scn">No decision scenarios are loaded for this cert yet.</p>';
+  }
+
+  // Render the current round: scenario->pick analyze via _slMountScenario, with
+  // Decision Lab chrome. Practice grade-reveal is wired in Task 5; exam-style
+  // suppression in Task 6. Here: render + advance on submit.
+  function _dlRunRound() {
+    _dlUpdateChrome();
+    var scn = _dlSession.scenarios[_dlSession.idx];
+    var body = document.getElementById('dl-body');
+    body.innerHTML = '';
+    _slMountScenario(body, scn, {
+      onSubmit: function (result) {
+        _dlSession.results.push({ scenario: scn, score: result, passed: result.fraction === 1, responses: result.responses });
+        _dlSession.idx++;
+        if (_dlSession.idx >= _dlSession.rounds) { _dlRenderResult(); }   // Task 8
+        else { _dlRunRound(); }
+      }
+    });
+  }
+
+  function _dlStartExamStyle() { _dlRunRound(); }   // wired in Task 6
+  function _dlRenderResult() {}                       // wired in Task 8
+
+  function _dlSessionStartDispatch() {
+    if (_dlPickedMode === 'exam' && !_slIsPro()) { window._gateProOnly('Decision Lab', _dlGateCopy('exam')); return; }
+    if (_dlPickedDecisions === 20 && !_slIsPro()) { window._gateProOnly('Decision Lab', _dlGateCopy('full20')); return; }
+    // free practice 1/day cap (Task 9) — checked here for the practice path
+    if (_dlPickedMode === 'practice' && !_slIsPro() &&
+        typeof window._dlFreeRunsToday === 'function' && window._dlFreeRunsToday() >= 1) {
+      window._gateProOnly('Decision Lab', _dlGateCopy('second')); return;
+    }
+    if (_dlPickedMode === 'practice' && !_slIsPro() && typeof window._dlBumpFreeRun === 'function') window._dlBumpFreeRun();
+    return _dlSessionStart();
+  }
 
   function decisionLabOpenEntry() {
     _dlPickedMode = 'practice';
@@ -1735,4 +1819,6 @@
   window.decisionLabOpenEntry = decisionLabOpenEntry;
   window.decisionLabEntryBack = decisionLabEntryBack;
   window.decisionLabSessionStart = _dlSessionStartDispatch;
+  window._simLab.dlBuildSet = _dlBuildSet;
+  window._simLab.dlSession = function () { return _dlSession; };
 })();

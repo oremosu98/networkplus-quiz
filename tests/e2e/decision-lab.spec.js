@@ -21,7 +21,7 @@ function installSeedFixture(page, globalName, count) {
         estMinutes: 2, pair: 'Pricing Calculator vs TCO Calculator',
         family: 'Cost & pricing tools',
         steps: [{
-          type: 'analyze', points: 1, prompt: 'Pick the best service',
+          id: 's1', type: 'analyze', points: 1, prompt: 'Pick the best service',
           explanation: 'Compare two worlds.',
           payload: { multi: false, lines: [
             { id: 'a', text: 'Pricing Calculator', why: 'No on-prem baseline.' },
@@ -143,4 +143,35 @@ test('dl entry: tile gated to _DL_CERTS; free taps Exam-style/20 gate; Pro toggl
   expect(r.examOn).toBe(true);
   expect(r.set20On).toBe(true);
   expect(r.target).toContain('Azure Fundamentals AZ-900');
+});
+
+test('dl runner: builds set from bank, renders Decision N of M + scenario, advances on submit', async ({ page }) => {
+  await gotoApp(page);
+  await installSeedFixture(page, 'DECISION_LAB_SEED_AZ900', 12);
+  await page.evaluate(async () => {
+    window._quotaState = { tier: 'pro' };
+    window.CURRENT_CERT = 'az900';
+    window.CERT_PACK = { meta: { name: 'Azure Fundamentals', code: 'AZ-900' } };
+    window.decisionLabOpenEntry();
+    document.querySelector('#dl-decisions .dl-chip[data-decisions="5"]').click();
+    window.decisionLabSessionStart();
+  });
+  // showPage activates the target page asynchronously (page-exit transition),
+  // so wait for the runner page to become active before asserting.
+  await page.waitForFunction(() => document.getElementById('page-decision-lab').classList.contains('active'));
+  const r = await page.evaluate(() => {
+    const sess = window._simLab.dlSession();
+    return {
+      rounds: sess.rounds,
+      onPage: document.getElementById('page-decision-lab').classList.contains('active'),
+      pill: document.getElementById('dl-round-pill').textContent,
+      dots: document.querySelectorAll('#dl-dots .dl-dot').length,
+      hasScenario: !!document.querySelector('#dl-body .sl-scenario')
+    };
+  });
+  expect(r.rounds).toBe(5);
+  expect(r.onPage).toBe(true);
+  expect(r.pill).toBe('Decision 1 of 5');
+  expect(r.dots).toBe(5);
+  expect(r.hasScenario).toBe(true);
 });
