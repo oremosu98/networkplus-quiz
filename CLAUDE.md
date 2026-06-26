@@ -112,6 +112,7 @@ npx playwright test              # E2E (tests/e2e/app.spec.js)
 
 | Version | Features Added |
 |---|---|
+| v7.59.0 | Decision Lab: cloud-cert scenario decision drill (engine + 4 seed banks) |
 | v7.58.0 | Sim Lab: A+ Core 1 (220-1201) + Core 2 (220-1202) PBQ seed banks live (cert rollout) |
 | v7.57.2 | Sim Lab entry target: derive cert label from pack name+code (Sec+ now shows Security+ SY0-701, not bare Mixed) |
 | v7.57.1 | Sim Lab entry: cert-neutral Today's target (drop hardcoded Network+ that misled on Sec+) |
