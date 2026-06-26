@@ -411,6 +411,7 @@
                unhides on CompTIA certs and sets the daily-state subtitle. The feature module
                lazy-loads only on click via startSimLabHome(). -->
           <button type="button" class="opt is-hidden" id="sl-home-opt" onclick="startSimLabHome()"><span class="on">Sim Lab</span><span class="od" id="sl-home-sub">Hands-on PBQs, one free sim a day</span></button>
+          <button type="button" class="opt is-hidden" id="dl-home-opt" onclick="startDecisionLabHome()"><span class="on">Decision Lab</span><span class="od" id="dl-home-sub">Read the constraint, kill the look-alikes</span></button>
         </div>
       </section>
 
@@ -1811,6 +1812,42 @@
     </div>
     <button type="button" class="btn btn-primary gnt-cta" id="sle-start" data-action="simLabSessionStart">Start the sim →</button>
     <div class="sle-note is-hidden" id="sle-note">Pro · one clock for all 5 rounds · budget 25:00 (tightened to exam pace)</div>
+  </div>
+</div>
+
+<!-- Decision Lab — entry screen (cloud-cert scenario drill) -->
+<div id="page-decision-lab-entry" class="page">
+  <div class="gnt-shell">
+    <div class="dl-hdr">
+      <button type="button" class="back-btn" data-action="decisionLabEntryBack" aria-label="Back"><svg viewBox="0 0 24 24" aria-hidden="true" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"></path></svg><span class="back-btn-label">Back</span></button>
+      <h1 class="gnt-hdr-title">Decision Lab</h1>
+      <span class="pro-lock-pill tier-free-only"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>Pro</span>
+    </div>
+    <div class="gnt-mark" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 3v6a3 3 0 0 0 3 3h6"></path><path d="M18 9V3M15 6l3-3 3 3M18 12v9"></path></svg></div>
+    <h2 class="gnt-entry-title">Make the <i>right call</i></h2>
+    <p class="gnt-entry-lede">Stop getting blindsided by look-alike service questions. Three of four options look right; the buried constraint picks the winner. Practice shows the why; exam-style hides it and starts the clock.</p>
+    <div class="dl-pick-k">Mode</div>
+    <div class="dl-seg" id="dl-mode" role="group" aria-label="Practice or Exam-style mode">
+      <button type="button" class="dl-seg-opt is-on" data-mode="practice" aria-pressed="true">
+        <span class="t">Practice</span><span class="d">Why each wrong option is wrong</span>
+      </button>
+      <button type="button" class="dl-seg-opt" data-mode="exam" aria-pressed="false">
+        <span class="t"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="8"></circle><path d="M12 9v4l2 2M9 2h6"></path></svg> Exam-style<span class="dl-seg-pro">Pro</span></span>
+        <span class="d">Timed · no feedback till the end</span>
+      </button>
+    </div>
+    <div class="dl-target">
+      <div class="dl-target-k">Today's target</div>
+      <div class="dl-target-v" id="dl-target">Mixed · Azure AZ-900</div>
+    </div>
+    <div class="dl-pick-k">How many decisions</div>
+    <div class="dl-chips" id="dl-decisions" role="group" aria-label="Number of decisions">
+      <button type="button" class="dl-chip" data-decisions="5" aria-pressed="false">5</button>
+      <button type="button" class="dl-chip is-on" data-decisions="10" aria-pressed="true">10</button>
+      <button type="button" class="dl-chip dl-chip-pro" data-decisions="20" aria-pressed="false">20 · full set</button>
+    </div>
+    <button type="button" class="btn btn-primary gnt-cta" id="dl-start" data-action="decisionLabSessionStart">Start the drill →</button>
+    <div class="dl-note">Free · 1 set a day, full reasoning on every miss. Pro · unlimited sets, exam-style timing, and weak-spots that follow you across sessions</div>
   </div>
 </div>
 

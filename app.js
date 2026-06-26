@@ -2483,6 +2483,7 @@ function showPage(name) {
   // without loading the feature module (cert/pro/daily-state are in app.js); the
   // module lazy-loads on click via startSimLabHome().
   if (name === 'setup' && typeof renderSimLabHomeEntry === 'function') renderSimLabHomeEntry();
+  if (name === 'setup' && typeof renderDecisionLabHomeEntry === 'function') renderDecisionLabHomeEntry();
   // v4.53.0: auto-close mobile drawer when navigating
   try { document.body.classList.remove('sidebar-open'); } catch (_) {}
   // v4.85.16: clear any stale .err-box banners on every page change so a
@@ -7126,13 +7127,41 @@ function startSimLabHome() {
 }
 window.renderSimLabHomeEntry = renderSimLabHomeEntry;
 window.startSimLabHome = startSimLabHome;
+
+// Decision Lab Home entry (Home → Practice). Renders WITHOUT loading the module
+// (cert/pro/daily-state live here); the module lazy-loads on click.
+const _DL_CERTS = ['az900', 'ai900', 'sc900', 'clfc02'];
+function renderDecisionLabHomeEntry() {
+  const btn = document.getElementById('dl-home-opt');
+  if (!btn) return;
+  if (_DL_CERTS.indexOf(window.CURRENT_CERT) === -1) { btn.classList.add('is-hidden'); return; }
+  btn.classList.remove('is-hidden');
+  const sub = document.getElementById('dl-home-sub');
+  if (sub) {
+    const pro = !!(typeof _quotaState !== 'undefined' && _quotaState && (_quotaState.tier === 'pro' || _quotaState.tier === 'admin'));
+    if (pro) { sub.textContent = 'Read the constraint, kill the look-alikes'; }
+    else {
+      const used = (typeof _dlFreeRunsToday === 'function') ? _dlFreeRunsToday() : 0;
+      sub.textContent = used >= 1 ? 'Done today · Pro for more' : 'Read the constraint · one free set a day';
+    }
+  }
+}
+function startDecisionLabHome() {
+  if (typeof _ensureDecisionLabLoaded !== 'function') return;
+  _ensureDecisionLabLoaded(function () {
+    if (typeof window.decisionLabOpenEntry === 'function') window.decisionLabOpenEntry();
+  });
+}
+window.renderDecisionLabHomeEntry = renderDecisionLabHomeEntry;
+window.startDecisionLabHome = startDecisionLabHome;
 // Initial paint: the Home page is default-active at boot (no showPage('setup')
 // call fires on first load), so render the entry once the DOM is ready. The
 // active cert is resolved before app.js runs, so the cert gate is correct here.
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', function () { try { renderSimLabHomeEntry(); } catch (_) {} });
+  document.addEventListener('DOMContentLoaded', function () { try { renderSimLabHomeEntry(); } catch (_) {} try { renderDecisionLabHomeEntry(); } catch (_) {} });
 } else {
   try { renderSimLabHomeEntry(); } catch (_) {}
+  try { renderDecisionLabHomeEntry(); } catch (_) {}
 }
 
 // Thin metered-generate wrapper for Sim Lab. Reuses the exact same transport

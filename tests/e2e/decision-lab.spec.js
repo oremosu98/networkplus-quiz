@@ -104,3 +104,43 @@ test('dl analyze why: graded reveal shows per-option why (with) and stays clean 
   expect(r.teachText).toContain('The tell');
   expect(r.noWhyClean).toBe(true);
 });
+
+test('dl entry: tile gated to _DL_CERTS; free taps Exam-style/20 gate; Pro toggles; copy verbatim', async ({ page }) => {
+  await gotoApp(page);
+  const r = await page.evaluate(async () => {
+    // Home tile gating
+    window.CURRENT_CERT = 'netplus';
+    window.renderDecisionLabHomeEntry();
+    const hiddenOnNet = document.getElementById('dl-home-opt').classList.contains('is-hidden');
+    window.CURRENT_CERT = 'az900';
+    window.CERT_PACK = { meta: { name: 'Azure Fundamentals', code: 'AZ-900' } };
+    window.renderDecisionLabHomeEntry();
+    const shownOnAz = !document.getElementById('dl-home-opt').classList.contains('is-hidden');
+    // free → Exam-style + 20 gate
+    window._quotaState = { tier: 'free' };
+    let gate = 0, gTitle = '', gBody = '';
+    window._gateProOnly = (feat, opts) => { gate++; gTitle = opts && opts.title; gBody = opts && opts.body; return false; };
+    window.decisionLabOpenEntry();
+    document.querySelector('#dl-mode .dl-seg-opt[data-mode="exam"]').click();
+    const examGated = gate === 1 && gTitle === 'Exam-style mode is Pro' && /never gives you the clock back/.test(gBody);
+    const stillPractice = document.querySelector('#dl-mode .dl-seg-opt[data-mode="practice"]').classList.contains('is-on');
+    document.querySelector('#dl-decisions .dl-chip[data-decisions="20"]').click();
+    const set20Gated = gate === 2 && gTitle === 'The full 20-decision set is Pro';
+    // Pro → toggles work
+    window._quotaState = { tier: 'pro' };
+    document.querySelector('#dl-mode .dl-seg-opt[data-mode="exam"]').click();
+    const examOn = document.querySelector('#dl-mode .dl-seg-opt[data-mode="exam"]').classList.contains('is-on');
+    document.querySelector('#dl-decisions .dl-chip[data-decisions="20"]').click();
+    const set20On = document.querySelector('#dl-decisions .dl-chip[data-decisions="20"]').classList.contains('is-on');
+    const target = document.getElementById('dl-target').textContent;
+    return { hiddenOnNet, shownOnAz, examGated, stillPractice, set20Gated, examOn, set20On, target };
+  });
+  expect(r.hiddenOnNet).toBe(true);
+  expect(r.shownOnAz).toBe(true);
+  expect(r.examGated).toBe(true);
+  expect(r.stillPractice).toBe(true);
+  expect(r.set20Gated).toBe(true);
+  expect(r.examOn).toBe(true);
+  expect(r.set20On).toBe(true);
+  expect(r.target).toContain('Azure Fundamentals AZ-900');
+});

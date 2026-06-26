@@ -691,6 +691,84 @@
   var _slPickedRounds = 5;
   var _slPickedMode = 'practice';
 
+  // --- Decision Lab entry state + Pro gate (Task 3) ---
+  var _dlPickedMode = 'practice';
+  var _dlPickedDecisions = 10;
+
+  // Spec §4 — EXACT gate copy. Do not paraphrase. Keyed by the locked surface.
+  var _DL_GATE = {
+    exam: {
+      title: 'Exam-style mode is Pro',
+      body: "The real exam never explains why your pick was wrong, and never gives you the clock back. Exam-style runs a timed, no-feedback set so the first time you feel that pressure isn't on test day. Pro unlocks it, plus unlimited sets and weak-spots that follow you across sessions.",
+      primary: 'Go Pro', secondary: 'Keep practicing'
+    },
+    full20: {
+      title: 'The full 20-decision set is Pro',
+      body: 'Short sets warm you up; the real exam is a marathon of back-to-back calls. The 20-set rehearses that stamina. Pro removes the cap.'
+    },
+    second: {
+      title: "That's today's free set",
+      body: 'Come back tomorrow free, or go Pro to keep drilling now while the misses are fresh. Same-day re-drill on the services you just confused is where the look-alikes stick.',
+      primary: 'Continue with Pro', secondary: 'Remind me tomorrow'
+    }
+  };
+  function _dlGateCopy(which) { return _DL_GATE[which]; }
+
+  function _dlSyncEntry() {
+    var opts = document.querySelectorAll('#dl-mode .dl-seg-opt');
+    Array.prototype.forEach.call(opts, function (o) {
+      var on = o.getAttribute('data-mode') === _dlPickedMode;
+      o.classList.toggle('is-on', on);
+      o.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+    var chips = document.querySelectorAll('#dl-decisions .dl-chip');
+    Array.prototype.forEach.call(chips, function (c) {
+      var on = parseInt(c.getAttribute('data-decisions'), 10) === _dlPickedDecisions;
+      c.classList.toggle('is-on', on);
+      c.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+  }
+
+  function _dlBindModeToggle() {
+    var host = document.getElementById('dl-mode');
+    if (!host || host.__bound) return; host.__bound = true;
+    host.addEventListener('click', function (e) {
+      var opt = e.target.closest('.dl-seg-opt'); if (!opt) return;
+      var m = opt.getAttribute('data-mode');
+      if (m === 'exam' && !_slIsPro()) { window._gateProOnly('Decision Lab', _dlGateCopy('exam')); return; }
+      _dlPickedMode = m; _dlSyncEntry();
+    });
+  }
+
+  function _dlBindDecisionChips() {
+    var host = document.getElementById('dl-decisions');
+    if (!host || host.__bound) return; host.__bound = true;
+    host.addEventListener('click', function (e) {
+      var chip = e.target.closest('.dl-chip'); if (!chip) return;
+      var n = parseInt(chip.getAttribute('data-decisions'), 10);
+      if (n === 20 && !_slIsPro()) { window._gateProOnly('Decision Lab', _dlGateCopy('full20')); return; }
+      _dlPickedDecisions = n; _dlSyncEntry();
+    });
+  }
+
+  // Cert target label from the live pack (honest names; spec §6 — no hardcoded cert).
+  function _dlTargetLabel() {
+    var pack = window.CERT_PACK && window.CERT_PACK.meta;
+    if (pack && pack.name) return 'Mixed · ' + pack.name + (pack.code ? ' ' + pack.code : '');
+    return 'Mixed';
+  }
+
+  function _dlSessionStartDispatch() {}  // wired in Task 4
+
+  function decisionLabOpenEntry() {
+    _dlPickedMode = 'practice';
+    _dlPickedDecisions = 10;
+    var tgt = document.getElementById('dl-target'); if (tgt) tgt.textContent = _dlTargetLabel();
+    _dlBindModeToggle(); _dlBindDecisionChips(); _dlSyncEntry();
+    if (typeof showPage === 'function') showPage('decision-lab-entry');
+  }
+  function decisionLabEntryBack() { if (typeof showPage === 'function') showPage('setup'); }
+
   // Spec §4 — the revenue tap. EXACT copy; do not paraphrase.
   function _slExamGateCopy() {
     return {
@@ -1653,4 +1731,8 @@
   window._simLab.dlBank = _dlBank;
   window._simLab.dlCerts = function () { return _DL_CERTS.slice(); };
   window._simLab.dlGradeAnalyze = _dlGradeAnalyze;
+  window._simLab.dlGateCopy = _dlGateCopy;
+  window.decisionLabOpenEntry = decisionLabOpenEntry;
+  window.decisionLabEntryBack = decisionLabEntryBack;
+  window.decisionLabSessionStart = _dlSessionStartDispatch;
 })();
