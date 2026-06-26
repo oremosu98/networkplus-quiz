@@ -89,3 +89,13 @@ Both are captured in **`docs/superpowers/plans/2026-06-26-g1-hardening-webhook-a
 - `docs/superpowers/plans/2026-06-26-g3-ios-revenuecat-purchase-coordinator.md` — **G-3** iPhone payments via RevenueCat + the Go-Pro purchase coordinator that fixes the App Store 3.1.1 blocker.
 - `docs/superpowers/plans/2026-06-26-ai-proxy-server-enforcement.md` — server-side AI quota/entitlement enforcement (the metered `/api/ai/generate` proxy + Pro 150/day soft cap). Note found during drafting: the client (`_claudeFetch`) already routes signed-in users to `/api/ai/generate`; the endpoint itself was never built.
 - `docs/superpowers/plans/2026-06-26-account-merge-support-tool.md` — admin-only lookup + merge RPCs for the Apple Hide-My-Email split (the manual "contact us to merge" path).
+
+### Launch sequencing — DECIDED (2026-06-26)
+
+Build in **three stages** (this refines the G-1…G-4 build order; the iOS app is NOT first — it slots in the middle):
+
+1. **Web Phase G (no iOS app needed).** G-1 Stripe web payments (built on the hardening foundation) + G-2 Apple/Google sign-in (web) + the AI-proxy server enforcement. **Outcome: a fully working PAID product on the web** — could launch here ("web-first"), Stripe-only, no Apple cut.
+2. **Build the iOS app — the Capacitor wrapper.** A thin native WKWebView shell around the *existing* site (~half a day; `docs/mobile/APP_STORE_DISTRIBUTION.md` Phase B: `npx cap init CertAnvil com.certanvil.app`, icons/splash, wire ≥1 native plugin). **This wrapper IS the "iOS view" already previewed in the iOS Simulator** (the `npm run ios:real` / simulator workflow) — the simulator was already rendering this exact WKWebView. Building the wrapper just turns that previewed view into a real installable app and adds the native plugins (incl. RevenueCat). It is NOT a from-scratch native rebuild.
+3. **iOS Phase G.** G-3 RevenueCat IAP + the Go-Pro coordinator's iOS branch + G-4 launch flips + App Store submission.
+
+**Why this order:** the web half needs no iOS app at all; the Capacitor wrapper is a hard prerequisite ONLY for G-3 (you cannot add the RevenueCat plugin or test an Apple purchase without it). So the wrapper sits *after* web payments and *before* iPhone payments — never at the very start.
