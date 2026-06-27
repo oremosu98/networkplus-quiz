@@ -6,39 +6,42 @@
 
 **Architecture (current state — verified 2026-06-27):** The CertAnvil web app is **one Vercel project** (`networkplus-quiz`, `prj_OJ7lwAietRTJol2MHjB4zl1jQxHY`) that serves **all seven cert subdomains** (`networkplus`, `secplus`, `aplus`, `azure`, `ai`, `sc900`, `clfc02` `.certanvil.com`); the cert is detected at runtime from the hostname (`auth-state.js`). The landing site is a **separate** Vercel project (`certanvil-landing`, `prj_7Gat…`) serving `certanvil.com` + `www`. This "one project, many domains" model (a.k.a. "Pattern A") is **already the clean architecture** — this plan does NOT split it per-cert; it only fixes the misleading *name* and removes cruft.
 
+**Deploy mechanism (verified — corrects an earlier assumption):** deploys do **NOT** use Vercel's GitHub auto-deploy. CI deploys via the **Vercel CLI** (`vercel --prod --token=$VERCEL_TOKEN`) keyed on `VERCEL_PROJECT_ID` (a repo secret for the main project) — see `.github/workflows/ci.yml`. Consequence: **renaming the GitHub repo cannot break deploys** (no git-integration link involved), and **renaming the Vercel project is safe** because the CLI targets the project by **ID**, which a rename does not change.
+
+**The dual-deploy reality (the key finding):** CI runs **two** production deploy jobs on every push to `main`: **Job 4a** (`deploy-production`) → the main project via the `VERCEL_PROJECT_ID` secret; **Job 4b** (`deploy-production-secplus`, `ci.yml:214`) → a **hardcoded** `prj_CyuAuPobazxHgrHMYWR0em9gKJeU` (= `secplus-quiz-sable`). This is leftover from v4.87 when Security+ was a standalone project, *before* `secplus.certanvil.com` was moved onto the main project. Real Security+ users now hit `secplus.certanvil.com` (main project, Job 4a); the Job-4b copy to `secplus-quiz-sable.vercel.app` is **redundant**. So `secplus-quiz-sable` is wired into CI by hardcoded ID — it must be **unwired (Job 4b removed) before deletion**, or every future ship fails.
+
 **Tech Stack / surfaces touched:** GitHub (repo rename), Vercel (project rename + project deletes, via dashboard or `vercel` CLI/MCP), local filesystem (folder rename), `package.json`, `CLAUDE.md`, CI workflows, the `ship`/`review-feature` skills, docs.
 
 ---
 
-## ⚠️ Decisions to confirm BEFORE executing (primary grill targets)
+## ✅ Decisions — CONFIRMED (grill-with-docs, 2026-06-27)
 
-These are proposals — confirm/adjust in the `/grill-with-docs` pass. The whole plan keys off them.
+1. **Timing:** do the rename **before Phase G**, as its own focused task. **Never interleave** with the Stripe/payments work — finish + verify the rename, then start Phase G. (Lowest blast radius now: no paying customers, no live webhooks.)
+2. **Names:** GitHub repo **`certanvil`** · local folder **`certanvil`** · `package.json` name **`certanvil`** · Vercel app project **`certanvil-app`** · Vercel landing **`certanvil-landing`** (unchanged). The repo/folder/Vercel-app name mismatch is fine — Vercel links by internal project ID, not name.
+3. **Orphan deletes:** delete **`network-plus-quiz`** (`prj_0sGuHQ…`, a truly-dead old duplicate) and **`secplus-quiz-sable`** (`prj_CyuAuP…`) — **but `secplus-quiz-sable` is NOT a simple orphan** (see Decision 4 + the dual-deploy finding below): it must be **unwired from CI first**.
+4. **Deploy consolidation:** CI currently double-deploys (Job 4a → main project; Job 4b → `secplus-quiz-sable`). **Consolidate to one deploy / one project / all seven certs:** remove CI Job 4b, verify `secplus.certanvil.com` (served by the main project) still works, then delete `secplus-quiz-sable`. `secplus-quiz-sable.vercel.app` is treated as dead (verify on-device that nothing external relies on it).
+5. **`care-leader-prep` (`prj_rrRst…`) — LEAVE FULLY UNTOUCHED.** Confirmed: it is a **separate app the founder is building (for his mum)**, not CertAnvil. Out of scope.
+6. **Execution split:** the assistant prepares **all code/file changes on a branch** (CI edits, `package.json`, `CLAUDE.md`, docs, remote re-point, folder `mv`); the **founder performs the 4 dashboard-only actions** (rename GitHub repo · rename Vercel app project · delete the 2 projects) at the marked points, each with an exact click-path + a verify command after.
 
-1. **New GitHub repo name** → proposed **`certanvil`** (short, brand-true). Alt: `certanvil-app`.
-2. **New local folder name** → proposed **`certanvil`** (match the repo).
-3. **New Vercel app-project name** → proposed **`certanvil-app`** (distinguishes from the existing `certanvil-landing`; "certanvil" alone is ambiguous with the landing).
-4. **`package.json` `name`** → proposed **`certanvil`**.
-5. **Delete the two orphan Vercel projects?** → proposed **YES**: `secplus-quiz-sable` (`prj_CyuAuP…`) and `network-plus-quiz` (`prj_0sGuHQ…`). Both have **only `*.vercel.app` domains, no `certanvil.com` custom domain** → not in the production path. *(Caveat in Phase 1 — one of them lends its name to a CI smoke URL; resolve that first.)*
-6. **`care-leader-prep` (`prj_rrRst…`)** → proposed **LEAVE UNTOUCHED**. It has no `certanvil.com` domain and looks like a *separate* product, not CertAnvil. **Confirm it is unrelated** before ignoring it.
-
-**Scope guardrail:** unrelated Vercel projects (`trne-www`, `peptide-tracker`, `weighttrack`, `simi-dashboard`, `simi-tasks`, `project-82xw2`, `project-499wd`) are **out of scope** — do not touch.
+**Scope guardrail:** unrelated Vercel projects (`care-leader-prep`, `trne-www`, `peptide-tracker`, `weighttrack`, `simi-dashboard`, `simi-tasks`, `project-82xw2`, `project-499wd`) are **out of scope** — do not touch.
 
 ---
 
 ## The hidden dependency that makes this risky (READ FIRST)
 
-CI and the ship runbook smoke-test production via the **auto-alias `networkplus-quiz-sable.vercel.app`** (an old-name alias currently attached to the main app project):
+CI, the post-deploy smoke test, and the ship runbook all hit the **auto-alias `networkplus-quiz-sable.vercel.app`** (an old-name alias on the main app project):
+- `tests/deploy-verify.js:23` → `const PROD_URL = 'https://networkplus-quiz-sable.vercel.app';` (the post-deploy smoke target)
 - `.github/workflows/vercel-incident-recovery.yml:33` → `PROD_URL: https://networkplus-quiz-sable.vercel.app`
 - `.claude/skills/ship/SKILL.md:113` → `curl … networkplus-quiz-sable.vercel.app …` (post-deploy version check)
 - `.github/workflows/ci.yml:181` → comment referencing the same host
 
-**Renaming the Vercel project can drop that `*.vercel.app` auto-alias and silently break CI/ship.** Therefore **Phase 1 retargets these to a stable custom domain (`networkplus.certanvil.com`) BEFORE the project is renamed.** This is the #1 sequencing constraint.
+**Renaming the Vercel project can drop that `*.vercel.app` auto-alias and silently break CI/ship/smoke.** Therefore **Phase 1 retargets ALL of these to the stable custom domain `networkplus.certanvil.com` BEFORE the project is renamed.** This is the #1 sequencing constraint. *(Cosmetic, optional: `scripts/stage.js:61` sets a `'networkplus-quiz-stage'` User-Agent string — harmless, update only if doing a thorough sweep.)*
 
 ---
 
 ## Recommended execution order (low-risk → higher-risk, each independently reversible)
 
-1. **Phase 1 — Vercel: retarget smoke URLs, then rename app project, then delete orphans.** (Production-adjacent; do first and verify hard.)
+1. **Phase 1 — Vercel: retarget smoke URLs → remove the duplicate Security+ deploy (Job 4b) → rename app project → delete the 2 unwired projects.** (Production-adjacent; do first and verify hard.)
 2. **Phase 2 — GitHub repo rename + remote re-point.** (GitHub auto-redirects; Vercel git integration follows.)
 3. **Phase 3 — In-repo identity (`package.json`, `CLAUDE.md`, CI, skills, docs).**
 4. **Phase 4 — Local folder rename + tooling re-point.** (Local-only; zero production risk; do last.)
@@ -77,68 +80,85 @@ git checkout -b chore/certanvil-rename
 
 ---
 
-## Phase 1: Vercel — retarget smoke URLs, rename app project, delete orphans
+## Phase 1: Vercel — retarget smoke URLs, drop duplicate Security+ deploy, rename app project, delete unwired projects
 
 > **Risk:** HIGH (production-adjacent). Custom domains ride along on a project rename, but auto `*.vercel.app` aliases change, which can break CI/ship (see hidden dependency above).
 > **Rollback:** a Vercel project rename is instantly reversible (rename back to `networkplus-quiz`). A project **delete is NOT reversible** — only delete orphans, only after the guard checks pass.
 
-### 1A — Retarget CI/ship smoke URLs to a stable custom domain (do this FIRST)
+### 1A — Retarget the smoke / PROD URLs off the auto-alias (do this FIRST) — *assistant prepares*
 
 **Files:**
+- Modify: `tests/deploy-verify.js:23`
 - Modify: `.github/workflows/vercel-incident-recovery.yml:33`
 - Modify: `.claude/skills/ship/SKILL.md:113`
 - Modify: `.github/workflows/ci.yml:181` (comment)
 
-- [ ] **Step 1: Repoint `PROD_URL` to the stable custom domain**
+- [ ] **Step 1: Repoint the post-deploy smoke target**
 
-In `.github/workflows/vercel-incident-recovery.yml`, change:
-
-```yaml
-      PROD_URL: https://networkplus-quiz-sable.vercel.app
+In `tests/deploy-verify.js`, change:
+```js
+const PROD_URL = 'https://networkplus-quiz-sable.vercel.app';
 ```
 to:
-```yaml
-      PROD_URL: https://networkplus.certanvil.com
+```js
+const PROD_URL = 'https://networkplus.certanvil.com';
 ```
 
-- [ ] **Step 2: Repoint the ship-runbook smoke curl**
+- [ ] **Step 2: Repoint `PROD_URL` in the incident-recovery workflow**
 
-In `.claude/skills/ship/SKILL.md` line ~113, change `networkplus-quiz-sable.vercel.app` to `networkplus.certanvil.com`:
+In `.github/workflows/vercel-incident-recovery.yml`, change `PROD_URL: https://networkplus-quiz-sable.vercel.app` → `PROD_URL: https://networkplus.certanvil.com`.
 
+- [ ] **Step 3: Repoint the ship-runbook smoke curl**
+
+In `.claude/skills/ship/SKILL.md` line ~113, change the host to `networkplus.certanvil.com`:
 ```bash
 curl -sS "https://networkplus.certanvil.com/?nocache=$(date +%s)" | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' | head -1
 ```
 
-- [ ] **Step 3: Update the stale comment in `ci.yml:181`**
+- [ ] **Step 4: Update the stale comment in `ci.yml:181`** to reference `networkplus.certanvil.com`. Comment only — no behaviour change.
 
-Change the comment `# Customer-facing cert deploy — networkplus-quiz-sable.vercel.app` to reference `networkplus.certanvil.com` (the stable custom domain). No behaviour change — comment only.
-
-- [ ] **Step 4: Verify no other code/CI reference depends on the old auto-alias**
+- [ ] **Step 5: Verify nothing else depends on the old `*-sable` auto-alias**
 
 ```bash
 cd "/Users/simioremosu/Desktop/Dev Projects/networkplus-quiz"
-git grep -n "networkplus-quiz-sable\|networkplus-quiz-.*\.vercel\.app" -- '*.js' '*.yml' '*.json' '*.md' ':!package-lock.json' ':!dist/*'
+git grep -n "networkplus-quiz-sable" -- '*.js' '*.yml' '*.json' '*.md' ':!package-lock.json'
 ```
 
-Expected: only the three files above (now updated). If anything else appears, repoint it to `networkplus.certanvil.com` too.
+Expected: only the four files above (now updated). Repoint anything else to `networkplus.certanvil.com`.
 
-- [ ] **Step 5: Commit 1A and let CI prove the new smoke URL works BEFORE renaming the project**
+### 1B — Remove the redundant Security+ deploy (Job 4b) — *assistant prepares* ⚠️ NEW (grill finding)
+
+> Why: CI Job 4b double-deploys the same code to `secplus-quiz-sable` (hardcoded `prj_CyuAuP…`). Security+ users actually use `secplus.certanvil.com` on the **main** project (Job 4a). This step ends the duplication and is the prerequisite for safely deleting `secplus-quiz-sable` in 1D.
+
+**Files:**
+- Modify: `.github/workflows/ci.yml` (delete the `deploy-production-secplus` job, ~lines 204–234)
+
+- [ ] **Step 1: Confirm `secplus.certanvil.com` is served by the MAIN project (not the -sable project)**
 
 ```bash
-git add .github/workflows/vercel-incident-recovery.yml .claude/skills/ship/SKILL.md .github/workflows/ci.yml
-git commit -m "chore(ci): retarget prod smoke URL to networkplus.certanvil.com (pre-rename)"
+curl -s -o /dev/null -w "secplus.certanvil.com -> %{http_code}\n" "https://secplus.certanvil.com/?_cb=$(date +%s)"
+```
+
+Expected `200`. (Vercel's API already lists `secplus.certanvil.com` under the main project — this just confirms it serves.)
+
+- [ ] **Step 2: Delete the entire `deploy-production-secplus` job** from `.github/workflows/ci.yml` (the `# ── JOB 4b …` block through its final `vercel --prod …` line). Leave Job 4a (`deploy-production`) untouched.
+
+- [ ] **Step 3: Commit 1A + 1B together and let CI prove green BEFORE any rename/delete**
+
+```bash
+git add tests/deploy-verify.js .github/workflows/vercel-incident-recovery.yml .claude/skills/ship/SKILL.md .github/workflows/ci.yml
+git commit -m "chore(ci): retarget smoke URLs + drop redundant Security+ deploy (pre-rename)"
 git push -u origin chore/certanvil-rename
 ```
 
-Open a PR and confirm CI green against the new URL. **Do not proceed to 1B until this passes** — this proves CI no longer depends on the soon-to-change auto-alias.
+Open a PR; confirm CI is green with only the single (Job 4a) production deploy and the new smoke URL. **Do not proceed until this passes** — it proves CI no longer depends on the `-sable` alias OR the second project.
 
-### 1B — Rename the app Vercel project
+### 1C — Rename the app Vercel project — 🖱️ *FOUNDER dashboard action*
 
-- [ ] **Step 1: Rename `networkplus-quiz` → `certanvil-app`** (Vercel dashboard → Project → Settings → Name; or `vercel projects rename`).
-  - The `.vercel/project.json` `projectId` is unchanged, so CLI `vercel --prod` keeps working.
-  - All seven `*.certanvil.com` custom domains stay attached (they are explicit custom domains, not auto-aliases).
+- [ ] **Step 1: Rename `networkplus-quiz` → `certanvil-app`** (Vercel dashboard → the `networkplus-quiz` project → Settings → General → Project Name → `certanvil-app` → Save).
+  - Safe because: CLI deploy targets the project by **ID** (`VERCEL_PROJECT_ID` secret), unchanged by a rename; and all seven `*.certanvil.com` custom domains are explicit domains that stay attached.
 
-- [ ] **Step 2: Verify ALL seven cert subdomains still serve (the safety check)**
+- [ ] **Step 2: Verify ALL seven cert subdomains still serve (safety check)** — *assistant runs*
 
 ```bash
 for h in networkplus secplus aplus azure ai sc900 clfc02; do
@@ -146,56 +166,50 @@ for h in networkplus secplus aplus azure ai sc900 clfc02; do
 done
 ```
 
-Expected: every host returns `200`. If any fails, **rename the project back immediately** (rollback) and investigate.
+Expected: every host `200`. If any fails → **rename the project back to `networkplus-quiz`** (instant rollback) and investigate.
 
-- [ ] **Step 3: Confirm a fresh production deploy still targets the right project**
+- [ ] **Step 3: Confirm a fresh deploy still lands** — push an empty commit, confirm CI deploy + the seven hosts stay `200`.
 
-```bash
-cd "/Users/simioremosu/Desktop/Dev Projects/networkplus-quiz"
-export PATH="$HOME/.nvm/versions/node/v20.20.2/bin:$PATH"
-git commit --allow-empty -m "chore: trigger deploy post project rename"
-git push   # CI → Vercel; confirm Deploy Verification + the seven hosts stay 200
-```
+### 1D — Delete the two now-unwired projects — 🖱️ *FOUNDER dashboard action* (irreversible — guard first)
 
-### 1C — Delete the orphan projects (irreversible — guard first)
-
-- [ ] **Step 1: Guard check — confirm each orphan has NO custom domain and NO inbound reference**
+- [ ] **Step 1: Guard check — no inbound reference remains (name AND hardcoded ID)**
 
 ```bash
-git grep -n "secplus-quiz-sable\|network-plus-quiz" -- '*.js' '*.yml' '*.json' '*.md' ':!package-lock.json' ':!dist/*'
+git grep -n "secplus-quiz-sable\|network-plus-quiz\|prj_CyuAuPobazxHgrHMYWR0em9gKJeU\|prj_0sGuHQCd3kpnI00k8yAGZ8pkO1la" -- '*.js' '*.yml' '*.json' '*.md' ':!package-lock.json'
 ```
 
-Expected: **no matches** (the only `-sable` references were the CI/ship ones fixed in 1A). If anything still references them, STOP and repoint it first.
-Re-confirm in the Vercel dashboard that `secplus-quiz-sable` and `network-plus-quiz` list only `*.vercel.app` domains (no `certanvil.com`).
+Expected: **no matches** (Job 4b removed in 1B; smoke URLs retargeted in 1A). If anything appears — STOP and repoint/remove it first. *(This guard checks the hardcoded project IDs too, not just the names — the original plan's name-only guard would have missed `ci.yml:221`.)*
 
-- [ ] **Step 2: Delete `secplus-quiz-sable` and `network-plus-quiz`** (Vercel dashboard → Settings → Delete Project; type the name to confirm).
-  - **Do NOT** delete `care-leader-prep` or any unrelated project.
+- [ ] **Step 2: Re-confirm in the Vercel dashboard** that `secplus-quiz-sable` and `network-plus-quiz` list only `*.vercel.app` domains (no `certanvil.com`).
 
-- [ ] **Step 3: Final Phase-1 verification** — re-run the seven-subdomain curl loop (1B Step 2) + `certanvil.com` itself; all `200`.
+- [ ] **Step 3: Delete `secplus-quiz-sable` and `network-plus-quiz`** (each: Vercel dashboard → project → Settings → Advanced → Delete Project → type the name).
+  - **Do NOT** touch `care-leader-prep` (founder's separate app) or any unrelated project.
+
+- [ ] **Step 4: Final Phase-1 verification** — re-run the seven-subdomain curl loop (1C Step 2) + `certanvil.com`; all `200`. One more push to `main` to confirm CI ships cleanly with the single deploy job.
 
 ---
 
 ## Phase 2: GitHub repo rename + remote re-point
 
-> **Risk:** MEDIUM. GitHub auto-redirects the old repo URL (git, web, API) so existing clones/links keep working. Vercel's GitHub integration tracks the repo by ID and follows the rename.
+> **Risk:** LOW (corrected from MEDIUM after the grill). Deploys run via the Vercel **CLI + token + project ID** inside GitHub Actions — there is **no Vercel GitHub auto-deploy integration to break**. GitHub auto-redirects the old repo URL (git, web, API) so existing clones/links/issue-links keep working. Actions read the repo from the runtime `github` context (not a hardcoded name), so workflows are unaffected.
 > **Rollback:** rename the repo back on GitHub; redirects re-establish.
 
-- [ ] **Step 1: Rename on GitHub** — repo Settings → Rename `networkplus-quiz` → `certanvil` (per Decision 1). Branch protection, Actions secrets (incl. `PROJECT_TOKEN`), and workflows are unaffected by a rename.
+- [ ] **Step 1: Rename on GitHub** — 🖱️ *FOUNDER dashboard action*: repo Settings → Rename `networkplus-quiz` → `certanvil` (per Decision 2). Branch protection, Actions secrets (`VERCEL_TOKEN`, `VERCEL_PROJECT_ID`, `VERCEL_ORG_ID`, `PROJECT_TOKEN`), and workflows are all unaffected by a rename.
 
-- [ ] **Step 2: Re-point the local remote**
+- [ ] **Step 2: Re-point the local remote** — *assistant runs*
 
 ```bash
 cd "/Users/simioremosu/Desktop/Dev Projects/networkplus-quiz"
 git remote set-url origin https://github.com/oremosu98/certanvil.git
 git remote -v          # confirm origin → certanvil.git
-git fetch origin       # confirm it resolves
+git fetch origin       # confirm it resolves (GitHub redirect also keeps the old URL working)
 ```
 
-- [ ] **Step 3: Verify the Vercel ↔ GitHub link followed the rename** — Vercel app project → Settings → Git: confirm it shows `oremosu98/certanvil`. If it still shows the old name, disconnect + reconnect the Git repo (no redeploy needed; existing domains stay).
+- [ ] **Step 3: (Only if a Git integration is shown) confirm it followed the rename** — Deploys do NOT depend on it, but if the Vercel project happens to show a connected Git repo under Settings → Git, confirm it reads `oremosu98/certanvil`. If absent or stale, no action needed — CLI deploys are unaffected.
 
-- [ ] **Step 4: Push a no-op commit and confirm the full pipeline** — `git commit --allow-empty -m "chore: verify pipeline post repo rename" && git push`; CI runs, Vercel deploys, the seven hosts stay `200`.
+- [ ] **Step 4: Push a no-op commit and confirm the full pipeline** — `git commit --allow-empty -m "chore: verify pipeline post repo rename" && git push`; CI runs, the single deploy job ships, the seven hosts stay `200`.
 
-- [ ] **Step 5 (optional cleanup): update in-repo GitHub URLs.** Internal markdown issue links (`github.com/oremosu98/networkplus-quiz/...`) auto-redirect, but can be updated for cleanliness in Phase 3.
+- [ ] **Step 5 (optional cleanup): update in-repo GitHub URLs.** Internal markdown issue links (`github.com/oremosu98/networkplus-quiz/...`, incl. those in `CLAUDE.md`) auto-redirect, but can be updated for cleanliness in Phase 3.
 
 ---
 
@@ -286,7 +300,8 @@ Expected: UAT green; CI + Vercel deploy; seven hosts `200`.
 
 ## Self-Review checklist (run before the grill, and again before executing)
 
-- [ ] **Smoke URL retargeted before project rename** (Phase 1A precedes 1B) — CI proven green against `networkplus.certanvil.com` first.
+- [ ] **Smoke URLs retargeted (1A) AND duplicate Security+ deploy removed (1B) BEFORE any rename/delete** — CI proven green with a single deploy job against `networkplus.certanvil.com` first.
+- [ ] **Delete guard checks hardcoded project IDs, not just names** (1D Step 1) — catches `ci.yml:221`'s `prj_CyuAuP…`, which a name-only grep would miss.
 - [ ] **All seven cert subdomains verified `200`** after the project rename (and again after folder rename).
 - [ ] **Only orphans deleted** — `secplus-quiz-sable` + `network-plus-quiz`; `care-leader-prep` and unrelated projects untouched; deletes gated behind the no-inbound-reference grep.
 - [ ] **Architecture unchanged** — still one app project, many domains; no per-cert split introduced.
