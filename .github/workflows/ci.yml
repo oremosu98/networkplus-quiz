@@ -178,7 +178,7 @@ jobs:
             }
 
   # ── JOB 4a: Deploy Network+ to production (main only) ──
-  # Customer-facing cert deploy — networkplus-quiz-sable.vercel.app
+  # Customer-facing deploy — one project serves all 7 cert subdomains on *.certanvil.com (smoke: networkplus.certanvil.com)
   deploy-production:
     name: Deploy to Production (Network+)
     needs: test
@@ -198,38 +198,6 @@ jobs:
         run: npm i -g vercel@latest
 
       - name: Build and deploy to production
-        run: |
-          vercel --prod --yes --token=${{ secrets.VERCEL_TOKEN }}
-
-  # ── JOB 4b: Deploy Security+ to production (main only) ──
-  # v4.87.x: parallel deploy to the private Security+ cert at
-  # secplus-quiz-sable.vercel.app. Same code, different Vercel project.
-  # URL host detection in app.js picks up the 'secplus-' prefix and
-  # loads CERT_PACKS.secplus. Independent of Network+ deploy so a
-  # Security+-only failure doesn't block Network+ shipping.
-  #
-  # Project IDs are not secret (visible in URLs + CLI output) — only
-  # VERCEL_TOKEN is auth, so hardcoding the Security+ project ID
-  # avoids an extra repo-secret config step.
-  deploy-production-secplus:
-    name: Deploy to Production (Security+)
-    needs: test
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    env:
-      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-      VERCEL_PROJECT_ID: prj_CyuAuPobazxHgrHMYWR0em9gKJeU  # secplus-quiz-sable
-    steps:
-      - uses: actions/checkout@v6
-
-      - uses: actions/setup-node@v6
-        with:
-          node-version: '20'
-
-      - name: Install Vercel CLI
-        run: npm i -g vercel@latest
-
-      - name: Build and deploy to production (Security+)
         run: |
           vercel --prod --yes --token=${{ secrets.VERCEL_TOKEN }}
 

@@ -40,7 +40,7 @@ const IP_HASH_SALT = 'certanvil-diagnostic-salt-v1';
 const ALLOWED_CERTS = ['network-plus', 'security-plus'];
 const CERT_TO_CLAIM_HOST = {
   'network-plus': 'https://networkplus.certanvil.com',
-  'security-plus': 'https://secplus-quiz-sable.vercel.app',
+  'security-plus': 'https://secplus.certanvil.com',
 };
 
 function json(body, status = 200) {

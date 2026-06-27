@@ -110,7 +110,7 @@ If CI didn't start, the GitHub→Vercel webhook missed the push — manual deplo
 
 Confirm prod is serving the new version (and `certanvil.com` landing too, if touched — separate Vercel project):
 ```bash
-curl -sS "https://networkplus-quiz-sable.vercel.app/?nocache=$(date +%s)" | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' | head -1
+curl -sS "https://networkplus.certanvil.com/?nocache=$(date +%s)" | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' | head -1
 ```
 If a live endpoint changed (`/api/notify`, AI, Stripe webhook), run a real request against prod — "logged-as-success-but-actually-broken" is the failure this catches.
 

@@ -236,7 +236,7 @@ npx vercel --prod --yes
 ### 6.2 Vercel deploy landed
 
 ```bash
-curl -sS "https://networkplus-quiz-sable.vercel.app/?nocache=$(date +%s)" \
+curl -sS "https://networkplus.certanvil.com/?nocache=$(date +%s)" \
   | grep -oE 'v4\.99\.[0-9]+' | head -1
 ```
 

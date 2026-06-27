@@ -14047,13 +14047,16 @@ test('v4.87.0 SecplusContent: Messer URLs use SY0-701 query param',
 // · dynamic topic-chip rendering when CURRENT_CERT === 'secplus'.
 // ═══════════════════════════════════════════════════════════════════════
 
-// ── Auto-deploy: GitHub Actions has parallel Security+ deploy job ──
+// ── Auto-deploy: single GitHub Actions production deploy (main project) ──
+// 2026-06-27 CertAnvil consolidation: the redundant Security+ parallel deploy
+// (Job 4b → secplus-quiz-sable) was REMOVED. secplus.certanvil.com is served by
+// the main project via the Network+ deploy. The two tombstones keep it gone.
 test('v4.87.1 AutoDeploy: ci.yml has Network+ deploy-production job',
   /deploy-production:[\s\S]{0,200}Deploy to Production \(Network\+\)/.test(require('fs').readFileSync('.github/workflows/ci.yml', 'utf8')));
-test('v4.87.1 AutoDeploy: ci.yml has Security+ deploy-production-secplus job',
-  /deploy-production-secplus:[\s\S]{0,200}Deploy to Production \(Security\+\)/.test(require('fs').readFileSync('.github/workflows/ci.yml', 'utf8')));
-test('v4.87.1 AutoDeploy: Security+ deploy uses correct project ID',
-  require('fs').readFileSync('.github/workflows/ci.yml', 'utf8').includes('prj_CyuAuPobazxHgrHMYWR0em9gKJeU'));
+test('Consolidation tombstone: ci.yml has NO redundant Security+ deploy job',
+  !/deploy-production-secplus:/.test(require('fs').readFileSync('.github/workflows/ci.yml', 'utf8')));
+test('Consolidation tombstone: ci.yml does NOT hardcode the retired secplus-quiz-sable project ID',
+  !require('fs').readFileSync('.github/workflows/ci.yml', 'utf8').includes('prj_CyuAuPobazxHgrHMYWR0em9gKJeU'));
 
 // ── Carry-over exemplars in Security+ pack ──
 // v4.88.3: total exemplar count grows with each Phase 3 Cycle. Pin the
