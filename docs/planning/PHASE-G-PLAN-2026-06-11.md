@@ -84,6 +84,18 @@ Both are captured in **`docs/superpowers/plans/2026-06-26-g1-hardening-webhook-a
 3. **20 June AI-cost measurement** — know the real per-user margin before locking price.
 4. **Apple Small Business Program enrolment** — secures the 15% rate (else 30%, ≈ halves iOS margin).
 
+**💷 What the four blockers cost to set up (captured 2026-06-27):** ~**$99/year (Apple) + a few $ of API testing ≈ $100–120 total** to get fully unblocked. Almost everything is free to set up; the providers take a cut only when revenue is actually flowing.
+
+| Blocker | Setup cost | Charged when |
+|---|---|---|
+| Stripe | **$0** (account + products free) | per-sale only: ~2.9% + $0.30/charge; no monthly fee |
+| RevenueCat | **$0** | free under **$2,500/mo** tracked revenue, then ~1% (the exact basis of the G-3 RevenueCat decision) |
+| App Store Connect (Apple Developer Program) | **$99/yr** ($99 USD / £79 / €99) — the only real money; gatekeeper for ALL iOS work (Stage 2 + Stage 3) | annual recurring |
+| 20 June AI-cost measurement | **~$1–5** (Anthropic API usage; already capped at $20/mo) | usage during the test session |
+| Apple Small Business Program | **$0** (enrolment free; needs the $99 membership above) | n/a — it *lowers* Apple's cut 30%→15% |
+
+**Key consequence:** Stage 1 (web payments via Stripe) needs **$0 upfront** — the $99 Apple fee is only required for the iOS app (Stages 2–3). A paid web product can launch before spending anything on Apple. ⚠️ Fee *structure* is stable/long-standing; confirm exact numbers at signup (regional pricing + provider changes).
+
 **Shelf plans (written, parked, build when the accounts above exist):**
 - `docs/superpowers/plans/2026-06-26-g1-hardening-webhook-and-multiprovider-schema.md` — the 2 P0 fixes (G-1 foundation): atomic webhook + multi-provider `provider_subscriptions`.
 - `docs/superpowers/plans/2026-06-26-g2-apple-google-signin.md` — **G-2** Apple + Google sign-in (extends the landing-owned auth modal; account-linking priority; Apple 4.8 compliance). Note found during drafting: the quiz app has no modal of its own — it redirects to the `landing/` modal, which already ships a disabled "Continue with Google" button.
