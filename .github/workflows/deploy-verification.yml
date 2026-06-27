@@ -45,7 +45,7 @@ jobs:
 
       - name: Open issue on FAIL
         if: steps.verify.outputs.status == 'FAIL'
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         env:
           REPORT_FILE: ${{ steps.verify.outputs.report_file }}
           VERSION: ${{ steps.verify.outputs.version }}
@@ -65,7 +65,7 @@ jobs:
 
       - name: Open issue on script crash
         if: steps.verify.outcome == 'failure' && steps.verify.outputs.status == ''
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         with:
           script: |
             const runUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;

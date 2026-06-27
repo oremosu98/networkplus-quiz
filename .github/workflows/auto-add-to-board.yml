@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Add issue to the correct board
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         env:
           PROJECT_TOKEN: ${{ secrets.PROJECT_TOKEN }}
         with:
