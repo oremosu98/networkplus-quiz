@@ -8,7 +8,7 @@
 
 **The view being wrapped already exists — this is not new UI.** The WKWebView the iOS Simulator has been previewing (the `npm run ios:real` workflow) **IS this exact view** — the simulator was already rendering the CertAnvil site inside a WKWebView. Wrapping does not build a new iOS interface; it turns that already-previewed view into a real installable app, pins it to the Option A origin, and adds the native plugins. There is **no from-scratch native rebuild** in this plan. The visual result on device should match what you have already seen in the simulator (the additions are: correct origin, safe-area insets, status-bar theming, splash, and haptics).
 
-**Tech Stack:** Capacitor 6 (`@capacitor/core`, `@capacitor/cli`, `@capacitor/ios`), Xcode + CocoaPods, the existing vanilla HTML/JS/CSS app, Node 20.20.2 (nvm).
+**Tech Stack:** **Capacitor 7** (`@capacitor/core`, `@capacitor/cli`, `@capacitor/ios`), **Swift Package Manager (SPM), NOT CocoaPods** (locked Forge decision for the CertAnvil iOS native build), Xcode, the existing vanilla HTML/JS/CSS app, Node 20.20.2 (nvm).
 
 > **This is the Phase G "Stage 2 — build the iOS app" deliverable.** Hub: [`docs/planning/PHASE-G-PLAN-2026-06-11.md`](../../planning/PHASE-G-PLAN-2026-06-11.md). It is a hard prerequisite for **G-3** (RevenueCat IAP). See **Scope boundaries** below for what is explicitly NOT in this plan.
 
@@ -48,7 +48,7 @@ Two implementations of Option A exist; this plan uses **A2 (bundled-served-as-ce
 |---|---|---|
 | `capacitor.config.json` | Create | Capacitor app id/name, webDir, Option A `server` origin config, plugin config |
 | `package.json` | Modify | Add Capacitor deps + `ios:*` npm scripts |
-| `ios/` (generated dir) | Create (via `cap add ios`) | The native Xcode project + CocoaPods workspace |
+| `ios/` (generated dir) | Create (via `cap add ios --packagemanager SPM`) | The native Xcode project (Swift Package Manager — no CocoaPods) |
 | `dist/` build inputs | Reference | `webDir` source the native app bundles (see Task 2 for what `webDir` points at in a no-build-step app) |
 | `sw.js` + registration in `app.js:1959` | Modify | Neutralise the service worker when running inside Capacitor |
 | `capacitor-shell.js` (new) | Create | Tiny boot shim: detect Capacitor, set the native-context flag, configure navigation/external-link policy, init native plugins |
@@ -81,13 +81,13 @@ node --version   # expect v20.20.2
 - [ ] **Step 3: Verify the iOS toolchain is present**
 
 ```bash
-xcodebuild -version          # expect Xcode 15+; if "command line tools" only, install full Xcode
+xcodebuild -version          # expect Xcode 16+ (Capacitor 7 baseline); if "command line tools" only, install full Xcode
 xcode-select -p              # expect a path inside Xcode.app, not /Library/Developer/CommandLineTools
-pod --version                # CocoaPods; if missing: sudo gem install cocoapods
 ```
 
-Expected: Xcode 15+, `xcode-select -p` points inside `Xcode.app`, CocoaPods present.
-If any are missing, STOP and install before continuing — `cap add ios` needs all three.
+Expected: Xcode 16+, `xcode-select -p` points inside `Xcode.app`.
+**No CocoaPods needed** — this build uses Swift Package Manager (locked Forge decision). Capacitor 7 generates an SPM-based iOS project; there is no `pod install` step.
+If Xcode is missing or only the command-line tools are installed, STOP and install full Xcode before continuing.
 
 - [ ] **Step 4: Confirm no Capacitor scaffold exists yet (sanity)**
 
@@ -188,7 +188,7 @@ git commit -m "docs(mobile): Capacitor navigation + external-link audit (Option 
 
 ```bash
 export PATH="$HOME/.nvm/versions/node/v20.20.2/bin:$PATH"
-npm install --save @capacitor/core@^6 @capacitor/cli@^6 @capacitor/ios@^6
+npm install --save @capacitor/core@^7 @capacitor/cli@^7 @capacitor/ios@^7
 ```
 
 Expected: three packages added to `package.json` dependencies, no peer-dep errors.
@@ -274,16 +274,17 @@ Expected: "dist staged OK"; `dist/` contains `index.html`, `app.js`, `lib/`, `ce
 
 > `hostname: "certanvil.com"` + `iosScheme: "https"` is the Option A keystone — it makes the WKWebView report its origin as `https://certanvil.com` so the `Domain=.certanvil.com` cookie scopes correctly. Verified for real in Task 7.
 
-- [ ] **Step 6: Initialise Capacitor + add the iOS platform**
+- [ ] **Step 6: Initialise Capacitor + add the iOS platform (Swift Package Manager)**
 
 ```bash
 export PATH="$HOME/.nvm/versions/node/v20.20.2/bin:$PATH"
 npx cap init CertAnvil com.certanvil.app --web-dir dist   # if it prompts; config above already supplies values
 npm run stage:webdir
-npx cap add ios
+npx cap add ios --packagemanager SPM
 ```
 
-Expected: `ios/` directory created, CocoaPods install runs, `npx cap sync ios` reports success.
+Expected: `ios/` directory created using a **Swift Package Manager** project (NOT a CocoaPods `Podfile`/`.xcworkspace`); `npx cap sync ios` reports success.
+> If your Capacitor CLI version does not accept `--packagemanager SPM`, confirm the current Capacitor 7 SPM flag/flow against the docs at build time (SPM is the locked target — do not fall back to CocoaPods without revisiting the Forge decision).
 
 - [ ] **Step 7: Commit the scaffold (exclude generated Pods if heavy)**
 
@@ -386,7 +387,7 @@ Implements the Task 1 audit: `*.certanvil.com` loads in the webview (same origin
 
 ```bash
 export PATH="$HOME/.nvm/versions/node/v20.20.2/bin:$PATH"
-npm install --save @capacitor/browser@^6
+npm install --save @capacitor/browser@^7
 ```
 
 - [ ] **Step 2: Add the external-link interceptor to `capacitor-shell.js`**
@@ -448,7 +449,7 @@ The mobile baseline handled this for Safari; WKWebView needs `viewport-fit=cover
 
 ```bash
 export PATH="$HOME/.nvm/versions/node/v20.20.2/bin:$PATH"
-npm install --save @capacitor/keyboard@^6 @capacitor/status-bar@^6
+npm install --save @capacitor/keyboard@^7 @capacitor/status-bar@^7
 ```
 
 - [ ] **Step 2: Ensure the viewport opts into safe areas**
@@ -520,7 +521,7 @@ Guideline 4.2 rejects "just a website in a wrapper." Shipping real native capabi
 
 ```bash
 export PATH="$HOME/.nvm/versions/node/v20.20.2/bin:$PATH"
-npm install --save @capacitor/splash-screen@^6 @capacitor/haptics@^6
+npm install --save @capacitor/splash-screen@^7 @capacitor/haptics@^7
 ```
 
 - [ ] **Step 2: Initialise native UI chrome in `capacitor-shell.js`**
