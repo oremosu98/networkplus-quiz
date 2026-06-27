@@ -20,7 +20,7 @@ const path = require('path');
 const { execSync } = require('child_process');
 const os = require('os');
 
-const PROD_URL = 'https://networkplus-quiz-sable.vercel.app';
+const PROD_URL = 'https://networkplus.certanvil.com';
 const REPO_ROOT = path.resolve(__dirname, '..');
 const TS = Date.now();
 
