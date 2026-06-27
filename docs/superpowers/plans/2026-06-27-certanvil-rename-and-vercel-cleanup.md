@@ -1,5 +1,15 @@
 # CertAnvil Rename + Vercel Cleanup Implementation Plan
 
+> ## ✅ STATUS: EXECUTED — 2026-06-27 (all 4 phases complete, verified)
+> - **Phase 1 (Vercel):** removed the redundant Security+ deploy (Job 4b); renamed app project `networkplus-quiz` → **`certanvil-app`**; deleted orphans `secplus-quiz-sable` + `network-plus-quiz`; smoke/PROD URLs retargeted to `networkplus.certanvil.com`; Security+ signup redirect → `secplus.certanvil.com`. (PR [#468](https://github.com/oremosu98/certanvil/pull/468), merged.)
+> - **Phase 2 (GitHub):** repo renamed `networkplus-quiz` → **`certanvil`**; local remote re-pointed; pipeline re-verified.
+> - **Phase 3 (in-repo identity):** `package.json` name, `CLAUDE.md` title/path/URLs, review-feature skill paths → `certanvil`.
+> - **Phase 4 (local folder):** `~/Desktop/Dev Projects/networkplus-quiz` → **`…/certanvil`**; `~/.claude` launch + scheduled-task paths re-pointed.
+> - **Verified at every step:** all 7 cert subdomains + landing returned 200; CI `success`; no production behaviour change. `care-leader-prep` (separate app) left untouched.
+> - **Grill value:** caught the duplicate Security+ deploy (would have broken every ship if deleted naively); execution caught the live Security+ signup redirect pointing at the deleted project.
+>
+> _The phase/step checkboxes below are retained as the historical record of what was run._
+
 > **For agentic workers:** this is an **ops/migration plan**, not a code-feature plan. Steps use checkbox (`- [ ]`) syntax. Each phase has a **Risk** and **Rollback** block — read them before executing. Execute phases **one at a time, verifying between**, ideally in a dedicated maintenance window with no other risky work (Phase G builds) in flight.
 
 **Goal:** Rename the project's identity from "networkplus-quiz" to "CertAnvil" across the GitHub repo, the local folder, the `package.json`/docs, and the Vercel project — and delete stale orphan Vercel projects — so the naming reflects reality (one app serving all certs) without breaking production, CI, or auth.
