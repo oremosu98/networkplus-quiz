@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# ══════════════════════════════════════════════════════════════════════
+# post-merge — refresh the graphify code map after a merge/pull.
+#
+# Covers the gated lane (PR squash-merge, `git pull` bringing in others' work).
+# Delegates to post-commit so the rebuild logic lives in exactly one place.
+# ══════════════════════════════════════════════════════════════════════
+DIR="$(dirname "$0")"
+[ -x "$DIR/post-commit" ] && exec "$DIR/post-commit"
+exit 0

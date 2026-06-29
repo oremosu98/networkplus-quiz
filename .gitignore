@@ -38,6 +38,13 @@ AI_QUIZ_HANDOFF.md
 # brainstorming visual companion (transient session files)
 .superpowers/
 
+# graphify code-map output — regenerated locally (auto-rebuilt by the
+# post-commit/post-merge hooks). ~3MB of graph.json/html/report + cache;
+# local-only, never committed. The .graphifyignore config IS tracked so the
+# code-only build is reproducible. glabel.txt is a transient naming log.
+graphify-out/
+glabel.txt
+
 # Sec-P4 / L5 — secret-bearing files must never enter git history. No secrets
 # have leaked to date (audit Phase 0); these patterns are a forward guard
 # against an accidental commit of env files, private keys, or a secrets dir.

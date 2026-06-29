@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+# ══════════════════════════════════════════════════════════════════════
+# post-commit — refresh the graphify code map after each commit.
+#
+# WHAT: incremental, STRUCTURE-ONLY rebuild of graphify-out/ (the "who calls
+#       what" graph used for diagnosis/feature work). No API key needed.
+# WHY:  every commit changes code, which makes the old graph stale. This keeps
+#       the call-graph in sync automatically.
+# COST: near-zero — incremental (only re-reads changed files) and detached, so
+#       it NEVER blocks or slows your commit.
+#
+# Cluster NAMES ("Exam Simulation", etc.) are NOT refreshed here — that needs
+# the Gemini key + a flaky batch step, and names drift slowly. Re-name manually:
+#   GOOGLE_API_KEY="<key>" graphify label . --model gemini-2.5-flash
+#
+# Skips silently if graphify isn't installed. Bypass all hooks: commit --no-verify
+# ══════════════════════════════════════════════════════════════════════
+export PATH="$HOME/.local/bin:$PATH"
+
+command -v graphify >/dev/null 2>&1 || exit 0
+REPO="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 0
+[ -n "$REPO" ] || exit 0
+
+mkdir -p "$REPO/graphify-out" 2>/dev/null
+
+# Detached background rebuild with an atomic mkdir-lock so overlapping commits
+# don't run two graphify processes against the same output dir.
+(
+  LOCK="$REPO/graphify-out/.refresh.lock"
+  mkdir "$LOCK" 2>/dev/null || exit 0          # another refresh already running
+  trap 'rmdir "$LOCK" 2>/dev/null' EXIT
+  cd "$REPO" || exit 0
+  graphify . >"$REPO/graphify-out/.auto-refresh.log" 2>&1
+) >/dev/null 2>&1 &
+
+exit 0

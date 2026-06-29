@@ -1,0 +1,22 @@
+# Keep graphify code-only so it builds offline with no AI API key.
+# Excludes docs + images (the HTML lessons, markdown notes, icons, screenshots).
+# Your JS / SQL / CSS code is still fully indexed.
+*.html
+*.md
+*.svg
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.webp
+*.ico
+*.pdf
+*.yml
+*.yaml
+*.txt
+*.rst
+*.mdx
+*.qmd
+
+# Minified vendor bundles (Supabase, DOMPurify) — not your code, pure noise.
+*.min.js
