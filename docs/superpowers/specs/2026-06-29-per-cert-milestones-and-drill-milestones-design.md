@@ -16,6 +16,7 @@ Two outcomes in one coherent change to the milestone system:
 - **MILESTONES ARE PER-CERT.** Earning a milestone in one cert (Network+) must NOT transfer to another (Security+, A+, Azure, …). Sharing milestone progress across certs is disallowed. This applies to **all** milestones, not just the new drill ones. *(Recorded in Forge + memory.)*
 - **No data loss on migration.** Existing earned milestones (currently global) must be grandfathered, not wiped.
 - **Reuse existing machinery.** The celebration pop-up (`showMilestoneCelebration`) and analytics renderer (`_renderAnaMilestones`) already exist and already fire for quizzes/exams — extend, don't rebuild.
+- **Cross-platform: must work on Desktop browsers, Safari/WebKit, AND the iOS Capacitor wrap** — storage, cert detection, and the celebration pop-up all behave identically across the three. See §4.H.
 - Additive + cleanup only — no unrelated refactors.
 
 ## 3. Current state (verified via the graphify code map + targeted reads)
@@ -67,6 +68,19 @@ At each drill's completion point — Sim Lab (`_slRenderExamResult` / `_slRender
 - Update UAT `EXPECTED_MILESTONES` / `newMilestones` for the new ids + revised count (−15 orphans, +15 drill milestones).
 - New tests: **per-cert isolation** (unlock on Network+ not visible on Security+); **migration** (old flat map → `{netplus: …}`, orphans pruned); **each drill** increments its counter, fires its milestone, and triggers the celebration; **orphan defs gone**.
 - `validation-audit.js` unaffected.
+
+### H. Cross-platform (Desktop browsers / Safari-WebKit / iOS Capacitor)
+Must work identically on Desktop, Safari, and the iOS Capacitor wrap (all confirmed in play).
+- **Storage durability (Safari/iOS ITP):** WebKit can purge localStorage (~7-day ITP), so milestones stay **cloud-canonical** (Supabase) with localStorage as cache — which this design already preserves (same `STORAGE.MILESTONES` key + `_cloudFlush`). **CRITICAL:** the per-cert migration-on-read MUST run only **after** `cloudStore.hydrate()` (SIGNED_IN), be idempotent, and **never flush a pre-hydrate / empty wrap** — otherwise a purged-localStorage device would clobber other certs' submaps in the cloud. Anonymous/offline users stay localStorage-only, as today.
+- **Cert key inside the wrapper:** namespacing key = `detectCert()` (hostname/subdomain at boot, `app.js:161`; falls back to session/profile cert preference for root/localhost). Confirm `detectCert()` returns the correct cert key inside the iOS Capacitor wrap (loads the real origin). If the wrap ever loads root instead of a per-cert subdomain, the profile cert-preference fallback must be set so milestones namespace correctly. **Verify before namespacing.**
+- **Celebration pop-up rendering:** `showMilestoneCelebration` must render in WKWebView (iOS) + Safari, not just Chromium — CSS-only animation, honor the existing `prefers-reduced-motion` gate, respect safe-area/narrow viewport (the Capacitor wrap is always narrow). No desktop-only APIs.
+- **Cloud round-trip:** the nested `{cert:{id:ts}}` blob must serialize + hydrate through Supabase identically on all platforms.
+- **Lane:** if changes stay in `app.js` (+ `features/*`) → fast-lane. If the hydrate-ordering fix needs `cloud-store.js` / `auth-state.js` → **gated-lane** (PR + preview + smoke) per `ENVIRONMENT_STRATEGY.md`.
+
+Cross-platform testing:
+- Run milestone E2E across existing Playwright projects: `test:webkit` + `test:mobile-safari` (not just Chromium).
+- Manual iOS Capacitor smoke: earn a drill milestone in the wrapped app → pop-up renders + unlock persists across relaunch (cloud round-trip).
+- Safari ITP scenario: simulate localStorage purge → milestones rehydrate per-cert from cloud; migration doesn't double-wrap or clobber.
 
 ## 5. Key integration points (files)
 - `app.js`: `MILESTONE_DEFS`, `MILESTONE_CHECKS`, `MILESTONE_PROGRESS`, `getMilestones`/`unlockMilestone`/`evaluateMilestones`, `STORAGE` keys, the 5 drill completion functions, `_renderAnaMilestones`.
