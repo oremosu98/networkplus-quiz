@@ -11566,39 +11566,57 @@ function _certKey() {
   try { return (window.CURRENT_CERT || CURRENT_CERT || 'netplus'); } catch (_) { return 'netplus'; }
 }
 // Read the whole {cert:{id:ts}} map, migrating the legacy flat shape on the fly.
-function _allMilestones() {
+// opts.prune (default off) is passed straight through to _migrateMilestoneShape:
+// callers that DISPLAY want the pruned view; the WRITE path must NOT prune
+// (see unlockMilestone) so a write never deletes other certs'/devices' ids.
+function _allMilestones(opts) {
   let raw;
   try { raw = JSON.parse(localStorage.getItem(STORAGE.MILESTONES) || '{}'); } catch { raw = {}; }
-  return _migrateMilestoneShape(raw);
+  return _migrateMilestoneShape(raw, opts);
 }
 // Old shape = {id: ISOstring}. New shape = {cert: {id: ISOstring}}.
-// Detect old: at least one value is a string. Idempotent: object values pass through.
-function _migrateMilestoneShape(raw) {
+// Detect old: every value is a string (and there's at least one). The flat→nested
+// wrap ALWAYS happens; orphan-pruning (delete ids not in the live-defs set) is
+// OPT-IN via opts.prune === true so it can be kept off the write path.
+// Pure: references only its args + (opts.liveIds || MILESTONE_DEFS) — vm-testable.
+// Idempotent: object values pass through; empty {} stays {} (not {netplus:{}}).
+function _migrateMilestoneShape(raw, opts) {
   if (!raw || typeof raw !== 'object') return {};
   const vals = Object.values(raw);
   const isOldFlat = vals.length > 0 && vals.every(v => typeof v === 'string');
   let map = isOldFlat ? { netplus: raw } : raw;
-  if (typeof MILESTONE_DEFS !== 'undefined') {
-    const liveIds = new Set(MILESTONE_DEFS.map(d => d.id));
-    Object.keys(map).forEach(cert => {
-      const sub = map[cert];
-      if (sub && typeof sub === 'object') {
-        Object.keys(sub).forEach(id => { if (!liveIds.has(id)) delete sub[id]; });
-      }
-    });
+  if (opts && opts.prune === true) {
+    const liveIds = (opts && opts.liveIds) ? opts.liveIds
+      : (typeof MILESTONE_DEFS !== 'undefined' ? new Set(MILESTONE_DEFS.map(d => d.id)) : null);
+    if (liveIds) {
+      Object.keys(map).forEach(cert => {
+        const sub = map[cert];
+        if (sub && typeof sub === 'object') {
+          Object.keys(sub).forEach(id => { if (!liveIds.has(id)) delete sub[id]; });
+        }
+      });
+    }
   }
   return map;
 }
 function getMilestones() {
-  const all = _allMilestones();
-  return all[_certKey()] || {};
+  // Display path: prune orphaned (no-longer-defined) ids from the current cert's
+  // view. Return a shallow copy so callers can't mutate the freshly-parsed map.
+  const all = _allMilestones({ prune: true });
+  return { ...(all[_certKey()] || {}) };
 }
 function unlockMilestone(key) {
-  const all = _allMilestones();
+  // Persist the UNPRUNED map: an unlock must never delete other ids/certs from
+  // the cloud-flushed blob (cloud is source of truth on iOS/Safari; a staged
+  // rollout where this device has a newer MILESTONE_DEFS could otherwise wipe
+  // another device's still-valid entries). Orphan-pruning is display-only.
+  const all = _allMilestones(); // no prune
   const cert = _certKey();
   const sub = all[cert] || (all[cert] = {});
   if (sub[key]) return false;
   sub[key] = new Date().toISOString();
+  // _cloudFlush relies on cloudStore.flush being hydration-gated, so a
+  // pre-hydrate unlock can't clobber cloud with a stale/partial map.
   try { localStorage.setItem(STORAGE.MILESTONES, JSON.stringify(all)); _cloudFlush(STORAGE.MILESTONES); } catch {}
   return true;
 }

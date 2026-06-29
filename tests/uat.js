@@ -14605,7 +14605,9 @@ test('v4.89.0 Phase C′: setExamDate flushes STORAGE.EXAM_DATE',
 test('v4.89.0 Phase C′: setDailyGoal flushes STORAGE.DAILY_GOAL',
   /function setDailyGoal[\s\S]{0,300}_cloudFlush\(STORAGE\.DAILY_GOAL\)/.test(js));
 test('v4.89.0 Phase C′: unlockMilestone flushes STORAGE.MILESTONES',
-  /function unlockMilestone[\s\S]{0,400}_cloudFlush\(STORAGE\.MILESTONES\)/.test(js));
+  // window widened 400→800 for Task 1: the per-cert write-path/clobber-safety
+  // comments lengthened the body; the flush still lives inside the function.
+  /function unlockMilestone[\s\S]{0,800}_cloudFlush\(STORAGE\.MILESTONES\)/.test(js));
 
 // ============================================================================
 // v4.91.0 — Security+ Acronym Blitz drill (first SY0-701 drill)
@@ -20207,6 +20209,64 @@ test('M1: getMilestones reads current cert submap',
   /getMilestones\s*\([^)]*\)\s*\{[\s\S]*?_certKey\(\)/.test(js));
 test('M1: unlockMilestone writes under current cert',
   /unlockMilestone[\s\S]*?_certKey\(\)/.test(js));
+// Write-path decoupling: getMilestones DISPLAYS the pruned view; unlockMilestone
+// persists the UNPRUNED map (prune must never run on the cloud-flushed write).
+test('M1: getMilestones uses the pruned ({prune:true}) view',
+  /getMilestones\s*\([^)]*\)\s*\{[\s\S]*?_allMilestones\(\s*\{\s*prune:\s*true\s*\}\s*\)/.test(js));
+test('M1: getMilestones returns a shallow copy (non-owned sub-object)',
+  /getMilestones\s*\([^)]*\)\s*\{[\s\S]*?return\s*\{\s*\.\.\.\(all\[_certKey\(\)\]\s*\|\|\s*\{\}\)\s*\}/.test(js));
+test('M1: unlockMilestone persists the UNPRUNED map (_allMilestones() no prune)',
+  /unlockMilestone\s*\([^)]*\)\s*\{[\s\S]*?_allMilestones\(\)\s*;\s*\/\/\s*no prune/.test(js));
+test('M1: _migrateMilestoneShape prune is opt-in (opts.prune === true)',
+  /_migrateMilestoneShape\s*\(\s*raw\s*,\s*opts\s*\)[\s\S]*?opts\.prune\s*===\s*true/.test(js));
+
+// Behavioral smoke: extract _migrateMilestoneShape into a vm sandbox (no globals
+// beyond an injected MILESTONE_DEFS) and prove the migration/prune contract.
+try {
+  const migBody = (js.match(/function _migrateMilestoneShape\(raw, opts\) \{[\s\S]*?\n\}/) || [''])[0];
+  if (migBody) {
+    const ctx = {};
+    vm.createContext(ctx);
+    // Inject a known live-defs set so prune behavior is deterministic.
+    vm.runInContext('const MILESTONE_DEFS = [{id:"a"},{id:"b"}];', ctx);
+    vm.runInContext(migBody, ctx);
+    vm.runInContext('globalThis.__mig = _migrateMilestoneShape;', ctx);
+    const mig = ctx.__mig;
+    const deepEq = (x, y) => JSON.stringify(x) === JSON.stringify(y);
+
+    // (a) old flat {a:'ts'} → {netplus:{a:'ts'}}
+    test('M1 behavioral: old flat wraps under netplus',
+      deepEq(mig({ a: 'ts' }), { netplus: { a: 'ts' } }));
+    // (b) idempotency: migrate(migrate(x)) deep-equals migrate(x)
+    const once = mig({ a: 'ts', b: 'ts2' });
+    test('M1 behavioral: migrate is idempotent',
+      deepEq(mig(JSON.parse(JSON.stringify(once))), once));
+    // (c) empty {} → {} (NOT {netplus:{}})
+    test('M1 behavioral: empty stays empty (no netplus wrap)',
+      deepEq(mig({}), {}));
+    // (d) already-nested passes through unchanged
+    test('M1 behavioral: already-nested passes through',
+      deepEq(mig({ netplus: { a: 'ts' } }), { netplus: { a: 'ts' } }));
+    // (e) prune:true removes ids not in live set; prune:false preserves them
+    const live = new Set(['a', 'b']);
+    test('M1 behavioral: prune:true drops orphaned id',
+      deepEq(mig({ netplus: { a: 'ts', zzz: 'ts' } }, { prune: true, liveIds: live }),
+             { netplus: { a: 'ts' } }));
+    test('M1 behavioral: prune:false preserves orphaned id',
+      deepEq(mig({ netplus: { a: 'ts', zzz: 'ts' } }, { prune: false, liveIds: live }),
+             { netplus: { a: 'ts', zzz: 'ts' } }));
+    // bonus: default (no opts) does NOT prune — protects the write path
+    test('M1 behavioral: default (no opts) does not prune',
+      deepEq(mig({ netplus: { a: 'ts', zzz: 'ts' } }),
+             { netplus: { a: 'ts', zzz: 'ts' } }));
+  } else {
+    test('M1 behavioral: _migrateMilestoneShape extraction', false);
+    results.errors.push('could not extract _migrateMilestoneShape from app.js');
+  }
+} catch (err) {
+  test('M1 behavioral: _migrateMilestoneShape smoke test', false);
+  results.errors.push('_migrateMilestoneShape smoke test threw: ' + err.message);
+}
 
 // ── Summary ──
 console.log('\n' + '═'.repeat(50));
