@@ -21,6 +21,7 @@ LIST FROM #decision SORT updated DESC
 - [[structure-overview]] — where everything lives + how it deploys
 - [[key-patterns]] — quiz flow, exam mode, AI teacher tiers, validation pipeline
 - [[feature-subsystems]] — Topology Builder, Subnet Trainer, Drills launcher
+- [[graphify-code-map]] — code-map query tooling (`graphq`) + hard-won lessons
 
 ## Conventions & Decisions
 - [[conventions]] — testing philosophy, lessons, magic-number constants
