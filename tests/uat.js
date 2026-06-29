@@ -1308,7 +1308,8 @@ console.log('\n\x1b[1m── FIX THIS NETWORK (v4.38.0) ──\x1b[0m');
 // Fault types
 
 // Challenges (all 15)
-test('TB_FIX_CHALLENGES array', js.includes('TB_FIX_CHALLENGES'));
+// TB_FIX_CHALLENGES array assertion removed in M2 — the data table was deleted with the
+// Fix This Network drill long ago; only the orphaned milestone ctx block still name-dropped it.
 
 // Engine functions
 test('STORAGE.FIX_CHALLENGES key', js.includes("FIX_CHALLENGES"));
@@ -1460,21 +1461,24 @@ test('Solid ledger tile renders emoji-free (v7.15.0: \\u{1F535} blue disc remove
 console.log('\n\x1b[1m── ACRONYM BLITZ (v4.38.0) ──\x1b[0m');
 test('AB_MASTERY storage key', js.includes("AB_MASTERY: 'nplus_ab_mastery'"));
 test('AB_LESSONS storage key', js.includes("AB_LESSONS: 'nplus_ab_lessons'"));
-test('getAbMastery defined', js.includes('getAbMastery'));
+// getAbMastery assertion removed in M2 — helper deleted with the Acronym Blitz drill long ago;
+// only the orphaned milestone ctx block still referenced it (via typeof guard).
 // ab_first/ab_50/ab_all_seen/ab_streak_15 removed in M2 (Acronym Blitz drill deleted)
 
 // ── v4.38.0: OSI Layer Sorter ──
 console.log('\n\x1b[1m── OSI LAYER SORTER (v4.38.0) ──\x1b[0m');
 test('OS_MASTERY storage key', js.includes("OS_MASTERY: 'nplus_os_mastery'"));
 test('OS_LESSONS storage key', js.includes("OS_LESSONS: 'nplus_os_lessons'"));
-test('getOsMastery defined', js.includes('getOsMastery'));
+// getOsMastery assertion removed in M2 — helper deleted with the OSI Sorter drill long ago;
+// only the orphaned milestone ctx block still referenced it (via typeof guard).
 // os_first/os_50/os_all_seen/os_streak_10 removed in M2 (OSI Sorter drill deleted)
 
 // ── v4.38.0: Cable & Connector ID ──
 console.log('\n\x1b[1m── CABLE & CONNECTOR ID (v4.38.0) ──\x1b[0m');
 test('CB_MASTERY storage key', js.includes("CB_MASTERY: 'nplus_cb_mastery'"));
 test('CB_LESSONS storage key', js.includes("CB_LESSONS: 'nplus_cb_lessons'"));
-test('getCbMastery defined', js.includes('getCbMastery'));
+// getCbMastery assertion removed in M2 — helper deleted with the Cable ID drill long ago;
+// only the orphaned milestone ctx block still referenced it (via typeof guard).
 // cb_first/cb_50/cb_all_seen/cb_streak_10 removed in M2 (Cable ID drill deleted)
 
 // ── v4.41.0 AI teacher pipeline (Tier A/B/C) structural assertions ──
@@ -20260,6 +20264,21 @@ console.log('\n\x1b[1m── M2: ORPHANED MILESTONE REMOVAL ──\x1b[0m');
  'fix_first','fix_5','fix_all_easy',
 ].forEach(id => test(`M2: orphan '${id}' removed from app.js`,
   !new RegExp("id:\\s*'" + id + "'").test(js)));
+
+// M2 regression guard: every MILESTONE_PROGRESS key must be a real MILESTONE_DEFS id
+// (this is the guard that would have caught the orphaned ab_50/os_50/cb_50/fix_5 progress entries).
+(function() {
+  const defsSrc = (js.match(/const MILESTONE_DEFS = \[[\s\S]*?\];/) || [''])[0];
+  const progSrc = (js.match(/const MILESTONE_PROGRESS = \{[\s\S]*?\n\};/) || [''])[0];
+  const defIds = new Set([...defsSrc.matchAll(/id:\s*'([^']+)'/g)].map(m => m[1]));
+  // progress keys: `key: c =>` at entry start (strip the arrow-fn bodies first via key-position match)
+  const progKeys = [...progSrc.matchAll(/(?:^|[\s{,])([a-z][a-z0-9_]*)\s*:\s*c\s*=>/gi)].map(m => m[1]);
+  test('M2 guard: MILESTONE_DEFS + MILESTONE_PROGRESS both extracted',
+    defIds.size > 0 && progKeys.length > 0);
+  const orphanProg = progKeys.filter(k => !defIds.has(k));
+  test(`M2 guard: no MILESTONE_PROGRESS key orphaned from MILESTONE_DEFS (orphans: ${orphanProg.join(',') || 'none'})`,
+    orphanProg.length === 0);
+})();
 
 // ── Summary ──
 console.log('\n' + '═'.repeat(50));

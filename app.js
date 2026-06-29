@@ -11740,39 +11740,8 @@ function _buildMilestoneDrillCtx() {
     labsDone = Object.keys(JSON.parse(localStorage.getItem(STORAGE.LAB_COMPLETIONS) || '{}')).length;
     totalLabs = (typeof TB_LABS !== 'undefined') ? TB_LABS.length : 22;
   } catch (_) {}
-  let abM = { totalAnswered: 0, perItem: {} }, abSeenCount = 0, abTotalItems = 0;
-  try {
-    abM = (typeof getAbMastery === 'function') ? getAbMastery() : abM;
-    abSeenCount = Object.values(abM.perItem).filter(p => p.seen > 0).length;
-    abTotalItems = (typeof AB_DATA !== 'undefined') ? AB_DATA.length : 120;
-  } catch (_) {}
-  let osM = { totalAnswered: 0, perItem: {} }, osSeenCount = 0, osTotalItems = 0;
-  try {
-    osM = (typeof getOsMastery === 'function') ? getOsMastery() : osM;
-    osSeenCount = Object.values(osM.perItem).filter(p => p.seen > 0).length;
-    osTotalItems = (typeof OS_DATA !== 'undefined') ? OS_DATA.length : 50;
-  } catch (_) {}
-  let cbM = { totalAnswered: 0, perItem: {} }, cbSeenCount = 0, cbTotalItems = 0;
-  try {
-    cbM = (typeof getCbMastery === 'function') ? getCbMastery() : cbM;
-    cbSeenCount = Object.values(cbM.perItem).filter(p => p.seen > 0).length;
-    cbTotalItems = ((typeof CB_CABLES !== 'undefined') ? CB_CABLES.length : 15) + ((typeof CB_CONNECTORS !== 'undefined') ? CB_CONNECTORS.length : 13);
-  } catch (_) {}
-  let fixDone = 0, fixAllEasy = false;
-  try {
-    const fixSaved = JSON.parse(localStorage.getItem(STORAGE.FIX_CHALLENGES) || '{}');
-    fixDone = Object.keys(fixSaved).length;
-    if (typeof TB_FIX_CHALLENGES !== 'undefined') {
-      const easyIds = TB_FIX_CHALLENGES.filter(c => c.difficulty === 'Easy').map(c => c.id);
-      fixAllEasy = easyIds.length > 0 && easyIds.every(id => fixSaved[id]);
-    }
-  } catch (_) {}
   return {
     labsDone, totalLabs,
-    abM, abSeenCount, abTotalItems,
-    osM, osSeenCount, osTotalItems,
-    cbM, cbSeenCount, cbTotalItems,
-    fixDone, fixAllEasy,
   };
 }
 
@@ -18641,8 +18610,7 @@ const MILESTONE_PROGRESS = {
   five_exams: c => [c.exams.length, 5], ten_exams: c => [c.exams.length, 10],
   subnet_50: c => [c.subStats.seen, 50], deep_dive_10: c => [c.ddUses, 10],
   daily_challenge_7: c => [c.dc.bestStreak, 7], daily_challenge_30: c => [c.dc.bestStreak, 30],
-  labs_5: c => [c.labsDone, 5], labs_10: c => [c.labsDone, 10], fix_5: c => [c.fixDone, 5],
-  ab_50: c => [c.abM.totalAnswered, 50], os_50: c => [c.osM.totalAnswered, 50], cb_50: c => [c.cbM.totalAnswered, 50],
+  labs_5: c => [c.labsDone, 5], labs_10: c => [c.labsDone, 10],
 };
 // v7.14.0 — Milestones "Trophy Shine × Hover Detail". Shine: recent tiles get a
 // staggered gleam + sparkle on load. Detail: hover lifts + reveals earned-date /
