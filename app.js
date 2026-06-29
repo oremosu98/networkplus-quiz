@@ -7514,6 +7514,16 @@ function _finishGauntlet() {
   try { renderStatsCard(); renderReadinessCard(); } catch (_) {}
   try { if (typeof _maybeShowDailyRecap === 'function') _maybeShowDailyRecap(); } catch (_) {}
   gauntletMode = false;
+  try {
+    if (typeof bumpDrillStat === 'function') {
+      bumpDrillStat('gauntlet', 'done', 1);
+      if (cracked) bumpDrillStat('gauntlet', 'perfect', 1);
+    }
+    if (typeof evaluateMilestones === 'function') {
+      const _nu = evaluateMilestones();
+      _nu.forEach((id, i) => setTimeout(() => showMilestoneCelebration(id), 500 + i * 900));
+    }
+  } catch (_) {}
   _renderGauntletLadder();
   renderGauntletResult(cracked, results);
   showPage('gauntlet-result');
@@ -7999,6 +8009,16 @@ function whyNotFinishSession() {
         '<button type="button" class="btn gnt-ghost" data-action="whyNotExit">' + (_wnReturn === 'drills' ? 'Back to Drills' : 'Back to Home') + '</button>' +
       '</div>';
   }
+  try {
+    if (typeof bumpDrillStat === 'function') {
+      bumpDrillStat('whynot', 'done', 1);
+      if (answersRight === WHY_NOT_ROUNDS) bumpDrillStat('whynot', 'perfect', 1);
+    }
+    if (typeof evaluateMilestones === 'function') {
+      const _nu = evaluateMilestones();
+      _nu.forEach((id, i) => setTimeout(() => showMilestoneCelebration(id), 500 + i * 900));
+    }
+  } catch (_) {}
   _wnSession = null;
   _wnRound = null;
   // the user is usually ALREADY on the verdict page (round verdict re-uses

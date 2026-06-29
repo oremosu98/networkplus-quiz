@@ -114,7 +114,7 @@ npx playwright test              # E2E (tests/e2e/app.spec.js)
 
 | Version | Features Added |
 |---|---|
-| feat | Milestones: per-cert storage + legacy-flat migration + orphan prune (Task 1); remove 15 orphaned milestone ids + dead MILESTONE_PROGRESS entries/ctx fields for 4 deleted drills, add progress-key⊆defs guard (Task 2); DRILL_STATS per-cert tracking (getDrillStats/bumpDrillStat) + ctx.drill wiring + cloud-store sync (Task 3); add 15 drill milestone defs/checks/progress structural copy — simlab/decision/whynot/pt/gauntlet (Task 4) |
+| feat | Milestones: per-cert storage + legacy-flat migration + orphan prune (Task 1); remove 15 orphaned milestone ids + dead MILESTONE_PROGRESS entries/ctx fields for 4 deleted drills, add progress-key⊆defs guard (Task 2); DRILL_STATS per-cert tracking (getDrillStats/bumpDrillStat) + ctx.drill wiring + cloud-store sync (Task 3); add 15 drill milestone defs/checks/progress structural copy — simlab/decision/whynot/pt/gauntlet (Task 4); wire drill completion → bumpDrillStat + evaluateMilestones + celebration for simlab/decision/whynot/gauntlet (Task 5; packettrace deferred — no active finish handler) |
 | v7.59.0 | Decision Lab: cloud-cert scenario decision drill (engine + 4 seed banks) |
 | v7.58.0 | Sim Lab: A+ Core 1 (220-1201) + Core 2 (220-1202) PBQ seed banks live (cert rollout) |
 | v7.57.2 | Sim Lab entry target: derive cert label from pack name+code (Sec+ now shows Security+ SY0-701, not bare Mixed) |

@@ -1014,6 +1014,16 @@
         requestAnimationFrame(stepFn);
       }
     }
+    try {
+      if (typeof window.bumpDrillStat === 'function') {
+        window.bumpDrillStat('decision', 'done', 1);
+        if (agg.passed === agg.rounds) window.bumpDrillStat('decision', 'perfect', 1);
+      }
+      if (typeof window.evaluateMilestones === 'function') {
+        var _nu = window.evaluateMilestones();
+        _nu.forEach(function (id, i) { setTimeout(function () { window.showMilestoneCelebration(id); }, 500 + i * 900); });
+      }
+    } catch (_) {}
     if (typeof showPage === 'function') showPage('decision-lab-result');
   }
 
@@ -1302,6 +1312,16 @@
     var back = _el('button', 'btn btn-primary gnt-cta', 'Back to Practice');
     back.setAttribute('type', 'button'); back.setAttribute('data-action', 'simLabExit');
     root.appendChild(back);
+    try {
+      if (typeof window.bumpDrillStat === 'function') {
+        window.bumpDrillStat('simlab', 'done', 1);
+        if (agg.passed === agg.rounds) window.bumpDrillStat('simlab', 'perfect', 1);
+      }
+      if (typeof window.evaluateMilestones === 'function') {
+        var _nu = window.evaluateMilestones();
+        _nu.forEach(function (id, i) { setTimeout(function () { window.showMilestoneCelebration(id); }, 500 + i * 900); });
+      }
+    } catch (_) {}
     if (typeof showPage === 'function') showPage('sim-lab-result');
   }
 
@@ -1886,6 +1906,16 @@
       up.setAttribute('type', 'button'); up.setAttribute('data-action', 'simLabSummaryUpsell');
       root.appendChild(up);
     }
+    try {
+      if (typeof window.bumpDrillStat === 'function') {
+        window.bumpDrillStat('simlab', 'done', 1);
+        if (agg.passed === agg.rounds) window.bumpDrillStat('simlab', 'perfect', 1);
+      }
+      if (typeof window.evaluateMilestones === 'function') {
+        var _nu = window.evaluateMilestones();
+        _nu.forEach(function (id, i) { setTimeout(function () { window.showMilestoneCelebration(id); }, 500 + i * 900); });
+      }
+    } catch (_) {}
     if (typeof showPage === 'function') showPage('sim-lab-result');
     if (typeof window.renderSimLabHomeEntry === 'function') window.renderSimLabHomeEntry();
   }

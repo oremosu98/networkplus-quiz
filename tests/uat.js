@@ -20303,6 +20303,49 @@ test('M3: ctx.drill wired in _buildMilestoneCtx', /drill:\s*getDrillStats\(\)/.t
 // Cloud sync: nplus_drill_stats in cloud-store USER_DATA_KEYS
 test('M3: nplus_drill_stats in cloud-store USER_DATA_KEYS', cloudStoreJs.includes("'nplus_drill_stats'"));
 
+// ── M5: drill completion wiring — bump + evaluate + celebrate ──
+console.log('\n\x1b[1m── M5: DRILL COMPLETION WIRING ──\x1b[0m');
+// Sim Lab (practice mode) — _slRenderSummary fires exactly once per practice session
+const _m5SlSummaryBody = _fnBody(js, '_slRenderSummary');
+test("M5: Sim Lab _slRenderSummary calls bumpDrillStat('simlab')",
+  /bumpDrillStat\(\s*'simlab'/.test(_m5SlSummaryBody));
+test('M5: Sim Lab _slRenderSummary calls evaluateMilestones()',
+  _m5SlSummaryBody.includes('evaluateMilestones()'));
+test('M5: Sim Lab _slRenderSummary calls showMilestoneCelebration',
+  _m5SlSummaryBody.includes('showMilestoneCelebration'));
+// Sim Lab (exam mode) — _slRenderExamResult fires exactly once per exam session
+const _m5SlExamBody = _fnBody(js, '_slRenderExamResult');
+test("M5: Sim Lab _slRenderExamResult calls bumpDrillStat('simlab')",
+  /bumpDrillStat\(\s*'simlab'/.test(_m5SlExamBody));
+test('M5: Sim Lab _slRenderExamResult calls evaluateMilestones()',
+  _m5SlExamBody.includes('evaluateMilestones()'));
+test('M5: Sim Lab _slRenderExamResult calls showMilestoneCelebration',
+  _m5SlExamBody.includes('showMilestoneCelebration'));
+// Decision Lab — _dlRenderResult fires exactly once per session
+const _m5DlBody = _fnBody(js, '_dlRenderResult');
+test("M5: Decision Lab _dlRenderResult calls bumpDrillStat('decision')",
+  /bumpDrillStat\(\s*'decision'/.test(_m5DlBody));
+test('M5: Decision Lab _dlRenderResult calls evaluateMilestones()',
+  _m5DlBody.includes('evaluateMilestones()'));
+test('M5: Decision Lab _dlRenderResult calls showMilestoneCelebration',
+  _m5DlBody.includes('showMilestoneCelebration'));
+// Why-Not — whyNotFinishSession fires exactly once per 3-round session
+const _m5WnBody = _fnBody(js, 'whyNotFinishSession');
+test("M5: Why-Not whyNotFinishSession calls bumpDrillStat('whynot')",
+  /bumpDrillStat\(\s*'whynot'/.test(_m5WnBody));
+test('M5: Why-Not whyNotFinishSession calls evaluateMilestones()',
+  _m5WnBody.includes('evaluateMilestones()'));
+test('M5: Why-Not whyNotFinishSession calls showMilestoneCelebration',
+  _m5WnBody.includes('showMilestoneCelebration'));
+// Gauntlet — _finishGauntlet fires exactly once per gauntlet session
+const _m5GntBody = _fnBody(js, '_finishGauntlet');
+test("M5: Gauntlet _finishGauntlet calls bumpDrillStat('gauntlet')",
+  /bumpDrillStat\(\s*'gauntlet'/.test(_m5GntBody));
+test('M5: Gauntlet _finishGauntlet calls evaluateMilestones()',
+  _m5GntBody.includes('evaluateMilestones()'));
+test('M5: Gauntlet _finishGauntlet calls showMilestoneCelebration',
+  _m5GntBody.includes('showMilestoneCelebration'));
+
 // ── Summary ──
 console.log('\n' + '═'.repeat(50));
 const total = results.pass + results.fail;
