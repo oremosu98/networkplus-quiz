@@ -113,6 +113,7 @@
     'nplus_activated',   // onboarding: per-cert activation (metadata.activated.<certId>)
     'nplus_onb_skips',   // onboarding: per-cert diagnostic-skip record (metadata.onb_skips.<certId>)
     'nplus_freeCertId',  // free-tier cert lock: metadata.freeCertId (single global value)
+    'nplus_drill_stats', // Task 3: per-cert drill stats {cert:{drill:{done,perfect}}}
   ]);
 
   // Subset of USER_DATA that goes to a dedicated table, NOT profiles.metadata

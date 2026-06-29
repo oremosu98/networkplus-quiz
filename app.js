@@ -1123,6 +1123,7 @@ const STORAGE = {
   DL_FREE_COUNT: 'nplus_dl_free_count',   // Decision Lab free-tier daily set runs ({date, count}) — independent of PBQ_FREE_COUNT
   SIMLAB_WEAK: 'nplus_simlab_weak',       // v7.56 Sim Lab: Pro cross-session weak-spot map ({topic: count})
   DL_WEAK: 'nplus_dl_weak',               // Decision Lab Pro cross-session look-alike map ({pairLabel: count})
+  DRILL_STATS: 'nplus_drill_stats',       // Task 3: per-cert drill stats {cert:{drill:{done,perfect}}}
 };
 // v4.81.2: how many daily snapshots to keep before pruning oldest
 const AUTOBACKUP_KEEP_DAYS = 7;
@@ -11621,6 +11622,27 @@ function unlockMilestone(key) {
   return true;
 }
 
+// ── Task 3: per-cert drill stats ─────────────────────────────────────────────
+// Shape: { cert: { simlab:{done,perfect}, decision:{done,perfect}, whynot:{done,perfect},
+//                  packettrace:{done,perfect}, gauntlet:{done,perfect} } }
+function _allDrillStats() {
+  try { return JSON.parse(localStorage.getItem(STORAGE.DRILL_STATS) || '{}'); } catch { return {}; }
+}
+function getDrillStats() {
+  const all = _allDrillStats();
+  return all[_certKey()] || {};
+}
+// drill: 'simlab'|'decision'|'whynot'|'packettrace'|'gauntlet'; field: 'done'|'perfect'
+function bumpDrillStat(drill, field, by) {
+  const all = _allDrillStats();
+  const cert = _certKey();
+  const sub = all[cert] || (all[cert] = {});
+  const d = sub[drill] || (sub[drill] = { done: 0, perfect: 0 });
+  d[field] = (d[field] || 0) + (by || 1);
+  try { localStorage.setItem(STORAGE.DRILL_STATS, JSON.stringify(all)); _cloudFlush(STORAGE.DRILL_STATS); } catch {}
+  return d;
+}
+
 // Milestone definitions — keyed by id, evaluated against current state
 const MILESTONE_DEFS = [
   // v7.50.x: decorative emoji icons removed — the .ana-milestone-icon slot is
@@ -11726,6 +11748,7 @@ function _buildMilestoneCtx() {
     h, totalQs, studied, exams, readiness, streak, allDomainsHit, allTopicCount,
     subStats, portBest, portStreakBest, portStats, ddUses, dc,
     nightOwl, earlyBird, weekendWarrior, diversity5,
+    drill: getDrillStats(),  // Task 3: per-cert drill stats map (ctx.drill.simlab?.done etc.)
     ...drill,
   };
 }

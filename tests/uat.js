@@ -20280,6 +20280,16 @@ console.log('\n\x1b[1m── M2: ORPHANED MILESTONE REMOVAL ──\x1b[0m');
     orphanProg.length === 0);
 })();
 
+// ── M3: DRILL_STATS per-cert tracking ──
+console.log('\n\x1b[1m── M3: DRILL_STATS TRACKING ──\x1b[0m');
+test('M3: DRILL_STATS storage key defined', /DRILL_STATS:\s*'nplus_drill_stats'/.test(js));
+test('M3: getDrillStats() exists', /function getDrillStats\s*\(/.test(js));
+test('M3: bumpDrillStat() exists', /function bumpDrillStat\s*\(/.test(js));
+// Structural: ctx.drill wired into _buildMilestoneCtx return
+test('M3: ctx.drill wired in _buildMilestoneCtx', /drill:\s*getDrillStats\(\)/.test(js));
+// Cloud sync: nplus_drill_stats in cloud-store USER_DATA_KEYS
+test('M3: nplus_drill_stats in cloud-store USER_DATA_KEYS', cloudStoreJs.includes("'nplus_drill_stats'"));
+
 // ── Summary ──
 console.log('\n' + '═'.repeat(50));
 const total = results.pass + results.fail;
