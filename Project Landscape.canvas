@@ -1,0 +1,54 @@
+{
+  "nodes": [
+    {"id":"n-home","type":"file","file":"Home.md","x":0,"y":0,"width":260,"height":120},
+
+    {"id":"t-drills","type":"text","text":"## Drills","x":-800,"y":-320,"width":160,"height":60},
+    {"id":"n-drills-moc","type":"file","file":"Drills MOC.md","x":-800,"y":-220,"width":260,"height":120},
+    {"id":"n-why-not","type":"file","file":"docs/planning/WHY-NOT-DRILL-SPEC-2026-06-12.md","x":-1100,"y":-60,"width":260,"height":120},
+    {"id":"n-reword","type":"file","file":"docs/planning/REWORD-GAUNTLET-SPEC-2026-06-11.md","x":-760,"y":-60,"width":260,"height":120},
+    {"id":"n-phase-g","type":"file","file":"docs/planning/PHASE-G-PLAN-2026-06-11.md","x":-420,"y":-60,"width":260,"height":120},
+
+    {"id":"t-mobile","type":"text","text":"## Mobile / iOS","x":380,"y":-320,"width":180,"height":60},
+    {"id":"n-mobile-moc","type":"file","file":"Mobile MOC.md","x":380,"y":-220,"width":260,"height":120},
+    {"id":"n-ios-testing","type":"file","file":"IOS_TESTING.md","x":200,"y":-60,"width":260,"height":120},
+    {"id":"n-mobile-handoff","type":"file","file":"docs/certanvil-mobile-handoff.md","x":520,"y":-60,"width":260,"height":120},
+
+    {"id":"t-design","type":"text","text":"## Design","x":380,"y":180,"width":160,"height":60},
+    {"id":"n-design-moc","type":"file","file":"Design MOC.md","x":380,"y":260,"width":260,"height":120},
+    {"id":"n-design-playbook","type":"file","file":"docs/DESIGN_PLAYBOOK.md","x":200,"y":420,"width":260,"height":120},
+    {"id":"n-coreloop-audit","type":"file","file":"docs/certanvil-coreloop-audit-2026-06.md","x":520,"y":420,"width":260,"height":120},
+
+    {"id":"t-decisions","type":"text","text":"## Decisions","x":-800,"y":180,"width":180,"height":60},
+    {"id":"n-decisions-moc","type":"file","file":"Decisions MOC.md","x":-800,"y":260,"width":260,"height":120},
+    {"id":"n-decision-log","type":"file","file":"Decision Log.md","x":-1060,"y":420,"width":260,"height":120},
+    {"id":"n-adr001","type":"file","file":"docs/decisions/ADR-001-m5-supabase-session-cookies.md","x":-760,"y":420,"width":260,"height":120},
+    {"id":"n-adr002","type":"file","file":"docs/decisions/ADR-002-rbac-admin-surface.md","x":-460,"y":420,"width":260,"height":120},
+
+    {"id":"t-arch","type":"text","text":"## Architecture","x":-160,"y":180,"width":180,"height":60},
+    {"id":"n-ship","type":"file","file":"SHIP_CHECKLIST.md","x":-160,"y":260,"width":260,"height":120},
+    {"id":"n-changelog","type":"file","file":"CHANGELOG.md","x":-160,"y":420,"width":260,"height":120}
+  ],
+  "edges": [
+    {"id":"e-home-drills","fromNode":"n-home","toNode":"n-drills-moc","fromSide":"left","toSide":"right"},
+    {"id":"e-home-mobile","fromNode":"n-home","toNode":"n-mobile-moc","fromSide":"right","toSide":"left"},
+    {"id":"e-home-design","fromNode":"n-home","toNode":"n-design-moc","fromSide":"right","toSide":"left"},
+    {"id":"e-home-decisions","fromNode":"n-home","toNode":"n-decisions-moc","fromSide":"left","toSide":"right"},
+    {"id":"e-home-ship","fromNode":"n-home","toNode":"n-ship","fromSide":"bottom","toSide":"top"},
+
+    {"id":"e-drills-why","fromNode":"n-drills-moc","toNode":"n-why-not","fromSide":"bottom","toSide":"top"},
+    {"id":"e-drills-reword","fromNode":"n-drills-moc","toNode":"n-reword","fromSide":"bottom","toSide":"top"},
+    {"id":"e-drills-phase","fromNode":"n-drills-moc","toNode":"n-phase-g","fromSide":"bottom","toSide":"top"},
+
+    {"id":"e-mobile-ios","fromNode":"n-mobile-moc","toNode":"n-ios-testing","fromSide":"bottom","toSide":"top"},
+    {"id":"e-mobile-handoff","fromNode":"n-mobile-moc","toNode":"n-mobile-handoff","fromSide":"bottom","toSide":"top"},
+
+    {"id":"e-design-playbook","fromNode":"n-design-moc","toNode":"n-design-playbook","fromSide":"bottom","toSide":"top"},
+    {"id":"e-design-audit","fromNode":"n-design-moc","toNode":"n-coreloop-audit","fromSide":"bottom","toSide":"top"},
+
+    {"id":"e-decisions-log","fromNode":"n-decisions-moc","toNode":"n-decision-log","fromSide":"bottom","toSide":"top"},
+    {"id":"e-decisions-adr001","fromNode":"n-decisions-moc","toNode":"n-adr001","fromSide":"bottom","toSide":"top"},
+    {"id":"e-decisions-adr002","fromNode":"n-decisions-moc","toNode":"n-adr002","fromSide":"bottom","toSide":"top"},
+
+    {"id":"e-ship-changelog","fromNode":"n-ship","toNode":"n-changelog","fromSide":"bottom","toSide":"top"}
+  ]
+}

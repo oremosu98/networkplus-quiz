@@ -52,6 +52,7 @@ LIST FROM #decision SORT updated DESC
 - [[Mobile MOC]] — all iOS / mobile docs
 - [[Design MOC]] — brand, design system, and audits
 - [[Decisions MOC]] — ADRs, conventions, regression guards
+- [[Decision Log]] — running log of all project decisions (Dataview + manual fallback)
 
 ---
 *Tip: everything not linked here is still searchable + shows in the graph view. Add new specs/plans/decisions as notes and they'll appear automatically.*
