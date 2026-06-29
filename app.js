@@ -11561,14 +11561,45 @@ function updateTypeStat(type, wasCorrect) {
 }
 
 // ── Milestones tracking ──
+// Canonical cert key for namespacing (falls back to 'netplus' = legacy cert).
+function _certKey() {
+  try { return (window.CURRENT_CERT || CURRENT_CERT || 'netplus'); } catch (_) { return 'netplus'; }
+}
+// Read the whole {cert:{id:ts}} map, migrating the legacy flat shape on the fly.
+function _allMilestones() {
+  let raw;
+  try { raw = JSON.parse(localStorage.getItem(STORAGE.MILESTONES) || '{}'); } catch { raw = {}; }
+  return _migrateMilestoneShape(raw);
+}
+// Old shape = {id: ISOstring}. New shape = {cert: {id: ISOstring}}.
+// Detect old: at least one value is a string. Idempotent: object values pass through.
+function _migrateMilestoneShape(raw) {
+  if (!raw || typeof raw !== 'object') return {};
+  const vals = Object.values(raw);
+  const isOldFlat = vals.length > 0 && vals.every(v => typeof v === 'string');
+  let map = isOldFlat ? { netplus: raw } : raw;
+  if (typeof MILESTONE_DEFS !== 'undefined') {
+    const liveIds = new Set(MILESTONE_DEFS.map(d => d.id));
+    Object.keys(map).forEach(cert => {
+      const sub = map[cert];
+      if (sub && typeof sub === 'object') {
+        Object.keys(sub).forEach(id => { if (!liveIds.has(id)) delete sub[id]; });
+      }
+    });
+  }
+  return map;
+}
 function getMilestones() {
-  try { return JSON.parse(localStorage.getItem(STORAGE.MILESTONES) || '{}'); } catch { return {}; }
+  const all = _allMilestones();
+  return all[_certKey()] || {};
 }
 function unlockMilestone(key) {
-  const m = getMilestones();
-  if (m[key]) return false;
-  m[key] = new Date().toISOString();
-  try { localStorage.setItem(STORAGE.MILESTONES, JSON.stringify(m)); _cloudFlush(STORAGE.MILESTONES); } catch {}
+  const all = _allMilestones();
+  const cert = _certKey();
+  const sub = all[cert] || (all[cert] = {});
+  if (sub[key]) return false;
+  sub[key] = new Date().toISOString();
+  try { localStorage.setItem(STORAGE.MILESTONES, JSON.stringify(all)); _cloudFlush(STORAGE.MILESTONES); } catch {}
   return true;
 }
 

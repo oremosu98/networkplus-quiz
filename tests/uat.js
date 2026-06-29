@@ -20197,6 +20197,17 @@ console.log('\n\x1b[1m── Security Phase 7 — CSP script-src unsafe-inline r
     pricingHtml.includes('cloud-cert scenario drills with per-distractor reasoning'));
 })();
 
+// ── Per-cert milestone storage (Task 1) ──
+console.log('\n\x1b[1m── Per-cert milestone storage (M1) ──\x1b[0m');
+test('M1: _certKey() helper exists',
+  /function _certKey\s*\(/.test(js));
+test('M1: _migrateMilestoneShape() exists',
+  /function _migrateMilestoneShape\s*\(/.test(js));
+test('M1: getMilestones reads current cert submap',
+  /getMilestones\s*\([^)]*\)\s*\{[\s\S]*?_certKey\(\)/.test(js));
+test('M1: unlockMilestone writes under current cert',
+  /unlockMilestone[\s\S]*?_certKey\(\)/.test(js));
+
 // ── Summary ──
 console.log('\n' + '═'.repeat(50));
 const total = results.pass + results.fail;
