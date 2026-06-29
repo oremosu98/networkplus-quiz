@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Drills milestone group · Analytics · concept</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;550;600;650;700;800&display=swap" rel="stylesheet">
+<style>
+/* ════════════════════════════════════════════════════════════════════════
+   CertAnvil · MOCKUP STARTER TOKEN BLOCK (verbatim from
+   design/brand/mockup-starter-tokens.css · never freehanded)
+   ════════════════════════════════════════════════════════════════════════ */
+:root, [data-theme="dark"] {
+  --bg: oklch(0.17 0.008 275); --surface: oklch(0.205 0.009 275); --surface-2: oklch(0.23 0.009 275);
+  --ink: oklch(0.96 0.006 275); --ink-soft: oklch(0.80 0.012 275); --muted: oklch(0.725 0.013 275);
+  --border: oklch(0.32 0.011 275); --border-soft: oklch(0.255 0.010 275);
+  --accent: oklch(0.80 0.155 64); --accent-deep: oklch(0.86 0.135 64); --on-accent: oklch(0.18 0.020 275);
+  --pass: oklch(0.74 0.150 152); --fail: oklch(0.66 0.17 25);
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+}
+[data-theme="light"] {
+  --bg: oklch(0.975 0.007 85); --surface: oklch(0.992 0.004 85); --surface-2: oklch(0.965 0.010 84);
+  --ink: oklch(0.22 0.015 280); --ink-soft: oklch(0.36 0.014 280); --muted: oklch(0.50 0.013 280);
+  --border: oklch(0.86 0.008 85); --border-soft: oklch(0.91 0.006 85);
+  --accent: oklch(0.50 0.155 55); --accent-deep: oklch(0.42 0.150 52); --on-accent: oklch(0.985 0.010 85);
+  --pass: oklch(0.50 0.15 150); --fail: oklch(0.52 0.19 25);
+}
+
+/* ── Mockup scaffolding (not part of the shipped surface) ────────────────── */
+*{box-sizing:border-box;}
+html,body{margin:0;}
+body{
+  background:var(--bg); color:var(--ink);
+  font-family:Inter,system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased;
+  padding:0 0 80px;
+}
+.mock-topbar{
+  display:flex; align-items:center; justify-content:space-between;
+  gap:16px; padding:14px clamp(18px,4vw,48px);
+  border-bottom:1px solid var(--border);
+  position:sticky; top:0; z-index:20;
+  background:color-mix(in oklab, var(--bg) 88%, transparent);
+  backdrop-filter:blur(8px);
+}
+.mock-topbar .mb-title{font-family:Fraunces,Georgia,serif; font-weight:600; font-size:17px; letter-spacing:-0.01em;}
+.mock-topbar .mb-note{font-size:12px; color:var(--muted);}
+.theme-toggle{
+  font:inherit; font-size:12px; font-weight:650; letter-spacing:0.02em;
+  color:var(--accent); background:color-mix(in oklab, var(--accent) 9%, transparent);
+  border:1px solid color-mix(in oklab, var(--accent) 26%, var(--border));
+  border-radius:8px; padding:7px 13px; cursor:pointer;
+  transition:transform 150ms var(--ease), background 150ms var(--ease);
+}
+.theme-toggle:hover{background:color-mix(in oklab, var(--accent) 15%, transparent);}
+.theme-toggle:active{transform:scale(0.97);}
+
+.stage{max-width:1180px; margin:0 auto; padding:0 clamp(18px,4vw,48px);}
+.dual{display:grid; gap:28px; padding-top:34px;}
+@media (min-width:1080px){ .dual{grid-template-columns:1fr 1fr; gap:34px; } }
+
+.frame{
+  background:var(--bg);
+  border:1px solid var(--border);
+  border-radius:20px;
+  padding:clamp(20px,2.4vw,30px);
+  position:relative; overflow:hidden;
+}
+.frame[data-theme="dark"]{ background:oklch(0.17 0.008 275); color:oklch(0.96 0.006 275); }
+.frame[data-theme="light"]{ background:oklch(0.975 0.007 85); color:oklch(0.22 0.015 280); }
+.frame-tag{
+  font-size:10px; font-weight:800; letter-spacing:0.13em; text-transform:uppercase;
+  color:var(--muted); margin-bottom:18px; display:block;
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   THE DRILLS MILESTONE GROUP · the genuinely new analytics surface
+   De-carded editorial: hairline borders, type-led hierarchy, one bronze
+   accent. State is shown by ink + accent treatment, not card elevation.
+   ════════════════════════════════════════════════════════════════════════ */
+.dg{ font-family:Inter,sans-serif; }
+
+/* Group head: eyebrow + count + a single hairline progress instrument */
+.dg-head{ display:flex; align-items:flex-end; justify-content:space-between; gap:20px; flex-wrap:wrap; }
+.dg-eyebrow{
+  font-size:10.5px; font-weight:800; letter-spacing:0.14em; text-transform:uppercase;
+  color:var(--accent); margin:0 0 7px;
+}
+.dg-title{
+  font-family:Fraunces,Georgia,serif; font-weight:600; font-size:23px; letter-spacing:-0.015em;
+  margin:0; line-height:1.05; color:var(--ink);
+}
+.dg-count{ display:flex; align-items:baseline; gap:8px; }
+.dg-count .n{
+  font-family:Fraunces,Georgia,serif; font-weight:600; font-size:34px; line-height:1;
+  letter-spacing:-0.02em; color:var(--ink);
+  font-variant-numeric: lining-nums tabular-nums; font-feature-settings:"lnum","tnum";
+}
+.dg-count .of{ font-size:12.5px; font-weight:600; color:var(--muted); letter-spacing:0.01em; }
+
+.dg-rule{ height:1px; background:var(--border); margin:18px 0 4px; border:0; }
+
+/* Each drill is a row: a quiet left rail label + three milestone slots.
+   No per-tile card. The row is the unit, divided by interior hairlines. */
+.dg-drill{
+  display:grid; grid-template-columns:1fr; gap:0;
+  padding:18px 0; border-bottom:1px solid var(--border-soft);
+}
+.dg-drill:last-child{ border-bottom:0; }
+.dg-drill-name{
+  font-size:13px; font-weight:700; letter-spacing:-0.005em; color:var(--ink);
+  margin:0 0 13px; display:flex; align-items:center; gap:9px;
+}
+.dg-drill-name .meta{ font-size:11px; font-weight:550; color:var(--muted); letter-spacing:0.005em; }
+.dg-slots{ display:grid; grid-template-columns:repeat(3, 1fr); gap:0; }
+@media (max-width:560px){ .dg-slots{ grid-template-columns:1fr; } }
+
+/* A milestone = a slot, separated from neighbours by a thin vertical hairline.
+   Earned / locked / in-progress differ by ink + a 7px state dot, not by box. */
+.ms{
+  padding:2px 16px; position:relative; min-width:0;
+  border-left:1px solid var(--border-soft);
+}
+.ms:first-child{ border-left:0; padding-left:0; }
+@media (max-width:560px){
+  .ms{ border-left:0; padding-left:0; padding-top:14px; border-top:1px solid var(--border-soft); }
+  .ms:first-child{ padding-top:2px; border-top:0; }
+}
+.ms-top{ display:flex; align-items:center; gap:8px; margin-bottom:3px; }
+.ms-dot{ width:7px; height:7px; border-radius:50%; flex:none; }
+.ms-label{ font-size:12.5px; font-weight:700; letter-spacing:-0.005em; line-height:1.2; }
+.ms-desc{ font-size:11px; font-weight:450; line-height:1.35; color:var(--muted); }
+
+/* ── Earned ─────────────────────────────────────────────────────────────── */
+.ms-earned .ms-dot{ background:var(--accent); }
+.ms-earned .ms-label{ color:var(--ink); }
+.ms-earned .ms-meta{
+  font-size:10px; font-weight:650; letter-spacing:0.06em; text-transform:uppercase;
+  color:var(--accent); margin-top:6px;
+}
+/* The mark sits inline with the label, semantic ✓ (BRAND §9 · verdict mark, not decoration) */
+.ms-check{ margin-left:auto; font-size:12px; color:var(--accent); font-weight:700; line-height:1; }
+
+/* ── Locked ─────────────────────────────────────────────────────────────── */
+.ms-locked .ms-dot{ background:transparent; border:1px solid var(--border); }
+.ms-locked .ms-label{ color:var(--ink-soft); }
+.ms-locked{ opacity:0.62; }
+
+/* ── In-progress (the volume / "n of 25" milestones) ─────────────────────── */
+.ms-prog .ms-dot{ background:color-mix(in oklab, var(--accent) 55%, transparent); }
+.ms-prog .ms-label{ color:var(--ink); }
+.ms-prog-row{ display:flex; align-items:center; gap:10px; margin-top:8px; }
+.ms-track{
+  flex:1; height:5px; border-radius:999px; min-width:0;
+  background:color-mix(in oklab, var(--ink) 9%, transparent);
+  overflow:hidden;
+}
+.ms-fill{
+  height:100%; border-radius:999px; width:0;
+  background:linear-gradient(90deg,
+    color-mix(in oklab, var(--accent) 78%, transparent),
+    var(--accent));
+  transition:width 950ms linear;
+}
+.ms-frac{
+  font-size:11px; font-weight:700; letter-spacing:0.01em; color:var(--ink-soft); flex:none;
+  font-variant-numeric: lining-nums tabular-nums; font-feature-settings:"lnum","tnum";
+}
+.ms-frac .of{ color:var(--muted); font-weight:550; }
+
+/* ── Entrance reveal (BRAND §6): transform+opacity, system curve, staggered ─ */
+.dg-drill.reveal{ opacity:0; transform:translateY(15px); }
+.dg-drill.reveal.visible{
+  opacity:1; transform:none;
+  transition:opacity .55s var(--ease), transform .55s var(--ease);
+  transition-delay:calc(var(--d,0) * 70ms);
+}
+
+/* ── Just-unlocked gleam (reuses the live ms-gleam sweep idea) ───────────── */
+.ms-fresh{ position:relative; }
+.ms-fresh .ms-gleam{
+  position:absolute; inset:-2px 0; pointer-events:none; overflow:hidden; border-radius:8px;
+}
+.ms-fresh .ms-gleam::after{
+  content:""; position:absolute; top:0; bottom:0; width:46%;
+  background:linear-gradient(90deg, transparent,
+    color-mix(in oklab, var(--accent) 26%, transparent), transparent);
+  transform:translateX(-160%);
+  animation:gleam 700ms var(--ease) 350ms 1 forwards;
+}
+@keyframes gleam{ to{ transform:translateX(240%); } }
+
+/* ════════════════════════════════════════════════════════════════════════
+   Celebration moment (context only) · rendered in BRAND bronze, NOT the
+   legacy purple still live in styles.css (see report: BRAND tension).
+   ════════════════════════════════════════════════════════════════════════ */
+.cel-wrap{ margin-top:38px; }
+.cel-cap{ font-size:10.5px; font-weight:800; letter-spacing:0.14em; text-transform:uppercase; color:var(--muted); margin-bottom:14px; }
+.cel-toast{
+  display:inline-block; max-width:360px;
+  background:var(--surface);
+  border:1px solid color-mix(in oklab, var(--accent) 40%, var(--border));
+  border-radius:14px; padding:14px 22px;
+  box-shadow:
+    0 1px 0 color-mix(in oklab, var(--ink) 4%, transparent),
+    0 18px 40px -16px color-mix(in oklab, var(--ink) 22%, transparent);
+}
+.cel-eyebrow{ font-size:10px; font-weight:800; letter-spacing:0.13em; text-transform:uppercase; color:var(--accent); }
+.cel-title{ font-family:Fraunces,Georgia,serif; font-size:18px; font-weight:600; letter-spacing:-0.01em; margin:5px 0 3px; color:var(--ink); }
+.cel-sub{ font-size:12.5px; font-weight:500; color:var(--ink-soft); line-height:1.4; }
+
+.legend{ display:flex; gap:18px; flex-wrap:wrap; margin-top:18px; padding-top:16px; border-top:1px solid var(--border-soft); }
+.legend-item{ display:flex; align-items:center; gap:7px; font-size:11px; color:var(--muted); font-weight:550; }
+.legend-item .ms-dot{ position:static; }
+
+@media (prefers-reduced-motion: reduce){
+  .dg-drill.reveal{ opacity:1; transform:none; transition:opacity .2s linear; }
+  .ms-fill{ transition:none; }
+  .ms-fresh .ms-gleam::after{ animation:none; }
+  .theme-toggle:active{ transform:none; }
+}
+</style>
+</head>
+<body>
+<div class="mock-topbar">
+  <div>
+    <div class="mb-title">Drills · milestone group</div>
+    <div class="mb-note">Analytics surface concept · 12 drill milestones · earned / locked / in-progress</div>
+  </div>
+  <button class="theme-toggle" id="tt">Founder primary: light · toggle</button>
+</div>
+
+<div class="stage">
+  <div class="dual">
+    <!-- ░░░ LIGHT (founder's primary) ░░░ -->
+    <section class="frame" data-theme="light" id="frame-light">
+      <span class="frame-tag">Light · founder primary</span>
+      <div class="dg" data-dg></div>
+      <div class="cel-wrap">
+        <div class="cel-cap">In-session celebration · for context</div>
+        <div class="cel-toast">
+          <div class="cel-eyebrow">Milestone earned</div>
+          <div class="cel-title">Why-Not regular</div>
+          <div class="cel-sub">25 rounds down. You are reasoning through distractors on instinct now.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ░░░ DARK ░░░ -->
+    <section class="frame" data-theme="dark" id="frame-dark">
+      <span class="frame-tag">Dark</span>
+      <div class="dg" data-dg></div>
+      <div class="cel-wrap">
+        <div class="cel-cap">In-session celebration · for context</div>
+        <div class="cel-toast">
+          <div class="cel-eyebrow">Milestone earned</div>
+          <div class="cel-title">Why-Not regular</div>
+          <div class="cel-sub">25 rounds down. You are reasoning through distractors on instinct now.</div>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<script>
+/* ──────────────────────────────────────────────────────────────────────────
+   FINAL COPY (humanizer + marketing-psychology output).
+   3 tiers per drill: first (entry / low activation energy),
+   volume = 25 (commitment proof, the n/25 momentum loop),
+   mastery (identity payoff · sounds like a thing you'd want to be).
+   Sample state mixes earned / in-progress / locked so all three render.
+─────────────────────────────────────────────────────────────────────────── */
+const DRILLS = [
+  {
+    name: 'Sim Lab', meta: 'PBQ console',
+    ms: [
+      { state:'earned',  label:'First console',  desc:'Finish your first Sim Lab PBQ.', meta:'Earned 4 days ago', fresh:false },
+      { state:'prog',    label:'Bench hours',    desc:'Work through 25 Sim Lab PBQs.', cur:18, tar:25 },
+      { state:'locked',  label:'Clean board',    desc:'Finish a Sim Lab run with nothing wrong.' },
+    ]
+  },
+  {
+    name: 'Decision Lab', meta: 'cloud scenarios',
+    ms: [
+      { state:'earned',  label:'First call',     desc:'Finish your first Decision Lab scenario.', meta:'Earned last week', fresh:false },
+      { state:'prog',    label:'On the clock',   desc:'Work through 25 Decision Lab scenarios.', cur:9, tar:25 },
+      { state:'locked',  label:'Right every time', desc:'Clear a Decision Lab scenario with no missed calls.' },
+    ]
+  },
+  {
+    name: 'Why-Not', meta: 'distractor drill',
+    ms: [
+      { state:'earned',  label:'First round',    desc:'Finish your first Why-Not round.', meta:'Earned 12 days ago', fresh:false },
+      { state:'earned',  label:'Why-Not regular',desc:'Work through 25 Why-Not rounds.', meta:'Earned today', fresh:true },
+      { state:'prog',    label:'Reads the trap', desc:'Clear a Why-Not round without a single wrong rule-out.', cur:0, tar:1, note:'mastery' },
+    ]
+  },
+  {
+    name: 'Gauntlet', meta: 'timed endurance',
+    ms: [
+      { state:'earned',  label:'First gauntlet', desc:'Finish your first Gauntlet.', meta:'Earned 2 days ago', fresh:false },
+      { state:'prog',    label:'Goes the distance', desc:'Run 25 Gauntlets to the end.', cur:6, tar:25 },
+      { state:'locked',  label:'Walks out clean', desc:'Finish a full Gauntlet without a single miss.' },
+    ]
+  },
+];
+
+const TOTAL = 12;
+function earnedCount(){
+  return DRILLS.reduce((a,d)=> a + d.ms.filter(m=>m.state==='earned').length, 0);
+}
+
+function tile(m){
+  if (m.state === 'earned'){
+    return `<div class="ms ms-earned ${m.fresh?'ms-fresh':''}">
+      ${m.fresh?'<div class="ms-gleam"></div>':''}
+      <div class="ms-top">
+        <span class="ms-dot"></span>
+        <span class="ms-label">${m.label}</span>
+        <span class="ms-check">✓</span>
+      </div>
+      <div class="ms-desc">${m.desc}</div>
+      <div class="ms-meta">${m.meta||'Earned'}</div>
+    </div>`;
+  }
+  if (m.state === 'prog'){
+    const isMastery = m.tar === 1;
+    const pct = Math.round((m.cur/m.tar)*100);
+    return `<div class="ms ms-prog">
+      <div class="ms-top">
+        <span class="ms-dot"></span>
+        <span class="ms-label">${m.label}</span>
+      </div>
+      <div class="ms-desc">${m.desc}</div>
+      <div class="ms-prog-row">
+        <div class="ms-track"><div class="ms-fill" data-fill="${pct}"></div></div>
+        <span class="ms-frac">${isMastery ? 'In reach' : `${m.cur} <span class="of">/ ${m.tar}</span>`}</span>
+      </div>
+    </div>`;
+  }
+  return `<div class="ms ms-locked">
+    <div class="ms-top">
+      <span class="ms-dot"></span>
+      <span class="ms-label">${m.label}</span>
+    </div>
+    <div class="ms-desc">${m.desc}</div>
+  </div>`;
+}
+
+function buildGroup(root){
+  const earned = earnedCount();
+  const rows = DRILLS.map((d,i)=>`
+    <div class="dg-drill reveal" style="--d:${i+1}">
+      <div class="dg-drill-name">${d.name} <span class="meta">${d.meta}</span></div>
+      <div class="dg-slots">${d.ms.map(tile).join('')}</div>
+    </div>`).join('');
+
+  root.innerHTML = `
+    <div class="dg-head">
+      <div>
+        <p class="dg-eyebrow">Drills</p>
+        <h2 class="dg-title">Hands-on milestones</h2>
+      </div>
+      <div class="dg-count">
+        <span class="n">${earned}</span><span class="of">of ${TOTAL} earned</span>
+      </div>
+    </div>
+    <hr class="dg-rule">
+    ${rows}
+    <div class="legend">
+      <span class="legend-item"><span class="ms-dot" style="background:var(--accent)"></span> Earned</span>
+      <span class="legend-item"><span class="ms-dot" style="background:color-mix(in oklab,var(--accent) 55%,transparent)"></span> In progress</span>
+      <span class="legend-item"><span class="ms-dot" style="background:transparent;border:1px solid var(--border)"></span> Locked</span>
+    </div>`;
+}
+
+// Build both frames
+document.querySelectorAll('[data-dg]').forEach(buildGroup);
+
+// Reveal + bar-fill choreography (IntersectionObserver, mirrors the live
+// .reveal IIFE; 1.6s safety net un-hides anything still hidden).
+const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+function play(scope){
+  const rows = scope.querySelectorAll('.dg-drill.reveal');
+  if (reduce){
+    rows.forEach(r=>r.classList.add('visible'));
+    scope.querySelectorAll('.ms-fill').forEach(f=> f.style.width = f.dataset.fill + '%');
+    return;
+  }
+  const io = new IntersectionObserver((entries)=>{
+    entries.forEach(e=>{
+      if (!e.isIntersecting) return;
+      e.target.classList.add('visible');
+      io.unobserve(e.target);
+      // fill bars after the row has settled in
+      const fills = e.target.querySelectorAll('.ms-fill');
+      const baseDelay = 360 + (parseInt(e.target.style.getPropertyValue('--d'))||0) * 70;
+      fills.forEach(f=> setTimeout(()=>{ f.style.width = f.dataset.fill + '%'; }, baseDelay));
+    });
+  }, { threshold: 0.25 });
+  rows.forEach(r=>io.observe(r));
+  setTimeout(()=>{
+    rows.forEach(r=>r.classList.add('visible'));
+    scope.querySelectorAll('.ms-fill').forEach(f=>{ if(!f.style.width) f.style.width = f.dataset.fill + '%'; });
+  }, 1600);
+}
+document.querySelectorAll('.frame').forEach(play);
+
+// Theme toggle flips BOTH frames' inner theme so you can verify a single
+// chosen theme across the pair, and also flips the page chrome.
+let cur = 'light';
+document.getElementById('tt').addEventListener('click', ()=>{
+  cur = cur === 'light' ? 'dark' : 'light';
+  document.documentElement.setAttribute('data-theme', cur);
+  document.getElementById('tt').textContent =
+    (cur === 'light' ? 'Founder primary: light' : 'Viewing: dark') + ' · toggle';
+});
+</script>
+</body>
+</html>
