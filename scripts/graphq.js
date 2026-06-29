@@ -187,9 +187,11 @@ function shortestPath(idx, aId, bId) {
 
 // ── formatting ───────────────────────────────────────────────────────────────
 function loc(n) { return `${n.source_file}:${n.source_location}`; }
-// community label, robust to the post-structure-rebuild "unlabeled" state (run `graphify label`)
+// a community name is "generic"/missing when graphify fell back to placeholders or dropped it
+function isGenericName(s) { return !s || s === 'undefined' || /^Community \d+$/i.test(s); }
+// community label, robust to the post-structure-rebuild "unlabeled" state (restored by graphify-enhance)
 function cname(n) {
-  return (n.community_name && n.community_name !== 'undefined') ? n.community_name : `#${n.community} (unlabeled)`;
+  return !isGenericName(n.community_name) ? n.community_name : `#${n.community} (unlabeled)`;
 }
 function nodeLine(idx, n, extra) {
   const deg = idx.degree(n.id);
@@ -338,23 +340,28 @@ function cmdPath(idx, args) {
 function cmdStale(idx, args) {
   const head = headCommit();
   const structure = idx.raw.built_at_commit || null;
-  const labels = readLabelsCommit(idx.graphPath);
   const short = (c) => (c ? c.slice(0, 8) : '?');
-  const structureStale = head && structure && !head.startsWith(structure.slice(0, 12)) && !structure.startsWith(head.slice(0, 12));
-  const labelsStale = head && labels && !head.startsWith(labels) && !head.slice(0, labels.length).startsWith(labels);
+  const eq = (a, b) => a && b && (a.startsWith(b.slice(0, 12)) || b.startsWith(a.slice(0, 12)));
+  const structureStale = !!(head && structure && !eq(head, structure));
+  // Labels are judged by ACTUAL name presence in graph.json — graphify-enhance restores
+  // names from cache after each structure rebuild, so the report commit is not the signal.
+  const unlabeled = idx.nodes.filter((n) => isGenericName(n.community_name)).length;
+  const unlabeledPct = Math.round((unlabeled / Math.max(1, idx.nodes.length)) * 100);
+  const labelsStale = unlabeledPct > 10;
   const result = {
     head: short(head),
     structure_commit: short(structure),
-    labels_commit: short(labels),
-    structure_stale: !!structureStale,
-    labels_stale: !!labelsStale,
+    structure_stale: structureStale,
+    unlabeled,
+    unlabeled_pct: unlabeledPct,
+    labels_stale: labelsStale,
   };
   if (args.json) out(JSON.stringify(result, null, 2));
   else {
     out(`## graphify freshness`);
     out(`- repo HEAD:        ${result.head}`);
     out(`- structure built:  ${result.structure_commit}  ${structureStale ? '⚠ STALE — run `graphify .`' : '✓ fresh'}`);
-    out(`- labels built:     ${result.labels_commit}  ${labelsStale ? '⚠ STALE — run `ANTHROPIC_API_KEY=… graphify label . --backend claude --model claude-sonnet-4-6`' : '✓ fresh'}`);
+    out(`- labels (names):   ${unlabeledPct}% unlabeled  ${labelsStale ? '⚠ run `ANTHROPIC_API_KEY=… graphify label . --backend claude --model claude-sonnet-4-6` (new code needs naming; persisted names auto-restore otherwise)' : '✓ named'}`);
     if (!structureStale && !labelsStale) out(`\nGraph is fully current.`);
   }
   process.exit(structureStale || labelsStale ? 1 : 0);
@@ -389,5 +396,5 @@ function main() {
 if (require.main === module) main();
 module.exports = {
   findGraphPath, loadGraph, buildIndex, walk, shortestPath, matchNodes,
-  resolveOne, isTestNode, norm, cname, loc, headCommit, readLabelsCommit,
+  resolveOne, isTestNode, isGenericName, norm, cname, loc, headCommit, readLabelsCommit,
 };

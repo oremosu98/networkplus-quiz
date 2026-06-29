@@ -93,6 +93,50 @@ function buildDecisionLinks(idx) {
   return byNode;
 }
 
+// ── label persistence (durable names across structure rebuilds) ───────────────
+// Every `graphify .` re-clusters and drops/genericizes community names. Without
+// this, names vanish on every commit until a paid `graphify label` re-run. We cache
+// each descriptive name BY NODE-ID (stable across re-clustering) and, after a rebuild,
+// restore each community's name by majority vote of its members' remembered names.
+// Net effect: names survive every commit with zero API calls; a keyed `graphify label`
+// is only needed when genuinely new code forms a community with no cached members.
+const LABEL_CACHE = path.join(OUT, '.graphq-label-cache.json');
+
+function persistLabels(idx) {
+  let cache = {};
+  try { cache = JSON.parse(fs.readFileSync(LABEL_CACHE, 'utf8')); } catch { /* first run */ }
+
+  // 1. LEARN — record any descriptive names currently in the graph, keyed by node id.
+  let learned = 0;
+  for (const n of idx.nodes) {
+    if (!gq.isGenericName(n.community_name) && cache[n.id] !== n.community_name) {
+      cache[n.id] = n.community_name; learned++;
+    }
+  }
+
+  // 2. RESTORE — for each community still generic/blank, majority-vote a name from cache.
+  let restored = 0, restoredComms = 0;
+  for (const [, members] of idx.byCommunity) {
+    if (members.some((m) => !gq.isGenericName(m.community_name))) continue; // already named
+    const votes = new Map();
+    for (const m of members) { const c = cache[m.id]; if (c) votes.set(c, (votes.get(c) || 0) + 1); }
+    if (!votes.size) continue; // wholly new community — needs a keyed label run
+    const winner = [...votes.entries()].sort((a, b) => b[1] - a[1])[0][0];
+    for (const m of members) { m.community_name = winner; restored++; }
+    restoredComms++;
+  }
+
+  // 3. prune cache to live node ids, persist.
+  const live = new Set(idx.nodes.map((n) => n.id));
+  for (const k of Object.keys(cache)) if (!live.has(k)) delete cache[k];
+  fs.writeFileSync(LABEL_CACHE, JSON.stringify(cache));
+
+  // 4. if we restored any names, write them back into graph.json so `graphq` (which reads
+  //    the file directly) sees them too. idx.nodes are the same objects as idx.raw.nodes.
+  if (restored) fs.writeFileSync(idx.graphPath, JSON.stringify(idx.raw));
+  return { learned, restored, restoredComms, cacheSize: Object.keys(cache).length };
+}
+
 // ── freshness (council #2) ────────────────────────────────────────────────────
 function freshness(idx) {
   const head = gq.headCommit();
@@ -100,28 +144,29 @@ function freshness(idx) {
   const labels = gq.readLabelsCommit(idx.graphPath);
   const eq = (a, b) => a && b && (a.startsWith(b) || b.startsWith(a));
   const structureStale = !!(head && structure && !eq(head, structure));
-  const labelsStale = !!(head && labels && !eq(head, labels));
-  const unlabeled = idx.nodes.filter((n) => !n.community_name || n.community_name === 'undefined').length;
-  const unlabeledPct = Math.round((unlabeled / idx.nodes.length) * 100);
+  // Labels judged by actual name presence (names auto-restore from cache after rebuilds).
+  const unlabeled = idx.nodes.filter((n) => gq.isGenericName(n.community_name)).length;
+  const unlabeledPct = Math.round((unlabeled / Math.max(1, idx.nodes.length)) * 100);
+  const labelsStale = unlabeledPct > 10;
   return { head, structure, labels, structureStale, labelsStale, unlabeled, unlabeledPct };
 }
 
-function writeFreshness(f) {
+function writeFreshness(f, lp) {
   const s = (c) => (c ? c.slice(0, 8) : '?');
   const lines = [
     '# Graphify Freshness',
     '',
-    `> Two clocks: **structure** rebuilds every commit (post-commit hook, free); **labels** (community names) need an LLM pass and lag until re-run.`,
+    `> **Structure** (\`graph.json\`) rebuilds every commit (post-commit hook, free). **Labels** (community names) are now durable: descriptive names are cached per node-id and auto-restored after each rebuild — so a re-clustering can no longer wipe them. A keyed \`graphify label\` is only needed when NEW code forms a community with no cached members.`,
     '',
-    `| Clock | Built from | vs HEAD \`${s(f.head)}\` |`,
-    '|---|---|---|',
-    `| Structure (graph.json) | \`${s(f.structure)}\` | ${f.structureStale ? '⚠️ STALE — run `graphify .`' : '✅ fresh'} |`,
-    `| Labels (community names) | \`${s(f.labels)}\` | ${f.labelsStale ? '⚠️ STALE' : '✅ fresh'} |`,
+    `| Clock | State |`,
+    '|---|---|',
+    `| Structure (graph.json) | built \`${s(f.structure)}\` vs HEAD \`${s(f.head)}\` — ${f.structureStale ? '⚠️ STALE, run `graphify .`' : '✅ fresh'} |`,
+    `| Labels (names) | ${f.unlabeledPct}% unlabeled — ${f.labelsStale ? '⚠️ needs a keyed `graphify label` pass' : '✅ named'} |`,
+    `| Label cache | ${lp.cacheSize} names remembered${lp.restored ? ` · restored ${lp.restoredComms} communities (${lp.restored} nodes) this build` : ''} |`,
     '',
-    `**Unlabeled communities:** ${f.unlabeled} nodes (${f.unlabeledPct}%) have no community name.`,
-    f.labelsStale || f.unlabeledPct > 10
-      ? '\n**To refresh labels:**\n```\nANTHROPIC_API_KEY=… graphify label . --backend claude --model claude-sonnet-4-6\n```'
-      : '',
+    f.labelsStale
+      ? 'Some communities have no cached name (genuinely new code). **Refresh with a real key present:**\n```\nexport ANTHROPIC_API_KEY="sk-ant-…"   # must be set in THIS shell\ngraphify label . --backend claude --model claude-sonnet-4-6\n```\nWatch for "using Community N placeholders" — that means the key was NOT set.'
+      : 'All communities are named (cache-restored where needed). No action required.',
     `\n_Generated ${new Date().toISOString().slice(0, 10)}._  ·  Check anytime: \`node scripts/graphq.js stale\``,
   ];
   write('FRESHNESS.md', lines.join('\n') + '\n');
@@ -257,9 +302,13 @@ function main() {
   try { idx = gq.loadGraph(path.join(OUT, 'graph.json')); }
   catch (e) { process.stderr.write(`graphify-enhance: no graph to enhance (${e.message})\n`); process.exit(0); }
   fs.mkdirSync(OBS, { recursive: true });
+  // Restore descriptive names BEFORE anything reads them (durable across rebuilds).
+  let lp = { learned: 0, restored: 0, restoredComms: 0, cacheSize: 0 };
+  safe('label-persistence', () => { lp = persistLabels(idx); });
+  if (lp.restored) process.stderr.write(`graphify-enhance: restored ${lp.restoredComms} community name(s) from cache (${lp.restored} nodes)\n`);
   const f = freshness(idx);
   const decisions = buildDecisionLinks(idx);
-  safe('freshness', () => writeFreshness(f));
+  safe('freshness', () => writeFreshness(f, lp));
   safe('change-impact', () => writeChangeImpact(idx, f));
   safe('obsidian', () => writeObsidianNotes(idx, decisions));
   safe('decision-links', () => write('decision-links.json', JSON.stringify([...decisions], null, 2)));
