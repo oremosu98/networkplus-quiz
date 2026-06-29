@@ -15,6 +15,7 @@
 - **Storage** (Phase C′): cloud-canonical, localStorage as ephemeral session cache. Source of truth = Supabase (`profiles.metadata` jsonb + `quiz_history`). Write path: localStorage → `_cloudFlush(STORAGE.X)` → 1500ms debounced cloud write. Hydrate: SIGNED_IN → `cloudStore.hydrate()`. Anonymous users get the full app via localStorage only. Cross-subdomain session via cookie-backed Supabase adapter on `Domain=.certanvil.com`.
 - **Hosting**: Vercel — `networkplus.certanvil.com` (+ per-cert subdomains, "Pattern A") + `certanvil.com` (separate landing project).
 - **Offline/PWA**: service worker (stale-while-revalidate + Supabase API pass-through + auto-reload-on-update). **Cache name MUST bump every deploy — use `bump-version.js`, never hand-edit.** Installable via `manifest.json`.
+- **Code map (graphify) — CONSULT BEFORE grepping/reading `app.js`**: `graphify-out/` holds a local *who-calls-what* graph of all JS/SQL/CSS (gitignored; **auto-rebuilt every commit** via `.githooks/post-commit`, no API key). To trace logic or "what depends on X", **query the graph first** — much faster and far cheaper on tokens than reading the ~19K-line `app.js`. Artifacts: `graph.json` (parse/query directly), `graphify-out/GRAPH_REPORT.md` (100 named-cluster overview), `graph.html` (visual). Cluster *names* refresh rarely (paid Gemini key, ~$0.30): `graphify label . --model gemini-2.5-pro`. If `graphify-out/` is missing, rebuild: `graphify .`.
 
 ## Files
 | File | Purpose | Size |
