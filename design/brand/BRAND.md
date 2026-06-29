@@ -374,6 +374,9 @@ When fixing a class-of-bug, grep the **pattern** (shape), not the specific funct
 - **Mockup starter tokens**: [`brand/mockup-starter-tokens.css`](./mockup-starter-tokens.css) — copy-paste this token block into every new mockup's `<style>`. Never freehand a hex token block (the 2026-06-12 Gauntlet-mockup lesson: eyeballed hexes pulled the accent toward gold and imported Tailwind greens).
 - **Concept-mockup-first workflow**: see [`feedback_concept_mockup_first`](../docs/feedback_concept_mockup_first.md) memory — approved across 14+ ships with zero revision rounds.
 
+## Related
+[[DESIGN_PLAYBOOK]] · [[EDITORIAL_AUDIT]] · [[MOTION_AUDIT]] · [[WRITING_AUDIT]] · [[CLAUDE]]
+
 ### Versioning
 
 - Cache-bust query on `dg-system.css?v=X.X.X` MUST be hand-bumped on any dg-system.css change (the documented gotcha — bump-version doesn't touch the `?v` query). Failing to bump means stale CSS via the SW cache.

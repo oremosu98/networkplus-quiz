@@ -108,3 +108,6 @@ Applies to the **visual** surfaces only — the milestone **labels/descriptions 
 - New drills or new milestone *types* beyond the per-drill first/volume/mastery pattern.
 - Per-cert leaderboards or cross-cert aggregate views.
 - Reworking the celebration animation itself (reused as-is).
+
+## Related
+[[2026-06-29-per-cert-milestones-and-drill-milestones]] · [[key-patterns]] · [[ENVIRONMENT_STRATEGY]] · [[feature-subsystems]] · [[SHIP_CHECKLIST]]

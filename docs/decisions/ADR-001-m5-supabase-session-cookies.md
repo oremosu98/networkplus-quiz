@@ -66,3 +66,6 @@ into **paid multi-tenant SaaS holding other users' PII at scale** — i.e. the
 moment a session-takeover would compromise *someone else's* data, not just the
 operator's. At that point the weeks-of-rewrite cost is justified by the changed
 threat model. Until that trigger fires, this ADR stands.
+
+## Related
+[[ADR-002-rbac-admin-surface]] · [[structure-overview]] · [[conventions]] · [[ENVIRONMENT_STRATEGY]]

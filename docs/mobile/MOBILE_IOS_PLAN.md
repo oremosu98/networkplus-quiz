@@ -482,3 +482,6 @@ The friend's bug report tonight is the canary. **Ship Phase 1 tomorrow morning.*
 ---
 
 *Drafted 2026-05-09 23:55 BST. Ready to execute 2026-05-10 morning.*
+
+## Related
+[[APP_STORE_DISTRIBUTION]] · [[MOBILE_BASELINE]] · [[IOS_TESTING]] · [[ENVIRONMENT_STRATEGY]] · [[SHIP_CHECKLIST]]

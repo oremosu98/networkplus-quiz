@@ -175,3 +175,6 @@ App Store submission gate: **Performance ≥ 85** AND **LCP < 2.5 s** on this me
 ---
 
 *Baseline JSON archived at `/tmp/lighthouse-mobile-baseline.json` (582 KB) for diff-against future runs. Maintained as the live perf-regression doc; update after each phase ship.*
+
+## Related
+[[MOBILE_IOS_PLAN]] · [[APP_STORE_DISTRIBUTION]] · [[IOS_TESTING]] · [[structure-overview]]

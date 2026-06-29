@@ -267,3 +267,6 @@ This is the kind of work where ChatGPT / Claude can substantially accelerate the
 ---
 
 *Drafted 2026-05-10 12:50 BST. Companion to `MOBILE_OPTIMIZATION_PLAN.md`. **DO NOT** start any of this work without explicit founder direction — the plan exists for fast execution when the trigger fires, not for autonomous progress.*
+
+## Related
+[[MOBILE_IOS_PLAN]] · [[MOBILE_BASELINE]] · [[IOS_TESTING]] · [[ENVIRONMENT_STRATEGY]] · [[SHIP_CHECKLIST]]

@@ -29,3 +29,6 @@ Canvas: `TB_CANVAS_W = 1800`, `TB_CANVAS_H = 1100` (v4.39.0 bump for AI-generate
 4. **Cable & Connector ID** — `startCableId()` — cable image → name
 
 Shared `createDrillScaffold(cfg)` at `app.js:17766` syncs `.active` / `aria-selected` / `aria-pressed` states across tabs + modes. All 3 newer drills (AB/OS/CB) have full ARIA coverage matching quiz/exam pages post-v4.42.5. Each drill has its own `*_MASTERY` + `*_LESSONS` localStorage keys.
+
+## Related
+[[structure-overview]] · [[key-patterns]] · [[CLAUDE]] · [[WHY-NOT-DRILL-SPEC-2026-06-12]] · [[REWORD-GAUNTLET-SPEC-2026-06-11]] · [[2026-06-29-per-cert-milestones-and-drill-milestones-design]]

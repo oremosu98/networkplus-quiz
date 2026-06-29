@@ -80,3 +80,6 @@ Also worth knowing — user maintains cross-project memory at `~/.claude/project
 Each feature-day is end-to-end: code → UAT → Chrome MCP verify → bump → CLAUDE.md row → push → CI green. Don't start anything that can't ship the same day. Weekend stays off — rest + N10-009 study.
 
 **Scaling rules**: drop Wed back to rest when queue <4. Consider a 4th feature-day (Option B) only if queue >12 AND bandwidth is genuinely there. Pre-2026-04-18 cadence was Fri-only — fine through v4.52.0, compressed when the pipeline grew.
+
+## Related
+[[conventions]] · [[regression-tombstones]] · [[CLAUDE]] · [[SHIP_CHECKLIST]] · [[ENVIRONMENT_STRATEGY]]

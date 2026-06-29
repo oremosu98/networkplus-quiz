@@ -125,3 +125,6 @@ git status                                    # confirm "renamed:" not "deleted/
 - Verify the staged diff reads **`renamed:`** (rename detection), not `deleted:` + `new file:` — that's the signal history survived.
 - After the move, fix inbound references (links in CLAUDE.md pointers, `require`/`import` paths, `vercel.json` served paths) **before** pushing, and let CI confirm green before merging — a reorg that builds locally can still break a path the bundler/tests resolve differently.
 - This came out of the 2026-06-03 folder-reorg (PR #423): git recorded **217 of 223 files as pure renames** with only +20/−10 content delta — about as safe as a 223-file change gets, precisely *because* every move went through `git mv`. Make `git mv` the default for any relocation.
+
+## Related
+[[workflow]] · [[regression-tombstones]] · [[CLAUDE]] · [[key-patterns]] · [[structure-overview]] · [[SHIP_CHECKLIST]]

@@ -45,6 +45,11 @@ AI_QUIZ_HANDOFF.md
 graphify-out/
 glabel.txt
 
+# Obsidian vault config — machine-specific app/workspace state. The vault IS
+# the repo's markdown; only the .obsidian config folder is local-only. Home.md
+# (the vault map-of-content) is tracked.
+.obsidian/
+
 # Sec-P4 / L5 — secret-bearing files must never enter git history. No secrets
 # have leaked to date (audit Phase 0); these patterns are a forward guard
 # against an accidental commit of env files, private keys, or a secrets dir.

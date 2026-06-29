@@ -27,6 +27,9 @@
 - **Phase B:** reason-type accuracy stat (the only new stored number) + blind-spot chip + weak-spot feed.
 - **Phase C:** cross-pollination with the Gauntlet (blind spots steer topic picks; Why-Not as maintenance on cracked concepts).
 
+## Related
+[[feature-subsystems]] · [[2026-06-29-per-cert-milestones-and-drill-milestones-design]] · [[REWORD-GAUNTLET-SPEC-2026-06-11]] · [[key-patterns]] · [[SHIP_CHECKLIST]]
+
 ## Mockups (four-pass audited, they ARE the pages)
 - `mockups/why-not-drill.html` — ① reason picker (post-pick verdict, 4-segment round progress), ② round verdict (Fraunces "3 of 4", per-option rows, blind-spot chip), ③ Drills page with both flagship cards.
 - `mockups/landing-flagship-drills.html` — **REPLACES the v7.48 #gauntlet landing section 1:1.** Simi's call: ONE Pro section for both flagships, not two. Shared headline ("The exam has two tricks. Now you have two drills."), two demo panels (condensed Gauntlet loop + Why-Not reason-pick loop, staggered), one CTA ("Go Pro — unlimited", the approved verbatim survivor).

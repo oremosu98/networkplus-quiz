@@ -180,3 +180,6 @@ Deferred tuning ([#139](https://github.com/oremosu98/networkplus-quiz/issues/139
 
 ### Topic Resources
 `topicResources` object maps all 50 topics to Professor Messer N10-009 YouTube search URLs + objective numbers. Used by `showTopicDeepDive`, `getWeakTopic` fallback, and per-row Progress-page play buttons.
+
+## Related
+[[structure-overview]] · [[feature-subsystems]] · [[CLAUDE]] · [[conventions]] · [[2026-06-29-per-cert-milestones-and-drill-milestones-design]]

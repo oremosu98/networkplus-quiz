@@ -78,3 +78,6 @@ Introduce a real role enum / additional roles **only when** a concrete second
 role is required (e.g. a support agent who can read but not mutate, or a
 billing-only operator). At that point: migrate `role` to an enum or a dedicated
 `roles`/`user_roles` table, and split `is_admin()` into capability checks.
+
+## Related
+[[ADR-001-m5-supabase-session-cookies]] · [[structure-overview]] · [[conventions]] · [[ENVIRONMENT_STRATEGY]]

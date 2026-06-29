@@ -428,6 +428,9 @@ git commit -m "test(milestones): migration, per-cert isolation, cross-platform (
 - [ ] **S2: Version bump** — `node scripts/bump-version.js <new> "per-cert milestones + 5 drill milestones + orphan cleanup"` (updates app.js/sw.js/index.html/package.json + CLAUDE.md row). Re-read CLAUDE.md after (the script rewrites it).
 - [ ] **S3: Post-deploy** — drive the live prod URL per CLAUDE.md "Post-deploy verification": earn a drill milestone, confirm pop-up + analytics on a real device, both themes.
 
+## Related
+[[2026-06-29-per-cert-milestones-and-drill-milestones-design]] · [[SHIP_CHECKLIST]] · [[key-patterns]] · [[feature-subsystems]]
+
 ---
 
 ## Self-review (author checklist — completed at write time)

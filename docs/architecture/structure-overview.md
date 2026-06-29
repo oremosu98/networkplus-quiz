@@ -74,3 +74,6 @@ Dead/superseded material was moved to **`~/Desktop/Dev Projects/_certanvil-archi
 | `root-docs/` | old `AI_QUIZ_HANDOFF.md` |
 
 ~171M off the tracked repo. The empty root `SVG ICONS/` folder (only `.DS_Store`) was deleted outright. The archive folder can be deleted entirely once you're confident none of it is needed — git history still has everything.
+
+## Related
+[[key-patterns]] · [[feature-subsystems]] · [[CLAUDE]] · [[conventions]] · [[ENVIRONMENT_STRATEGY]]

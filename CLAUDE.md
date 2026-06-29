@@ -161,4 +161,7 @@ Headless UAT + Playwright can pass while real users see broken UI — it happene
 4. **Walk the full flow** end-to-end (first interaction → advance → completion → exit → reload).
 5. **Only then claim "shipped + verified".** Ship a hotfix before signing off if anything's off.
 
+## Related
+[[structure-overview]] · [[key-patterns]] · [[conventions]] · [[ENVIRONMENT_STRATEGY]] · [[SHIP_CHECKLIST]] · [[BRAND]]
+
 **Skip only when** the change is purely backend/data/docs with no user-facing surface, or behind a flag that's off in prod. Reason this rule exists: UAT regex-tests source strings and Playwright runs fresh navigations — both miss live-interaction layout bugs, theme-mismatched colors, viewport carry-over, and CSS-grid collisions.

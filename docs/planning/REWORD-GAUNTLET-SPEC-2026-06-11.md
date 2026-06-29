@@ -46,3 +46,6 @@ Every surface — mockups AND build — goes through the four passes:
 
 ## Build-day checklist seed (2026-06-12)
 Branch `feat/reword-gauntlet` (this one). Mockups in `mockups/reword-gauntlet*.html`. Fast lane unless quota/api files get touched. UAT pins to watch: drills-page shape tests, bento tile tests. Version target: v7.48.0.
+
+## Related
+[[feature-subsystems]] · [[2026-06-29-per-cert-milestones-and-drill-milestones-design]] · [[WHY-NOT-DRILL-SPEC-2026-06-12]] · [[key-patterns]] · [[SHIP_CHECKLIST]]
