@@ -7,6 +7,8 @@ tags: [spec, drill, shipped]
 ---
 # Per-Cert Milestones + Drill Milestones — Design Spec
 
+<!-- graphify:touches evaluateMilestones getMilestones showMilestoneCelebration _renderAnaMilestones -->
+
 **Date:** 2026-06-29
 **Status:** Approved (brainstorm) — pending implementation plan
 **Author:** brainstorm session (CertAnvil)

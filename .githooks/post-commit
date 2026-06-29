@@ -11,7 +11,7 @@
 #
 # Cluster NAMES ("Exam Simulation", etc.) are NOT refreshed here — that needs
 # the Gemini key + a flaky batch step, and names drift slowly. Re-name manually:
-#   GOOGLE_API_KEY="<key>" graphify label . --model gemini-2.5-flash
+#   ANTHROPIC_API_KEY="<key>" graphify label . --backend claude --model claude-sonnet-4-6
 #
 # Skips silently if graphify isn't installed. Bypass all hooks: commit --no-verify
 # ══════════════════════════════════════════════════════════════════════
@@ -31,6 +31,10 @@ mkdir -p "$REPO/graphify-out" 2>/dev/null
   trap 'rmdir "$LOCK" 2>/dev/null' EXIT
   cd "$REPO" || exit 0
   graphify . >"$REPO/graphify-out/.auto-refresh.log" 2>&1
+  # Post-build enrichment: freshness, change-impact, graph-plus.html viewer,
+  # Obsidian community notes, decision-links (scripts/graphify-enhance.js).
+  # Best-effort — never blocks; skips silently if node is unavailable.
+  command -v node >/dev/null 2>&1 && node "$REPO/scripts/graphify-enhance.js" >>"$REPO/graphify-out/.auto-refresh.log" 2>&1
 ) >/dev/null 2>&1 &
 
 exit 0
