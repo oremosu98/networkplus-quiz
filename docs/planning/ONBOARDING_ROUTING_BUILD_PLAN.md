@@ -1,3 +1,10 @@
+---
+type: plan
+status: shipped
+cert: all
+updated: 2026-06-29
+tags: [plan]
+---
 # Onboarding / Activation / Routing · BUILD PLAN
 
 > Implementation plan for lifting the approved mockups to prod. Reads against `ONBOARDING_ACTIVATION_DECISIONS.md` (strategy, LOCKED) and the two approved mockups (`mockups/onboarding-first-run-concept.html`, `mockups/onboarding-batch2-concept.html`). Status: DRAFT for walkthrough, no code written.

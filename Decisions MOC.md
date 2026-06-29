@@ -2,6 +2,13 @@
 
 Map of content for CertAnvil's architectural decisions, conventions, and regression guards.
 
+## Auto (Dataview)
+```dataview
+TABLE status, cert, updated FROM #decision SORT updated DESC
+```
+
+### Manual links (fallback if Dataview off)
+
 ## Architecture Decision Records
 - [[ADR-001-m5-supabase-session-cookies]] — Supabase session tokens in non-HttpOnly cookies (audit M5)
 - [[ADR-002-rbac-admin-surface]] — RBAC admin surface design

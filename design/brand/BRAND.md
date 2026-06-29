@@ -1,3 +1,10 @@
+---
+type: design
+status: active
+cert: all
+updated: 2026-06-29
+tags: [design]
+---
 # CertAnvil · Brand & Design System
 
 > **Forged-bronze editorial.** The locked design language across the cert-app (`networkplus.certanvil.com`), the landing site (`certanvil.com`), and the diagnostic flow. Codified across the v4.99.65 → v5.5.12 rebrand sprint (60+ ships).

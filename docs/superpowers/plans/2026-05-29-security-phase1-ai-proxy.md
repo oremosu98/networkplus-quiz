@@ -1,3 +1,10 @@
+---
+type: plan
+status: shipped
+cert: all
+updated: 2026-06-29
+tags: [plan]
+---
 # Phase 1 — Stop the bleed: AI proxy hardening
 
 **Date:** 2026-05-29

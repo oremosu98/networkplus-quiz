@@ -2,6 +2,13 @@
 
 Map of content for CertAnvil's mobile and iOS work.
 
+## Auto (Dataview)
+```dataview
+TABLE status, cert, updated FROM #mobile SORT updated DESC
+```
+
+### Manual links (fallback if Dataview off)
+
 ## Mobile Docs
 - [[MOBILE_IOS_PLAN]] — iOS compatibility plan of action
 - [[MOBILE_BASELINE]] — Lighthouse mobile performance baseline

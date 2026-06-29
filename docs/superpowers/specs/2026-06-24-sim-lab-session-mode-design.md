@@ -1,3 +1,10 @@
+---
+type: spec
+status: shipped
+cert: netplus
+updated: 2026-06-29
+tags: [spec, drill]
+---
 # Sim Lab Session Mode — design spec (2026-06-24)
 
 **Status:** approved in brainstorming (visual companion, 4 screens, all confirmed).

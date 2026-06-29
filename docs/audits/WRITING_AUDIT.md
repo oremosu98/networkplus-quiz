@@ -1,3 +1,10 @@
+---
+type: audit
+status: active
+cert: all
+updated: 2026-06-29
+tags: [audit]
+---
 # Writing Audit — Stop-Slop E2E Report
 
 > Generated 2026-05-18 using the `stop-slop` skill (Hardik Pandya).

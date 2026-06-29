@@ -1,3 +1,10 @@
+---
+type: plan
+status: active
+cert: all
+updated: 2026-06-29
+tags: [plan]
+---
 # Certanvil — Product Analytics Plan
 
 **Purpose:** Turn real user activity into business decisions. Decisions first, metrics second.

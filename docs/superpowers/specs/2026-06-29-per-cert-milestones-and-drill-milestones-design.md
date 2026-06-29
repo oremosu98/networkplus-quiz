@@ -1,3 +1,10 @@
+---
+type: spec
+status: active
+cert: all
+updated: 2026-06-29
+tags: [spec, drill, shipped]
+---
 # Per-Cert Milestones + Drill Milestones — Design Spec
 
 **Date:** 2026-06-29

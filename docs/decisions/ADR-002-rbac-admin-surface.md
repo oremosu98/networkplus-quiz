@@ -1,3 +1,10 @@
+---
+type: decision
+status: active
+cert: all
+updated: 2026-06-29
+tags: [decision]
+---
 # ADR-002 — RBAC admin surface + what "formalization" means here (audit Phase 5)
 
 - **Status:** Accepted

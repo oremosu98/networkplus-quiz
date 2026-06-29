@@ -1,3 +1,10 @@
+---
+type: plan
+status: shipped
+cert: secplus
+updated: 2026-06-29
+tags: [plan]
+---
 # v7.4.0 — Security+ SY0-701 Exemplar Bank Expansion (131 → ~263)
 
 **Authored:** 2026-05-27

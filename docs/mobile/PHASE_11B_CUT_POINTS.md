@@ -1,3 +1,10 @@
+---
+type: mobile
+status: active
+cert: all
+updated: 2026-06-29
+tags: [mobile]
+---
 # Phase 11b — Feature Module Extraction Cut-Points
 
 **Status**: surveyed 2026-05-10 14:30 BST · awaiting first extraction session

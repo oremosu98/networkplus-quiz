@@ -1,3 +1,10 @@
+---
+type: spec
+status: shipped
+cert: all
+updated: 2026-06-29
+tags: [spec]
+---
 # Topology Builder v3 — Phase 4: Simulate mode
 
 | Field | Value |

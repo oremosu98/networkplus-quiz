@@ -1,3 +1,10 @@
+---
+type: spec
+status: shipped
+cert: all
+updated: 2026-06-29
+tags: [spec, saas-gated]
+---
 # Free-Tier Cert Lock — Design Spec (2026-06-07)
 
 **Goal:** Hard-enforce the locked monetization boundary "free = ONE cert, locked to the user's pick; switching/other certs require Pro" across **web, Safari, and native** — replacing today's UI-only affordance that a free user can bypass by navigating directly to another cert's subdomain.

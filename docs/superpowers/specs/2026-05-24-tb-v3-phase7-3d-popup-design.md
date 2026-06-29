@@ -1,3 +1,10 @@
+---
+type: spec
+status: shipped
+cert: all
+updated: 2026-06-29
+tags: [spec]
+---
 # TB v3 Phase 7 — 3D popup design (v2)
 
 **Status:** Locked design, ready for plan

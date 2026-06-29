@@ -1,3 +1,10 @@
+---
+type: mobile
+status: active
+cert: all
+updated: 2026-06-29
+tags: [mobile, plan]
+---
 # Mobile Optimization — Cross-Platform Plan of Action
 
 **Status**: founder-approved 2026-05-10 13:00 BST · Phase 6 starting now

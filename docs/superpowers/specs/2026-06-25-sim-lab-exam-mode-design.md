@@ -1,3 +1,10 @@
+---
+type: spec
+status: shipped
+cert: netplus
+updated: 2026-06-29
+tags: [spec, drill]
+---
 # Sim Lab Exam Mode (timing) — design spec (2026-06-25)
 
 **Status:** approved in brainstorming (visual companion, 1 concept / 4 panels, all confirmed; 4-stage design pass applied — design-taste-frontend · emil-design-eng · humanizer · marketing-psychology).

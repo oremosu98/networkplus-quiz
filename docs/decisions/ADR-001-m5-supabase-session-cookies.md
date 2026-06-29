@@ -1,3 +1,10 @@
+---
+type: decision
+status: active
+cert: all
+updated: 2026-06-29
+tags: [decision]
+---
 # ADR-001 — Supabase session tokens in non-HttpOnly cookies (audit M5)
 
 - **Status:** Accepted

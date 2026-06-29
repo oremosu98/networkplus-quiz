@@ -1,3 +1,10 @@
+---
+type: spec
+status: active
+cert: all
+updated: 2026-06-29
+tags: [spec, drill]
+---
 # Why-Not — Design Spec (second flagship drill)
 **Approved by Simi 2026-06-12 ("im happy to build this out"). Mockups four-pass audited same day.**
 **Research base:** `FLAGSHIP-DRILL-RESEARCH-2026-06-11.md` (Desktop), pain point 4 + drill #5. Deep dive: `~/.agent/diagrams/why-not-drill-deep-dive.html`.

@@ -1,3 +1,10 @@
+---
+type: process
+status: active
+cert: all
+updated: 2026-06-29
+tags: [mobile]
+---
 # iOS Testing Guide
 
 Shipped as part of `MOBILE_IOS_PLAN.md` Phase 3 (v4.99.29). Two complementary testing surfaces for catching iOS-specific bugs **before** they hit your testers.

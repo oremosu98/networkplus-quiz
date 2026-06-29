@@ -1,3 +1,10 @@
+---
+type: plan
+status: shipped
+cert: all
+updated: 2026-06-29
+tags: [plan]
+---
 # Phase G — Payments + Auth Expansion (the road to go-live)
 
 **Decided by Simi, 2026-06-11 (end of the tier-logic day, v7.46.1).**

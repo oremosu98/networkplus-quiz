@@ -1,3 +1,10 @@
+---
+type: plan
+status: shipped
+cert: all
+updated: 2026-06-29
+tags: [plan, decision]
+---
 # Onboarding / Activation / Routing · LOCKED DECISIONS
 
 > **Status:** Strategy LOCKED 2026-06-07. No code written yet. This is the source of truth for the App Store first-run / returning-user UX layer (routing + guided first action + coachmarks + feedback). Supersedes the open questions in `HANDOFF-app-entry-routing-and-feedback-2026-06-06.md` and the memory file `planning_app_entry_routing.md`.

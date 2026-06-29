@@ -1,3 +1,10 @@
+---
+type: spec
+status: shipped
+cert: all
+updated: 2026-06-29
+tags: [spec]
+---
 # Feature Roadmap App — Design Spec
 
 **Date:** 2026-05-28

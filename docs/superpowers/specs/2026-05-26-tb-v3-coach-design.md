@@ -1,3 +1,10 @@
+---
+type: spec
+status: shipped
+cert: all
+updated: 2026-06-29
+tags: [spec]
+---
 # TB v3 Phase 9 — Coach v1 MVP Design Spec
 
 **Date:** 2026-05-26

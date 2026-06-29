@@ -1,3 +1,10 @@
+---
+type: spec
+status: shipped
+cert: all
+updated: 2026-06-29
+tags: [spec]
+---
 # Cert lettermark icon system (Phase 1: landing) · design
 
 **Date:** 2026-06-01

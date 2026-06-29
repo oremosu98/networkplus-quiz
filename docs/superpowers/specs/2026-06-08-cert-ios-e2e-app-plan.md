@@ -1,3 +1,10 @@
+---
+type: spec
+status: active
+cert: all
+updated: 2026-06-29
+tags: [spec, mobile]
+---
 # CertAnvil iOS E2E Dummy App — Build Plan
 
 **Status:** Plan approved for execution (not yet built)

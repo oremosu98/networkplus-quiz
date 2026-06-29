@@ -1,3 +1,10 @@
+---
+type: plan
+status: shipped
+cert: all
+updated: 2026-06-29
+tags: [plan]
+---
 # G-2: Apple + Google Sign-In Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development to execute this plan task-by-task. Each task is bite-sized and independently verifiable. Do NOT batch tasks. This is a GATED-lane change (touches `auth-state.js`, `lib/supabase.js`, `landing/auth.js`, landing modal markup, Supabase Auth config) · follow the feature-branch → PR → preview-smoke → squash-merge flow in `ENVIRONMENT_STRATEGY.md`. Run the founder-only Prerequisite gate FIRST; no code task can be tested until the providers exist in Supabase.

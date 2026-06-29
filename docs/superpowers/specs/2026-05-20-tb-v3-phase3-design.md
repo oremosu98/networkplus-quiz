@@ -1,3 +1,10 @@
+---
+type: spec
+status: shipped
+cert: all
+updated: 2026-06-29
+tags: [spec]
+---
 # Topology Builder v3 — Phase 3: subnet-aware reachability validator
 
 > **For agentic workers:** REQUIRED SUB-SKILL — `superpowers:subagent-driven-development` for the implementation plan that follows. This spec is the design source; the plan derives from it.

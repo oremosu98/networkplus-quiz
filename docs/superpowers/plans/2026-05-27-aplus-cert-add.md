@@ -1,3 +1,10 @@
+---
+type: plan
+status: shipped
+cert: all
+updated: 2026-06-29
+tags: [plan]
+---
 # CompTIA A+ — Fifth Cert (Dual-Exam) Add to CertAnvil
 
 **Plan date:** 2026-05-27 (post-v7.5.0 AI-900 ship)

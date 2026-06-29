@@ -1,3 +1,10 @@
+---
+type: spec
+status: shipped
+cert: all
+updated: 2026-06-29
+tags: [spec]
+---
 # Topology Builder V3 — Walkthrough Feature (Phase 8) Design Spec
 
 **Date:** 2026-05-25

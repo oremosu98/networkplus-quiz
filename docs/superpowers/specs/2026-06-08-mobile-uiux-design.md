@@ -1,3 +1,10 @@
+---
+type: spec
+status: shipped
+cert: all
+updated: 2026-06-29
+tags: [spec, mobile]
+---
 # Mobile UI/UX Pass — Design Spec
 
 **Date:** 2026-06-08

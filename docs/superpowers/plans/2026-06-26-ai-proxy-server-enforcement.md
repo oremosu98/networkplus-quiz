@@ -1,3 +1,10 @@
+---
+type: plan
+status: shipped
+cert: all
+updated: 2026-06-29
+tags: [plan]
+---
 # Server-Side AI Quota + Entitlement Enforcement (Metered AI Proxy) Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development to execute this plan one task at a time, committing after each green verification. This is a **gated-lane** change (`landing/api/ai/*` + `supabase/migrations/*`): feature branch → PR (auto-spins Supabase branch DB + Vercel preview + CI) → smoke-test preview → squash-merge → prod. Every migration here carries a tested `-- ROLLBACK:` block. Do NOT push straight to `main`.

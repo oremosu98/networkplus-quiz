@@ -1,3 +1,10 @@
+---
+type: spec
+status: shipped
+cert: all
+updated: 2026-06-29
+tags: [spec]
+---
 # TB v3 Phase 5 — Trace mode: design spec
 
 > Date: 2026-05-23 · Phase 5 design lock · branch `feat/tb-v3-phase5` · main currently at `181cd77` (v6.1.0).

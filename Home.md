@@ -2,6 +2,14 @@
 
 > Obsidian home / map-of-content for the CertAnvil project. Open this folder as a vault (`Open folder as vault` → select the repo root). Code folders are excluded via `.obsidian/`. Use the graph view + search; this note is just the curated entry point.
 
+## Dashboard (Dataview)
+```dataview
+TABLE status, type, updated FROM "docs" WHERE status = "active" SORT updated DESC LIMIT 15
+```
+```dataview
+LIST FROM #decision SORT updated DESC
+```
+
 ## Start Here
 - [[CLAUDE]] — the always-loaded project guide (architecture, files, decision rules, deploy)
 - [[CHANGELOG]] — full release history

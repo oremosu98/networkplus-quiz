@@ -1,3 +1,10 @@
+---
+type: process
+status: active
+cert: all
+updated: 2026-06-29
+tags: [convention]
+---
 # CertAnvil Ship Checklist
 
 Pre-flight before every `git push`. Codifies the cert-app's conventions from CLAUDE.md so nothing slips between code → push. ~5 min if you've been disciplined throughout the session; longer if you've drifted.

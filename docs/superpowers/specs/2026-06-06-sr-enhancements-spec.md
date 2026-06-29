@@ -1,3 +1,10 @@
+---
+type: spec
+status: shipped
+cert: all
+updated: 2026-06-29
+tags: [spec]
+---
 # Spaced Repetition · 8 Enhancements · Build-Ready Spec
 
 > Status: ready to build · Date: 2026-06-06 · Lane: FAST (localStorage only, no schema/auth/sw-fetch)

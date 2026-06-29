@@ -1,3 +1,10 @@
+---
+type: research
+status: active
+cert: all
+updated: 2026-06-29
+tags: [research]
+---
 # Cloud-Fundamentals Family Drill — VOC Design Brief
 
 **Date:** 2026-06-25

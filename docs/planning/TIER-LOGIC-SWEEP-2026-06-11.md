@@ -1,3 +1,10 @@
+---
+type: plan
+status: shipped
+cert: all
+updated: 2026-06-29
+tags: [plan, saas-gated]
+---
 # Free/Pro tier-logic sweep — 2026-06-11
 
 Definitive done/not-done audit of every free-vs-pro rule discussed during the

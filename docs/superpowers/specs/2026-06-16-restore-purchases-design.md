@@ -1,3 +1,10 @@
+---
+type: spec
+status: shipped
+cert: all
+updated: 2026-06-29
+tags: [spec, mobile]
+---
 # Restore Purchases — Design Spec (reconciled to built mockup)
 
 **Date:** 2026-06-16

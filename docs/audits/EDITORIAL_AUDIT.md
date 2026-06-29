@@ -1,3 +1,10 @@
+---
+type: audit
+status: active
+cert: all
+updated: 2026-06-29
+tags: [audit, design]
+---
 # Editorial Audit — Full E2E Taste-Skill Report
 
 > Generated 2026-05-18 after the v4.99.64–v4.99.93 editorial rebrand sprint.

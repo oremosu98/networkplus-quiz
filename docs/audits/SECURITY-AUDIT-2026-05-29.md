@@ -1,3 +1,10 @@
+---
+type: audit
+status: active
+cert: all
+updated: 2026-06-29
+tags: [audit]
+---
 # CertAnvil — Security Audit (Phase 0)
 
 **Date:** 2026-05-29

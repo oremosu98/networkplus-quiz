@@ -1,3 +1,10 @@
+---
+type: process
+status: active
+cert: all
+updated: 2026-06-29
+tags: [convention]
+---
 # CertAnvil Environment Strategy
 
 **Status:** 🟢 Adopted 2026-05-12. Supersedes the old "trunk-based until a trigger fires" stance in CLAUDE.md — two of the three triggers (paying users imminent · backend DB migrations) have now fired.

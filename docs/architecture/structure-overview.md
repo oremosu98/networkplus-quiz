@@ -1,3 +1,10 @@
+---
+type: architecture
+status: active
+cert: all
+updated: 2026-06-29
+tags: [architecture]
+---
 # CertAnvil — Project & Folder Structure
 
 > Snapshot after the 2026-06-27 rename (everything is now **`certanvil`**) and deep cleanup.

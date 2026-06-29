@@ -1,3 +1,10 @@
+---
+type: spec
+status: shipped
+cert: all
+updated: 2026-06-29
+tags: [spec]
+---
 # Onboarding Sandbox — Design Spec (2026-06-07)
 
 **Goal:** Give the founder an installable, phone-framed playground to see and interact with the full onboarding flow + the new free-tier cert lock on their iPhone — today, without waiting for the App Store and without juggling real accounts/state.

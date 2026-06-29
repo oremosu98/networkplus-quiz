@@ -1,3 +1,10 @@
+---
+type: spec
+status: shipped
+cert: all
+updated: 2026-06-29
+tags: [spec, drill]
+---
 # Decision Lab — design spec (2026-06-25)
 
 **Status:** approved in brainstorming (VOC-research-led; visual companion, 1 concept / 4 panels, signed off; 4-stage design pass applied — design-taste-frontend · emil-design-eng · humanizer · marketing-psychology).

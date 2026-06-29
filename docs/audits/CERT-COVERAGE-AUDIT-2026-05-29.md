@@ -1,3 +1,10 @@
+---
+type: audit
+status: active
+cert: all
+updated: 2026-06-29
+tags: [audit]
+---
 # CertAnvil — MVP Cert-Coverage Audit
 
 **Date:** 2026-05-29

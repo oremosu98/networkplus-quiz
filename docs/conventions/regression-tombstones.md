@@ -1,3 +1,10 @@
+---
+type: convention
+status: active
+cert: all
+updated: 2026-06-29
+tags: [convention]
+---
 # Regression-Guard Tombstones
 
 > Extracted from CLAUDE.md (v7.8.2 slim-down). Referenced by a one-line pointer there.

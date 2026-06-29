@@ -1,3 +1,10 @@
+---
+type: plan
+status: shipped
+cert: all
+updated: 2026-06-29
+tags: [plan]
+---
 # CertAnvil Rename + Vercel Cleanup Implementation Plan
 
 > ## ✅ STATUS: EXECUTED — 2026-06-27 (all 4 phases complete, verified)

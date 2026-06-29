@@ -1,3 +1,10 @@
+---
+type: plan
+status: shipped
+cert: all
+updated: 2026-06-29
+tags: [plan]
+---
 # Progress Page Redesign v2 · Implementation Plan
 
 **Date:** 2026-05-26

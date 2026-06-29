@@ -1,3 +1,10 @@
+---
+type: mobile
+status: active
+cert: all
+updated: 2026-06-29
+tags: [mobile, plan]
+---
 # Mobile / iOS Compatibility — Plan of Action
 
 **Status**: drafted 2026-05-09 23:55 BST · ready to ship 2026-05-10 morning

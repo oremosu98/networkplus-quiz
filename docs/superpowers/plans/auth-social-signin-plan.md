@@ -1,3 +1,10 @@
+---
+type: plan
+status: shipped
+cert: all
+updated: 2026-06-29
+tags: [plan]
+---
 # Social Sign-In Plan — Google + Apple (Supabase OAuth)
 
 > **Status:** PLANNED — not started. Target implementation: **July 2026**.

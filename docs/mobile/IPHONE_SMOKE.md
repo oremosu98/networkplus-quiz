@@ -1,3 +1,10 @@
+---
+type: mobile
+status: active
+cert: all
+updated: 2026-06-29
+tags: [mobile]
+---
 # iPhone Smoke-Test Walkthrough
 
 The "truth loop" companion to `IOS_TESTING.md`. Use this when you want to verify a deploy actually works on real iOS hardware — not Playwright WebKit, not Chrome DevTools mobile mode, but Safari running on your iPhone with Web Inspector watching.

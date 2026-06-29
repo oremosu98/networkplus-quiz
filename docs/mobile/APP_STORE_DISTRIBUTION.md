@@ -1,3 +1,10 @@
+---
+type: mobile
+status: active
+cert: all
+updated: 2026-06-29
+tags: [mobile]
+---
 # App Store Distribution — iOS + Mac App Store Plan
 
 **Status**: drafted 2026-05-10 · **DEFERRED** until pre-launch trigger fires

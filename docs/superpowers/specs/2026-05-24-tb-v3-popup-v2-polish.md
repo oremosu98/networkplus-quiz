@@ -1,3 +1,10 @@
+---
+type: spec
+status: shipped
+cert: all
+updated: 2026-06-29
+tags: [spec]
+---
 # TB v3 Phase 7 v2 — Polish pass design
 
 **Status:** Locked design, mockup-approved, ready for plan

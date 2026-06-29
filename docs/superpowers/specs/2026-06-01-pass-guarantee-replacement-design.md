@@ -1,3 +1,10 @@
+---
+type: spec
+status: shipped
+cert: all
+updated: 2026-06-29
+tags: [spec]
+---
 # Pass-guarantee replacement + site-wide scrub · design
 
 **Date:** 2026-06-01

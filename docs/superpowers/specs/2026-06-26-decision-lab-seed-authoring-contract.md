@@ -1,3 +1,10 @@
+---
+type: spec
+status: active
+cert: all
+updated: 2026-06-29
+tags: [spec, drill]
+---
 # Decision Lab — seed authoring contract (2026-06-26)
 
 Single source of truth for the 4 Decision Lab seed banks. Authors AND reviewers read this.

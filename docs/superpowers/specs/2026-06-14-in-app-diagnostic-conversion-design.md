@@ -1,3 +1,10 @@
+---
+type: spec
+status: shipped
+cert: all
+updated: 2026-06-29
+tags: [spec]
+---
 # In-app diagnostic: conversion ending, account-page home, and plan-to-practice
 
 **Date:** 2026-06-14

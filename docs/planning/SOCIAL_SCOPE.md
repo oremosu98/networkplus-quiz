@@ -1,3 +1,10 @@
+---
+type: plan
+status: active
+cert: all
+updated: 2026-06-29
+tags: [plan]
+---
 # Certanvil — Launch Social Media Strategy (Scope)
 
 ## Scope statement

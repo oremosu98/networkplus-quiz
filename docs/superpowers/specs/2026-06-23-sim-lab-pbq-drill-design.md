@@ -1,3 +1,10 @@
+---
+type: spec
+status: shipped
+cert: netplus
+updated: 2026-06-29
+tags: [spec, drill]
+---
 # Sim Lab — PBQ Drill Design Spec
 
 **Date:** 2026-06-23

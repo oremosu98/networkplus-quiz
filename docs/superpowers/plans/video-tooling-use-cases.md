@@ -1,3 +1,10 @@
+---
+type: plan
+status: active
+cert: all
+updated: 2026-06-29
+tags: [plan]
+---
 # Certanvil × HyperFrames + Higgsfield — Top 10 Use Cases
 
 **Method:** 2 research+ideation subagents (one per tool, web-verified) → merge/de-dupe (26→12) → scoring → adversarial skeptic pass → this synthesis. 2026-06-03.

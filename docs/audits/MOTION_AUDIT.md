@@ -1,3 +1,10 @@
+---
+type: audit
+status: active
+cert: all
+updated: 2026-06-29
+tags: [audit, design]
+---
 # Motion & Animation Audit
 
 Evaluated against Emil Kowalski's design engineering principles (`.agents/skills/emil-design-eng/SKILL.md`).

@@ -1,3 +1,10 @@
+---
+type: design
+status: active
+cert: all
+updated: 2026-06-29
+tags: [design]
+---
 # Section-by-Section Design Playbook
 
 Lock the system once. Ship sections small, scoped, and verified. Let the

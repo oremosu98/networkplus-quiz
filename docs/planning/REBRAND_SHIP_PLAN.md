@@ -1,3 +1,10 @@
+---
+type: plan
+status: shipped
+cert: all
+updated: 2026-06-29
+tags: [plan]
+---
 # Rebrand Ship Plan — dg-system → production
 
 > Status doc for porting the locked dg-system concept mockups into prod.

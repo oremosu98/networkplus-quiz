@@ -1,3 +1,10 @@
+---
+type: mobile
+status: active
+cert: all
+updated: 2026-06-29
+tags: [mobile]
+---
 # Capacitor pre-wrap review — iOS WKWebView vs desktop flow (2026-06-26)
 
 **What this is:** an agent-council review of the iOS Capacitor WKWebView flow vs the real desktop web view, run before wrapping CertAnvil (static HTML/JS/CSS web app) as a native iOS app via Capacitor (bundle `com.certanvil.app`). **Review only — no fixes here. Fixes/features happen in a later session** (see the handoff).

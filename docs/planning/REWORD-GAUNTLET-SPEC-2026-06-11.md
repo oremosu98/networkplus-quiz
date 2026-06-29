@@ -1,3 +1,10 @@
+---
+type: spec
+status: active
+cert: all
+updated: 2026-06-29
+tags: [spec, drill]
+---
 # Reword Gauntlet — Design Spec
 **Approved by Simi, 2026-06-11 (late evening). Build: 2026-06-12.**
 **Research base:** `FLAGSHIP-DRILL-RESEARCH-2026-06-11.md` (Desktop) — deep-research verified the #1 cross-cert failure mode: candidates memorize questions, real exams re-word concepts. The Gauntlet is the flagship answer.

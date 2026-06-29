@@ -1,3 +1,10 @@
+---
+type: spec
+status: shipped
+cert: all
+updated: 2026-06-29
+tags: [spec]
+---
 # M7 — Remove CSP `script-src 'unsafe-inline'`
 
 **Date:** 2026-05-31

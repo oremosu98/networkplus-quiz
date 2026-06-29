@@ -1,3 +1,10 @@
+---
+type: mobile
+status: active
+cert: all
+updated: 2026-06-29
+tags: [mobile]
+---
 # Mobile Performance Baseline — v4.99.34
 
 **Captured**: 2026-05-10 13:15 BST
