@@ -1669,3 +1669,151 @@ test.describe('Mobile lift chrome (viewport-gated)', () => {
     await expect(page.locator('.sb-item[data-sb-page="analytics"]')).toBeVisible();
   });
 });
+
+// ══════════════════════════════════════════
+// Task 8 — Per-cert milestone isolation + Analytics Drills group VISIBILITY.
+// The visibility test is the regression guard for the invisible-render bug:
+// the #page-setup reveal IIFE is scoped to #page-setup and never reaches
+// #page-analytics, so _anaBtWire() must add `.visible` to the .dg-drill.reveal
+// rows or the whole Drills group renders at opacity:0 forever.
+// HARD RULE (CLAUDE.md): localStorage seeding is fine here — Playwright runs an
+// isolated browser against the local :3131 server, never prod.
+// ══════════════════════════════════════════
+test.describe('Per-cert milestones + Analytics Drills visibility (Task 8)', () => {
+  // (1) Per-cert ISOLATION — seed a netplus milestone unlock, confirm getMilestones()
+  // sees it under netplus, then flip the active cert to secplus and confirm the same
+  // milestone reads as NOT earned (no cross-cert leakage). Cert is selected the way
+  // the rest of the suite does it: localStorage 'nplus_dev_cert' → detectCert().
+  test('milestone unlock for netplus does NOT leak into secplus', async ({ page }) => {
+    // Load as netplus with a seeded multi-cert milestone blob.
+    await page.addInitScript(() => {
+      try {
+        localStorage.setItem('nplus_dev_cert', 'netplus');
+        localStorage.setItem('nplus_milestones', JSON.stringify({
+          netplus: { simlab_first: '2026-01-01T00:00:00.000Z' },
+          secplus: { decision_first: '2026-02-02T00:00:00.000Z' },
+        }));
+      } catch (e) {}
+    });
+    await page.goto('/');
+    // app.js declares getMilestones at top level; wait until it's parsed+available.
+    await page.waitForFunction(() => typeof getMilestones === 'function', null, { timeout: 8000 });
+    const netplusView = await page.evaluate(() => {
+      // getMilestones() returns ONLY the active cert's submap.
+      return { cert: window.CURRENT_CERT, ms: getMilestones() };
+    });
+    expect(netplusView.cert).toBe('netplus');
+    expect(netplusView.ms.simlab_first).toBeTruthy();          // earned under netplus
+    expect(netplusView.ms.decision_first).toBeFalsy();         // secplus's, not leaked
+
+    // Reload as secplus (same seeded blob) — the netplus unlock must read as NOT earned.
+    await page.addInitScript(() => {
+      try {
+        localStorage.setItem('nplus_dev_cert', 'secplus');
+        localStorage.setItem('nplus_milestones', JSON.stringify({
+          netplus: { simlab_first: '2026-01-01T00:00:00.000Z' },
+          secplus: { decision_first: '2026-02-02T00:00:00.000Z' },
+        }));
+      } catch (e) {}
+    });
+    await page.goto('/');
+    await page.waitForFunction(() => typeof getMilestones === 'function', null, { timeout: 8000 });
+    const secplusView = await page.evaluate(() => {
+      return { cert: window.CURRENT_CERT, ms: getMilestones() };
+    });
+    expect(secplusView.cert).toBe('secplus');
+    expect(secplusView.ms.decision_first).toBeTruthy();        // earned under secplus
+    expect(secplusView.ms.simlab_first).toBeFalsy();           // netplus unlock NOT earned here
+  });
+
+  // (2) REGRESSION GUARD — Analytics "Drills" group RENDERS VISIBLE.
+  // Seed drill stats + milestones, navigate to Analytics, wait for the reveal to
+  // settle, then assert the .dg-drill rows exist AND are actually visible
+  // (non-zero computed opacity, not display:none). FAILS if the rows stay
+  // reveal-gated at opacity:0 (the original invisible-render bug).
+  test('Analytics Drills group renders VISIBLE (not opacity:0)', async ({ page }) => {
+    await page.addInitScript(() => {
+      try {
+        localStorage.setItem('nplus_dev_cert', 'netplus');
+        // Seed per-cert drill stats so in-progress n/25 bars + earned tiles render.
+        localStorage.setItem('nplus_drill_stats', JSON.stringify({
+          netplus: { simlab: { done: 18, perfect: 1 }, gauntlet: { done: 6 } },
+        }));
+        // Seed at least one earned milestone so the earned-state tiles render too.
+        localStorage.setItem('nplus_milestones', JSON.stringify({
+          netplus: { simlab_first: new Date().toISOString() },
+        }));
+        // renderAnalytics() early-returns an empty-state card when history is
+        // empty (and never mounts the bento + drills group). Seed one quiz so
+        // the LIVE analytics path runs and the drills group actually renders.
+        localStorage.setItem('nplus_history', JSON.stringify([{
+          topic: 'TCP/IP Basics', score: 8, total: 10, pct: 80,
+          date: new Date().toISOString(), mode: 'quiz', difficulty: 'Exam Level',
+        }]));
+      } catch (e) {}
+    });
+    await page.goto('/');
+
+    // Navigate to Analytics the way a user would. Desktop ( >620px ) uses the
+    // sidebar; mobile (iPhone 14 / mobile-safari) hides the sidebar and uses the
+    // bottom lift-tabbar → Progress → seg-chip Analytics. Pick by what's visible.
+    const sidebarItem = page.locator('.sb-item[data-sb-page="analytics"]');
+    if (await sidebarItem.isVisible().catch(() => false)) {
+      await sidebarItem.click();
+    } else {
+      // Mobile lift chrome: Progress tab → Analytics segment chip.
+      await page.locator('#lift-tabbar .lift-tab[data-page="progress"]').click();
+      await expect(page.locator('#page-progress')).toHaveClass(/active/);
+      await page.locator('#page-progress .lift-seg-chip[data-page="analytics"]').click();
+    }
+    await expect(page.locator('#page-analytics')).toHaveClass(/active/);
+
+    // The drills group is mounted by renderAnalytics() and revealed by _anaBtWire().
+    const drillsSection = page.locator('#ana-ms-drills-section');
+    await expect(drillsSection).toBeAttached();
+
+    const drillRows = page.locator('#ana-ms-drills-section .dg-drill');
+    await expect(drillRows.first()).toBeAttached();
+    const rowCount = await drillRows.count();
+    expect(rowCount).toBeGreaterThan(0);          // 4 drills → 4 rows
+
+    // Wait for the reveal to settle: _anaBtWire adds .visible (IntersectionObserver
+    // + 1.6s safety net). Poll until the first row reports non-zero opacity.
+    await expect.poll(async () => {
+      return await drillRows.first().evaluate((el) => {
+        const cs = getComputedStyle(el);
+        return cs.display !== 'none' && parseFloat(cs.opacity) > 0;
+      });
+    }, { timeout: 6000, message: 'drill rows stayed reveal-gated at opacity:0' }).toBe(true);
+
+    // Assert EVERY drill row is actually visible (the regression bug left them all at 0).
+    const allVisible = await drillRows.evaluateAll((els) =>
+      els.every((el) => {
+        const cs = getComputedStyle(el);
+        return cs.display !== 'none' && parseFloat(cs.opacity) > 0 && el.classList.contains('visible');
+      })
+    );
+    expect(allVisible).toBe(true);
+
+    // Sanity: the group eyebrow/title chrome is on-screen, not just attached.
+    await expect(page.locator('#ana-ms-drills-section .dg-eyebrow')).toBeVisible();
+
+    // Optional: the bronze celebration-toast override must carry no purple token.
+    const toastHasPurple = await page.evaluate(() => {
+      const sheets = Array.from(document.styleSheets);
+      for (const s of sheets) {
+        let rules;
+        try { rules = s.cssRules; } catch (_) { continue; }
+        if (!rules) continue;
+        for (const r of Array.from(rules)) {
+          const t = (r.cssText || '');
+          if (t.includes('.celebration-toast') && /purple|#7c3aed|#8b5cf6|rebeccapurple|139,\s*92,\s*246/i.test(t)) {
+            return true;
+          }
+        }
+      }
+      return false;
+    });
+    expect(toastHasPurple).toBe(false);
+  });
+});

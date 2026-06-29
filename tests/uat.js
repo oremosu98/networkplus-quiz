@@ -20274,6 +20274,72 @@ try {
   results.errors.push('_migrateMilestoneShape smoke test threw: ' + err.message);
 }
 
+// Behavioral smoke (Task 8): per-cert ISOLATION. Seed a multi-cert milestone
+// blob, then prove getMilestones() returns ONLY the active cert's submap and
+// that flipping the active cert (window.CURRENT_CERT) flips which milestones
+// read as earned — a netplus unlock must NOT leak into the secplus view.
+// Extracts the real _certKey/_allMilestones/_migrateMilestoneShape/getMilestones
+// into a vm sandbox with a stub localStorage + switchable CURRENT_CERT.
+try {
+  const grab = (name) => {
+    const re = new RegExp('function ' + name + '\\([^)]*\\) \\{[\\s\\S]*?\\n\\}');
+    return (js.match(re) || [''])[0];
+  };
+  const certKeyBody = grab('_certKey');
+  const allMsBody   = grab('_allMilestones');
+  const migBody2    = grab('_migrateMilestoneShape');
+  const getMsBody   = grab('getMilestones');
+  if (certKeyBody && allMsBody && migBody2 && getMsBody) {
+    const ctx = {};
+    vm.createContext(ctx);
+    // Seed a two-cert blob: netplus earned simlab_first; secplus earned nothing.
+    const seeded = JSON.stringify({
+      netplus: { simlab_first: '2026-01-01T00:00:00.000Z' },
+      secplus: { decision_first: '2026-02-02T00:00:00.000Z' },
+    });
+    vm.runInContext(`
+      const MILESTONE_DEFS = [{id:'simlab_first'},{id:'decision_first'}];
+      const STORAGE = { MILESTONES: 'nplus_milestones' };
+      const _store = { 'nplus_milestones': ${JSON.stringify(seeded)} };
+      const localStorage = { getItem: (k) => (k in _store ? _store[k] : null) };
+      let CURRENT_CERT = 'netplus';
+      const window = {};            // _certKey reads window.CURRENT_CERT first
+      function _cloudFlush() {}
+      globalThis.__setCert = (c) => { window.CURRENT_CERT = c; };
+    `, ctx);
+    vm.runInContext(certKeyBody, ctx);
+    vm.runInContext(migBody2, ctx);
+    vm.runInContext(allMsBody, ctx);
+    vm.runInContext(getMsBody, ctx);
+    vm.runInContext('globalThis.__getMs = getMilestones;', ctx);
+    const getMs = ctx.__getMs, setCert = ctx.__setCert;
+
+    setCert('netplus');
+    const npView = getMs();
+    test('M1 isolation: netplus view sees its own earned milestone',
+      !!npView.simlab_first);
+    test('M1 isolation: netplus view does NOT leak secplus milestones',
+      !npView.decision_first);
+
+    setCert('secplus');
+    const spView = getMs();
+    test('M1 isolation: secplus view sees only its own earned milestone',
+      !!spView.decision_first && !spView.simlab_first);
+    test('M1 isolation: a netplus unlock reads as NOT earned under secplus',
+      !spView.simlab_first);
+
+    setCert('aplus'); // a cert with no seeded submap
+    test('M1 isolation: a cert with no submap reads as empty (no leakage)',
+      Object.keys(getMs()).length === 0);
+  } else {
+    test('M1 isolation: per-cert getMilestones extraction', false);
+    results.errors.push('could not extract per-cert milestone fns from app.js');
+  }
+} catch (err) {
+  test('M1 isolation: per-cert getMilestones smoke test', false);
+  results.errors.push('per-cert isolation smoke test threw: ' + err.message);
+}
+
 // ── M2: orphaned milestone ids removed (drills deleted long ago) ──
 console.log('\n\x1b[1m── M2: ORPHANED MILESTONE REMOVAL ──\x1b[0m');
 ['ab_first','ab_50','ab_all_seen','ab_streak_15',

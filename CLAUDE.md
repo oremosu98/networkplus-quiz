@@ -114,7 +114,7 @@ npx playwright test              # E2E (tests/e2e/app.spec.js)
 
 | Version | Features Added |
 |---|---|
-| feat/per-cert-milestones-and-drill-milestones | Milestones: final copy for 12 drill ids; Analytics Drills group (faithful mockup lift — hairline rows, 3 slots, earned/locked/prog, n/25 bar, gleam) now wired into the LIVE bento page via `_anaDrillsGroupHtml()` (mounted by `renderAnalytics`, revealed by `_anaBtWire` — the `#page-setup` reveal IIFE never reached `#page-analytics`); bronze celebration toast override; dg-system.css?v=7.60.0; T7 visibility-wiring guards — UAT 4247/4247 |
+| feat/per-cert-milestones-and-drill-milestones | Milestones: final copy for 12 drill ids; Analytics Drills group (faithful mockup lift — hairline rows, 3 slots, earned/locked/prog, n/25 bar, gleam) now wired into the LIVE bento page via `_anaDrillsGroupHtml()` (mounted by `renderAnalytics`, revealed by `_anaBtWire` — the `#page-setup` reveal IIFE never reached `#page-analytics`); bronze celebration toast override; dg-system.css?v=7.60.0; T7 visibility-wiring guards; Task 8 verification (per-cert isolation unit tests + per-cert-isolation & analytics-drills-visibility e2e across chromium/webkit/mobile-safari) — UAT 4252/4252 |
 | v7.59.0 | Decision Lab: cloud-cert scenario decision drill (engine + 4 seed banks) |
 | v7.58.0 | Sim Lab: A+ Core 1 (220-1201) + Core 2 (220-1202) PBQ seed banks live (cert rollout) |
 
