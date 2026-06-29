@@ -4,6 +4,8 @@
 **Status:** Approved (brainstorm) — pending implementation plan
 **Author:** brainstorm session (CertAnvil)
 
+> **Amendment (2026-06-29, during implementation):** "Packet Trace" was found to be a **deleted drill** (no page, no feature file, no completion handler — only a leftover `PT_MASTERY` storage constant). It was dropped from scope. Final scope = **4 live drills** (Sim Lab, Decision Lab, Why-Not, Gauntlet) = **12 drill milestones**, not 5/15. ACL PBQ (also live) was considered for the 5th slot but the user chose to drop to 4. Everything below referencing Packet Trace / 5 drills / 15 milestones is superseded by this.
+
 ## 1. Goal
 
 Two outcomes in one coherent change to the milestone system:
