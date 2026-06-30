@@ -115,10 +115,9 @@ npx playwright test              # E2E (tests/e2e/app.spec.js)
 
 | Version | Features Added |
 |---|---|
+| v7.60.3 | Sim Lab: attack-timeline reference renderer (data-driven vertical timeline + CSS; Task 7) |
 | v7.60.2 | Sim Lab: network PBQ reference renderer (data-driven SVG diagram + incident overlay; Task 6) |
 | v7.60.1 | Sim Lab configure step: forged-bronze dropdown styling (dg-system.css Task 4) |
-| v7.60.0 | Per-cert milestones + 12 drill milestones (Sim Lab/Decision Lab/Why-Not/Gauntlet) + orphan cleanup + bronze celebration toast |
-| v7.59.0 | Decision Lab: cloud-cert scenario decision drill (engine + 4 seed banks) |
 
 _Older releases (v7.55.0 and back) live in [CHANGELOG.md](./CHANGELOG.md) — v7.55.0 + v7.54.1 + v7.54.0 ported during the 2026-06-25 v7.56.0 night-end consolidation (Sim Lab session-mode marathon)._
 

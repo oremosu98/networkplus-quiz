@@ -21259,6 +21259,152 @@ console.log('\n\x1b[1m── T7: DRILLS ANALYTICS GROUP + FINAL COPY + BRONZE TO
   }
 })();
 
+// ── Sim Lab: timeline reference renderer (Task 7) ──
+// The renderer builds HTML as a STRING mounted via _el('div','sl-timeline', str),
+// so assertions run against innerHTML strings. Same vm-sandbox + DOM-shim pattern
+// as the Task 6 network renderer. Read-only: no listeners.
+(function () {
+  console.log('\n\x1b[1m── Sim Lab: timeline reference renderer (Task 7) ──\x1b[0m');
+  try {
+    var vm = require('vm');
+
+    var grab = function (name) {
+      var re = new RegExp('function ' + name + '\\([^)]*\\) \\{[\\s\\S]*?\\n\\}');
+      return (js.match(re) || [''])[0];
+    };
+    var grabLine = function (name) {
+      var re = new RegExp('function ' + name + '\\([^\\n]*\\)\\s*\\{[^\\n]*\\}');
+      return (js.match(re) || [''])[0];
+    };
+
+    // Structural: stub is gone, real markup builder landed
+    test('tl renderer: stub replaced (no sl-ref-stub timeline branch)',
+      !/_slRenderRefTimeline\(ref\)\s*\{\s*return _el\('div', 'sl-ref-stub', 'timeline'\)/.test(js));
+    test('tl renderer: builds an sl-timeline element',
+      /sl-timeline/.test(js));
+    test('tl renderer: builds sl-stage elements',
+      /sl-stage/.test(js));
+    test('tl renderer: builds sl-dot elements',
+      /sl-dot/.test(js));
+    test('tl renderer: builds sl-sevtag elements',
+      /sl-sevtag/.test(js));
+
+    // ── DEV FIXTURE — IR scenario (4 stages, mixed severities, derived from
+    // mockups/incident-response-pbq-concept.html). LABELED dev fixture: Task 7.
+    var _tlFix = {
+      kind: 'timeline',
+      stages: [
+        { id: 's1', icon: '!', label: 'User on WKS-04 opened the attachment "Invoice_4471.xlsm" and enabled macros.', time: '09:14', severity: 'med' },
+        { id: 's2', icon: '!', label: 'WKS-04 ran an unsigned executable; EDR flagged a known dropper hash.', time: '09:21', severity: 'high' },
+        { id: 's3', icon: '!', label: 'WKS-04 opened SMB sessions to SRV-FILE using a finance account.', time: '09:48', severity: 'high' },
+        { id: 's4', icon: '!', label: 'SRV-FILE began bulk file writes, then a large outbound transfer to an external host (185.x.x.x).', time: '10:05', severity: 'crit' }
+      ]
+    };
+
+    var refTlBody = grab('_slRenderRefTimeline');
+    var elBody    = grab('_el');
+    var escBody   = grabLine('_esc');
+
+    if (!refTlBody || !elBody || !escBody) {
+      test('tl renderer: vm extraction succeeded', false);
+      results.errors.push('could not extract _slRenderRefTimeline / helpers; check names/indenting');
+      return;
+    }
+
+    // Minimal DOM shim — identical to Task 6 network renderer pattern.
+    // _el needs createElement + className/innerHTML/appendChild.
+    // _esc() does `d.textContent = s; return d.innerHTML;` so the textContent
+    // setter must populate innerHTML with HTML-escaped text for escaping to work.
+    var htmlEscTl = function (s) {
+      return String(s == null ? '' : s)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    };
+    var makeElTl = function (tag) {
+      var attrs = {}, children = [], cls = '', inner = '';
+      var el = {
+        tagName: tag.toUpperCase(),
+        get className() { return cls; },
+        set className(v) { cls = v; },
+        get innerHTML() { return inner; },
+        set innerHTML(v) { inner = v; children = []; },
+        get textContent() { return ''; },
+        set textContent(v) { inner = htmlEscTl(v); },
+        style: {},
+        get _children() { return children; },
+        setAttribute: function (k, v) { attrs[k] = v; },
+        getAttribute: function (k) { return attrs[k] || null; },
+        appendChild: function (c) { children.push(c); return c; }
+      };
+      return el;
+    };
+    var docShimTl = { createElement: function (tag) { return makeElTl(tag); } };
+
+    var tCtx = { document: docShimTl, window: { CSS: null }, Object: Object, Array: Array, String: String };
+    vm.createContext(tCtx);
+    vm.runInContext(elBody, tCtx);
+    vm.runInContext(escBody, tCtx);
+    vm.runInContext(refTlBody, tCtx);
+    tCtx.fix = _tlFix;
+    var rootEl = vm.runInContext('_slRenderRefTimeline(fix);', tCtx);
+
+    // Root is an sl-timeline container. The renderer uses _el('div','sl-timeline',markupStr)
+    // which sets innerHTML to the markup string — stages live in innerHTML, not _children.
+    test('tl renderer: returns an sl-timeline root', rootEl && rootEl.className === 'sl-timeline');
+
+    var markup = rootEl ? rootEl.innerHTML : '';
+
+    // Count stage divs by matching the class attribute opener
+    var stageCount = (markup.match(/class="sl-stage /g) || []).length;
+    test('tl renderer: one .sl-stage per stage entry (4)', stageCount === 4);
+
+    // Each severity class appears at the right index
+    // The stages are emitted in order; check the markup has each sev class
+    test('tl renderer: sev-med class present (stage 1)', /sev-med/.test(markup));
+    test('tl renderer: sev-high class present (stages 2+3)', /sev-high/.test(markup));
+    test('tl renderer: sev-crit class present (stage 4)', /sev-crit/.test(markup));
+
+    // Last stage has no .sl-line.  Split on </div> boundaries to isolate the last stage.
+    // The last stage div (sev-crit) appears last in markup; verify sl-line is absent in it.
+    var lastStagePart = markup.slice(markup.lastIndexOf('sev-crit'));
+    test('tl renderer: last stage has no .sl-line', !/sl-line/.test(lastStagePart));
+
+    // Earlier stages DO have an sl-line — first stage (sev-med) contains sl-line
+    var firstStagePart = markup.slice(markup.indexOf('sev-med'));
+    test('tl renderer: non-last stage has .sl-line', /sl-line/.test(firstStagePart));
+
+    // Labels escaped and present
+    test('tl renderer: labels present (SMB sessions text found)', /SMB sessions/.test(markup));
+    test('tl renderer: labels present (185\.x\.x\.x text found)', /185\.x\.x\.x/.test(markup));
+
+    // Time values present
+    test('tl renderer: time values rendered (09:14 present)', /09:14/.test(markup));
+    test('tl renderer: time values rendered (10:05 present)', /10:05/.test(markup));
+
+    // sevtag elements present
+    test('tl renderer: sevtag elements present in markup', /sl-sevtag/.test(markup));
+
+    // Stage with no time field — graceful render (no crash, no sl-when element)
+    var _tlNoTime = {
+      kind: 'timeline',
+      stages: [
+        { id: 'x1', icon: '!', label: 'Alert fired.', severity: 'low' },
+        { id: 'x2', icon: '!', label: 'Analyst investigated.', severity: 'high' }
+      ]
+    };
+    tCtx.fix2 = _tlNoTime;
+    var rootEl2 = vm.runInContext('_slRenderRefTimeline(fix2);', tCtx);
+    var markup2 = rootEl2 ? rootEl2.innerHTML : '';
+    var stageCount2 = (markup2.match(/class="sl-stage /g) || []).length;
+    test('tl renderer: renders without time field (2 stages)', stageCount2 === 2);
+    test('tl renderer: first stage of no-time fix gets sev-low', /sev-low/.test(markup2));
+    test('tl renderer: no sl-when rendered when time is absent', !/sl-when/.test(markup2));
+
+  } catch (err) {
+    test('tl renderer: vm smoke test (threw)', false);
+    results.errors.push('timeline renderer smoke test threw: ' + err.message);
+  }
+})();
+
 // ── Summary ──
 console.log('\n' + '═'.repeat(50));
 const total = results.pass + results.fail;

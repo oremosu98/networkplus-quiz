@@ -4333,3 +4333,24 @@ html[data-theme] body .celebration-toast-sub{color:var(--text-dim,rgba(255,255,2
 #page-sim-lab .sl-net-row .k,#page-decision-lab .sl-net-row .k{color:var(--text-dim);font-weight:700;min-width:86px}
 #page-sim-lab .sl-net-row .v,#page-decision-lab .sl-net-row .v{font-family:ui-monospace,Menlo,monospace;color:var(--text);font-size:12px}
 #page-sim-lab .sl-net-cli,#page-decision-lab .sl-net-cli{margin:0 8px 8px;background:color-mix(in oklab,var(--text) 5%,var(--surface));border:1px solid var(--border);border-radius:11px;padding:11px 13px;font-family:ui-monospace,Menlo,monospace;font-size:11.5px;line-height:1.6;color:var(--text-mid);white-space:pre-wrap;word-break:break-word}
+
+/* ── Sim Lab: attack-timeline reference renderer (Task 7) ──────────────────
+   Vertical timeline: each .sl-stage row = left rail (.sl-dot + .sl-line) +
+   right body (.sl-when / .sl-what / .sl-sevtag). severity drives --sev token.
+   .sev-med uses --yellow (same precedent as .sl-clock .is-low, Task 6).
+   Scoped to #page-sim-lab + #page-decision-lab; 0 hardcoded hex. */
+#page-sim-lab .sl-timeline,#page-decision-lab .sl-timeline{display:grid;gap:0;padding:16px 16px 6px}
+#page-sim-lab .sl-stage,#page-decision-lab .sl-stage{display:grid;grid-template-columns:22px 1fr;gap:12px}
+#page-sim-lab .sl-rail,#page-decision-lab .sl-rail{display:flex;flex-direction:column;align-items:center}
+#page-sim-lab .sl-dot,#page-decision-lab .sl-dot{width:13px;height:13px;border-radius:999px;margin-top:3px;flex-shrink:0;background:var(--sev,var(--muted));box-shadow:0 0 0 3px color-mix(in oklab,var(--sev,var(--muted)) 22%,transparent)}
+#page-sim-lab .sl-line,#page-decision-lab .sl-line{flex:1;width:2px;background:color-mix(in oklab,var(--sev,var(--muted)) 28%,var(--border));min-height:18px;margin:3px 0}
+#page-sim-lab .sl-body,#page-decision-lab .sl-body{padding-bottom:18px;min-width:0}
+#page-sim-lab .sl-when,#page-decision-lab .sl-when{font:700 11px ui-monospace,Menlo,monospace;color:var(--text-dim);margin-bottom:3px}
+#page-sim-lab .sl-what,#page-decision-lab .sl-what{font-size:13px;line-height:1.45;color:var(--text);margin-bottom:6px}
+#page-sim-lab .sl-sevtag,#page-decision-lab .sl-sevtag{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--sev,var(--muted));background:color-mix(in oklab,var(--sev,var(--muted)) 12%,transparent);border:1px solid color-mix(in oklab,var(--sev,var(--muted)) 30%,var(--border));border-radius:999px;padding:2px 8px}
+
+/* severity → --sev token (--yellow for med: no --warn in dg-system.css) */
+#page-sim-lab .sev-low,#page-decision-lab .sev-low{--sev:var(--muted)}
+#page-sim-lab .sev-med,#page-decision-lab .sev-med{--sev:var(--yellow)}
+#page-sim-lab .sev-high,#page-decision-lab .sev-high{--sev:color-mix(in oklab,var(--fail) 80%,var(--yellow))}
+#page-sim-lab .sev-crit,#page-decision-lab .sev-crit{--sev:var(--fail)}

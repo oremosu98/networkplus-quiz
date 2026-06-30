@@ -656,7 +656,34 @@
 
     return root;
   }
-  function _slRenderRefTimeline(ref) { return _el('div', 'sl-ref-stub', 'timeline'); } // replaced in Task 7
+  // Real timeline reference renderer (Task 7). Data-driven: ref.stages[] drives
+  // one .sl-stage row per entry. Faithful lift from mockups/incident-response-pbq-concept.html
+  // (.timeline / .stage / .rail / .dot / .line / .body / .when / .what / .sevtag).
+  // severity → sev-low|sev-med|sev-high|sev-crit on the stage (drives --sev token).
+  // The .sl-line connector is OMITTED on the last stage. ES5, read-only.
+  function _slRenderRefTimeline(ref) {
+    var stages = Array.isArray(ref.stages) ? ref.stages : [];
+    var rows = [];
+    for (var i = 0; i < stages.length; i++) {
+      var st = stages[i];
+      var sev = st.severity || 'low';
+      var sevCls = 'sev-' + sev;
+      var isLast = (i === stages.length - 1);
+
+      // rail: dot + optional connecting line
+      var railInner = '<span class="sl-dot"></span>' + (isLast ? '' : '<span class="sl-line"></span>');
+      var rail = '<div class="sl-rail">' + railInner + '</div>';
+
+      // body: optional time, label, severity tag
+      var whenHtml = st.time ? '<div class="sl-when">' + _esc(st.time) + '</div>' : '';
+      var whatHtml = '<div class="sl-what">' + _esc(st.label) + '</div>';
+      var tagHtml  = '<span class="sl-sevtag">' + _esc(sev) + '</span>';
+      var body = '<div class="sl-body">' + whenHtml + whatHtml + tagHtml + '</div>';
+
+      rows.push('<div class="sl-stage ' + sevCls + '">' + rail + body + '</div>');
+    }
+    return _el('div', 'sl-timeline', rows.join(''));
+  }
   function _slRenderRefLayered(ref) { return _el('div', 'sl-ref-stub', 'layered'); }   // replaced in Task 8
   function _slRenderReference(ref) {
     if (!ref || !ref.kind) return null;
