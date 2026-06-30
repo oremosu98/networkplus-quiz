@@ -684,7 +684,98 @@
     }
     return _el('div', 'sl-timeline', rows.join(''));
   }
-  function _slRenderRefLayered(ref) { return _el('div', 'sl-ref-stub', 'layered'); }   // replaced in Task 8
+  function _slRenderRefLayered(ref) {
+    // Defense-in-depth nested-frames renderer (Task 8).
+    // Layout: concentric SVG rectangles — layers[0] = outermost frame, each
+    // subsequent layer inset INSET_X px left/right/bottom and INSET_TOP px top
+    // (room for the layer label), then the core innermost. viewBox scales with
+    // layer count: outer = CORE_W + 2*INSET_X*N wide, CORE_H + (INSET_X+INSET_TOP)*N tall.
+    var layers = Array.isArray(ref.layers) ? ref.layers : [];
+    var core   = ref.core || { label: 'Core', assets: [] };
+    var assets = Array.isArray(core.assets) ? core.assets : [];
+    var N = layers.length;
+
+    var INSET_X   = 46;   // left/right/bottom inset per level
+    var INSET_TOP = 52;   // top inset (label room) per level
+    var CORE_W    = 200;  // minimum core inner width
+    var CORE_H    = 120;  // minimum core inner height
+    var RX        = 14;   // corner radius for all frames
+    var DEV_W     = 90;   // device node width
+    var DEV_H     = 42;   // device node height
+    var DEV_GAP   = 12;   // gap between device nodes
+
+    // Outer frame dimensions grow outward from the core
+    var outerW = CORE_W + 2 * INSET_X * N;
+    var outerH = CORE_H + (INSET_X + INSET_TOP) * N;
+    // Add padding around the outer frame
+    var PAD = 8;
+    var VW  = outerW + PAD * 2;
+    var VH  = outerH + PAD * 2;
+
+    var parts = [];
+
+    // Render each layer frame, outer to inner (layers[0] = outer)
+    for (var i = 0; i < N; i++) {
+      var lyr  = layers[i];
+      var depth = i; // 0 = outermost
+      var lx = PAD + INSET_X * depth;
+      var ly = PAD + INSET_TOP * depth;
+      var lw = outerW - 2 * INSET_X * depth;
+      var lh = outerH - (INSET_X + INSET_TOP) * depth;
+      var isMissing = lyr.state === 'missing';
+      var frameCls = isMissing ? 'sl-misslayer' : 'sl-layer';
+      var labelText = _esc(lyr.label) + (lyr.control ? ' — ' + _esc(lyr.control) : '');
+      var missingTag = isMissing ? ' <tspan class="sl-misslayer-tag">missing</tspan>' : '';
+      parts.push(
+        '<rect class="' + frameCls + '" x="' + lx + '" y="' + ly +
+        '" width="' + lw + '" height="' + lh + '" rx="' + RX + '"/>' +
+        '<text class="sl-layer-lbl' + (isMissing ? ' sl-layer-lbl-miss' : '') + '" x="' + (lx + 14) + '" y="' + (ly + 22) + '">' +
+        labelText + missingTag + '</text>'
+      );
+    }
+
+    // Core frame — innermost rectangle
+    var coreX = PAD + INSET_X * N;
+    var coreY = PAD + INSET_TOP * N;
+    var coreW = CORE_W;
+    var coreH = CORE_H;
+    var anyExposed = assets.some(function (a) { return a.exposed; });
+    var coreCls = anyExposed ? 'sl-core-exposed' : 'sl-core';
+    var coreLabelCls = anyExposed ? 'sl-core-lbl sl-core-lbl-exp' : 'sl-core-lbl';
+    parts.push(
+      '<rect class="' + coreCls + '" x="' + coreX + '" y="' + coreY +
+      '" width="' + coreW + '" height="' + coreH + '" rx="' + RX + '"/>' +
+      '<text class="' + coreLabelCls + '" x="' + (coreX + 10) + '" y="' + (coreY + 16) + '">' +
+      _esc(core.label) + '</text>'
+    );
+
+    // Device nodes inside the core, laid out in a row centred horizontally
+    var totalDevW = assets.length * DEV_W + (assets.length - 1) * DEV_GAP;
+    var devStartX = coreX + Math.max(0, Math.floor((coreW - totalDevW) / 2));
+    var devY = coreY + coreH - DEV_H - 10;
+    for (var j = 0; j < assets.length; j++) {
+      var ast = assets[j];
+      var dx  = devStartX + j * (DEV_W + DEV_GAP);
+      var dy  = devY;
+      var expd = ast.exposed;
+      var devBoxCls  = expd ? 'sl-dev-box sl-dev-box-exp' : 'sl-dev-box';
+      var devNameCls = expd ? 'sl-dev-nm sl-dev-nm-exp'   : 'sl-dev-nm';
+      parts.push(
+        '<g class="sl-dev' + (expd ? ' exposed' : '') + '" transform="translate(' + dx + ',' + dy + ')">' +
+        '<rect class="' + devBoxCls + '" width="' + DEV_W + '" height="' + DEV_H + '" rx="7"/>' +
+        '<text class="' + devNameCls + '" x="' + Math.floor(DEV_W / 2) + '" y="' + Math.floor(DEV_H / 2 + 5) + '">' +
+        _esc(ast.label) + '</text>' +
+        '</g>'
+      );
+    }
+
+    var svgStr =
+      '<svg class="sl-layered-svg" viewBox="0 0 ' + VW + ' ' + VH + '" xmlns="http://www.w3.org/2000/svg">' +
+      parts.join('') +
+      '</svg>';
+
+    return _el('div', 'sl-layered', svgStr);
+  }
   function _slRenderReference(ref) {
     if (!ref || !ref.kind) return null;
     var panel = _el('div', 'sl-ref');

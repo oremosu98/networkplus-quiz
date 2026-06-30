@@ -21405,6 +21405,209 @@ console.log('\n\x1b[1m── T7: DRILLS ANALYTICS GROUP + FINAL COPY + BRONZE TO
   }
 })();
 
+// ── Sim Lab: layered defense-in-depth reference renderer (Task 8) ──
+// Renderer builds an SVG string mounted via _el('div','sl-layered',svgStr).
+// Same vm-sandbox + DOM-shim pattern as Tasks 6 & 7. Read-only.
+(function () {
+  console.log('\n\x1b[1m── Sim Lab: layered defense-in-depth reference renderer (Task 8) ──\x1b[0m');
+  try {
+    var vm = require('vm');
+
+    var grab = function (name) {
+      // De-indented feature source: function closes at \n} (0 spaces, same as Task 6/7)
+      var re = new RegExp('function ' + name + '\\([^)]*\\) \\{[\\s\\S]*?\\n\\}');
+      return (js.match(re) || [''])[0];
+    };
+    var grabLine = function (name) {
+      var re = new RegExp('function ' + name + '\\([^\\n]*\\)\\s*\\{[^\\n]*\\}');
+      return (js.match(re) || [''])[0];
+    };
+
+    // Structural: stub is gone, real markup builder landed
+    test('layered renderer: stub replaced (no sl-ref-stub layered branch)',
+      !/_slRenderRefLayered\(ref\)\s*\{\s*return _el\('div', 'sl-ref-stub', 'layered'\)/.test(js));
+    test('layered renderer: builds an sl-layered element',
+      /sl-layered/.test(js));
+    test('layered renderer: builds sl-layer elements',
+      /sl-layer/.test(js));
+    test('layered renderer: builds sl-misslayer elements',
+      /sl-misslayer/.test(js));
+    test('layered renderer: builds sl-core element',
+      /sl-core/.test(js));
+    test('layered renderer: builds sl-dev elements',
+      /sl-dev/.test(js));
+
+    // ── DEV FIXTURE A — Net+ DID scenario ──
+    // Derived from defense-in-depth-netplus-concept.html:
+    // perimeter present, DMZ/VLAN layer missing, exposed asset in core.
+    var _netFix = {
+      kind: 'layered',
+      layers: [
+        { id: 'perimeter', label: 'Perimeter',  control: 'Firewall / IDS', state: 'present' },
+        { id: 'dmz',       label: 'DMZ',         control: 'Proxy / WAF',   state: 'missing' }
+      ],
+      core: {
+        label: 'Internal LAN',
+        assets: [
+          { id: 'web1', label: 'WEB-1', exposed: true },
+          { id: 'db1',  label: 'DB-1',  exposed: false }
+        ]
+      }
+    };
+
+    // ── DEV FIXTURE B — Sec+ DID scenario ──
+    // Derived from defense-in-depth-secplus-concept.html:
+    // perimeter present, 3 inner layers missing, 2 exposed core assets.
+    var _secFix = {
+      kind: 'layered',
+      layers: [
+        { id: 'perimeter', label: 'Perimeter',  state: 'present' },
+        { id: 'endpoint',  label: 'Endpoint',   control: 'EDR / hardening',        state: 'missing' },
+        { id: 'data',      label: 'Data',        control: 'encryption + DLP',       state: 'missing' },
+        { id: 'identity',  label: 'Identity',    control: 'MFA / least privilege',  state: 'missing' }
+      ],
+      core: {
+        label: 'Crown-jewel data',
+        assets: [
+          { id: 'hr',  label: 'HR DB',   exposed: true },
+          { id: 'fin', label: 'FIN SRV', exposed: true }
+        ]
+      }
+    };
+
+    var refLyrBody = grab('_slRenderRefLayered');
+    var elBody     = grab('_el');
+    var escBody    = grabLine('_esc');
+
+    if (!refLyrBody || !elBody || !escBody) {
+      test('layered renderer: vm extraction succeeded', false);
+      results.errors.push('could not extract _slRenderRefLayered / helpers; check names/indenting');
+      return;
+    }
+
+    // Minimal DOM shim (same pattern as Tasks 6 & 7)
+    var htmlEscLyr = function (s) {
+      return String(s == null ? '' : s)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    };
+    var makeElLyr = function (tag) {
+      var attrs = {}, children = [], cls = '', inner = '';
+      var el = {
+        tagName: tag.toUpperCase(),
+        get className() { return cls; },
+        set className(v) { cls = v; },
+        get innerHTML() { return inner; },
+        set innerHTML(v) { inner = v; children = []; },
+        get textContent() { return ''; },
+        set textContent(v) { inner = htmlEscLyr(v); },
+        style: {},
+        get _children() { return children; },
+        setAttribute: function (k, v) { attrs[k] = v; },
+        getAttribute: function (k) { return attrs[k] || null; },
+        appendChild: function (c) { children.push(c); return c; }
+      };
+      return el;
+    };
+    var docShimLyr = { createElement: function (tag) { return makeElLyr(tag); } };
+
+    var lCtx = { document: docShimLyr, window: { CSS: null }, Object: Object, Array: Array, String: String, Math: Math };
+    vm.createContext(lCtx);
+    vm.runInContext(elBody, lCtx);
+    vm.runInContext(escBody, lCtx);
+    vm.runInContext(refLyrBody, lCtx);
+
+    // ── Fixture A (Net+) assertions ──
+    lCtx.fixA = _netFix;
+    var rootA = vm.runInContext('_slRenderRefLayered(fixA);', lCtx);
+
+    test('layered renderer A: returns an sl-layered root',
+      rootA && rootA.className === 'sl-layered');
+
+    var svgA = rootA ? rootA.innerHTML : '';
+
+    // SVG present with viewBox
+    test('layered renderer A: SVG emitted with viewBox',
+      /viewBox="0 0 \d+ \d+"/.test(svgA));
+
+    // One frame rect per layer (2 layers)
+    var layerRectsA = (svgA.match(/class="sl-layer"/g) || []).length;
+    var missRectsA  = (svgA.match(/class="sl-misslayer"/g) || []).length;
+    test('layered renderer A: present layer gets sl-layer rect (1)',  layerRectsA === 1);
+    test('layered renderer A: missing layer gets sl-misslayer rect (1)', missRectsA === 1);
+
+    // Core present
+    test('layered renderer A: core rect rendered',
+      /sl-core/.test(svgA));
+
+    // Exposed asset gets exposed class
+    test('layered renderer A: exposed asset gets exposed class on <g>',
+      /class="sl-dev exposed"/.test(svgA));
+
+    // Labels present and escaped
+    test('layered renderer A: perimeter label rendered',  /Perimeter/.test(svgA));
+    test('layered renderer A: DMZ label rendered',        /DMZ/.test(svgA));
+    test('layered renderer A: core label rendered',       /Internal LAN/.test(svgA));
+    test('layered renderer A: asset label WEB-1 rendered', /WEB-1/.test(svgA));
+
+    // missing tag shown on the missing layer label
+    test('layered renderer A: missing marker on DMZ label',
+      /sl-misslayer-tag/.test(svgA));
+
+    // ── Fixture B (Sec+) assertions — proves data-driven, not hardcoded ──
+    lCtx.fixB = _secFix;
+    var rootB = vm.runInContext('_slRenderRefLayered(fixB);', lCtx);
+
+    test('layered renderer B: returns an sl-layered root',
+      rootB && rootB.className === 'sl-layered');
+
+    var svgB = rootB ? rootB.innerHTML : '';
+
+    // 1 present + 3 missing layers
+    var layerRectsB = (svgB.match(/class="sl-layer"/g) || []).length;
+    var missRectsB  = (svgB.match(/class="sl-misslayer"/g) || []).length;
+    test('layered renderer B: 1 present layer rect',       layerRectsB === 1);
+    test('layered renderer B: 3 missing layer rects',      missRectsB === 3);
+
+    // Core is exposed (both assets exposed → core-exposed class)
+    test('layered renderer B: core-exposed class rendered', /sl-core-exposed/.test(svgB));
+
+    // Both exposed assets get exposed class
+    var expDevsB = (svgB.match(/class="sl-dev exposed"/g) || []).length;
+    test('layered renderer B: 2 exposed asset nodes', expDevsB === 2);
+
+    // Labels from Sec+ fixture
+    test('layered renderer B: Identity label rendered', /Identity/.test(svgB));
+    test('layered renderer B: Crown-jewel data label rendered', /Crown-jewel data/.test(svgB));
+    test('layered renderer B: FIN SRV asset label rendered', /FIN SRV/.test(svgB));
+
+    // viewBox is larger for Sec+ (4 layers) than Net+ (2 layers) — proves scaling
+    var vbA = svgA.match(/viewBox="0 0 (\d+) (\d+)"/);
+    var vbB = svgB.match(/viewBox="0 0 (\d+) (\d+)"/);
+    test('layered renderer: Sec+ (4 layers) viewBox wider than Net+ (2 layers)',
+      vbA && vbB && parseInt(vbB[1], 10) > parseInt(vbA[1], 10));
+    test('layered renderer: Sec+ (4 layers) viewBox taller than Net+ (2 layers)',
+      vbA && vbB && parseInt(vbB[2], 10) > parseInt(vbA[2], 10));
+
+    // XSS: label escaping
+    var xssFix = {
+      kind: 'layered',
+      layers: [{ id: 'x', label: '<script>alert(1)</script>', state: 'present' }],
+      core: { label: '<b>core</b>', assets: [{ id: 'a', label: '<img>', exposed: false }] }
+    };
+    lCtx.xssFix = xssFix;
+    var rootX = vm.runInContext('_slRenderRefLayered(xssFix);', lCtx);
+    var svgX  = rootX ? rootX.innerHTML : '';
+    test('layered renderer: layer label XSS-escaped',
+      !/<script>/.test(svgX) && /&lt;script&gt;/.test(svgX));
+    test('layered renderer: core label XSS-escaped',
+      !/<b>/.test(svgX) && /&lt;b&gt;/.test(svgX));
+
+  } catch (err) {
+    test('layered renderer: vm smoke test (threw)', false);
+    results.errors.push('layered renderer smoke test threw: ' + err.message);
+  }
+})();
+
 // ── Summary ──
 console.log('\n' + '═'.repeat(50));
 const total = results.pass + results.fail;

@@ -4354,3 +4354,42 @@ html[data-theme] body .celebration-toast-sub{color:var(--text-dim,rgba(255,255,2
 #page-sim-lab .sev-med,#page-decision-lab .sev-med{--sev:var(--yellow)}
 #page-sim-lab .sev-high,#page-decision-lab .sev-high{--sev:color-mix(in oklab,var(--fail) 80%,var(--yellow))}
 #page-sim-lab .sev-crit,#page-decision-lab .sev-crit{--sev:var(--fail)}
+
+/* ── Sim Lab: layered defense-in-depth reference renderer (Task 8) ────────
+   Nested-frames SVG layout. Layers ordered outer→inner; each frame is either
+   present (.sl-layer, accent stroke) or missing (.sl-misslayer, red dashed).
+   Core is .sl-core (safe) or .sl-core-exposed (any asset exposed = red fill).
+   Device nodes inside core: .sl-dev (normal) or .sl-dev.exposed (red).
+   Lifted from mockups/defense-in-depth-{netplus,secplus}-concept.html; tokens
+   only, 0 hardcoded hex. --fail = red/missing/exposed; --accent = present. */
+#page-sim-lab .sl-layered,#page-decision-lab .sl-layered{padding:8px}
+#page-sim-lab .sl-layered-svg,#page-decision-lab .sl-layered-svg{width:100%;height:auto;display:block;touch-action:pan-x pan-y pinch-zoom}
+
+/* present layer frame */
+#page-sim-lab .sl-layer,#page-decision-lab .sl-layer{fill:color-mix(in oklab,var(--accent) 6%,transparent);stroke:color-mix(in oklab,var(--accent) 50%,var(--border));stroke-width:1.4}
+
+/* missing layer frame — red dashed */
+#page-sim-lab .sl-misslayer,#page-decision-lab .sl-misslayer{fill:color-mix(in oklab,var(--fail) 5%,transparent);stroke:var(--fail);stroke-width:1.5;stroke-dasharray:6 5}
+
+/* layer labels */
+#page-sim-lab .sl-layer-lbl,#page-decision-lab .sl-layer-lbl{font:700 11px Inter,sans-serif;fill:var(--text-mid)}
+#page-sim-lab .sl-layer-lbl-miss,#page-decision-lab .sl-layer-lbl-miss{fill:var(--fail)}
+#page-sim-lab .sl-misslayer-tag,#page-decision-lab .sl-misslayer-tag{font-weight:400;font-size:10px;opacity:.85}
+
+/* core: safe */
+#page-sim-lab .sl-core,#page-decision-lab .sl-core{fill:color-mix(in oklab,var(--accent) 10%,transparent);stroke:color-mix(in oklab,var(--accent) 40%,var(--border));stroke-width:1.4}
+/* core: exposed (one or more assets are exposed) */
+#page-sim-lab .sl-core-exposed,#page-decision-lab .sl-core-exposed{fill:color-mix(in oklab,var(--fail) 9%,transparent);stroke:var(--fail);stroke-width:1.7}
+
+/* core labels */
+#page-sim-lab .sl-core-lbl,#page-decision-lab .sl-core-lbl{font:700 11px Inter,sans-serif;fill:var(--text-mid)}
+#page-sim-lab .sl-core-lbl-exp,#page-decision-lab .sl-core-lbl-exp{fill:var(--fail)}
+
+/* device node box (safe) */
+#page-sim-lab .sl-dev-box,#page-decision-lab .sl-dev-box{fill:var(--surface);stroke:var(--border);stroke-width:1.2}
+/* device node box (exposed) */
+#page-sim-lab .sl-dev-box-exp,#page-decision-lab .sl-dev-box-exp{stroke:var(--fail);stroke-width:1.8}
+
+/* device node labels */
+#page-sim-lab .sl-dev-nm,#page-decision-lab .sl-dev-nm{font:700 10.5px Inter,sans-serif;fill:var(--text);text-anchor:middle}
+#page-sim-lab .sl-dev-nm-exp,#page-decision-lab .sl-dev-nm-exp{fill:var(--fail)}

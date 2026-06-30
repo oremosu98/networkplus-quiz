@@ -115,9 +115,9 @@ npx playwright test              # E2E (tests/e2e/app.spec.js)
 
 | Version | Features Added |
 |---|---|
+| v7.60.4 | Sim Lab: layered defense-in-depth reference renderer (nested-frames SVG + CSS; Task 8) |
 | v7.60.3 | Sim Lab: attack-timeline reference renderer (data-driven vertical timeline + CSS; Task 7) |
 | v7.60.2 | Sim Lab: network PBQ reference renderer (data-driven SVG diagram + incident overlay; Task 6) |
-| v7.60.1 | Sim Lab configure step: forged-bronze dropdown styling (dg-system.css Task 4) |
 
 _Older releases (v7.55.0 and back) live in [CHANGELOG.md](./CHANGELOG.md) — v7.55.0 + v7.54.1 + v7.54.0 ported during the 2026-06-25 v7.56.0 night-end consolidation (Sim Lab session-mode marathon)._
 
