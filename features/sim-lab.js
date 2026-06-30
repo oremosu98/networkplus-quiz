@@ -469,6 +469,41 @@
     return root;
   }
 
+  // --- configure renderer ---
+  // Renders one native <select> per slot. Native selects are chosen deliberately:
+  // they use the platform wheel picker on iOS and are universally accessible
+  // without custom ARIA. CSS comes in Task 4; class names are locked here.
+  function _slRenderConfigure(step, onChange, initial) {
+    var resp = (initial && initial.slots && typeof initial.slots === 'object')
+      ? Object.assign({}, initial.slots)
+      : {};
+    var root = _el('div', 'sl-cfg');
+    root.appendChild(_el('p', 'sl-prompt', _esc(step.prompt)));
+    step.payload.slots.forEach(function (sl) {
+      var wrap = _el('div', 'sl-cfg-slot');
+      wrap.appendChild(_el('label', 'sl-cfg-label', _esc(sl.label)));
+      var sel = document.createElement('select');
+      sel.className = 'sl-cfg-select';
+      sel.setAttribute('data-slot', sl.id);
+      var ph = document.createElement('option');
+      ph.value = ''; ph.textContent = 'Choose…'; sel.appendChild(ph);
+      sl.options.forEach(function (o) {
+        var op = document.createElement('option');
+        op.value = o.id; op.textContent = o.text;
+        if (resp[sl.id] === o.id) { op.selected = true; }
+        sel.appendChild(op);
+      });
+      sel.addEventListener('change', function () {
+        if (sel.value) { resp[sl.id] = sel.value; } else { delete resp[sl.id]; }
+        onChange({ slots: Object.assign({}, resp) });
+      });
+      wrap.appendChild(sel);
+      root.appendChild(wrap);
+    });
+    onChange({ slots: Object.assign({}, resp) }); // report initial state
+    return root;
+  }
+
   // --- renderStep dispatcher ---
   // `initial` (optional) seeds the widget with a prior response so it re-hydrates
   // visually — used by exam free-nav to restore a saved round. Omitted in
@@ -480,6 +515,7 @@
       case 'match': return _slRenderMatch(step, onChange, initial);
       case 'analyze': return _slRenderAnalyze(step, onChange, initial);
       case 'fillin': return _slRenderFillin(step, onChange, initial);
+      case 'configure': return _slRenderConfigure(step, onChange, initial);
       default: return _el('div', 'sl-unknown', 'Unsupported step');
     }
   }

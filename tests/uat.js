@@ -20653,6 +20653,172 @@ console.log('\n\x1b[1m── T7: DRILLS ANALYTICS GROUP + FINAL COPY + BRONZE TO
   }
 })();
 
+// ── v7.63.x: Sim Lab — configure step renderer (Task 3) ──
+// Structural + behavioral smoke using a minimal DOM shim (same pattern as
+// _renderDiagnosticQuestion). Verifies _slRenderConfigure exists, is wired
+// into simLabRenderStep('configure'), renders one <select> per slot, and
+// calls onChange with the correct response shape on user interaction.
+(function () {
+  console.log('\n\x1b[1m── Sim Lab: configure step renderer ──\x1b[0m');
+  try {
+    // js is app.js + dedented feature files (2 spaces stripped per line),
+    // so closing braces are \n} not \n  } — match Task 1/2 grab pattern exactly.
+    var grab = function (name) {
+      var re = new RegExp('function ' + name + '\\([^)]*\\) \\{[\\s\\S]*?\\n\\}');
+      return (js.match(re) || [''])[0];
+    };
+
+    // Structural: function exists and simLabRenderStep routes to it
+    test('configure renderer: _slRenderConfigure defined',
+      /function _slRenderConfigure\(/.test(js));
+    test('configure renderer: simLabRenderStep routes configure type',
+      /case 'configure'\s*:\s*return _slRenderConfigure\(/.test(js));
+    test('configure renderer: uses .sl-cfg root class',
+      js.includes("'sl-cfg'") || js.includes('"sl-cfg"'));
+    test('configure renderer: uses native <select> element',
+      /createElement\(\s*['"]select['"]\s*\)/.test(js) && js.includes('sl-cfg-select'));
+
+    // Behavioral smoke: extract renderer + helpers into a vm with a DOM shim.
+    // _el/_esc/_slAttr are one-liners so we grab them by line rather than by
+    // brace-depth (the multi-line grab regex overshoots on inline functions).
+    var grabLine = function (name) {
+      var re = new RegExp('function ' + name + '\\([^\\n]*\\)\\s*\\{[^\\n]*\\}');
+      return (js.match(re) || [''])[0];
+    };
+    var elBody         = grab('_el');       // multi-line: use brace-depth grab
+    var escBody        = grabLine('_esc');  // one-liner: use single-line grab
+    var slAttrBody     = grabLine('_slAttr'); // one-liner: use single-line grab
+    var renderCfgBody  = grab('_slRenderConfigure');
+    var renderStepBody = grab('simLabRenderStep');
+
+    if (!elBody || !escBody || !slAttrBody || !renderCfgBody || !renderStepBody) {
+      test('configure renderer: vm extraction succeeded', false);
+      results.errors.push('could not extract configure renderer helpers; check function names/indenting');
+      return;
+    }
+
+    var vm  = require('vm');
+    // Minimal DOM shim — enough for _el, _esc, createElement('select'), addEventListener, dispatchEvent
+    var makeEl = function (tag) {
+      var attrs = {}, listeners = {}, children = [], cls = '', inner = '', val = '';
+      var el = {
+        tagName: tag.toUpperCase(),
+        get className() { return cls; },
+        set className(v) { cls = v; },
+        get innerHTML() { return inner; },
+        set innerHTML(v) { inner = v; },
+        get value() { return val; },
+        set value(v) { val = v; },
+        selected: false,
+        textContent: '',
+        style: {},
+        _children: children,
+        setAttribute: function (k, v) { attrs[k] = v; },
+        getAttribute: function (k) { return attrs[k] || null; },
+        appendChild: function (c) { children.push(c); return c; },
+        querySelector: function (sel) {
+          // Simple: find first child matching tag or class
+          for (var i = 0; i < children.length; i++) {
+            var c = children[i];
+            if (!c || !c.tagName) continue;
+            if (sel.toLowerCase() === c.tagName.toLowerCase()) return c;
+            if (c._children) {
+              for (var j = 0; j < c._children.length; j++) {
+                var gc = c._children[j];
+                if (gc && gc.tagName && sel.toLowerCase() === gc.tagName.toLowerCase()) return gc;
+              }
+            }
+          }
+          return null;
+        },
+        querySelectorAll: function (sel) {
+          var hits = [];
+          var search = function (node) {
+            if (!node || !node._children) return;
+            node._children.forEach(function (c) {
+              if (!c || !c.tagName) return;
+              var tag = sel.replace(/^\..*/, '').toUpperCase();
+              if (c.tagName === (tag || c.tagName)) hits.push(c);
+              search(c);
+            });
+          };
+          search(el);
+          return hits;
+        },
+        addEventListener: function (ev, fn) { listeners[ev] = (listeners[ev] || []); listeners[ev].push(fn); },
+        dispatchEvent: function (evObj) {
+          var fns = listeners[evObj.type] || [];
+          fns.forEach(function (fn) { fn(evObj); });
+        },
+        closest: function () { return null; },
+        remove: function () {}
+      };
+      return el;
+    };
+
+    var docShim = {
+      createElement: function (tag) { return makeEl(tag); },
+      createTextNode: function (t) { return { textContent: t, tagName: '#text' }; }
+    };
+    var windowShim = { CSS: null };
+
+    var ctx = { document: docShim, window: windowShim, Object: Object, Array: Array, String: String };
+    vm.createContext(ctx);
+    vm.runInContext(elBody, ctx);
+    vm.runInContext(escBody, ctx);
+    vm.runInContext(slAttrBody, ctx);
+    vm.runInContext(renderCfgBody, ctx);
+    vm.runInContext(renderStepBody, ctx);
+
+    var cfgStep = {
+      id: 's1', type: 'configure', prompt: 'Set the IP mode', explanation: 'e', points: 1,
+      payload: { slots: [
+        { id: 'ip', label: 'IP Mode', options: [{ id: 'a', text: 'Static' }, { id: 'b', text: 'DHCP' }] }
+      ]},
+      answer: { slots: { ip: 'a' } }
+    };
+
+    var captured = null;
+    ctx.cfgStep = cfgStep;
+    ctx.capturedRef = function (r) { captured = r; };
+    vm.runInContext('globalThis.__node = simLabRenderStep(cfgStep, capturedRef);', ctx);
+    var node = ctx.__node;
+
+    // 1. Root element has sl-cfg class
+    test('configure renderer: root has sl-cfg class',
+      node && node.className === 'sl-cfg');
+
+    // 2. One select rendered per slot
+    var selects = (node && node.querySelectorAll('select')) || [];
+    test('configure renderer: renders one select per slot',
+      selects.length === 1);
+
+    // 3. onChange called on mount with empty slots (no pre-selection)
+    test('configure renderer: reports initial state on mount',
+      captured !== null && captured.slots !== undefined);
+
+    // 4. Firing the select's change event updates the response
+    var sel = selects[0];
+    if (sel) {
+      sel.value = 'b';
+      sel.dispatchEvent({ type: 'change' });
+    }
+    test('configure renderer: onChange reports selection after change',
+      captured && captured.slots && captured.slots.ip === 'b');
+
+    // 5. Re-hydration: initial pre-selects the right option
+    var captured2 = null;
+    ctx.capturedRef2 = function (r) { captured2 = r; };
+    vm.runInContext('globalThis.__node2 = simLabRenderStep(cfgStep, capturedRef2, { slots: { ip: "a" } });', ctx);
+    test('configure renderer: re-hydrates from initial response',
+      captured2 && captured2.slots && captured2.slots.ip === 'a');
+
+  } catch (err) {
+    test('configure renderer: vm smoke test (threw)', false);
+    results.errors.push('configure renderer vm smoke test threw: ' + err.message);
+  }
+})();
+
 // ── Summary ──
 console.log('\n' + '═'.repeat(50));
 const total = results.pass + results.fail;
