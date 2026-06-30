@@ -20529,6 +20529,67 @@ console.log('\n\x1b[1m── T7: DRILLS ANALYTICS GROUP + FINAL COPY + BRONZE TO
     /reduce/.test(wireBody));
 })();
 
+// ── v7.61.x: Sim Lab — configure step type validation (Task 1) ──
+// Behavioral smoke: extract simLabValidateScenario + its helpers into a vm
+// sandbox and prove the configure step contract is enforced correctly.
+(function () {
+  console.log('\n\x1b[1m── Sim Lab: configure step type validation ──\x1b[0m');
+  try {
+    // Pull the three helpers out of the (already-dedented) features source.
+    var grab = function (name) {
+      var re = new RegExp('function ' + name + '\\([^)]*\\) \\{[\\s\\S]*?\\n\\}');
+      return (js.match(re) || [''])[0];
+    };
+    var isNonEmptyStrBody = grab('_isNonEmptyStr');
+    var validatePayloadBody = grab('_validateStepPayload');
+    var validateScenarioBody = grab('simLabValidateScenario');
+    // Also need STEP_TYPES — grab the array declaration from the dedented source.
+    var stepTypesDecl = (js.match(/var STEP_TYPES = \[[^\]]*\];/) || [''])[0];
+
+    if (!isNonEmptyStrBody || !validatePayloadBody || !validateScenarioBody || !stepTypesDecl) {
+      test('configure: extraction of sim-lab validation helpers', false);
+      results.errors.push('could not extract sim-lab helpers from js; check dedenting');
+      return;
+    }
+
+    var ctx = {};
+    vm.createContext(ctx);
+    vm.runInContext(stepTypesDecl, ctx);
+    vm.runInContext(isNonEmptyStrBody, ctx);
+    vm.runInContext(validatePayloadBody, ctx);
+    vm.runInContext(validateScenarioBody, ctx);
+    vm.runInContext('globalThis.__slValidate = simLabValidateScenario;', ctx);
+    var slValidate = ctx.__slValidate;
+
+    // Canonical valid configure scenario.
+    var cfgStep = {
+      id: 's1', type: 'configure', prompt: 'p', explanation: 'e', points: 1,
+      payload: { slots: [{ id: 'ip', label: 'IP', options: [{ id: 'a', text: 'A' }, { id: 'b', text: 'B' }] }] },
+      answer: { slots: { ip: 'a' } }
+    };
+    var cfgScn = { id: 'c1', cert: 'netplus', scenario: 'prose', estMinutes: 3, steps: [cfgStep] };
+
+    test('configure: valid scenario passes',
+      slValidate(cfgScn).ok === true);
+
+    // answer references an option id that does not exist in the slot.
+    var bad1 = JSON.parse(JSON.stringify(cfgScn));
+    bad1.steps[0].answer.slots.ip = 'zzz';
+    test('configure: rejects unknown option id in answer',
+      slValidate(bad1).ok === false);
+
+    // slot has only 1 option (minimum is 2).
+    var bad2 = JSON.parse(JSON.stringify(cfgScn));
+    bad2.steps[0].payload.slots[0].options.pop();
+    test('configure: rejects slot with fewer than 2 options',
+      slValidate(bad2).ok === false);
+
+  } catch (err) {
+    test('configure: vm smoke test (threw)', false);
+    results.errors.push('configure vm smoke test threw: ' + err.message);
+  }
+})();
+
 // ── Summary ──
 console.log('\n' + '═'.repeat(50));
 const total = results.pass + results.fail;

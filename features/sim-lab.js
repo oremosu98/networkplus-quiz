@@ -2,7 +2,7 @@
 (function () {
   'use strict';
 
-  var STEP_TYPES = ['order', 'categorize', 'match', 'analyze', 'fillin'];
+  var STEP_TYPES = ['order', 'categorize', 'match', 'analyze', 'fillin', 'configure'];
 
   var _SL_PBQ_CERTS = ['netplus', 'secplus', 'aplus-core1', 'aplus-core2'];
 
@@ -28,6 +28,16 @@
         return Array.isArray(p.fields) && p.fields.length >= 1 &&
                a && typeof a === 'object' &&
                p.fields.every(function (f) { return typeof f.id === 'string' && f.id && Array.isArray(a[f.id]) && a[f.id].length >= 1; });
+      case 'configure':
+        return Array.isArray(p.slots) && p.slots.length >= 1 &&
+               a.slots && typeof a.slots === 'object' && !Array.isArray(a.slots) &&
+               p.slots.every(function (sl) {
+                 return _isNonEmptyStr(sl.id) && _isNonEmptyStr(sl.label) &&
+                        Array.isArray(sl.options) && sl.options.length >= 2 &&
+                        sl.options.every(function (o) { return _isNonEmptyStr(o.id) && _isNonEmptyStr(o.text); }) &&
+                        _isNonEmptyStr(a.slots[sl.id]) &&
+                        sl.options.some(function (o) { return o.id === a.slots[sl.id]; });
+               });
       default: return false;
     }
   }
