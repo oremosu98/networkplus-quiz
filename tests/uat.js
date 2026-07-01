@@ -22139,6 +22139,86 @@ console.log('\n\x1b[1m── T7: DRILLS ANALYTICS GROUP + FINAL COPY + BRONZE TO
   }
 })();
 
+// The 20 consensus-approved Sec+ Incident Response scenarios now live for real
+// in features/sim-lab-seed-secplus.js (window.SIM_LAB_SEED_SECPLUS). This
+// proves every one of them is real, production-ready content: each passes the
+// same pure validator that gates the dev fixture (simLabValidateScenario),
+// extracted from features/sim-lab.js by the same brace-matching approach as
+// .superpowers/sdd/validate-drafts.js (no reimplementation of validator
+// logic). Not a fixture — this is the real bank. Incident scenarios use
+// timeline/network-under-attack refs without a deviceId configure step, so
+// simLabValidateNetworkFidelity does not apply here (mirrors Task 12's
+// diagram-bank test, minus the fidelity check).
+(function () {
+  console.log('\n\x1b[1m── Sim Lab: Sec+ Incident Response seed-bank validation (Task 13) ──\x1b[0m');
+  try {
+    var vm = require('vm');
+
+    var grab = function (name) {
+      var re = new RegExp('function ' + name + '\\([^)]*\\) \\{[\\s\\S]*?\\n\\}');
+      return (js.match(re) || [''])[0];
+    };
+
+    // ── Extract the REAL pure validator from features/sim-lab.js, exactly
+    // as .superpowers/sdd/validate-drafts.js does ──
+    var isNonEmptyStrBody   = grab('_isNonEmptyStr');
+    var validatePayloadBody = grab('_validateStepPayload');
+    var validateScenarioBody = grab('simLabValidateScenario');
+    var stepTypesMatch = js.match(/var STEP_TYPES\s*=\s*\[[^\]]+\]/);
+    var stepTypesDecl = stepTypesMatch ? stepTypesMatch[0] + ';' : "var STEP_TYPES = ['order','categorize','match','analyze','fillin','configure'];";
+
+    if (!isNonEmptyStrBody || !validatePayloadBody || !validateScenarioBody) {
+      test('Sec+ Incident bank: validator helper extraction succeeded', false);
+      results.errors.push('could not extract validator helpers for Task 13 bank test; check names/indenting');
+      return;
+    }
+
+    var vCtx = {};
+    vm.createContext(vCtx);
+    vm.runInContext(stepTypesDecl, vCtx);
+    vm.runInContext(isNonEmptyStrBody, vCtx);
+    vm.runInContext(validatePayloadBody, vCtx);
+    vm.runInContext(validateScenarioBody, vCtx);
+    vm.runInContext('globalThis.__validate = simLabValidateScenario;', vCtx);
+    var simLabValidateScenario = vCtx.__validate;
+
+    // ── Load the real seed bank: eval features/sim-lab-seed-secplus.js in a
+    // sandbox with `var window = {}` so window.SIM_LAB_SEED_SECPLUS populates ──
+    var seedSrc = read('features/sim-lab-seed-secplus.js');
+    var seedCtx = {};
+    vm.createContext(seedCtx);
+    vm.runInContext('var window = {};\n' + seedSrc + '\nglobalThis.__seed = window.SIM_LAB_SEED_SECPLUS;', seedCtx);
+    var seedBank = seedCtx.__seed;
+
+    test('Sec+ Incident bank: window.SIM_LAB_SEED_SECPLUS loaded as an array',
+      Array.isArray(seedBank));
+    if (!Array.isArray(seedBank)) {
+      results.errors.push('could not load window.SIM_LAB_SEED_SECPLUS from features/sim-lab-seed-secplus.js');
+      return;
+    }
+
+    var incidentScenarios = seedBank.filter(function (s) { return s && s.archetype === 'incident'; });
+    test('Sec+ Incident bank: at least 20 incident-archetype scenarios present',
+      incidentScenarios.length >= 20);
+
+    var allValidateOk = true;
+    incidentScenarios.forEach(function (s) {
+      var vr = simLabValidateScenario(s);
+      if (!vr || vr.ok !== true) {
+        allValidateOk = false;
+        results.errors.push('Sec+ Incident bank: ' + (s && s.id) + ' failed simLabValidateScenario: ' + JSON.stringify(vr && vr.errors));
+      }
+    });
+
+    test('Sec+ Incident bank: every incident scenario passes simLabValidateScenario',
+      allValidateOk);
+
+  } catch (err) {
+    test('Sec+ Incident bank: vm smoke test (threw)', false);
+    results.errors.push('Sec+ Incident bank smoke test threw: ' + err.message);
+  }
+})();
+
 // ── Summary ──
 console.log('\n' + '═'.repeat(50));
 const total = results.pass + results.fail;
