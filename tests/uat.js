@@ -21077,6 +21077,110 @@ console.log('\n\x1b[1m── T7: DRILLS ANALYTICS GROUP + FINAL COPY + BRONZE TO
   }
 })();
 
+// ── Task 9: subnetting/CIDR fidelity validator ──
+// Pure-logic check: given a `network` reference model + a `configure` step,
+// confirm the flagged device is out-of-subnet and the step's correct answer
+// re-homes it in-subnet. No DOM — extract via vm same as other Sim Lab tests.
+(function () {
+  console.log('\n\x1b[1m── Sim Lab: network fidelity validator (Task 9) ──\x1b[0m');
+  try {
+    var vm = require('vm');
+    function assert(cond, msg) { test(msg, !!cond); }
+
+    var grab = function (name) {
+      var re = new RegExp('function ' + name + '\\([^)]*\\) \\{[\\s\\S]*?\\n\\}');
+      return (js.match(re) || [''])[0];
+    };
+
+    var ipToIntBody = grab('_ipToInt');
+    var maskToIntBody = grab('_maskToInt');
+    var inSubnetBody = grab('_inSubnet');
+    var resolveSlotBody = grab('_slFidelityResolveSlot');
+    var fidelityBody = grab('simLabValidateNetworkFidelity');
+
+    if (!ipToIntBody || !maskToIntBody || !inSubnetBody || !resolveSlotBody || !fidelityBody) {
+      test('fidelity: vm extraction succeeded', false);
+      results.errors.push('could not extract fidelity validator helpers; check names/indenting');
+      return;
+    }
+
+    var fCtx = {};
+    vm.createContext(fCtx);
+    vm.runInContext(ipToIntBody, fCtx);
+    vm.runInContext(maskToIntBody, fCtx);
+    vm.runInContext(inSubnetBody, fCtx);
+    vm.runInContext(resolveSlotBody, fCtx);
+    vm.runInContext(fidelityBody, fCtx);
+    vm.runInContext('globalThis.__ipToInt = _ipToInt; globalThis.__maskToInt = _maskToInt; ' +
+      'globalThis.__inSubnet = _inSubnet; globalThis.__fidelity = simLabValidateNetworkFidelity;', fCtx);
+    var _ipToInt = fCtx.__ipToInt;
+    var _maskToInt = fCtx.__maskToInt;
+    var _inSubnet = fCtx.__inSubnet;
+    var simLabValidateNetworkFidelity = fCtx.__fidelity;
+
+    // ── helpers ──
+    assert(_ipToInt('192.168.10.1') === (((192 << 24) | (168 << 16) | (10 << 8) | 1) >>> 0), 'ipToInt');
+    assert(_inSubnet('192.168.10.45', '192.168.10.0', '255.255.255.0') === true, 'inSubnet true');
+    assert(_inSubnet('192.168.20.45', '192.168.10.0', '255.255.255.0') === false, 'inSubnet false');
+
+    // ── Task-9 dev fixture ──
+    // Net+ diagram: VLAN 10 (192.168.10.0/24) with PC-1 correctly homed and
+    // PC-2 mis-configured with an out-of-subnet IP (192.168.20.45). The
+    // configure step's correct answer re-homes PC-2 into .10.x with an
+    // in-subnet gateway.
+    //
+    // Slot -> field convention (kept minimal for this validator):
+    //   - The configure step carries a `deviceId` naming which device it
+    //     corrects.
+    //   - Slot ids are literally 'ip' / 'mask' / 'gateway'; each slot's
+    //     correct option (per step.answer.slots[slotId]) is resolved to its
+    //     option `text`, which is the corrected value for that field.
+    var fxNetworkRef = function () {
+      return {
+        kind: 'network',
+        devices: [
+          { id: 'pc1', label: 'PC-1', type: 'pc', zone: 'v10', ip: '192.168.10.10', mask: '255.255.255.0', gateway: '192.168.10.1', x: 10, y: 10 },
+          { id: 'pc2', label: 'PC-2', type: 'pc', zone: 'v10', ip: '192.168.20.45', mask: '255.255.255.0', gateway: '192.168.10.1', x: 40, y: 10 },
+          { id: 'gw1', label: 'Gateway', type: 'router', zone: 'v10', ip: '192.168.10.1', mask: '255.255.255.0', gateway: '192.168.10.1', x: 70, y: 10 }
+        ],
+        links: [{ from: 'pc1', to: 'gw1' }, { from: 'pc2', to: 'gw1' }],
+        given: { networkId: '192.168.10.0', mask: '255.255.255.0' }
+      };
+    };
+    var fxConfigureStep = function () {
+      return {
+        id: 'fix1', type: 'configure', prompt: 'Correct PC-2’s IP configuration',
+        explanation: 'PC-2 was on 192.168.20.0/24 — the wrong VLAN for this zone.', points: 1,
+        deviceId: 'pc2',
+        payload: {
+          slots: [
+            { id: 'ip', label: 'IP Address', options: [{ id: 'ip_bad', text: '192.168.20.45' }, { id: 'ip_good', text: '192.168.10.45' }] },
+            { id: 'mask', label: 'Subnet Mask', options: [{ id: 'm_good', text: '255.255.255.0' }, { id: 'm_bad', text: '255.255.0.0' }] },
+            { id: 'gateway', label: 'Gateway', options: [{ id: 'gw_good', text: '192.168.10.1' }, { id: 'gw_bad', text: '192.168.20.1' }] }
+          ]
+        },
+        answer: { slots: { ip: 'ip_good', mask: 'm_good', gateway: 'gw_good' } }
+      };
+    };
+
+    var _fx = { ref: fxNetworkRef(), step: fxConfigureStep() };
+    var _fxResult = simLabValidateNetworkFidelity(_fx.ref, _fx.step);
+    assert(_fxResult && _fxResult.ok === true, 'Net+ fixture is fidelity-sound');
+
+    // ── Negative case: "correct" answer is itself out-of-subnet ──
+    var _badFx = { ref: fxNetworkRef(), step: fxConfigureStep() };
+    // corrected IP still lands in the wrong subnet (192.168.30.x, not 192.168.10.x)
+    _badFx.step.payload.slots[0].options[1].text = '192.168.30.45';
+    var _badResult = simLabValidateNetworkFidelity(_badFx.ref, _badFx.step);
+    assert(_badResult && _badResult.ok === false, 'rejects a "correct" answer that is itself out-of-subnet');
+    assert(_badResult && Array.isArray(_badResult.errors) && _badResult.errors.length > 0, 'negative case reports errors');
+
+  } catch (err) {
+    test('fidelity validator: vm smoke test (threw)', false);
+    results.errors.push('fidelity validator smoke test threw: ' + err.message);
+  }
+})();
+
 // ── Sim Lab: network reference renderer (Task 6) ──
 // The renderer builds SVG as a STRING mounted via _el('div','sl-net', svg), so
 // assertions run against that string (read from the .sl-net child's innerHTML),

@@ -71,6 +71,103 @@
     return { ok: errs.length === 0, errors: errs };
   }
 
+  // --- subnetting/CIDR fidelity validator (Task 9) ---
+  // Pure math check that a Net+ `network` reference diagram is
+  // subnetting-sound, and that a paired `configure` step's correct answer
+  // actually fixes any flagged misconfiguration in-subnet.
+  //
+  // Slot -> field convention (kept minimal): a "reconfigure" configure step
+  // carries a `deviceId` naming which device it corrects. Slot ids are
+  // literally 'ip' / 'mask' / 'gateway'; each slot's correct option (per
+  // step.answer.slots[slotId]) is resolved to its option `text`, which is
+  // the corrected value for that field. Slots the step doesn't define are
+  // simply left unchanged on the device.
+
+  function _ipToInt(ip) {
+    var parts = String(ip).split('.').map(Number);
+    return (((parts[0] << 24) | (parts[1] << 16) | (parts[2] << 8) | parts[3]) >>> 0);
+  }
+
+  function _maskToInt(mask) {
+    return _ipToInt(mask);
+  }
+
+  function _inSubnet(ip, netId, mask) {
+    var m = _maskToInt(mask);
+    return (_ipToInt(ip) & m) === (_ipToInt(netId) & m);
+  }
+
+  // Resolve a configure step's correct answer for a given slot id to the
+  // option's text (the symbolic "corrected value"), or undefined if the
+  // step has no such slot.
+  function _slFidelityResolveSlot(step, slotId) {
+    if (!step || !step.payload || !Array.isArray(step.payload.slots)) return undefined;
+    if (!step.answer || !step.answer.slots) return undefined;
+    var correctOptId = step.answer.slots[slotId];
+    if (!correctOptId) return undefined;
+    var slot = step.payload.slots.filter(function (sl) { return sl.id === slotId; })[0];
+    if (!slot || !Array.isArray(slot.options)) return undefined;
+    var opt = slot.options.filter(function (o) { return o.id === correctOptId; })[0];
+    return opt ? opt.text : undefined;
+  }
+
+  function simLabValidateNetworkFidelity(networkModel, configureStep) {
+    var errs = [];
+    if (!networkModel || networkModel.kind !== 'network' || !Array.isArray(networkModel.devices)) {
+      return { ok: false, errors: ['fidelity: not a valid network reference'] };
+    }
+
+    var given = networkModel.given || {};
+    var netId = given.networkId, mask = given.mask;
+    var seenIps = {};
+    var flaggedDeviceId = configureStep && configureStep.deviceId;
+
+    networkModel.devices.forEach(function (dev) {
+      if (!dev || !dev.ip || !dev.mask || !dev.zone) return;
+      if (seenIps[dev.ip]) errs.push('duplicate IP: ' + dev.ip + ' (' + seenIps[dev.ip] + ', ' + (dev.label || dev.id) + ')');
+      else seenIps[dev.ip] = dev.label || dev.id;
+
+      // The device targeted by the configure step is expected to be
+      // out-of-subnet pre-fix (that's the scenario's intentional misconfig
+      // to correct) — its subnet membership is asserted post-fix below, not
+      // here. All other devices must already be subnet-sound.
+      if (dev.id === flaggedDeviceId) return;
+
+      if (netId && mask) {
+        if (!_inSubnet(dev.ip, netId, mask)) {
+          errs.push((dev.label || dev.id) + ': IP ' + dev.ip + ' is out of subnet ' + netId + '/' + mask);
+        }
+        if (dev.gateway && !_inSubnet(dev.gateway, netId, mask)) {
+          errs.push((dev.label || dev.id) + ': gateway ' + dev.gateway + ' is out of subnet ' + netId + '/' + mask);
+        }
+      }
+    });
+
+    // Apply the configure step's correct answer symbolically and re-check
+    // the corrected device.
+    if (configureStep && configureStep.deviceId) {
+      var dev2 = networkModel.devices.filter(function (d) { return d.id === configureStep.deviceId; })[0];
+      if (!dev2) {
+        errs.push('fidelity: configure step deviceId "' + configureStep.deviceId + '" not found in network reference');
+      } else {
+        var correctedIp = _slFidelityResolveSlot(configureStep, 'ip') || dev2.ip;
+        var correctedMask = _slFidelityResolveSlot(configureStep, 'mask') || dev2.mask;
+        var correctedGw = _slFidelityResolveSlot(configureStep, 'gateway') || dev2.gateway;
+
+        if (netId && correctedMask) {
+          if (!_inSubnet(correctedIp, netId, correctedMask)) {
+            errs.push('corrected ' + (dev2.label || dev2.id) + ': IP ' + correctedIp + ' is still out of subnet ' + netId + '/' + correctedMask);
+          }
+          if (correctedGw && !_inSubnet(correctedGw, netId, correctedMask)) {
+            errs.push('corrected ' + (dev2.label || dev2.id) + ': gateway ' + correctedGw + ' is still out of subnet ' + netId + '/' + correctedMask);
+          }
+        }
+      }
+    }
+
+    return { ok: errs.length === 0, errors: errs };
+  }
+
   // --- scoring (Task 2) ---
 
   function _norm(v) {
@@ -2311,6 +2408,7 @@
 
   // --- exports (more added in later tasks) ---
   window.simLabValidateScenario = simLabValidateScenario;
+  window.simLabValidateNetworkFidelity = simLabValidateNetworkFidelity;
   window.simLabScoreScenario = simLabScoreScenario;
   window.simLabSubmitScenario = simLabSubmitScenario;
   window._simLab = window._simLab || {};
