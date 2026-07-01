@@ -19,7 +19,7 @@
     "prepare": "git config core.hooksPath .githooks 2>/dev/null || true"
   },
   "devDependencies": {
-    "@playwright/test": "^1.49.0",
+    "@playwright/test": "^1.61.1",
     "esbuild": "^0.28.0",
     "serve": "^14.2.0"
   }
