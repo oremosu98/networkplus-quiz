@@ -20529,6 +20529,2477 @@ console.log('\n\x1b[1m── T7: DRILLS ANALYTICS GROUP + FINAL COPY + BRONZE TO
     /reduce/.test(wireBody));
 })();
 
+// ── v7.61.x: Sim Lab — configure step type validation (Task 1) ──
+// Behavioral smoke: extract simLabValidateScenario + its helpers into a vm
+// sandbox and prove the configure step contract is enforced correctly.
+(function () {
+  console.log('\n\x1b[1m── Sim Lab: configure step type validation ──\x1b[0m');
+  try {
+    // Pull the three helpers out of the (already-dedented) features source.
+    var grab = function (name) {
+      var re = new RegExp('function ' + name + '\\([^)]*\\) \\{[\\s\\S]*?\\n\\}');
+      return (js.match(re) || [''])[0];
+    };
+    var isNonEmptyStrBody = grab('_isNonEmptyStr');
+    var validatePayloadBody = grab('_validateStepPayload');
+    var validateScenarioBody = grab('simLabValidateScenario');
+    // Also need STEP_TYPES — grab the array declaration from the dedented source.
+    var stepTypesDecl = (js.match(/var STEP_TYPES = \[[^\]]*\];/) || [''])[0];
+
+    if (!isNonEmptyStrBody || !validatePayloadBody || !validateScenarioBody || !stepTypesDecl) {
+      test('configure: extraction of sim-lab validation helpers', false);
+      results.errors.push('could not extract sim-lab helpers from js; check dedenting');
+      return;
+    }
+
+    var ctx = {};
+    vm.createContext(ctx);
+    vm.runInContext(stepTypesDecl, ctx);
+    vm.runInContext(isNonEmptyStrBody, ctx);
+    vm.runInContext(validatePayloadBody, ctx);
+    vm.runInContext(validateScenarioBody, ctx);
+    vm.runInContext('globalThis.__slValidate = simLabValidateScenario;', ctx);
+    var slValidate = ctx.__slValidate;
+
+    // Canonical valid configure scenario.
+    var cfgStep = {
+      id: 's1', type: 'configure', prompt: 'p', explanation: 'e', points: 1,
+      payload: { slots: [{ id: 'ip', label: 'IP', options: [{ id: 'a', text: 'A' }, { id: 'b', text: 'B' }] }] },
+      answer: { slots: { ip: 'a' } }
+    };
+    var cfgScn = { id: 'c1', cert: 'netplus', scenario: 'prose', estMinutes: 3, steps: [cfgStep] };
+
+    test('configure: valid scenario passes',
+      slValidate(cfgScn).ok === true);
+
+    // answer references an option id that does not exist in the slot.
+    var bad1 = JSON.parse(JSON.stringify(cfgScn));
+    bad1.steps[0].answer.slots.ip = 'zzz';
+    test('configure: rejects unknown option id in answer',
+      slValidate(bad1).ok === false);
+
+    // slot has only 1 option (minimum is 2).
+    var bad2 = JSON.parse(JSON.stringify(cfgScn));
+    bad2.steps[0].payload.slots[0].options.pop();
+    test('configure: rejects slot with fewer than 2 options',
+      slValidate(bad2).ok === false);
+
+  } catch (err) {
+    test('configure: vm smoke test (threw)', false);
+    results.errors.push('configure vm smoke test threw: ' + err.message);
+  }
+})();
+
+// ── v7.62.x: Sim Lab — configure per-slot scoring (Task 2) ──
+// Behavioral smoke: extract simLabScoreScenario + its helpers into a vm
+// sandbox and prove configure steps score per-slot while other types stay 1-per-step.
+(function () {
+  console.log('\n\x1b[1m── Sim Lab: configure per-slot scoring ──\x1b[0m');
+  try {
+    var grab = function (name) {
+      var re = new RegExp('function ' + name + '\\([^)]*\\) \\{[\\s\\S]*?\\n\\}');
+      return (js.match(re) || [''])[0];
+    };
+    var normBody             = grab('_norm');
+    var normalizeMatchBody   = grab('_simLabNormalizeMatch');
+    var arrEqBody            = grab('_arrEq');
+    var setEqBody            = grab('_setEq');
+    var scoreSlotsBody       = grab('_scoreConfigureSlots');
+    var scoreStepBody        = grab('_scoreStep');
+    var scoreScenarioBody    = grab('simLabScoreScenario');
+
+    if (!normBody || !normalizeMatchBody || !arrEqBody || !setEqBody ||
+        !scoreSlotsBody || !scoreStepBody || !scoreScenarioBody) {
+      test('configure scoring: extraction of sim-lab scoring helpers', false);
+      results.errors.push('could not extract sim-lab scoring helpers from js; check function names/dedenting');
+      return;
+    }
+
+    var ctx = {};
+    vm.createContext(ctx);
+    vm.runInContext(normBody, ctx);
+    vm.runInContext(normalizeMatchBody, ctx);
+    vm.runInContext(arrEqBody, ctx);
+    vm.runInContext(setEqBody, ctx);
+    vm.runInContext(scoreSlotsBody, ctx);
+    vm.runInContext(scoreStepBody, ctx);
+    vm.runInContext(scoreScenarioBody, ctx);
+    vm.runInContext('globalThis.__slScore = simLabScoreScenario;', ctx);
+    var simLabScoreScenario = ctx.__slScore;
+
+    // 3-slot configure: 2 correct, 1 wrong → correct:2, total:3
+    var _scn3 = { id:'c2', cert:'netplus', scenario:'p', estMinutes:3, steps:[{
+      id:'s', type:'configure', prompt:'p', explanation:'e', points:1,
+      payload:{ slots:[
+        {id:'a',label:'A',options:[{id:'x',text:'x'},{id:'y',text:'y'}]},
+        {id:'b',label:'B',options:[{id:'x',text:'x'},{id:'y',text:'y'}]},
+        {id:'c',label:'C',options:[{id:'x',text:'x'},{id:'y',text:'y'}]} ]},
+      answer:{ slots:{ a:'x', b:'x', c:'x' } } }] };
+    var _r = simLabScoreScenario(_scn3, { s: { slots:{ a:'x', b:'x', c:'y' } } });
+    test('configure scores per-slot (2/3)',
+      _r.correct === 2 && _r.total === 3);
+
+    // non-configure (order): must still score 1 point per step
+    var _ord = { id:'c3', cert:'netplus', scenario:'p', estMinutes:3, steps:[{
+      id:'o', type:'order', prompt:'p', explanation:'e', points:1,
+      payload:{ items:[{id:'1',label:'1'},{id:'2',label:'2'}] }, answer:{ correctOrder:['1','2'] } }] };
+    var _ro = simLabScoreScenario(_ord, { o:{ order:['1','2'] } });
+    test('non-configure unchanged (1 per step)',
+      _ro.correct === 1 && _ro.total === 1);
+
+  } catch (err) {
+    test('configure scoring: vm smoke test (threw)', false);
+    results.errors.push('configure scoring vm smoke test threw: ' + err.message);
+  }
+})();
+
+// ── v7.63.x: Sim Lab — configure step renderer (Task 3) ──
+// Structural + behavioral smoke using a minimal DOM shim (same pattern as
+// _renderDiagnosticQuestion). Verifies _slRenderConfigure exists, is wired
+// into simLabRenderStep('configure'), renders one <select> per slot, and
+// calls onChange with the correct response shape on user interaction.
+(function () {
+  console.log('\n\x1b[1m── Sim Lab: configure step renderer ──\x1b[0m');
+  try {
+    // js is app.js + dedented feature files (2 spaces stripped per line),
+    // so closing braces are \n} not \n  } — match Task 1/2 grab pattern exactly.
+    var grab = function (name) {
+      var re = new RegExp('function ' + name + '\\([^)]*\\) \\{[\\s\\S]*?\\n\\}');
+      return (js.match(re) || [''])[0];
+    };
+
+    // Structural: function exists and simLabRenderStep routes to it
+    test('configure renderer: _slRenderConfigure defined',
+      /function _slRenderConfigure\(/.test(js));
+    test('configure renderer: simLabRenderStep routes configure type',
+      /case 'configure'\s*:\s*return _slRenderConfigure\(/.test(js));
+    test('configure renderer: uses .sl-cfg root class',
+      js.includes("'sl-cfg'") || js.includes('"sl-cfg"'));
+    test('configure renderer: uses native <select> element',
+      /createElement\(\s*['"]select['"]\s*\)/.test(js) && js.includes('sl-cfg-select'));
+
+    // Behavioral smoke: extract renderer + helpers into a vm with a DOM shim.
+    // _el/_esc/_slAttr are one-liners so we grab them by line rather than by
+    // brace-depth (the multi-line grab regex overshoots on inline functions).
+    var grabLine = function (name) {
+      var re = new RegExp('function ' + name + '\\([^\\n]*\\)\\s*\\{[^\\n]*\\}');
+      return (js.match(re) || [''])[0];
+    };
+    var elBody         = grab('_el');       // multi-line: use brace-depth grab
+    var escBody        = grabLine('_esc');  // one-liner: use single-line grab
+    var slAttrBody     = grabLine('_slAttr'); // one-liner: use single-line grab
+    var renderCfgBody  = grab('_slRenderConfigure');
+    var renderStepBody = grab('simLabRenderStep');
+
+    if (!elBody || !escBody || !slAttrBody || !renderCfgBody || !renderStepBody) {
+      test('configure renderer: vm extraction succeeded', false);
+      results.errors.push('could not extract configure renderer helpers; check function names/indenting');
+      return;
+    }
+
+    var vm  = require('vm');
+    // Minimal DOM shim — enough for _el, _esc, createElement('select'), addEventListener, dispatchEvent
+    var makeEl = function (tag) {
+      var attrs = {}, listeners = {}, children = [], cls = '', inner = '', val = '';
+      var el = {
+        tagName: tag.toUpperCase(),
+        get className() { return cls; },
+        set className(v) { cls = v; },
+        get innerHTML() { return inner; },
+        set innerHTML(v) { inner = v; },
+        get value() { return val; },
+        set value(v) { val = v; },
+        selected: false,
+        textContent: '',
+        style: {},
+        _children: children,
+        setAttribute: function (k, v) { attrs[k] = v; },
+        getAttribute: function (k) { return attrs[k] || null; },
+        appendChild: function (c) { children.push(c); return c; },
+        querySelector: function (sel) {
+          // Simple: find first child matching tag or class
+          for (var i = 0; i < children.length; i++) {
+            var c = children[i];
+            if (!c || !c.tagName) continue;
+            if (sel.toLowerCase() === c.tagName.toLowerCase()) return c;
+            if (c._children) {
+              for (var j = 0; j < c._children.length; j++) {
+                var gc = c._children[j];
+                if (gc && gc.tagName && sel.toLowerCase() === gc.tagName.toLowerCase()) return gc;
+              }
+            }
+          }
+          return null;
+        },
+        querySelectorAll: function (sel) {
+          var hits = [];
+          var search = function (node) {
+            if (!node || !node._children) return;
+            node._children.forEach(function (c) {
+              if (!c || !c.tagName) return;
+              var tag = sel.replace(/^\..*/, '').toUpperCase();
+              if (c.tagName === (tag || c.tagName)) hits.push(c);
+              search(c);
+            });
+          };
+          search(el);
+          return hits;
+        },
+        addEventListener: function (ev, fn) { listeners[ev] = (listeners[ev] || []); listeners[ev].push(fn); },
+        dispatchEvent: function (evObj) {
+          var fns = listeners[evObj.type] || [];
+          fns.forEach(function (fn) { fn(evObj); });
+        },
+        closest: function () { return null; },
+        remove: function () {}
+      };
+      return el;
+    };
+
+    var docShim = {
+      createElement: function (tag) { return makeEl(tag); },
+      createTextNode: function (t) { return { textContent: t, tagName: '#text' }; }
+    };
+    var windowShim = { CSS: null };
+
+    var ctx = { document: docShim, window: windowShim, Object: Object, Array: Array, String: String };
+    vm.createContext(ctx);
+    vm.runInContext(elBody, ctx);
+    vm.runInContext(escBody, ctx);
+    vm.runInContext(slAttrBody, ctx);
+    vm.runInContext(renderCfgBody, ctx);
+    vm.runInContext(renderStepBody, ctx);
+
+    var cfgStep = {
+      id: 's1', type: 'configure', prompt: 'Set the IP mode', explanation: 'e', points: 1,
+      payload: { slots: [
+        { id: 'ip', label: 'IP Mode', options: [{ id: 'a', text: 'Static' }, { id: 'b', text: 'DHCP' }] }
+      ]},
+      answer: { slots: { ip: 'a' } }
+    };
+
+    var captured = null;
+    ctx.cfgStep = cfgStep;
+    ctx.capturedRef = function (r) { captured = r; };
+    vm.runInContext('globalThis.__node = simLabRenderStep(cfgStep, capturedRef);', ctx);
+    var node = ctx.__node;
+
+    // 1. Root element has sl-cfg class
+    test('configure renderer: root has sl-cfg class',
+      node && node.className === 'sl-cfg');
+
+    // 2. One select rendered per slot
+    var selects = (node && node.querySelectorAll('select')) || [];
+    test('configure renderer: renders one select per slot',
+      selects.length === 1);
+
+    // 3. onChange called on mount with empty slots (no pre-selection)
+    test('configure renderer: reports initial state on mount',
+      captured !== null && captured.slots !== undefined);
+
+    // 4. Firing the select's change event updates the response
+    var sel = selects[0];
+    if (sel) {
+      sel.value = 'b';
+      sel.dispatchEvent({ type: 'change' });
+    }
+    test('configure renderer: onChange reports selection after change',
+      captured && captured.slots && captured.slots.ip === 'b');
+
+    // 5. Re-hydration: initial pre-selects the right option
+    var captured2 = null;
+    ctx.capturedRef2 = function (r) { captured2 = r; };
+    vm.runInContext('globalThis.__node2 = simLabRenderStep(cfgStep, capturedRef2, { slots: { ip: "a" } });', ctx);
+    test('configure renderer: re-hydrates from initial response',
+      captured2 && captured2.slots && captured2.slots.ip === 'a');
+
+  } catch (err) {
+    test('configure renderer: vm smoke test (threw)', false);
+    results.errors.push('configure renderer vm smoke test threw: ' + err.message);
+  }
+})();
+
+// ── Task 5: reference asset model + validation + mount wiring ──
+// Validation tests use the existing simLabValidateScenario extracted from `js`.
+// Mount test uses a vm-sandbox + DOM shim (same pattern as configure renderer).
+(function () {
+  console.log('\n\x1b[1m── Sim Lab: reference asset model (Task 5) ──\x1b[0m');
+  try {
+    var vm = require('vm');
+
+    // grab() pattern: matches dedented feature file functions (\n} closing brace)
+    var grab = function (name) {
+      var re = new RegExp('function ' + name + '\\([^)]*\\) \\{[\\s\\S]*?\\n\\}');
+      return (js.match(re) || [''])[0];
+    };
+    var grabLine = function (name) {
+      var re = new RegExp('function ' + name + '\\([^\\n]*\\)\\s*\\{[^\\n]*\\}');
+      return (js.match(re) || [''])[0];
+    };
+
+    // ── Structural checks ──
+    test('reference: _slRenderReference defined',
+      /function _slRenderReference\(/.test(js));
+    test('reference: _slRenderRefNetwork defined',
+      /function _slRenderRefNetwork\(/.test(js));
+    test('reference: _slRenderRefTimeline defined',
+      /function _slRenderRefTimeline\(/.test(js));
+    test('reference: _slRenderRefLayered defined',
+      /function _slRenderRefLayered\(/.test(js));
+    test('reference: _slMountScenario wires _slRenderReference',
+      /scn\.assets && scn\.assets\.reference/.test(js) && /_slRenderReference\(/.test(js));
+    test('reference: simLabValidateScenario checks reference kind',
+      /reference: bad kind/.test(js));
+
+    // ── Validation tests — extract simLabValidateScenario + helpers into vm ──
+    var isNonEmptyStrBody = grabLine('_isNonEmptyStr') || grab('_isNonEmptyStr');
+    var validatePayloadBody = grab('_validateStepPayload');
+    var validateScenarioBody = grab('simLabValidateScenario');
+
+    // STEP_TYPES array — grab from source
+    var stepTypesMatch = js.match(/var STEP_TYPES\s*=\s*\[[^\]]+\]/);
+    var stepTypesDecl = stepTypesMatch ? stepTypesMatch[0] + ';' : "var STEP_TYPES = ['order','categorize','match','analyze','fillin','configure'];";
+
+    if (!isNonEmptyStrBody || !validatePayloadBody || !validateScenarioBody) {
+      test('reference validation: helper extraction succeeded', false);
+      results.errors.push('could not extract simLabValidateScenario helpers; check names/indenting');
+      return;
+    }
+
+    var vCtx = {};
+    vm.createContext(vCtx);
+    vm.runInContext(stepTypesDecl, vCtx);
+    vm.runInContext(isNonEmptyStrBody, vCtx);
+    vm.runInContext(validatePayloadBody, vCtx);
+    vm.runInContext(validateScenarioBody, vCtx);
+    vm.runInContext('globalThis.__validate = simLabValidateScenario;', vCtx);
+    var simLabValidateScenario = vCtx.__validate;
+
+    // Minimal valid configure scenario used as base for all reference tests
+    var _baseScn = function () {
+      return {
+        id: 'r1', cert: 'netplus', scenario: 'Configure the router', estMinutes: 3,
+        steps: [{
+          id: 's1', type: 'configure', prompt: 'Set IP mode', explanation: 'e', points: 1,
+          payload: { slots: [{ id: 'ip', label: 'IP Mode', options: [{ id: 'a', text: 'Static' }, { id: 'b', text: 'DHCP' }] }] },
+          answer: { slots: { ip: 'a' } }
+        }]
+      };
+    };
+
+    // 1. Scenario without assets.reference still validates fine
+    var _plain = _baseScn();
+    test('reference validation: scenario without reference passes',
+      simLabValidateScenario(_plain).ok === true);
+
+    // 2. Valid network reference passes
+    var _scnNet = _baseScn();
+    _scnNet.assets = { reference: { kind: 'network', devices: [{ id: 'd1', label: 'PC', type: 'pc', zone: 'v10', x: 10, y: 10 }], links: [] } };
+    test('reference validation: valid network reference passes',
+      simLabValidateScenario(_scnNet).ok === true);
+
+    // 3. Unknown kind rejected
+    var _scnBad = _baseScn();
+    _scnBad.assets = { reference: { kind: 'nope' } };
+    var _badResult = simLabValidateScenario(_scnBad);
+    test('reference validation: unknown reference kind rejected',
+      _badResult.ok === false && _badResult.errors.some(function (e) { return /reference.*bad kind/i.test(e); }));
+
+    // 4. Network reference without devices[] rejected
+    var _scnNoDevs = _baseScn();
+    _scnNoDevs.assets = { reference: { kind: 'network' } };
+    var _noDevsResult = simLabValidateScenario(_scnNoDevs);
+    test('reference validation: network without devices[] rejected',
+      _noDevsResult.ok === false && _noDevsResult.errors.some(function (e) { return /devices/.test(e); }));
+
+    // 5. Valid timeline reference passes
+    var _scnTl = _baseScn();
+    _scnTl.assets = { reference: { kind: 'timeline', stages: [{ id: 'p', icon: '!', label: 'Prep', severity: 'low' }] } };
+    test('reference validation: valid timeline reference passes',
+      simLabValidateScenario(_scnTl).ok === true);
+
+    // 6. Valid layered reference passes
+    var _scnLy = _baseScn();
+    _scnLy.assets = { reference: { kind: 'layered', layers: [{ id: 'l1', label: 'Perimeter', state: 'ok' }], core: { label: 'Core', assets: [] } } };
+    test('reference validation: valid layered reference passes',
+      simLabValidateScenario(_scnLy).ok === true);
+
+    // 6b. layout:'stacked' layered scenario validates (stacked-bands layout)
+    var _scnStacked = _baseScn();
+    _scnStacked.assets = { reference: { kind: 'layered', layout: 'stacked', layers: [{ id: 'l1', label: 'Perimeter', state: 'present' }], core: { label: 'Core', assets: [] } } };
+    test('reference validation: layout:"stacked" layered reference passes',
+      simLabValidateScenario(_scnStacked).ok === true);
+
+    // 6c. layout:'nested' is also explicitly valid (not just absent)
+    var _scnNested = _baseScn();
+    _scnNested.assets = { reference: { kind: 'layered', layout: 'nested', layers: [{ id: 'l1', label: 'Perimeter', state: 'present' }], core: { label: 'Core', assets: [] } } };
+    test('reference validation: layout:"nested" layered reference passes',
+      simLabValidateScenario(_scnNested).ok === true);
+
+    // 6d. Invalid layout value rejected
+    var _scnBadLayout = _baseScn();
+    _scnBadLayout.assets = { reference: { kind: 'layered', layout: 'sideways', layers: [{ id: 'l1', label: 'Perimeter', state: 'present' }], core: { label: 'Core', assets: [] } } };
+    var _badLayoutResult = simLabValidateScenario(_scnBadLayout);
+    test('reference validation: invalid layout value rejected',
+      _badLayoutResult.ok === false && _badLayoutResult.errors.some(function (e) { return /layout/i.test(e); }));
+
+    // ── Task 10: optional scenario.archetype tag ──
+    // 7. Absent archetype still passes (backward compat — all existing scenarios).
+    var _scnNoArch = _baseScn();
+    test('archetype validation: absent archetype still passes',
+      simLabValidateScenario(_scnNoArch).ok === true);
+
+    // 8. Known archetype passes.
+    var _scnGoodArch = _baseScn();
+    _scnGoodArch.archetype = 'incident';
+    test('archetype validation: known archetype passes',
+      simLabValidateScenario(_scnGoodArch).ok === true);
+
+    // 9. Unknown archetype rejected.
+    var _scnBadArch = _baseScn();
+    _scnBadArch.archetype = 'not-a-real-archetype';
+    var _badArchResult = simLabValidateScenario(_scnBadArch);
+    test('archetype validation: unknown archetype rejected',
+      _badArchResult.ok === false && _badArchResult.errors.some(function (e) { return /archetype/i.test(e); }));
+
+    // ── Mount test — vm-sandbox + DOM shim ──
+    var elBody            = grab('_el');
+    var escBody           = grabLine('_esc');
+    var slAttrBody        = grabLine('_slAttr');
+    var renderCfgBody     = grab('_slRenderConfigure');
+    var renderStepBody    = grab('simLabRenderStep');
+    var refNetBody        = grab('_slRenderRefNetwork');
+    var refTimeBody       = grab('_slRenderRefTimeline');
+    var refLayBody        = grab('_slRenderRefLayered');
+    var refDispBody       = grab('_slRenderReference');
+    var mountBody         = grab('_slMountScenario');
+
+    if (!elBody || !escBody || !mountBody || !refDispBody || !refNetBody) {
+      test('reference mount: vm extraction succeeded', false);
+      results.errors.push('could not extract _slMountScenario / reference helpers; check names/indenting');
+      return;
+    }
+
+    // Minimal DOM shim (same as configure renderer test, with _children as getter
+    // so it tracks the live `children` array even after innerHTML resets it)
+    var makeEl = function (tag) {
+      var attrs = {}, listeners = {}, children = [], cls = '', inner = '', val = '';
+      var el = {
+        tagName: tag.toUpperCase(),
+        get className() { return cls; },
+        set className(v) { cls = v; },
+        get innerHTML() { return inner; },
+        set innerHTML(v) { inner = v; children = []; },
+        get value() { return val; },
+        set value(v) { val = v; },
+        selected: false,
+        textContent: '',
+        style: {},
+        get _children() { return children; },
+        setAttribute: function (k, v) { attrs[k] = v; },
+        getAttribute: function (k) { return attrs[k] || null; },
+        appendChild: function (c) { children.push(c); return c; },
+        querySelector: function (sel) {
+          for (var i = 0; i < children.length; i++) {
+            var c = children[i];
+            if (!c || !c.tagName) continue;
+            if (sel.toLowerCase() === c.tagName.toLowerCase()) return c;
+            if (c._children) {
+              for (var j = 0; j < c._children.length; j++) {
+                var gc = c._children[j];
+                if (gc && gc.tagName && sel.toLowerCase() === gc.tagName.toLowerCase()) return gc;
+              }
+            }
+          }
+          return null;
+        },
+        querySelectorAll: function (sel) {
+          var hits = [];
+          var search = function (node) {
+            if (!node || !node._children) return;
+            node._children.forEach(function (c) {
+              if (!c || !c.tagName) return;
+              var tag = sel.replace(/^\..*/, '').toUpperCase();
+              if (c.tagName === (tag || c.tagName)) hits.push(c);
+              search(c);
+            });
+          };
+          search(el);
+          return hits;
+        },
+        addEventListener: function (ev, fn) { listeners[ev] = (listeners[ev] || []); listeners[ev].push(fn); },
+        dispatchEvent: function (evObj) { var fns = listeners[evObj.type] || []; fns.forEach(function (fn) { fn(evObj); }); },
+        closest: function () { return null; },
+        remove: function () {}
+      };
+      return el;
+    };
+
+    var docShim = {
+      createElement: function (tag) { return makeEl(tag); },
+      createTextNode: function (t) { return { textContent: t, tagName: '#text' }; }
+    };
+    var windowShim = { CSS: null };
+
+    var mCtx = { document: docShim, window: windowShim, Object: Object, Array: Array, String: String };
+    vm.createContext(mCtx);
+    vm.runInContext(elBody, mCtx);
+    vm.runInContext(escBody, mCtx);
+    if (slAttrBody) vm.runInContext(slAttrBody, mCtx);
+    if (renderCfgBody) vm.runInContext(renderCfgBody, mCtx);
+    if (renderStepBody) vm.runInContext(renderStepBody, mCtx);
+    vm.runInContext(refNetBody, mCtx);
+    if (refTimeBody) vm.runInContext(refTimeBody, mCtx);
+    if (refLayBody) vm.runInContext(refLayBody, mCtx);
+    vm.runInContext(refDispBody, mCtx);
+    vm.runInContext(mountBody, mCtx);
+
+    // Scenario with a network reference
+    var _mountScn = {
+      id: 'r1', cert: 'netplus', scenario: 'Configure the router', estMinutes: 3,
+      assets: { reference: { kind: 'network', devices: [{ id: 'd1', label: 'PC', type: 'pc', zone: 'v10', x: 10, y: 10 }], links: [] } },
+      steps: [{
+        id: 's1', type: 'configure', prompt: 'Set IP mode', explanation: 'e', points: 1,
+        payload: { slots: [{ id: 'ip', label: 'IP Mode', options: [{ id: 'a', text: 'Static' }, { id: 'b', text: 'DHCP' }] }] },
+        answer: { slots: { ip: 'a' } }
+      }]
+    };
+
+    var host = makeEl('div');
+    mCtx.host = host;
+    mCtx.mountScn = _mountScn;
+    mCtx.mountOpts = { onSubmit: function () {} };
+    vm.runInContext('_slMountScenario(host, mountScn, mountOpts);', mCtx);
+
+    // host._children[0] is the sl-scenario wrap div
+    // wrap._children layout: [sl-scn-prose, sl-ref, ...steps, submit]
+    var wrap = host._children[0];
+    var refPanelFound = wrap && wrap._children.some(function (c) {
+      return c && c.className === 'sl-ref';
+    });
+    test('reference mount: _slMountScenario renders a .sl-ref panel',
+      refPanelFound === true);
+
+    // Verify reference panel comes before first step wrap
+    if (wrap) {
+      var refIdx = -1, stepIdx = -1;
+      wrap._children.forEach(function (c, i) {
+        if (c && c.className === 'sl-ref' && refIdx === -1) refIdx = i;
+        if (c && c.className === 'sl-step' && stepIdx === -1) stepIdx = i;
+      });
+      test('reference mount: reference panel is before first step',
+        refIdx !== -1 && stepIdx !== -1 && refIdx < stepIdx);
+    }
+
+    // Scenario WITHOUT reference: must still mount fine (no regression)
+    var _plainScn = {
+      id: 'r2', cert: 'netplus', scenario: 'Plain scenario', estMinutes: 3,
+      steps: [{
+        id: 's1', type: 'configure', prompt: 'Set IP mode', explanation: 'e', points: 1,
+        payload: { slots: [{ id: 'ip', label: 'IP Mode', options: [{ id: 'a', text: 'Static' }, { id: 'b', text: 'DHCP' }] }] },
+        answer: { slots: { ip: 'a' } }
+      }]
+    };
+    var host2 = makeEl('div');
+    mCtx.host2 = host2;
+    mCtx.plainScn = _plainScn;
+    vm.runInContext('_slMountScenario(host2, plainScn, mountOpts);', mCtx);
+    var wrap2 = host2._children[0];
+    var hasNoRefPanel = wrap2 && !wrap2._children.some(function (c) { return c && c.className === 'sl-ref'; });
+    test('reference mount: scenario without reference has no .sl-ref panel',
+      hasNoRefPanel === true);
+
+  } catch (err) {
+    test('reference asset model: vm smoke test (threw)', false);
+    results.errors.push('reference asset model smoke test threw: ' + err.message);
+  }
+})();
+
+// ── Task 9: subnetting/CIDR fidelity validator ──
+// Pure-logic check: given a `network` reference model + a `configure` step,
+// confirm the flagged device is out-of-subnet and the step's correct answer
+// re-homes it in-subnet. No DOM — extract via vm same as other Sim Lab tests.
+(function () {
+  console.log('\n\x1b[1m── Sim Lab: network fidelity validator (Task 9) ──\x1b[0m');
+  try {
+    var vm = require('vm');
+    function assert(cond, msg) { test(msg, !!cond); }
+
+    var grab = function (name) {
+      var re = new RegExp('function ' + name + '\\([^)]*\\) \\{[\\s\\S]*?\\n\\}');
+      return (js.match(re) || [''])[0];
+    };
+
+    var ipToIntBody = grab('_ipToInt');
+    var maskToIntBody = grab('_maskToInt');
+    var inSubnetBody = grab('_inSubnet');
+    var resolveSlotBody = grab('_slFidelityResolveSlot');
+    var fidelityBody = grab('simLabValidateNetworkFidelity');
+
+    if (!ipToIntBody || !maskToIntBody || !inSubnetBody || !resolveSlotBody || !fidelityBody) {
+      test('fidelity: vm extraction succeeded', false);
+      results.errors.push('could not extract fidelity validator helpers; check names/indenting');
+      return;
+    }
+
+    var fCtx = {};
+    vm.createContext(fCtx);
+    vm.runInContext(ipToIntBody, fCtx);
+    vm.runInContext(maskToIntBody, fCtx);
+    vm.runInContext(inSubnetBody, fCtx);
+    vm.runInContext(resolveSlotBody, fCtx);
+    vm.runInContext(fidelityBody, fCtx);
+    vm.runInContext('globalThis.__ipToInt = _ipToInt; globalThis.__maskToInt = _maskToInt; ' +
+      'globalThis.__inSubnet = _inSubnet; globalThis.__fidelity = simLabValidateNetworkFidelity;', fCtx);
+    var _ipToInt = fCtx.__ipToInt;
+    var _maskToInt = fCtx.__maskToInt;
+    var _inSubnet = fCtx.__inSubnet;
+    var simLabValidateNetworkFidelity = fCtx.__fidelity;
+
+    // ── helpers ──
+    assert(_ipToInt('192.168.10.1') === (((192 << 24) | (168 << 16) | (10 << 8) | 1) >>> 0), 'ipToInt');
+    assert(_inSubnet('192.168.10.45', '192.168.10.0', '255.255.255.0') === true, 'inSubnet true');
+    assert(_inSubnet('192.168.20.45', '192.168.10.0', '255.255.255.0') === false, 'inSubnet false');
+
+    // ── Task-9 dev fixture ──
+    // Net+ diagram: VLAN 10 (192.168.10.0/24) with PC-1 correctly homed and
+    // PC-2 mis-configured with an out-of-subnet IP (192.168.20.45). The
+    // configure step's correct answer re-homes PC-2 into .10.x with an
+    // in-subnet gateway.
+    //
+    // Slot -> field convention (kept minimal for this validator):
+    //   - The configure step carries a `deviceId` naming which device it
+    //     corrects.
+    //   - Slot ids are literally 'ip' / 'mask' / 'gateway'; each slot's
+    //     correct option (per step.answer.slots[slotId]) is resolved to its
+    //     option `text`, which is the corrected value for that field.
+    var fxNetworkRef = function () {
+      return {
+        kind: 'network',
+        devices: [
+          { id: 'pc1', label: 'PC-1', type: 'pc', zone: 'v10', ip: '192.168.10.10', mask: '255.255.255.0', gateway: '192.168.10.1', x: 10, y: 10 },
+          { id: 'pc2', label: 'PC-2', type: 'pc', zone: 'v10', ip: '192.168.20.45', mask: '255.255.255.0', gateway: '192.168.10.1', x: 40, y: 10 },
+          { id: 'gw1', label: 'Gateway', type: 'router', zone: 'v10', ip: '192.168.10.1', mask: '255.255.255.0', gateway: '192.168.10.1', x: 70, y: 10 }
+        ],
+        links: [{ from: 'pc1', to: 'gw1' }, { from: 'pc2', to: 'gw1' }],
+        given: { networkId: '192.168.10.0', mask: '255.255.255.0' }
+      };
+    };
+    var fxConfigureStep = function () {
+      return {
+        id: 'fix1', type: 'configure', prompt: 'Correct PC-2’s IP configuration',
+        explanation: 'PC-2 was on 192.168.20.0/24 — the wrong VLAN for this zone.', points: 1,
+        deviceId: 'pc2',
+        payload: {
+          slots: [
+            { id: 'ip', label: 'IP Address', options: [{ id: 'ip_bad', text: '192.168.20.45' }, { id: 'ip_good', text: '192.168.10.45' }] },
+            { id: 'mask', label: 'Subnet Mask', options: [{ id: 'm_good', text: '255.255.255.0' }, { id: 'm_bad', text: '255.255.0.0' }] },
+            { id: 'gateway', label: 'Gateway', options: [{ id: 'gw_good', text: '192.168.10.1' }, { id: 'gw_bad', text: '192.168.20.1' }] }
+          ]
+        },
+        answer: { slots: { ip: 'ip_good', mask: 'm_good', gateway: 'gw_good' } }
+      };
+    };
+
+    var _fx = { ref: fxNetworkRef(), step: fxConfigureStep() };
+    var _fxResult = simLabValidateNetworkFidelity(_fx.ref, _fx.step);
+    assert(_fxResult && _fxResult.ok === true, 'Net+ fixture is fidelity-sound');
+
+    // ── Negative case: "correct" answer is itself out-of-subnet ──
+    var _badFx = { ref: fxNetworkRef(), step: fxConfigureStep() };
+    // corrected IP still lands in the wrong subnet (192.168.30.x, not 192.168.10.x)
+    _badFx.step.payload.slots[0].options[1].text = '192.168.30.45';
+    var _badResult = simLabValidateNetworkFidelity(_badFx.ref, _badFx.step);
+    assert(_badResult && _badResult.ok === false, 'rejects a "correct" answer that is itself out-of-subnet');
+    assert(_badResult && Array.isArray(_badResult.errors) && _badResult.errors.length > 0, 'negative case reports errors');
+
+  } catch (err) {
+    test('fidelity validator: vm smoke test (threw)', false);
+    results.errors.push('fidelity validator smoke test threw: ' + err.message);
+  }
+})();
+
+// ── Sim Lab: network reference renderer (Task 6) ──
+// The renderer builds SVG as a STRING mounted via _el('div','sl-net', svg), so
+// assertions run against that string (read from the .sl-net child's innerHTML),
+// plus shim-queried child blocks for the given/CLI panels. Same vm-sandbox +
+// DOM-shim pattern as the Task 5 mount test. Read-only: no listeners to drive.
+(function () {
+  console.log('\n\x1b[1m── Sim Lab: network reference renderer (Task 6) ──\x1b[0m');
+  try {
+    var vm = require('vm');
+
+    var grab = function (name) {
+      var re = new RegExp('function ' + name + '\\([^)]*\\) \\{[\\s\\S]*?\\n\\}');
+      return (js.match(re) || [''])[0];
+    };
+    var grabLine = function (name) {
+      var re = new RegExp('function ' + name + '\\([^\\n]*\\)\\s*\\{[^\\n]*\\}');
+      return (js.match(re) || [''])[0];
+    };
+
+    // Structural: the stub is gone, real SVG-building landed
+    test('net renderer: stub replaced (no sl-ref-stub network branch)',
+      !/_slRenderRefNetwork\(ref\)\s*\{\s*return _el\('div', 'sl-ref-stub', 'network'\)/.test(js));
+    test('net renderer: builds an sl-net-svg element',
+      /sl-net-svg/.test(js));
+    test('net renderer: defines the attack arrow marker',
+      /id="sl-net-arrow"/.test(js));
+    test('net renderer: glyph map present',
+      /_SL_NET_GLYPHS/.test(js));
+
+    // ── DEV FIXTURE — Net+ Mercer & Hale branch (derived from
+    // mockups/diagram-pbq-concept.html). LABELED dev fixture for this test only.
+    // PC-2 is the flagged host → state 'compromised'; one synthetic 'attack'
+    // link exercises that path. Two distinct zones (v10 Staff, v20 Guest);
+    // RTR-1 has no zone (sits outside both, like the mockup gateway).
+    var _netFix = {
+      kind: 'network',
+      devices: [
+        { id: 'rtr', label: 'RTR-1', type: 'router', x: 1, y: 0, ip: 'gw .10.1 / .20.1' },
+        { id: 'swa', label: 'SW-A', type: 'switch', zone: 'VLAN 10 Staff', x: 0, y: 1, ip: 'access v10' },
+        { id: 'swb', label: 'SW-B', type: 'switch', zone: 'VLAN 20 Guest', x: 2, y: 1, ip: 'access v20' },
+        { id: 'fs1', label: 'FS-1', type: 'server', zone: 'VLAN 10 Staff', x: 0, y: 2, ip: '.10.20' },
+        { id: 'pc2', label: 'PC-2', type: 'pc', zone: 'VLAN 10 Staff', x: 1, y: 2, ip: '.20.45 ?', state: 'compromised' },
+        { id: 'pc7', label: 'PC-7', type: 'pc', zone: 'VLAN 20 Guest', x: 2, y: 2, ip: '.20.31' }
+      ],
+      links: [
+        { from: 'rtr', to: 'swa' },
+        { from: 'rtr', to: 'swb' },
+        { from: 'swa', to: 'fs1' },
+        { from: 'swa', to: 'pc2', kind: 'attack' },
+        { from: 'swb', to: 'pc7' }
+      ],
+      given: {
+        networkId: '192.168.10.0',
+        mask: '255.255.255.0  (/24)',
+        cli: ['PC-2> ipconfig', '  IPv4 Address . . : 192.168.20.45', 'PC-2> ping 192.168.10.20', '  Request timed out.']
+      }
+    };
+
+    var refNetBody = grab('_slRenderRefNetwork');
+    var elBody     = grab('_el');
+    var escBody    = grabLine('_esc');
+
+    if (!refNetBody || !elBody || !escBody) {
+      test('net renderer: vm extraction succeeded', false);
+      results.errors.push('could not extract _slRenderRefNetwork / helpers; check names/indenting');
+      return;
+    }
+
+    // Minimal DOM shim — _el needs createElement + className/innerHTML/appendChild.
+    // _esc() does `d.textContent = s; return d.innerHTML;`, so the textContent
+    // setter must populate innerHTML with HTML-escaped text for escaping to work.
+    var htmlEsc = function (s) {
+      return String(s == null ? '' : s)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    };
+    var makeEl = function (tag) {
+      var attrs = {}, children = [], cls = '', inner = '';
+      var el = {
+        tagName: tag.toUpperCase(),
+        get className() { return cls; },
+        set className(v) { cls = v; },
+        get innerHTML() { return inner; },
+        set innerHTML(v) { inner = v; children = []; },
+        get textContent() { return ''; },
+        set textContent(v) { inner = htmlEsc(v); },
+        style: {},
+        get _children() { return children; },
+        setAttribute: function (k, v) { attrs[k] = v; },
+        getAttribute: function (k) { return attrs[k] || null; },
+        appendChild: function (c) { children.push(c); return c; }
+      };
+      return el;
+    };
+    var docShim = { createElement: function (tag) { return makeEl(tag); } };
+
+    var nCtx = { document: docShim, window: { CSS: null }, Object: Object, Array: Array, String: String };
+    vm.createContext(nCtx);
+    vm.runInContext(elBody, nCtx);
+    vm.runInContext(escBody, nCtx);
+    vm.runInContext(refNetBody, nCtx);
+    nCtx.fix = _netFix;
+    var rootEl = vm.runInContext('_slRenderRefNetwork(fix);', nCtx);
+
+    // .sl-net child holds the SVG string in innerHTML
+    var netDiv = rootEl._children.filter(function (c) { return c.className === 'sl-net'; })[0];
+    var svg = netDiv ? netDiv.innerHTML : '';
+
+    test('net renderer: returns an sl-net-ref root', rootEl && rootEl.className === 'sl-net-ref');
+    test('net renderer: emits an <svg> with a computed viewBox',
+      /<svg class="sl-net-svg" viewBox="0 0 \d+ \d+"/.test(svg));
+
+    // one .sl-node group per device (6) — match the <g> opener, not sub-elements
+    var nodeCount = (svg.match(/<g class="sl-node/g) || []).length;
+    test('net renderer: one .sl-node per device (6)', nodeCount === 6);
+
+    // compromised device gets the compromised class
+    test('net renderer: compromised device gets compromised class',
+      /class="sl-node compromised"/.test(svg));
+
+    // attack link gets the attack class + arrow marker
+    test('net renderer: attack link gets .sl-link.attack class',
+      /class="sl-link attack"/.test(svg));
+    test('net renderer: attack link references the arrow marker',
+      /marker-end="url\(#sl-net-arrow\)"/.test(svg));
+
+    // one zone rect per distinct zone (2: v10, v20)
+    var zoneCount = (svg.match(/class="sl-vlan-zone"/g) || []).length;
+    test('net renderer: one zone rect per distinct zone (2)', zoneCount === 2);
+    test('net renderer: zone label uppercased', /VLAN 10 STAFF/.test(svg));
+
+    // RTR-1 has no zone → still rendered as a node, but not inside a zone count
+    test('net renderer: zoneless device still renders (RTR-1 node present)',
+      /sl-node-name[^>]*>RTR-1</.test(svg));
+
+    // node labels + ips escaped & present
+    test('net renderer: device label rendered', /sl-node-name[^>]*>PC-2</.test(svg));
+    test('net renderer: device ip rendered', /sl-node-ip[^>]*>\.20\.45 \?</.test(svg));
+
+    // glyph per node type (router/switch/server/pc all drawn)
+    test('net renderer: node glyph paths drawn', (svg.match(/class="sl-glyph"/g) || []).length === 6);
+
+    // given panel
+    var givenDiv = rootEl._children.filter(function (c) { return c.className === 'sl-net-given'; })[0];
+    test('net renderer: given panel rendered with Network ID + mask',
+      !!givenDiv && /Network ID/.test(givenDiv.innerHTML) && /192\.168\.10\.0/.test(givenDiv.innerHTML) && /255\.255\.255\.0/.test(givenDiv.innerHTML));
+
+    // CLI block lines present + escaped
+    var cliDiv = rootEl._children.filter(function (c) { return c.className === 'sl-net-cli'; })[0];
+    test('net renderer: given CLI lines appear',
+      !!cliDiv && /PC-2&gt; ipconfig/.test(cliDiv.innerHTML) && /Request timed out\./.test(cliDiv.innerHTML));
+
+    // ── arbitrary-scenario smoke: a totally different shape still renders ──
+    var _altFix = {
+      kind: 'network',
+      devices: [
+        { id: 'fw', label: 'FW', type: 'firewall', x: 1, y: 0 },
+        { id: 'srv', label: 'SRV', type: 'server', zone: 'DMZ', x: 0, y: 1 },
+        { id: 'wks', label: 'WKS', type: 'pc', zone: 'LAN', x: 2, y: 1, state: 'affected' }
+      ],
+      links: [{ from: 'fw', to: 'srv' }, { from: 'fw', to: 'wks' }]
+    };
+    nCtx.alt = _altFix;
+    var altRoot = vm.runInContext('_slRenderRefNetwork(alt);', nCtx);
+    var altNet = altRoot._children.filter(function (c) { return c.className === 'sl-net'; })[0];
+    var altSvg = altNet ? altNet.innerHTML : '';
+    test('net renderer: arbitrary scenario renders all nodes',
+      (altSvg.match(/<g class="sl-node/g) || []).length === 3);
+    test('net renderer: affected device gets affected class',
+      /class="sl-node affected"/.test(altSvg));
+    test('net renderer: arbitrary scenario zones (DMZ + LAN)',
+      (altSvg.match(/class="sl-vlan-zone"/g) || []).length === 2);
+    test('net renderer: unknown-coordinate firewall glyph drawn (no crash, 3 glyphs)',
+      (altSvg.match(/class="sl-glyph"/g) || []).length === 3);
+    test('net renderer: scenario without given renders no given/cli panel',
+      altRoot._children.every(function (c) { return c.className !== 'sl-net-given' && c.className !== 'sl-net-cli'; }));
+
+  } catch (err) {
+    test('net renderer: vm smoke test (threw)', false);
+    results.errors.push('network renderer smoke test threw: ' + err.message);
+  }
+})();
+
+// ── Sim Lab: timeline reference renderer (Task 7) ──
+// The renderer builds HTML as a STRING mounted via _el('div','sl-timeline', str),
+// so assertions run against innerHTML strings. Same vm-sandbox + DOM-shim pattern
+// as the Task 6 network renderer. Read-only: no listeners.
+(function () {
+  console.log('\n\x1b[1m── Sim Lab: timeline reference renderer (Task 7) ──\x1b[0m');
+  try {
+    var vm = require('vm');
+
+    var grab = function (name) {
+      var re = new RegExp('function ' + name + '\\([^)]*\\) \\{[\\s\\S]*?\\n\\}');
+      return (js.match(re) || [''])[0];
+    };
+    var grabLine = function (name) {
+      var re = new RegExp('function ' + name + '\\([^\\n]*\\)\\s*\\{[^\\n]*\\}');
+      return (js.match(re) || [''])[0];
+    };
+
+    // Structural: stub is gone, real markup builder landed
+    test('tl renderer: stub replaced (no sl-ref-stub timeline branch)',
+      !/_slRenderRefTimeline\(ref\)\s*\{\s*return _el\('div', 'sl-ref-stub', 'timeline'\)/.test(js));
+    test('tl renderer: builds an sl-timeline element',
+      /sl-timeline/.test(js));
+    test('tl renderer: builds sl-stage elements',
+      /sl-stage/.test(js));
+    test('tl renderer: builds sl-dot elements',
+      /sl-dot/.test(js));
+    test('tl renderer: builds sl-sevtag elements',
+      /sl-sevtag/.test(js));
+
+    // ── DEV FIXTURE — IR scenario (4 stages, mixed severities, derived from
+    // mockups/incident-response-pbq-concept.html). LABELED dev fixture: Task 7.
+    var _tlFix = {
+      kind: 'timeline',
+      stages: [
+        { id: 's1', icon: '!', label: 'User on WKS-04 opened the attachment "Invoice_4471.xlsm" and enabled macros.', time: '09:14', severity: 'med' },
+        { id: 's2', icon: '!', label: 'WKS-04 ran an unsigned executable; EDR flagged a known dropper hash.', time: '09:21', severity: 'high' },
+        { id: 's3', icon: '!', label: 'WKS-04 opened SMB sessions to SRV-FILE using a finance account.', time: '09:48', severity: 'high' },
+        { id: 's4', icon: '!', label: 'SRV-FILE began bulk file writes, then a large outbound transfer to an external host (185.x.x.x).', time: '10:05', severity: 'crit' }
+      ]
+    };
+
+    var refTlBody = grab('_slRenderRefTimeline');
+    var elBody    = grab('_el');
+    var escBody   = grabLine('_esc');
+
+    if (!refTlBody || !elBody || !escBody) {
+      test('tl renderer: vm extraction succeeded', false);
+      results.errors.push('could not extract _slRenderRefTimeline / helpers; check names/indenting');
+      return;
+    }
+
+    // Minimal DOM shim — identical to Task 6 network renderer pattern.
+    // _el needs createElement + className/innerHTML/appendChild.
+    // _esc() does `d.textContent = s; return d.innerHTML;` so the textContent
+    // setter must populate innerHTML with HTML-escaped text for escaping to work.
+    var htmlEscTl = function (s) {
+      return String(s == null ? '' : s)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    };
+    var makeElTl = function (tag) {
+      var attrs = {}, children = [], cls = '', inner = '';
+      var el = {
+        tagName: tag.toUpperCase(),
+        get className() { return cls; },
+        set className(v) { cls = v; },
+        get innerHTML() { return inner; },
+        set innerHTML(v) { inner = v; children = []; },
+        get textContent() { return ''; },
+        set textContent(v) { inner = htmlEscTl(v); },
+        style: {},
+        get _children() { return children; },
+        setAttribute: function (k, v) { attrs[k] = v; },
+        getAttribute: function (k) { return attrs[k] || null; },
+        appendChild: function (c) { children.push(c); return c; }
+      };
+      return el;
+    };
+    var docShimTl = { createElement: function (tag) { return makeElTl(tag); } };
+
+    var tCtx = { document: docShimTl, window: { CSS: null }, Object: Object, Array: Array, String: String };
+    vm.createContext(tCtx);
+    vm.runInContext(elBody, tCtx);
+    vm.runInContext(escBody, tCtx);
+    vm.runInContext(refTlBody, tCtx);
+    tCtx.fix = _tlFix;
+    var rootEl = vm.runInContext('_slRenderRefTimeline(fix);', tCtx);
+
+    // Root is an sl-timeline container. The renderer uses _el('div','sl-timeline',markupStr)
+    // which sets innerHTML to the markup string — stages live in innerHTML, not _children.
+    test('tl renderer: returns an sl-timeline root', rootEl && rootEl.className === 'sl-timeline');
+
+    var markup = rootEl ? rootEl.innerHTML : '';
+
+    // Count stage divs by matching the class attribute opener
+    var stageCount = (markup.match(/class="sl-stage /g) || []).length;
+    test('tl renderer: one .sl-stage per stage entry (4)', stageCount === 4);
+
+    // Each severity class appears at the right index
+    // The stages are emitted in order; check the markup has each sev class
+    test('tl renderer: sev-med class present (stage 1)', /sev-med/.test(markup));
+    test('tl renderer: sev-high class present (stages 2+3)', /sev-high/.test(markup));
+    test('tl renderer: sev-crit class present (stage 4)', /sev-crit/.test(markup));
+
+    // Last stage has no .sl-line.  Split on </div> boundaries to isolate the last stage.
+    // The last stage div (sev-crit) appears last in markup; verify sl-line is absent in it.
+    var lastStagePart = markup.slice(markup.lastIndexOf('sev-crit'));
+    test('tl renderer: last stage has no .sl-line', !/sl-line/.test(lastStagePart));
+
+    // Earlier stages DO have an sl-line — first stage (sev-med) contains sl-line
+    var firstStagePart = markup.slice(markup.indexOf('sev-med'));
+    test('tl renderer: non-last stage has .sl-line', /sl-line/.test(firstStagePart));
+
+    // Labels escaped and present
+    test('tl renderer: labels present (SMB sessions text found)', /SMB sessions/.test(markup));
+    test('tl renderer: labels present (185\.x\.x\.x text found)', /185\.x\.x\.x/.test(markup));
+
+    // Time values present
+    test('tl renderer: time values rendered (09:14 present)', /09:14/.test(markup));
+    test('tl renderer: time values rendered (10:05 present)', /10:05/.test(markup));
+
+    // sevtag elements present
+    test('tl renderer: sevtag elements present in markup', /sl-sevtag/.test(markup));
+
+    // Stage with no time field — graceful render (no crash, no sl-when element)
+    var _tlNoTime = {
+      kind: 'timeline',
+      stages: [
+        { id: 'x1', icon: '!', label: 'Alert fired.', severity: 'low' },
+        { id: 'x2', icon: '!', label: 'Analyst investigated.', severity: 'high' }
+      ]
+    };
+    tCtx.fix2 = _tlNoTime;
+    var rootEl2 = vm.runInContext('_slRenderRefTimeline(fix2);', tCtx);
+    var markup2 = rootEl2 ? rootEl2.innerHTML : '';
+    var stageCount2 = (markup2.match(/class="sl-stage /g) || []).length;
+    test('tl renderer: renders without time field (2 stages)', stageCount2 === 2);
+    test('tl renderer: first stage of no-time fix gets sev-low', /sev-low/.test(markup2));
+    test('tl renderer: no sl-when rendered when time is absent', !/sl-when/.test(markup2));
+
+  } catch (err) {
+    test('tl renderer: vm smoke test (threw)', false);
+    results.errors.push('timeline renderer smoke test threw: ' + err.message);
+  }
+})();
+
+// ── Sim Lab: layered defense-in-depth reference renderer (Task 8) ──
+// Renderer builds an SVG string mounted via _el('div','sl-layered',svgStr).
+// Same vm-sandbox + DOM-shim pattern as Tasks 6 & 7. Read-only.
+(function () {
+  console.log('\n\x1b[1m── Sim Lab: layered defense-in-depth reference renderer (Task 8) ──\x1b[0m');
+  try {
+    var vm = require('vm');
+
+    var grab = function (name) {
+      // De-indented feature source: function closes at \n} (0 spaces, same as Task 6/7)
+      var re = new RegExp('function ' + name + '\\([^)]*\\) \\{[\\s\\S]*?\\n\\}');
+      return (js.match(re) || [''])[0];
+    };
+    var grabLine = function (name) {
+      var re = new RegExp('function ' + name + '\\([^\\n]*\\)\\s*\\{[^\\n]*\\}');
+      return (js.match(re) || [''])[0];
+    };
+
+    // Structural: stub is gone, real markup builder landed
+    test('layered renderer: stub replaced (no sl-ref-stub layered branch)',
+      !/_slRenderRefLayered\(ref\)\s*\{\s*return _el\('div', 'sl-ref-stub', 'layered'\)/.test(js));
+    test('layered renderer: builds an sl-layered element',
+      /sl-layered/.test(js));
+    test('layered renderer: builds sl-layer elements',
+      /sl-layer/.test(js));
+    test('layered renderer: builds sl-misslayer elements',
+      /sl-misslayer/.test(js));
+    test('layered renderer: builds sl-core element',
+      /sl-core/.test(js));
+    test('layered renderer: builds sl-dev elements',
+      /sl-dev/.test(js));
+
+    // ── DEV FIXTURE A — Net+ DID scenario ──
+    // Derived from defense-in-depth-netplus-concept.html:
+    // perimeter present, DMZ/VLAN layer missing, exposed asset in core.
+    var _netFix = {
+      kind: 'layered',
+      layers: [
+        { id: 'perimeter', label: 'Perimeter',  control: 'Firewall / IDS', state: 'present' },
+        { id: 'dmz',       label: 'DMZ',         control: 'Proxy / WAF',   state: 'missing' }
+      ],
+      core: {
+        label: 'Internal LAN',
+        assets: [
+          { id: 'web1', label: 'WEB-1', exposed: true },
+          { id: 'db1',  label: 'DB-1',  exposed: false }
+        ]
+      }
+    };
+
+    // ── DEV FIXTURE B — Sec+ DID scenario ──
+    // Derived from defense-in-depth-secplus-concept.html:
+    // perimeter present, 3 inner layers missing, 2 exposed core assets.
+    var _secFix = {
+      kind: 'layered',
+      layers: [
+        { id: 'perimeter', label: 'Perimeter',  state: 'present' },
+        { id: 'endpoint',  label: 'Endpoint',   control: 'EDR / hardening',        state: 'missing' },
+        { id: 'data',      label: 'Data',        control: 'encryption + DLP',       state: 'missing' },
+        { id: 'identity',  label: 'Identity',    control: 'MFA / least privilege',  state: 'missing' }
+      ],
+      core: {
+        label: 'Crown-jewel data',
+        assets: [
+          { id: 'hr',  label: 'HR DB',   exposed: true },
+          { id: 'fin', label: 'FIN SRV', exposed: true }
+        ]
+      }
+    };
+
+    var refLyrBody = grab('_slRenderRefLayered');
+    var elBody     = grab('_el');
+    var escBody    = grabLine('_esc');
+
+    if (!refLyrBody || !elBody || !escBody) {
+      test('layered renderer: vm extraction succeeded', false);
+      results.errors.push('could not extract _slRenderRefLayered / helpers; check names/indenting');
+      return;
+    }
+
+    // Minimal DOM shim (same pattern as Tasks 6 & 7)
+    var htmlEscLyr = function (s) {
+      return String(s == null ? '' : s)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    };
+    var makeElLyr = function (tag) {
+      var attrs = {}, children = [], cls = '', inner = '';
+      var el = {
+        tagName: tag.toUpperCase(),
+        get className() { return cls; },
+        set className(v) { cls = v; },
+        get innerHTML() { return inner; },
+        set innerHTML(v) { inner = v; children = []; },
+        get textContent() { return ''; },
+        set textContent(v) { inner = htmlEscLyr(v); },
+        style: {},
+        get _children() { return children; },
+        setAttribute: function (k, v) { attrs[k] = v; },
+        getAttribute: function (k) { return attrs[k] || null; },
+        appendChild: function (c) { children.push(c); return c; }
+      };
+      return el;
+    };
+    var docShimLyr = { createElement: function (tag) { return makeElLyr(tag); } };
+
+    var lCtx = { document: docShimLyr, window: { CSS: null }, Object: Object, Array: Array, String: String, Math: Math };
+    vm.createContext(lCtx);
+    vm.runInContext(elBody, lCtx);
+    vm.runInContext(escBody, lCtx);
+    vm.runInContext(refLyrBody, lCtx);
+
+    // ── Fixture A (Net+) assertions ──
+    lCtx.fixA = _netFix;
+    var rootA = vm.runInContext('_slRenderRefLayered(fixA);', lCtx);
+
+    test('layered renderer A: returns an sl-layered root',
+      rootA && rootA.className === 'sl-layered');
+
+    var svgA = rootA ? rootA.innerHTML : '';
+
+    // SVG present with viewBox
+    test('layered renderer A: SVG emitted with viewBox',
+      /viewBox="0 0 \d+ \d+"/.test(svgA));
+
+    // One frame rect per layer (2 layers)
+    var layerRectsA = (svgA.match(/class="sl-layer"/g) || []).length;
+    var missRectsA  = (svgA.match(/class="sl-misslayer"/g) || []).length;
+    test('layered renderer A: present layer gets sl-layer rect (1)',  layerRectsA === 1);
+    test('layered renderer A: missing layer gets sl-misslayer rect (1)', missRectsA === 1);
+
+    // Core present
+    test('layered renderer A: core rect rendered',
+      /sl-core/.test(svgA));
+
+    // Exposed asset gets exposed class
+    test('layered renderer A: exposed asset gets exposed class on <g>',
+      /class="sl-dev exposed"/.test(svgA));
+
+    // Labels present and escaped
+    test('layered renderer A: perimeter label rendered',  /Perimeter/.test(svgA));
+    test('layered renderer A: DMZ label rendered',        /DMZ/.test(svgA));
+    test('layered renderer A: core label rendered',       /Internal LAN/.test(svgA));
+    test('layered renderer A: asset label WEB-1 rendered', /WEB-1/.test(svgA));
+
+    // missing tag shown on the missing layer label
+    test('layered renderer A: missing marker on DMZ label',
+      /sl-misslayer-tag/.test(svgA));
+
+    // ── Fixture B (Sec+) assertions — proves data-driven, not hardcoded ──
+    lCtx.fixB = _secFix;
+    var rootB = vm.runInContext('_slRenderRefLayered(fixB);', lCtx);
+
+    test('layered renderer B: returns an sl-layered root',
+      rootB && rootB.className === 'sl-layered');
+
+    var svgB = rootB ? rootB.innerHTML : '';
+
+    // 1 present + 3 missing layers
+    var layerRectsB = (svgB.match(/class="sl-layer"/g) || []).length;
+    var missRectsB  = (svgB.match(/class="sl-misslayer"/g) || []).length;
+    test('layered renderer B: 1 present layer rect',       layerRectsB === 1);
+    test('layered renderer B: 3 missing layer rects',      missRectsB === 3);
+
+    // Core is exposed (both assets exposed → core-exposed class)
+    test('layered renderer B: core-exposed class rendered', /sl-core-exposed/.test(svgB));
+
+    // Both exposed assets get exposed class
+    var expDevsB = (svgB.match(/class="sl-dev exposed"/g) || []).length;
+    test('layered renderer B: 2 exposed asset nodes', expDevsB === 2);
+
+    // Labels from Sec+ fixture
+    test('layered renderer B: Identity label rendered', /Identity/.test(svgB));
+    test('layered renderer B: Crown-jewel data label rendered', /Crown-jewel data/.test(svgB));
+    test('layered renderer B: FIN SRV asset label rendered', /FIN SRV/.test(svgB));
+
+    // viewBox is larger for Sec+ (4 layers) than Net+ (2 layers) — proves scaling
+    var vbA = svgA.match(/viewBox="0 0 (\d+) (\d+)"/);
+    var vbB = svgB.match(/viewBox="0 0 (\d+) (\d+)"/);
+    test('layered renderer: Sec+ (4 layers) viewBox wider than Net+ (2 layers)',
+      vbA && vbB && parseInt(vbB[1], 10) > parseInt(vbA[1], 10));
+    test('layered renderer: Sec+ (4 layers) viewBox taller than Net+ (2 layers)',
+      vbA && vbB && parseInt(vbB[2], 10) > parseInt(vbA[2], 10));
+
+    // XSS: label escaping
+    var xssFix = {
+      kind: 'layered',
+      layers: [{ id: 'x', label: '<script>alert(1)</script>', state: 'present' }],
+      core: { label: '<b>core</b>', assets: [{ id: 'a', label: '<img>', exposed: false }] }
+    };
+    lCtx.xssFix = xssFix;
+    var rootX = vm.runInContext('_slRenderRefLayered(xssFix);', lCtx);
+    var svgX  = rootX ? rootX.innerHTML : '';
+    test('layered renderer: layer label XSS-escaped',
+      !/<script>/.test(svgX) && /&lt;script&gt;/.test(svgX));
+    test('layered renderer: core label XSS-escaped',
+      !/<b>/.test(svgX) && /&lt;b&gt;/.test(svgX));
+
+  } catch (err) {
+    test('layered renderer: vm smoke test (threw)', false);
+    results.errors.push('layered renderer smoke test threw: ' + err.message);
+  }
+})();
+
+// ── Sim Lab: layered defense-in-depth "stacked-bands" reference renderer ──
+// Faithful lift of mockups/defense-in-depth-secplus-concept.html: a
+// perimeter frame + a vertical stack of interior bands + an exposed-core
+// band. Data-driven via ref.layout — 'stacked' routes here, absent/other
+// (e.g. 'nested') keeps routing to the existing nested renderer (Task 8).
+// Same vm-sandbox + DOM-shim pattern as Task 8. Read-only.
+(function () {
+  console.log('\n\x1b[1m── Sim Lab: layered defense-in-depth stacked-bands renderer ──\x1b[0m');
+  try {
+    var vm = require('vm');
+
+    var grab = function (name) {
+      var re = new RegExp('function ' + name + '\\([^)]*\\) \\{[\\s\\S]*?\\n\\}');
+      return (js.match(re) || [''])[0];
+    };
+    var grabLine = function (name) {
+      var re = new RegExp('function ' + name + '\\([^\\n]*\\)\\s*\\{[^\\n]*\\}');
+      return (js.match(re) || [''])[0];
+    };
+
+    test('stacked renderer: _slRenderRefLayeredStacked defined',
+      /function _slRenderRefLayeredStacked\(/.test(js));
+
+    // ── DEV FIXTURE — Sec+ DID scenario, stacked layout ──
+    // layers[0] = perimeter (present), layers[1..] = 3 interior bands
+    // (2 missing, 1 present — proves present/missing both render), core has
+    // 2 assets, 1 exposed.
+    var _stackedFix = {
+      kind: 'layered',
+      layout: 'stacked',
+      layers: [
+        { id: 'perimeter', label: 'Perimeter', control: 'Next-gen firewall', state: 'present' },
+        { id: 'endpoint',  label: 'Endpoint',  control: 'EDR / hardening',       state: 'missing' },
+        { id: 'data',      label: 'Data',      control: 'encryption + DLP',      state: 'present' },
+        { id: 'identity',  label: 'Identity',  control: 'MFA / least privilege', state: 'missing' }
+      ],
+      core: {
+        label: 'Crown-jewel data',
+        assets: [
+          { id: 'db1', label: 'DB-1', exposed: true },
+          { id: 'dc1', label: 'DC-1', exposed: false }
+        ]
+      }
+    };
+
+    var refStackedBody = grab('_slRenderRefLayeredStacked');
+    var elBody          = grab('_el');
+    var escBody         = grabLine('_esc');
+
+    if (!refStackedBody || !elBody || !escBody) {
+      test('stacked renderer: vm extraction succeeded', false);
+      results.errors.push('could not extract _slRenderRefLayeredStacked / helpers; check names/indenting');
+      return;
+    }
+
+    var htmlEscSt = function (s) {
+      return String(s == null ? '' : s)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    };
+    var makeElSt = function (tag) {
+      var attrs = {}, children = [], cls = '', inner = '';
+      var el = {
+        tagName: tag.toUpperCase(),
+        get className() { return cls; },
+        set className(v) { cls = v; },
+        get innerHTML() { return inner; },
+        set innerHTML(v) { inner = v; children = []; },
+        get textContent() { return ''; },
+        set textContent(v) { inner = htmlEscSt(v); },
+        style: {},
+        get _children() { return children; },
+        setAttribute: function (k, v) { attrs[k] = v; },
+        getAttribute: function (k) { return attrs[k] || null; },
+        appendChild: function (c) { children.push(c); return c; }
+      };
+      return el;
+    };
+    var docShimSt = { createElement: function (tag) { return makeElSt(tag); } };
+
+    var sCtx = { document: docShimSt, window: { CSS: null }, Object: Object, Array: Array, String: String, Math: Math };
+    vm.createContext(sCtx);
+    vm.runInContext(elBody, sCtx);
+    vm.runInContext(escBody, sCtx);
+    vm.runInContext(refStackedBody, sCtx);
+
+    sCtx.fixStacked = _stackedFix;
+    var rootSt = vm.runInContext('_slRenderRefLayeredStacked(fixStacked);', sCtx);
+
+    test('stacked renderer: returns an sl-stacked root',
+      rootSt && rootSt.className === 'sl-stacked');
+
+    var svgSt = rootSt ? rootSt.innerHTML : '';
+
+    test('stacked renderer: SVG emitted with viewBox',
+      /viewBox="0 0 \d+ \d+"/.test(svgSt));
+
+    // Perimeter frame present
+    test('stacked renderer: perimeter frame rendered (sl-perim)',
+      /class="sl-perim"/.test(svgSt));
+    test('stacked renderer: perimeter label rendered',
+      /Perimeter/.test(svgSt));
+
+    // One band per interior layer (3 bands: endpoint missing, data present, identity missing)
+    var bandRects = (svgSt.match(/class="sl-band"/g) || []).length;
+    var missBandRects = (svgSt.match(/class="sl-band-missing"/g) || []).length;
+    test('stacked renderer: 1 present interior band (sl-band)', bandRects === 1);
+    test('stacked renderer: 2 missing interior bands (sl-band-missing)', missBandRects === 2);
+    test('stacked renderer: total interior bands === layers.length - 1',
+      (bandRects + missBandRects) === (_stackedFix.layers.length - 1));
+
+    // Band labels rendered
+    test('stacked renderer: Endpoint band label rendered', /Endpoint/.test(svgSt));
+    test('stacked renderer: Data band label rendered', /Data/.test(svgSt));
+    test('stacked renderer: Identity band label rendered', /Identity/.test(svgSt));
+
+    // Exposed core (one asset exposed => core-exposed class)
+    test('stacked renderer: exposed-core class rendered (sl-core-exposed)',
+      /sl-core-exposed/.test(svgSt));
+    test('stacked renderer: core label rendered', /Crown-jewel data/.test(svgSt));
+
+    // Device boxes for core assets, exposed one flagged
+    test('stacked renderer: DB-1 device box rendered', /DB-1/.test(svgSt));
+    test('stacked renderer: DC-1 device box rendered', /DC-1/.test(svgSt));
+    test('stacked renderer: exposed device gets exposed class',
+      /class="sl-dev exposed"/.test(svgSt));
+
+    // ── Perimeter device box (FW-1, WAF-1, ...) — optional, data-driven ──
+    // _stackedFix's perimeter layer has no `device` field, so no .sl-fw
+    // should render (backward-compatible default).
+    test('stacked renderer: no perimeter device configured => no .sl-fw rendered',
+      !/class="sl-fw"/.test(svgSt));
+
+    var _stackedFwFix = {
+      kind: 'layered',
+      layout: 'stacked',
+      layers: [
+        { id: 'perimeter', label: 'Perimeter', control: 'Next-gen firewall', state: 'present', device: { label: 'FW-1' } }
+      ],
+      core: { label: 'Core', assets: [] }
+    };
+    sCtx.fixStackedFw = _stackedFwFix;
+    var rootStFw = vm.runInContext('_slRenderRefLayeredStacked(fixStackedFw);', sCtx);
+    var svgStFw = rootStFw ? rootStFw.innerHTML : '';
+    test('stacked renderer: perimeter device configured => .sl-fw rendered',
+      /class="sl-fw"/.test(svgStFw));
+    test('stacked renderer: .sl-fw contains the escaped device label (FW-1)',
+      /class="sl-fw"[\s\S]*?FW-1/.test(svgStFw));
+
+    var _stackedFwXssFix = {
+      kind: 'layered',
+      layout: 'stacked',
+      layers: [
+        { id: 'perimeter', label: 'Perimeter', state: 'present', device: { label: '<script>alert(1)</script>' } }
+      ],
+      core: { label: 'Core', assets: [] }
+    };
+    sCtx.fixStackedFwXss = _stackedFwXssFix;
+    var rootStFwX = vm.runInContext('_slRenderRefLayeredStacked(fixStackedFwXss);', sCtx);
+    var svgStFwX = rootStFwX ? rootStFwX.innerHTML : '';
+    test('stacked renderer: .sl-fw device label is XSS-escaped',
+      !/<script>/.test(svgStFwX) && /&lt;script&gt;/.test(svgStFwX));
+
+    // ── Safe-core fixture: no assets exposed => sl-core (not sl-core-exposed) ──
+    var _safeCoreFix = {
+      kind: 'layered', layout: 'stacked',
+      layers: [{ id: 'perimeter', label: 'Perimeter', state: 'present' }],
+      core: { label: 'Safe core', assets: [{ id: 'a1', label: 'SRV-1', exposed: false }] }
+    };
+    sCtx.fixSafe = _safeCoreFix;
+    var rootSafe = vm.runInContext('_slRenderRefLayeredStacked(fixSafe);', sCtx);
+    var svgSafe = rootSafe ? rootSafe.innerHTML : '';
+    test('stacked renderer: safe core (no exposed assets) gets sl-core, not sl-core-exposed',
+      /class="sl-core"/.test(svgSafe) && !/sl-core-exposed/.test(svgSafe));
+
+    // XSS: label escaping
+    var xssStFix = {
+      kind: 'layered', layout: 'stacked',
+      layers: [
+        { id: 'x', label: '<script>alert(1)</script>', state: 'present' },
+        { id: 'y', label: '<i>band</i>', state: 'missing' }
+      ],
+      core: { label: '<b>core</b>', assets: [{ id: 'a', label: '<img>', exposed: false }] }
+    };
+    sCtx.xssStFix = xssStFix;
+    var rootStX = vm.runInContext('_slRenderRefLayeredStacked(xssStFix);', sCtx);
+    var svgStX  = rootStX ? rootStX.innerHTML : '';
+    test('stacked renderer: perimeter label XSS-escaped',
+      !/<script>/.test(svgStX) && /&lt;script&gt;/.test(svgStX));
+    test('stacked renderer: band label XSS-escaped',
+      !/<i>band<\/i>/.test(svgStX) && /&lt;i&gt;band&lt;\/i&gt;/.test(svgStX));
+    test('stacked renderer: core label XSS-escaped',
+      !/<b>core<\/b>/.test(svgStX) && /&lt;b&gt;core&lt;\/b&gt;/.test(svgStX));
+
+    // ── Regression: layered ref WITHOUT layout still routes to nested renderer ──
+    var refNestedBody = grab('_slRenderRefLayered');
+    var refDispBody    = grab('_slRenderReference');
+    if (!refNestedBody || !refDispBody) {
+      test('stacked renderer: dispatch regression vm extraction succeeded', false);
+      results.errors.push('could not extract _slRenderRefLayered / _slRenderReference for dispatch regression check');
+    } else {
+      var dCtx = { document: docShimSt, window: { CSS: null }, Object: Object, Array: Array, String: String, Math: Math };
+      vm.createContext(dCtx);
+      vm.runInContext(elBody, dCtx);
+      vm.runInContext(escBody, dCtx);
+      vm.runInContext(refNestedBody, dCtx);
+      vm.runInContext(refStackedBody, dCtx);
+      vm.runInContext(grab('_slRenderRefNetwork'), dCtx);
+      vm.runInContext(grab('_slRenderRefTimeline'), dCtx);
+      vm.runInContext(refDispBody, dCtx);
+
+      var _noLayoutFix = {
+        kind: 'layered',
+        layers: [{ id: 'l1', label: 'Perimeter', state: 'present' }],
+        core: { label: 'Core', assets: [] }
+      };
+      dCtx.noLayoutFix = _noLayoutFix;
+      var panelNoLayout = vm.runInContext('_slRenderReference(noLayoutFix);', dCtx);
+      var childNoLayout = panelNoLayout && panelNoLayout._children && panelNoLayout._children[0];
+      test('reference dispatch: layered ref WITHOUT layout still routes to nested renderer (sl-layered)',
+        childNoLayout && childNoLayout.className === 'sl-layered');
+
+      dCtx.stackedFix2 = _stackedFix;
+      var panelStacked = vm.runInContext('_slRenderReference(stackedFix2);', dCtx);
+      var childStacked = panelStacked && panelStacked._children && panelStacked._children[0];
+      test('reference dispatch: layered ref WITH layout:"stacked" routes to stacked renderer (sl-stacked)',
+        childStacked && childStacked.className === 'sl-stacked');
+    }
+
+  } catch (err) {
+    test('stacked renderer: vm smoke test (threw)', false);
+    results.errors.push('stacked renderer smoke test threw: ' + err.message);
+  }
+})();
+
+// ── Task 11 (PBQ archetypes plan): end-to-end diagram PBQ vertical slice ──
+// Proves reference + configure steps compose through the EXISTING Practice
+// mount path — no new mode code. Mounts a Net+ "diagram" archetype scenario
+// (network reference with one out-of-subnet device + a diagnose configure
+// step + a reconfigure configure×3 step) via _slMountScenario, drives the
+// rendered <select> elements exactly like a real user (Task 3 pattern),
+// then scores the captured responses via simLabScoreScenario (Task 2).
+// Same vm-sandbox + DOM shim as the Task 5 mount test — no shim expansion.
+//
+// *** DEV FIXTURE ONLY — NOT real content. Do not add to any seed bank. ***
+(function () {
+  console.log('\n\x1b[1m── Sim Lab: end-to-end diagram PBQ vertical slice (Task 11) ──\x1b[0m');
+  try {
+    var vm = require('vm');
+
+    var grab = function (name) {
+      var re = new RegExp('function ' + name + '\\([^)]*\\) \\{[\\s\\S]*?\\n\\}');
+      return (js.match(re) || [''])[0];
+    };
+    var grabLine = function (name) {
+      var re = new RegExp('function ' + name + '\\([^\\n]*\\)\\s*\\{[^\\n]*\\}');
+      return (js.match(re) || [''])[0];
+    };
+
+    // ── Task-11 DEV FIXTURE — Net+ diagram PBQ ──
+    // VLAN 10 (192.168.10.0/24). PC-2 is deliberately mis-configured with an
+    // out-of-subnet IP/mask/gateway (VLAN 20 values). Step 1 (diagnose) asks
+    // which device is misconfigured; step 2 (reconfigure) asks for the
+    // correct IP/mask/gateway to re-home it. Mirrors the Task 9 fixture
+    // shape/convention (deviceId + ip/mask/gateway slot ids) so it also
+    // passes simLabValidateNetworkFidelity.
+    var fx11NetworkRef = function () {
+      return {
+        kind: 'network',
+        devices: [
+          { id: 'pc1', label: 'PC-1', type: 'pc', zone: 'v10', ip: '192.168.10.10', mask: '255.255.255.0', gateway: '192.168.10.1', x: 10, y: 10 },
+          { id: 'pc2', label: 'PC-2', type: 'pc', zone: 'v10', ip: '192.168.20.45', mask: '255.255.255.0', gateway: '192.168.20.1', x: 40, y: 10 },
+          { id: 'gw1', label: 'Gateway', type: 'router', zone: 'v10', ip: '192.168.10.1', mask: '255.255.255.0', gateway: '192.168.10.1', x: 70, y: 10 }
+        ],
+        links: [{ from: 'pc1', to: 'gw1' }, { from: 'pc2', to: 'gw1' }],
+        given: { networkId: '192.168.10.0', mask: '255.255.255.0' }
+      };
+    };
+
+    var fx11DiagnoseStep = function () {
+      return {
+        id: 'diag1', type: 'configure', prompt: 'Which device is misconfigured?', explanation: 'PC-2 is on the wrong VLAN (192.168.20.0/24 instead of .10.0/24).', points: 1,
+        payload: {
+          slots: [
+            { id: 'device', label: 'Misconfigured device', options: [{ id: 'd_pc1', text: 'PC-1' }, { id: 'd_pc2', text: 'PC-2' }, { id: 'd_gw1', text: 'Gateway' }] }
+          ]
+        },
+        answer: { slots: { device: 'd_pc2' } }
+      };
+    };
+
+    var fx11ReconfigureStep = function () {
+      return {
+        id: 'fix1', type: 'configure', prompt: 'Correct PC-2’s IP configuration', explanation: 'PC-2 was on 192.168.20.0/24 — the wrong VLAN for this zone.', points: 1,
+        deviceId: 'pc2',
+        payload: {
+          slots: [
+            { id: 'ip', label: 'IP Address', options: [{ id: 'ip_bad', text: '192.168.20.45' }, { id: 'ip_good', text: '192.168.10.45' }] },
+            { id: 'mask', label: 'Subnet Mask', options: [{ id: 'm_good', text: '255.255.255.0' }, { id: 'm_bad', text: '255.255.0.0' }] },
+            { id: 'gateway', label: 'Gateway', options: [{ id: 'gw_good', text: '192.168.10.1' }, { id: 'gw_bad', text: '192.168.20.1' }] }
+          ]
+        },
+        answer: { slots: { ip: 'ip_good', mask: 'm_good', gateway: 'gw_good' } }
+      };
+    };
+
+    var fx11Scenario = function () {
+      return {
+        id: 'e2e-diagram-1', cert: 'netplus', archetype: 'diagram',
+        scenario: 'A help desk ticket reports PC-2 cannot reach the file server. Diagnose and correct the misconfiguration.',
+        estMinutes: 4,
+        assets: { reference: fx11NetworkRef() },
+        steps: [fx11DiagnoseStep(), fx11ReconfigureStep()]
+      };
+    };
+
+    // ── Sanity: fixture is well-formed per the existing Task 1/9 validators ──
+    var isNonEmptyStrBody   = grabLine('_isNonEmptyStr') || grab('_isNonEmptyStr');
+    var validatePayloadBody = grab('_validateStepPayload');
+    var validateScenarioBody = grab('simLabValidateScenario');
+    var stepTypesMatch = js.match(/var STEP_TYPES\s*=\s*\[[^\]]+\]/);
+    var stepTypesDecl = stepTypesMatch ? stepTypesMatch[0] + ';' : "var STEP_TYPES = ['order','categorize','match','analyze','fillin','configure'];";
+
+    var ipToIntBody      = grab('_ipToInt');
+    var maskToIntBody    = grab('_maskToInt');
+    var inSubnetBody     = grab('_inSubnet');
+    var resolveSlotBody  = grab('_slFidelityResolveSlot');
+    var fidelityBody     = grab('simLabValidateNetworkFidelity');
+
+    if (!isNonEmptyStrBody || !validatePayloadBody || !validateScenarioBody ||
+        !ipToIntBody || !maskToIntBody || !inSubnetBody || !resolveSlotBody || !fidelityBody) {
+      test('e2e diagram: validator helper extraction succeeded', false);
+      results.errors.push('could not extract validator helpers for Task 11 e2e test; check names/indenting');
+      return;
+    }
+
+    var vCtx = {};
+    vm.createContext(vCtx);
+    vm.runInContext(stepTypesDecl, vCtx);
+    vm.runInContext(isNonEmptyStrBody, vCtx);
+    vm.runInContext(validatePayloadBody, vCtx);
+    vm.runInContext(validateScenarioBody, vCtx);
+    vm.runInContext(ipToIntBody, vCtx);
+    vm.runInContext(maskToIntBody, vCtx);
+    vm.runInContext(inSubnetBody, vCtx);
+    vm.runInContext(resolveSlotBody, vCtx);
+    vm.runInContext(fidelityBody, vCtx);
+    vm.runInContext('globalThis.__validate = simLabValidateScenario; globalThis.__fidelity = simLabValidateNetworkFidelity;', vCtx);
+    var simLabValidateScenario = vCtx.__validate;
+    var simLabValidateNetworkFidelity = vCtx.__fidelity;
+
+    var _fxScn = fx11Scenario();
+    var _fxValidate = simLabValidateScenario(_fxScn);
+    test('e2e diagram fixture: passes simLabValidateScenario',
+      _fxValidate && _fxValidate.ok === true);
+    if (!_fxValidate || !_fxValidate.ok) {
+      results.errors.push('Task 11 fixture failed simLabValidateScenario: ' + JSON.stringify(_fxValidate && _fxValidate.errors));
+    }
+
+    var _fxFidelity = simLabValidateNetworkFidelity(fx11NetworkRef(), fx11ReconfigureStep());
+    test('e2e diagram fixture: passes simLabValidateNetworkFidelity',
+      _fxFidelity && _fxFidelity.ok === true);
+    if (!_fxFidelity || !_fxFidelity.ok) {
+      results.errors.push('Task 11 fixture failed simLabValidateNetworkFidelity: ' + JSON.stringify(_fxFidelity && _fxFidelity.errors));
+    }
+
+    // ── Mount via the EXISTING Practice path: _slMountScenario ──
+    // Same DOM shim as the Task 5 mount test (getter-backed _children so it
+    // tracks live children after innerHTML resets), plus addEventListener/
+    // dispatchEvent for the configure renderer's <select> elements (Task 3).
+    var elBody         = grab('_el');
+    var escBody        = grabLine('_esc');
+    var slAttrBody     = grabLine('_slAttr');
+    var renderCfgBody  = grab('_slRenderConfigure');
+    var renderStepBody = grab('simLabRenderStep');
+    var refNetBody     = grab('_slRenderRefNetwork');
+    var refTimeBody    = grab('_slRenderRefTimeline');
+    var refLayBody     = grab('_slRenderRefLayered');
+    var refDispBody    = grab('_slRenderReference');
+    var mountBody      = grab('_slMountScenario');
+    var scoreSlotsBody    = grab('_scoreConfigureSlots');
+    var scoreStepBody     = grab('_scoreStep');
+    var scoreScenarioBody = grab('simLabScoreScenario');
+    var normBody          = grab('_norm');
+    var normalizeMatchBody = grab('_simLabNormalizeMatch');
+    var arrEqBody         = grab('_arrEq');
+    var setEqBody         = grab('_setEq');
+
+    if (!elBody || !escBody || !mountBody || !refDispBody || !refNetBody ||
+        !renderCfgBody || !renderStepBody || !scoreScenarioBody || !scoreSlotsBody || !scoreStepBody) {
+      test('e2e diagram: mount/score vm extraction succeeded', false);
+      results.errors.push('could not extract _slMountScenario/score helpers for Task 11 e2e test; check names/indenting');
+      return;
+    }
+
+    var makeEl = function (tag) {
+      var attrs = {}, listeners = {}, children = [], cls = '', inner = '', val = '';
+      var el = {
+        tagName: tag.toUpperCase(),
+        get className() { return cls; },
+        set className(v) { cls = v; },
+        get innerHTML() { return inner; },
+        set innerHTML(v) { inner = v; children = []; },
+        get value() { return val; },
+        set value(v) { val = v; },
+        selected: false,
+        textContent: '',
+        style: {},
+        get _children() { return children; },
+        setAttribute: function (k, v) { attrs[k] = v; },
+        getAttribute: function (k) { return attrs[k] || null; },
+        appendChild: function (c) { children.push(c); return c; },
+        querySelector: function (sel) {
+          for (var i = 0; i < children.length; i++) {
+            var c = children[i];
+            if (!c || !c.tagName) continue;
+            if (sel.toLowerCase() === c.tagName.toLowerCase()) return c;
+            if (c._children) {
+              for (var j = 0; j < c._children.length; j++) {
+                var gc = c._children[j];
+                if (gc && gc.tagName && sel.toLowerCase() === gc.tagName.toLowerCase()) return gc;
+              }
+            }
+          }
+          return null;
+        },
+        querySelectorAll: function (sel) {
+          var hits = [];
+          var search = function (node) {
+            if (!node || !node._children) return;
+            node._children.forEach(function (c) {
+              if (!c || !c.tagName) return;
+              var tag = sel.replace(/^\..*/, '').toUpperCase();
+              if (c.tagName === (tag || c.tagName)) hits.push(c);
+              search(c);
+            });
+          };
+          search(el);
+          return hits;
+        },
+        addEventListener: function (ev, fn) { listeners[ev] = (listeners[ev] || []); listeners[ev].push(fn); },
+        dispatchEvent: function (evObj) { var fns = listeners[evObj.type] || []; fns.forEach(function (fn) { fn(evObj); }); },
+        closest: function () { return null; },
+        remove: function () {}
+      };
+      return el;
+    };
+
+    var docShim = {
+      createElement: function (tag) { return makeEl(tag); },
+      createTextNode: function (t) { return { textContent: t, tagName: '#text' }; }
+    };
+    var windowShim = { CSS: null };
+
+    var mCtx = { document: docShim, window: windowShim, Object: Object, Array: Array, String: String, JSON: JSON };
+    vm.createContext(mCtx);
+    vm.runInContext(elBody, mCtx);
+    vm.runInContext(escBody, mCtx);
+    vm.runInContext(slAttrBody, mCtx);
+    vm.runInContext(renderCfgBody, mCtx);
+    vm.runInContext(renderStepBody, mCtx);
+    vm.runInContext(refNetBody, mCtx);
+    if (refTimeBody) vm.runInContext(refTimeBody, mCtx);
+    if (refLayBody) vm.runInContext(refLayBody, mCtx);
+    vm.runInContext(refDispBody, mCtx);
+    vm.runInContext(mountBody, mCtx);
+    vm.runInContext(normBody, mCtx);
+    vm.runInContext(normalizeMatchBody, mCtx);
+    vm.runInContext(arrEqBody, mCtx);
+    vm.runInContext(setEqBody, mCtx);
+    vm.runInContext(scoreSlotsBody, mCtx);
+    vm.runInContext(scoreStepBody, mCtx);
+    vm.runInContext(scoreScenarioBody, mCtx);
+
+    var host = makeEl('div');
+    mCtx.host = host;
+    mCtx.e2eScn = fx11Scenario();
+    var e2eResult = null;
+    mCtx.e2eOnSubmit = function (r) { e2eResult = r; };
+    vm.runInContext('globalThis.__e2eOpts = { onSubmit: e2eOnSubmit }; _slMountScenario(host, e2eScn, __e2eOpts);', mCtx);
+
+    // wrap._children layout: [sl-scn-prose, sl-ref, ...sl-step wraps, submit]
+    var wrap = host._children[0];
+    var refPanelFound = wrap && wrap._children.some(function (c) { return c && c.className === 'sl-ref'; });
+    test('e2e diagram: mounted DOM contains a .sl-ref reference panel',
+      refPanelFound === true);
+
+    var allSelects = (wrap && wrap.querySelectorAll('select')) || [];
+    // 1 slot (diagnose) + 3 slots (reconfigure) = 4 selects total
+    test('e2e diagram: mounted DOM contains the configure <select> elements',
+      allSelects.length === 4);
+
+    // Drive every select to its correct option (Task 3 pattern: set .value,
+    // dispatch a 'change' event) so the captured responses are all correct.
+    var correctBySlot = { device: 'd_pc2', ip: 'ip_good', mask: 'm_good', gateway: 'gw_good' };
+    allSelects.forEach(function (sel) {
+      var slotId = sel.getAttribute('data-slot');
+      var correctVal = correctBySlot[slotId];
+      if (correctVal) {
+        sel.value = correctVal;
+        sel.dispatchEvent({ type: 'change' });
+      }
+    });
+
+    // Submit via the same window.__slActiveSubmit path _slMountScenario wires
+    // up (mirrors the real "Submit answers" button's data-action handler).
+    vm.runInContext('window.__slActiveSubmit();', mCtx);
+
+    test('e2e diagram: simLabScoreScenario reports correct === total after correct answers',
+      e2eResult && e2eResult.correct === e2eResult.total && e2eResult.total === 4);
+
+    // Negative control: an all-wrong pass must NOT score correct === total,
+    // proving the assertion above isn't vacuously true.
+    var host2 = makeEl('div');
+    mCtx.host2 = host2;
+    mCtx.e2eScn2 = fx11Scenario();
+    var e2eResult2 = null;
+    mCtx.e2eOnSubmit2 = function (r) { e2eResult2 = r; };
+    vm.runInContext('globalThis.__e2eOpts2 = { onSubmit: e2eOnSubmit2 }; _slMountScenario(host2, e2eScn2, __e2eOpts2);', mCtx);
+    var wrap2 = host2._children[0];
+    var allSelects2 = (wrap2 && wrap2.querySelectorAll('select')) || [];
+    var wrongBySlot = { device: 'd_pc1', ip: 'ip_bad', mask: 'm_bad', gateway: 'gw_bad' };
+    allSelects2.forEach(function (sel) {
+      var slotId = sel.getAttribute('data-slot');
+      var wrongVal = wrongBySlot[slotId];
+      if (wrongVal) {
+        sel.value = wrongVal;
+        sel.dispatchEvent({ type: 'change' });
+      }
+    });
+    vm.runInContext('window.__slActiveSubmit();', mCtx);
+    test('e2e diagram: negative control (wrong answers) does not score correct === total',
+      !(e2eResult2 && e2eResult2.correct === e2eResult2.total));
+
+  } catch (err) {
+    test('e2e diagram vertical slice: vm smoke test (threw)', false);
+    results.errors.push('e2e diagram vertical slice smoke test threw: ' + err.message);
+  }
+})();
+
+// ── Task 12 (PBQ archetypes plan): Net+ Diagram seed-bank validation ──
+// The 16 consensus-approved Net+ Diagram scenarios now live for real in
+// features/sim-lab-seed-netplus.js (window.SIM_LAB_SEED_NETPLUS). This proves
+// every one of them is real, production-ready content: each passes the same
+// pure validators that gate the dev fixture above (simLabValidateScenario +
+// simLabValidateNetworkFidelity), extracted from features/sim-lab.js by the
+// same brace-matching approach as .superpowers/sdd/validate-drafts.js (no
+// reimplementation of validator logic). Not a fixture — this is the real bank.
+(function () {
+  console.log('\n\x1b[1m── Sim Lab: Net+ Diagram seed-bank validation (Task 12) ──\x1b[0m');
+  try {
+    var vm = require('vm');
+
+    var grab = function (name) {
+      var re = new RegExp('function ' + name + '\\([^)]*\\) \\{[\\s\\S]*?\\n\\}');
+      return (js.match(re) || [''])[0];
+    };
+
+    // ── Extract the REAL pure validators from features/sim-lab.js, exactly
+    // as .superpowers/sdd/validate-drafts.js does ──
+    var isNonEmptyStrBody   = grab('_isNonEmptyStr');
+    var validatePayloadBody = grab('_validateStepPayload');
+    var validateScenarioBody = grab('simLabValidateScenario');
+    var stepTypesMatch = js.match(/var STEP_TYPES\s*=\s*\[[^\]]+\]/);
+    var stepTypesDecl = stepTypesMatch ? stepTypesMatch[0] + ';' : "var STEP_TYPES = ['order','categorize','match','analyze','fillin','configure'];";
+
+    var ipToIntBody      = grab('_ipToInt');
+    var maskToIntBody    = grab('_maskToInt');
+    var inSubnetBody     = grab('_inSubnet');
+    var resolveSlotBody  = grab('_slFidelityResolveSlot');
+    var fidelityBody     = grab('simLabValidateNetworkFidelity');
+
+    if (!isNonEmptyStrBody || !validatePayloadBody || !validateScenarioBody ||
+        !ipToIntBody || !maskToIntBody || !inSubnetBody || !resolveSlotBody || !fidelityBody) {
+      test('Net+ Diagram bank: validator helper extraction succeeded', false);
+      results.errors.push('could not extract validator helpers for Task 12 bank test; check names/indenting');
+      return;
+    }
+
+    var vCtx = {};
+    vm.createContext(vCtx);
+    vm.runInContext(stepTypesDecl, vCtx);
+    vm.runInContext(isNonEmptyStrBody, vCtx);
+    vm.runInContext(validatePayloadBody, vCtx);
+    vm.runInContext(validateScenarioBody, vCtx);
+    vm.runInContext(ipToIntBody, vCtx);
+    vm.runInContext(maskToIntBody, vCtx);
+    vm.runInContext(inSubnetBody, vCtx);
+    vm.runInContext(resolveSlotBody, vCtx);
+    vm.runInContext(fidelityBody, vCtx);
+    vm.runInContext('globalThis.__validate = simLabValidateScenario; globalThis.__fidelity = simLabValidateNetworkFidelity;', vCtx);
+    var simLabValidateScenario = vCtx.__validate;
+    var simLabValidateNetworkFidelity = vCtx.__fidelity;
+
+    // ── Load the real seed bank: eval features/sim-lab-seed-netplus.js in a
+    // sandbox with `var window = {}` so window.SIM_LAB_SEED_NETPLUS populates ──
+    var seedSrc = read('features/sim-lab-seed-netplus.js');
+    var seedCtx = {};
+    vm.createContext(seedCtx);
+    vm.runInContext('var window = {};\n' + seedSrc + '\nglobalThis.__seed = window.SIM_LAB_SEED_NETPLUS;', seedCtx);
+    var seedBank = seedCtx.__seed;
+
+    test('Net+ Diagram bank: window.SIM_LAB_SEED_NETPLUS loaded as an array',
+      Array.isArray(seedBank));
+    if (!Array.isArray(seedBank)) {
+      results.errors.push('could not load window.SIM_LAB_SEED_NETPLUS from features/sim-lab-seed-netplus.js');
+      return;
+    }
+
+    var diagramScenarios = seedBank.filter(function (s) { return s && s.archetype === 'diagram'; });
+    test('Net+ Diagram bank: at least 16 diagram-archetype scenarios present',
+      diagramScenarios.length >= 16);
+
+    var allValidateOk = true, allFidelityOk = true;
+    diagramScenarios.forEach(function (s) {
+      var vr = simLabValidateScenario(s);
+      if (!vr || vr.ok !== true) {
+        allValidateOk = false;
+        results.errors.push('Net+ Diagram bank: ' + (s && s.id) + ' failed simLabValidateScenario: ' + JSON.stringify(vr && vr.errors));
+      }
+      if (s && s.assets && s.assets.reference) {
+        var cfgStep = (s.steps || []).filter(function (st) { return st.type === 'configure' && st.deviceId; })[0];
+        if (cfgStep) {
+          var fr = simLabValidateNetworkFidelity(s.assets.reference, cfgStep);
+          if (!fr || fr.ok !== true) {
+            allFidelityOk = false;
+            results.errors.push('Net+ Diagram bank: ' + (s && s.id) + ' failed simLabValidateNetworkFidelity: ' + JSON.stringify(fr && fr.errors));
+          }
+        }
+      }
+    });
+
+    test('Net+ Diagram bank: every diagram scenario passes simLabValidateScenario',
+      allValidateOk);
+    test('Net+ Diagram bank: every diagram scenario\'s configure(deviceId) step passes simLabValidateNetworkFidelity',
+      allFidelityOk);
+
+  } catch (err) {
+    test('Net+ Diagram bank: vm smoke test (threw)', false);
+    results.errors.push('Net+ Diagram bank smoke test threw: ' + err.message);
+  }
+})();
+
+// The 20 consensus-approved Sec+ Incident Response scenarios now live for real
+// in features/sim-lab-seed-secplus.js (window.SIM_LAB_SEED_SECPLUS). This
+// proves every one of them is real, production-ready content: each passes the
+// same pure validator that gates the dev fixture (simLabValidateScenario),
+// extracted from features/sim-lab.js by the same brace-matching approach as
+// .superpowers/sdd/validate-drafts.js (no reimplementation of validator
+// logic). Not a fixture — this is the real bank. Incident scenarios use
+// timeline/network-under-attack refs without a deviceId configure step, so
+// simLabValidateNetworkFidelity does not apply here (mirrors Task 12's
+// diagram-bank test, minus the fidelity check).
+(function () {
+  console.log('\n\x1b[1m── Sim Lab: Sec+ Incident Response seed-bank validation (Task 13) ──\x1b[0m');
+  try {
+    var vm = require('vm');
+
+    var grab = function (name) {
+      var re = new RegExp('function ' + name + '\\([^)]*\\) \\{[\\s\\S]*?\\n\\}');
+      return (js.match(re) || [''])[0];
+    };
+
+    // ── Extract the REAL pure validator from features/sim-lab.js, exactly
+    // as .superpowers/sdd/validate-drafts.js does ──
+    var isNonEmptyStrBody   = grab('_isNonEmptyStr');
+    var validatePayloadBody = grab('_validateStepPayload');
+    var validateScenarioBody = grab('simLabValidateScenario');
+    var stepTypesMatch = js.match(/var STEP_TYPES\s*=\s*\[[^\]]+\]/);
+    var stepTypesDecl = stepTypesMatch ? stepTypesMatch[0] + ';' : "var STEP_TYPES = ['order','categorize','match','analyze','fillin','configure'];";
+
+    if (!isNonEmptyStrBody || !validatePayloadBody || !validateScenarioBody) {
+      test('Sec+ Incident bank: validator helper extraction succeeded', false);
+      results.errors.push('could not extract validator helpers for Task 13 bank test; check names/indenting');
+      return;
+    }
+
+    var vCtx = {};
+    vm.createContext(vCtx);
+    vm.runInContext(stepTypesDecl, vCtx);
+    vm.runInContext(isNonEmptyStrBody, vCtx);
+    vm.runInContext(validatePayloadBody, vCtx);
+    vm.runInContext(validateScenarioBody, vCtx);
+    vm.runInContext('globalThis.__validate = simLabValidateScenario;', vCtx);
+    var simLabValidateScenario = vCtx.__validate;
+
+    // ── Load the real seed bank: eval features/sim-lab-seed-secplus.js in a
+    // sandbox with `var window = {}` so window.SIM_LAB_SEED_SECPLUS populates ──
+    var seedSrc = read('features/sim-lab-seed-secplus.js');
+    var seedCtx = {};
+    vm.createContext(seedCtx);
+    vm.runInContext('var window = {};\n' + seedSrc + '\nglobalThis.__seed = window.SIM_LAB_SEED_SECPLUS;', seedCtx);
+    var seedBank = seedCtx.__seed;
+
+    test('Sec+ Incident bank: window.SIM_LAB_SEED_SECPLUS loaded as an array',
+      Array.isArray(seedBank));
+    if (!Array.isArray(seedBank)) {
+      results.errors.push('could not load window.SIM_LAB_SEED_SECPLUS from features/sim-lab-seed-secplus.js');
+      return;
+    }
+
+    var incidentScenarios = seedBank.filter(function (s) { return s && s.archetype === 'incident'; });
+    test('Sec+ Incident bank: at least 20 incident-archetype scenarios present',
+      incidentScenarios.length >= 20);
+
+    var allValidateOk = true;
+    incidentScenarios.forEach(function (s) {
+      var vr = simLabValidateScenario(s);
+      if (!vr || vr.ok !== true) {
+        allValidateOk = false;
+        results.errors.push('Sec+ Incident bank: ' + (s && s.id) + ' failed simLabValidateScenario: ' + JSON.stringify(vr && vr.errors));
+      }
+    });
+
+    test('Sec+ Incident bank: every incident scenario passes simLabValidateScenario',
+      allValidateOk);
+
+  } catch (err) {
+    test('Sec+ Incident bank: vm smoke test (threw)', false);
+    results.errors.push('Sec+ Incident bank smoke test threw: ' + err.message);
+  }
+})();
+
+// The 10 consensus-approved Defense in Depth scenarios (5 Net+, 5 Sec+) now
+// live for real in features/sim-lab-seed-netplus.js and
+// features/sim-lab-seed-secplus.js (window.SIM_LAB_SEED_NETPLUS /
+// window.SIM_LAB_SEED_SECPLUS). This proves every one of them is real,
+// production-ready content: each passes the same pure validator that gates
+// the dev fixture (simLabValidateScenario), extracted from features/sim-lab.js
+// by the same brace-matching approach as .superpowers/sdd/validate-drafts.js
+// (no reimplementation of validator logic). Defense scenarios use `layered`
+// refs without a deviceId configure step, so simLabValidateNetworkFidelity
+// does not apply here (mirrors Task 13's incident-bank test, minus the
+// fidelity check) — this is the real bank across BOTH cert seed banks
+// (Task 14).
+(function () {
+  console.log('\n\x1b[1m── Sim Lab: Defense in Depth seed-bank validation, Net+ & Sec+ (Task 14) ──\x1b[0m');
+  try {
+    var vm = require('vm');
+
+    var grab = function (name) {
+      var re = new RegExp('function ' + name + '\\([^)]*\\) \\{[\\s\\S]*?\\n\\}');
+      return (js.match(re) || [''])[0];
+    };
+
+    // ── Extract the REAL pure validator from features/sim-lab.js, exactly
+    // as .superpowers/sdd/validate-drafts.js does ──
+    var isNonEmptyStrBody   = grab('_isNonEmptyStr');
+    var validatePayloadBody = grab('_validateStepPayload');
+    var validateScenarioBody = grab('simLabValidateScenario');
+    var stepTypesMatch = js.match(/var STEP_TYPES\s*=\s*\[[^\]]+\]/);
+    var stepTypesDecl = stepTypesMatch ? stepTypesMatch[0] + ';' : "var STEP_TYPES = ['order','categorize','match','analyze','fillin','configure'];";
+
+    if (!isNonEmptyStrBody || !validatePayloadBody || !validateScenarioBody) {
+      test('Defense in Depth bank: validator helper extraction succeeded', false);
+      results.errors.push('could not extract validator helpers for Task 14 bank test; check names/indenting');
+      return;
+    }
+
+    var vCtx = {};
+    vm.createContext(vCtx);
+    vm.runInContext(stepTypesDecl, vCtx);
+    vm.runInContext(isNonEmptyStrBody, vCtx);
+    vm.runInContext(validatePayloadBody, vCtx);
+    vm.runInContext(validateScenarioBody, vCtx);
+    vm.runInContext('globalThis.__validate = simLabValidateScenario;', vCtx);
+    var simLabValidateScenario = vCtx.__validate;
+
+    // ── Load both real seed banks: eval features/sim-lab-seed-netplus.js and
+    // features/sim-lab-seed-secplus.js in a sandbox with `var window = {}` so
+    // window.SIM_LAB_SEED_NETPLUS / window.SIM_LAB_SEED_SECPLUS populate ──
+    var netplusSrc = read('features/sim-lab-seed-netplus.js');
+    var netplusCtx = {};
+    vm.createContext(netplusCtx);
+    vm.runInContext('var window = {};\n' + netplusSrc + '\nglobalThis.__seed = window.SIM_LAB_SEED_NETPLUS;', netplusCtx);
+    var netplusBank = netplusCtx.__seed;
+
+    var secplusSrc = read('features/sim-lab-seed-secplus.js');
+    var secplusCtx = {};
+    vm.createContext(secplusCtx);
+    vm.runInContext('var window = {};\n' + secplusSrc + '\nglobalThis.__seed = window.SIM_LAB_SEED_SECPLUS;', secplusCtx);
+    var secplusBank = secplusCtx.__seed;
+
+    test('Defense in Depth bank: window.SIM_LAB_SEED_NETPLUS loaded as an array',
+      Array.isArray(netplusBank));
+    test('Defense in Depth bank: window.SIM_LAB_SEED_SECPLUS loaded as an array',
+      Array.isArray(secplusBank));
+    if (!Array.isArray(netplusBank) || !Array.isArray(secplusBank)) {
+      results.errors.push('could not load one or both seed banks for Task 14 Defense in Depth test');
+      return;
+    }
+
+    var netplusDefense = netplusBank.filter(function (s) { return s && s.archetype === 'defense'; });
+    var secplusDefense = secplusBank.filter(function (s) { return s && s.archetype === 'defense'; });
+
+    test('Defense in Depth bank: at least 5 defense-archetype scenarios in Net+ bank',
+      netplusDefense.length >= 5);
+    test('Defense in Depth bank: at least 5 defense-archetype scenarios in Sec+ bank',
+      secplusDefense.length >= 5);
+
+    var allValidateOk = true;
+    netplusDefense.concat(secplusDefense).forEach(function (s) {
+      var vr = simLabValidateScenario(s);
+      if (!vr || vr.ok !== true) {
+        allValidateOk = false;
+        results.errors.push('Defense in Depth bank: ' + (s && s.id) + ' failed simLabValidateScenario: ' + JSON.stringify(vr && vr.errors));
+      }
+    });
+
+    test('Defense in Depth bank: every defense scenario (both banks) passes simLabValidateScenario',
+      allValidateOk);
+
+  } catch (err) {
+    test('Defense in Depth bank: vm smoke test (threw)', false);
+    results.errors.push('Defense in Depth bank smoke test threw: ' + err.message);
+  }
+})();
+
+// ── Task 15 (PBQ archetypes plan): archetype scenarios ride the EXISTING
+// free-1/day + Pro gating — reuse, no new metering. ──
+// Confirms two things behaviorally, not just structurally:
+//   1. The seed-bank pick path (_slBank/_slPickSeed/_slPickSeedFresh) treats
+//      an archetype-tagged scenario ('diagram'/'incident'/'defense') exactly
+//      like an ordinary scenario — same array, same index-based selection,
+//      no archetype branch exists that could special-case or bypass gating.
+//   2. simLabStart / _slSessionStart run the free-count check + Pro gate
+//      (_slIsPro, _pbqFreeRunsToday, PBQ_FREE_DAILY_CAP, _gateProOnly)
+//      BEFORE any scenario (archetype or not) is ever picked/generated — so
+//      an exhausted free cap blocks an archetype-only bank identically to a
+//      bank with zero archetype scenarios. Also confirms the free-tier
+//      session-bump path (_slSessionBumpOnce -> _bumpPbqFreeRun) is
+//      archetype-agnostic (fires once per session regardless of which
+//      scenario, archetype or not, gets served).
+(function () {
+  console.log('\n\x1b[1m── Sim Lab: archetypes ride existing free/Pro gating (Task 15) ──\x1b[0m');
+  try {
+    var vm = require('vm');
+
+    var grab = function (name) {
+      var re = new RegExp('function ' + name + '\\([^)]*\\) \\{[\\s\\S]*?\\n\\}');
+      return (js.match(re) || [''])[0];
+    };
+
+    // ── 1. Bank/pick path is archetype-agnostic ──
+    // Build a tiny mixed bank: one ordinary scenario, one 'diagram'-archetype
+    // scenario. Extract the REAL _seedBank/_slBank/_slPickSeed/_slPickSeedFresh
+    // (no reimplementation) and prove selection never inspects `.archetype`.
+    var seedBankBody     = grab('_seedBank');
+    var slBankBody       = grab('_slBank');
+    var pickSeedBody     = grab('_slPickSeed');
+    var pickSeedFreshBody = grab('_slPickSeedFresh');
+    var slGlobalsMatch   = js.match(/var _SL_SEED_GLOBALS\s*=\s*\{[\s\S]*?\};/);
+    // simLabValidateScenario is called inside the pick functions — extract the
+    // real validator chain too (same approach as the Task 11/12/13/14 blocks).
+    var isNonEmptyStrBody    = grab('_isNonEmptyStr');
+    var validatePayloadBody  = grab('_validateStepPayload');
+    var validateScenarioBody = grab('simLabValidateScenario');
+    var stepTypesMatch = js.match(/var STEP_TYPES\s*=\s*\[[^\]]+\]/);
+    var stepTypesDecl = stepTypesMatch ? stepTypesMatch[0] + ';' : "var STEP_TYPES = ['order','categorize','match','analyze','fillin','configure'];";
+
+    if (!seedBankBody || !slBankBody || !pickSeedBody || !pickSeedFreshBody || !slGlobalsMatch ||
+        !isNonEmptyStrBody || !validatePayloadBody || !validateScenarioBody) {
+      test('Task 15: bank/pick helper extraction succeeded', false);
+      results.errors.push('could not extract _seedBank/_slBank/_slPickSeed/_slPickSeedFresh for Task 15 test; check names/indenting');
+    } else {
+      var bankCtx = { window: {} };
+      vm.createContext(bankCtx);
+      vm.runInContext('var window = this.window;', bankCtx);
+      vm.runInContext(stepTypesDecl, bankCtx);
+      vm.runInContext(isNonEmptyStrBody, bankCtx);
+      vm.runInContext(validatePayloadBody, bankCtx);
+      vm.runInContext(validateScenarioBody, bankCtx);
+      vm.runInContext(seedBankBody, bankCtx);
+      vm.runInContext(slGlobalsMatch[0], bankCtx);
+      vm.runInContext(slBankBody, bankCtx);
+      vm.runInContext(pickSeedBody, bankCtx);
+      vm.runInContext(pickSeedFreshBody, bankCtx);
+
+      var _t15Ordinary = {
+        id: 't15-ordinary-1', cert: 'netplus', objective: '1.4', topic: 'Subnetting',
+        title: 'Ordinary scenario', estMinutes: 4,
+        scenario: 'Plain scenario, no archetype tag.',
+        steps: [{ id: 's1', type: 'fillin', points: 1, prompt: 'x?', explanation: 'y', payload: { fields: [{ id: 'a', label: 'A' }] }, answer: { a: ['1'] } }]
+      };
+      var _t15Archetype = {
+        id: 't15-archetype-1', cert: 'netplus', archetype: 'diagram', objective: '1.4', topic: 'Diagram',
+        title: 'Archetype scenario', estMinutes: 4,
+        scenario: 'Archetype-tagged scenario.',
+        steps: [{ id: 's1', type: 'fillin', points: 1, prompt: 'x?', explanation: 'y', payload: { fields: [{ id: 'a', label: 'A' }] }, answer: { a: ['1'] } }]
+      };
+
+      vm.runInContext('window.SIM_LAB_SEED_NETPLUS = [' + JSON.stringify(_t15Ordinary) + ', ' + JSON.stringify(_t15Archetype) + '];', bankCtx);
+      vm.runInContext('globalThis.__bank = _slBank("netplus"); globalThis.__pickAt0 = _slPickSeed; globalThis.__pickFresh = _slPickSeedFresh;', bankCtx);
+
+      var t15Bank = bankCtx.__bank;
+      test('Task 15: mixed bank (ordinary + archetype) loads via the real _slBank resolver',
+        Array.isArray(t15Bank) && t15Bank.length === 2);
+
+      // _slPickSeed indexes by clock minute % bank.length — drive it at both
+      // indices directly to prove BOTH the ordinary and the archetype entries
+      // are reachable through the identical, unfiltered code path (no archetype
+      // branch skips or special-cases the archetype-tagged entry).
+      var _origDate = Date;
+      function _fakeMinuteDate(min) {
+        return function () {
+          var d = new _origDate();
+          d.getMinutes = function () { return min; };
+          return d;
+        };
+      }
+      bankCtx.Date = _fakeMinuteDate(0);
+      vm.runInContext('globalThis.__pick0 = _slPickSeed("netplus");', bankCtx);
+      bankCtx.Date = _fakeMinuteDate(1);
+      vm.runInContext('globalThis.__pick1 = _slPickSeed("netplus");', bankCtx);
+      var _pick0 = bankCtx.__pick0, _pick1 = bankCtx.__pick1;
+
+      test('Task 15: _slPickSeed can select the ordinary (non-archetype) entry',
+        _pick0 && _pick0.id === 't15-ordinary-1' && !_pick0.archetype);
+      test('Task 15: _slPickSeed can select the archetype-tagged entry via the SAME function/index logic',
+        _pick1 && _pick1.id === 't15-archetype-1' && _pick1.archetype === 'diagram');
+
+      // _slPickSeedFresh: prove the archetype entry is a normal member of the
+      // "fresh" pool (usedIds-filtered), not excluded or treated specially.
+      vm.runInContext('globalThis.__freshPool = _slPickSeedFresh("netplus", new Set());', bankCtx);
+      var _freshPick = bankCtx.__freshPool;
+      test('Task 15: _slPickSeedFresh draws from the unfiltered mixed pool (archetype included)',
+        _freshPick && (_freshPick.id === 't15-ordinary-1' || _freshPick.id === 't15-archetype-1'));
+
+      vm.runInContext('globalThis.__usedArch = new Set(["t15-ordinary-1"]); globalThis.__freshAfterOrdinaryUsed = _slPickSeedFresh("netplus", globalThis.__usedArch);', bankCtx);
+      var _freshAfterOrdinaryUsed = bankCtx.__freshAfterOrdinaryUsed;
+      test('Task 15: _slPickSeedFresh falls through to the archetype entry once the ordinary one is marked used (no exclusion)',
+        _freshAfterOrdinaryUsed && _freshAfterOrdinaryUsed.id === 't15-archetype-1');
+    }
+
+    // ── 2. Gating runs BEFORE scenario selection, for both entry points ──
+    // Static-source proof (mirrors the existing v7.57 "exam never calls
+    // _bumpPbqFreeRun" style pin): simLabStart and _slSessionStart both check
+    // _slIsPro()/_pbqFreeRunsToday()/PBQ_FREE_DAILY_CAP and call
+    // window._gateProOnly('Sim Lab', ...) strictly before _slGenerateScenario /
+    // _slRunRound (which is what eventually resolves to _slPickSeed and can
+    // surface an archetype scenario). No archetype-aware branch exists in
+    // either gate — the same gate blocks regardless of what the bank contains.
+    var simLabStartSrc = grab('simLabStart');
+    var slSessionStartSrc = grab('_slSessionStart');
+
+    test('Task 15: simLabStart defined and checks the free-cap/Pro gate before generating a scenario',
+      !!simLabStartSrc &&
+      /_slIsPro\(\)/.test(simLabStartSrc) &&
+      /_pbqFreeRunsToday/.test(simLabStartSrc) &&
+      /PBQ_FREE_DAILY_CAP/.test(simLabStartSrc) &&
+      /_gateProOnly\(\s*'Sim Lab'/.test(simLabStartSrc) &&
+      (function () {
+        var gateIdx = simLabStartSrc.indexOf('_gateProOnly(');
+        var genIdx = simLabStartSrc.indexOf('_slGenerateScenario(');
+        return gateIdx > -1 && genIdx > -1 && gateIdx < genIdx;
+      })());
+
+    test('Task 15: _slSessionStart defined and checks the SAME free-cap/Pro gate before starting a round (which may pick an archetype scenario)',
+      !!slSessionStartSrc &&
+      /_slIsPro\(\)/.test(slSessionStartSrc) &&
+      /_pbqFreeRunsToday/.test(slSessionStartSrc) &&
+      /PBQ_FREE_DAILY_CAP/.test(slSessionStartSrc) &&
+      /_gateProOnly\(\s*'Sim Lab'/.test(slSessionStartSrc) &&
+      /_slSessionBumpOnce\(\)/.test(slSessionStartSrc) &&
+      (function () {
+        var gateIdx = slSessionStartSrc.indexOf('_gateProOnly(');
+        var runIdx = slSessionStartSrc.indexOf('_slRunRound(');
+        return gateIdx > -1 && runIdx > -1 && gateIdx < runIdx;
+      })());
+
+    // No archetype-specific gate/metering identifiers exist anywhere in the
+    // feature module — confirms Task 15 introduced no new gating surface.
+    test('Task 15: no archetype-specific gating/metering was added (reuse only)',
+      !/archetype[A-Za-z]*(FreeCount|FreeRun|Gate|Metered|Quota)/i.test(js) &&
+      !/(FreeCount|FreeRun|Gate|Metered|Quota)[A-Za-z]*[Aa]rchetype/.test(js));
+
+    // ── 3. Session bump path is archetype-agnostic ──
+    // _slSessionBumpOnce (called from _slSessionStart) always calls the SAME
+    // window._bumpPbqFreeRun — it has no knowledge of which scenario/archetype
+    // will be served this session, proving the metering key is shared.
+    var sessionBumpOnceSrc = grab('_slSessionBumpOnce');
+    test('Task 15: _slSessionBumpOnce calls the existing window._bumpPbqFreeRun (no new/second counter)',
+      !!sessionBumpOnceSrc && /window\._bumpPbqFreeRun\(\)/.test(sessionBumpOnceSrc));
+
+  } catch (err) {
+    test('Task 15: vm smoke test (threw)', false);
+    results.errors.push('Task 15 archetype-gating smoke test threw: ' + err.message);
+  }
+})();
+
+// ── Task 16 (PBQ archetypes plan): cert-aware entry on the Sim Lab surface ──
+// Proves, behaviorally, that PBQ archetype scenarios are correctly SURFACED
+// for netplus/secplus and correctly ABSENT for non-PBQ certs (A+/Microsoft/
+// AWS), using the REAL cert-availability mechanisms already in the codebase
+// — no new allowlist/hook is introduced:
+//   1. `_SL_PBQ_CERTS_HOME` (app.js) is the Sim Lab entry-point allowlist
+//      consulted by `renderSimLabHomeEntry()` (called from `showPage('setup')`)
+//      to show/hide the Sim Lab tile. It includes netplus/secplus (PBQ certs)
+//      and correctly EXCLUDES the non-PBQ Decision Lab certs (az900/ai900/
+//      sc900/clfc02) — those get Decision Lab's own entry, not Sim Lab's.
+//   2. Archetype CONTENT is gated one level deeper, by which seed bank
+//      (`SIM_LAB_SEED_<CERT>`) actually contains `archetype`-tagged entries:
+//      netplus/secplus banks are non-empty for archetypes; a true non-PBQ
+//      cert has no Sim Lab seed bank global at all (`_slBank` returns []
+//      by construction, per `_SL_SEED_GLOBALS`); A+ has a Sim Lab bank but
+//      zero archetype-tagged scenarios in it (Phase 5 only authored netplus/
+//      secplus archetype content) — so even where Sim Lab entry is visible
+//      (A+), no archetype scenario can ever surface.
+(function () {
+  console.log('\n\x1b[1m── Sim Lab: cert-aware PBQ archetype entry (Task 16) ──\x1b[0m');
+  try {
+    // ── 1. Entry-point allowlist: PBQ certs in, non-PBQ certs out ──
+    var pbqCertsMatch = js.match(/_SL_PBQ_CERTS_HOME\s*=\s*\[([^\]]*)\]/);
+    test('Task 16: _SL_PBQ_CERTS_HOME allowlist exists', !!pbqCertsMatch);
+    if (pbqCertsMatch) {
+      var pbqCertsHome = pbqCertsMatch[1].split(',').map(function (s) { return s.replace(/['"\s]/g, ''); }).filter(Boolean);
+      test('Task 16: Sim Lab entry allowlist includes netplus', pbqCertsHome.indexOf('netplus') !== -1);
+      test('Task 16: Sim Lab entry allowlist includes secplus', pbqCertsHome.indexOf('secplus') !== -1);
+      test('Task 16: Sim Lab entry allowlist excludes az900/ai900/sc900/clfc02 (Decision Lab certs, not Sim Lab)',
+        ['az900', 'ai900', 'sc900', 'clfc02'].every(function (c) { return pbqCertsHome.indexOf(c) === -1; }));
+    }
+
+    // renderSimLabHomeEntry() must actually consult the allowlist to gate the
+    // tile, and must be wired into the setup-page render path (not orphaned).
+    var renderEntrySrc = (js.match(/function renderSimLabHomeEntry\(\) \{[\s\S]*?\n\}/) || [''])[0];
+    test('Task 16: renderSimLabHomeEntry() checks _SL_PBQ_CERTS_HOME before showing the tile',
+      !!renderEntrySrc && /_SL_PBQ_CERTS_HOME\.indexOf\(/.test(renderEntrySrc) && /is-hidden/.test(renderEntrySrc));
+    test('Task 16: renderSimLabHomeEntry() is called on setup-page render (real entry hook, not dead code)',
+      /if \(name === 'setup'[\s\S]{0,80}renderSimLabHomeEntry\(\)/.test(js));
+
+    // ── 2. Archetype content: present for netplus/secplus, absent for A+, and
+    //      no seed bank at all for a true non-PBQ cert (az900) ──
+    var netplusBankMatch = js.match(/window\.SIM_LAB_SEED_NETPLUS\s*=\s*\[[\s\S]*?\n\];/);
+    var secplusBankMatch = js.match(/window\.SIM_LAB_SEED_SECPLUS\s*=\s*\[[\s\S]*?\n\];/);
+    var aplus1BankMatch = js.match(/window\.SIM_LAB_SEED_APLUS_CORE1\s*=\s*\[[\s\S]*?\n\];/);
+    var aplus2BankMatch = js.match(/window\.SIM_LAB_SEED_APLUS_CORE2\s*=\s*\[[\s\S]*?\n\];/);
+
+    test('Task 16: Net+ Sim Lab seed bank has archetype-tagged scenarios (offered for netplus)',
+      !!netplusBankMatch && /archetype\s*:/.test(netplusBankMatch[0]));
+    test('Task 16: Sec+ Sim Lab seed bank has archetype-tagged scenarios (offered for secplus)',
+      !!secplusBankMatch && /archetype\s*:/.test(secplusBankMatch[0]));
+    test('Task 16: A+ Core1 Sim Lab seed bank exists but has NO archetype-tagged scenarios (not surfaced)',
+      !!aplus1BankMatch && !/archetype\s*:/.test(aplus1BankMatch[0]));
+    test('Task 16: A+ Core2 Sim Lab seed bank exists but has NO archetype-tagged scenarios (not surfaced)',
+      !!aplus2BankMatch && !/archetype\s*:/.test(aplus2BankMatch[0]));
+
+    // No SIM_LAB_SEED_<X> global exists at all for the non-PBQ Decision Lab
+    // certs — confirms _slBank('az900') etc. can only ever return [] via the
+    // _SL_SEED_GLOBALS registry (no accidental entry for a non-PBQ cert).
+    test('Task 16: no Sim Lab seed-bank global exists for az900/ai900/sc900/clfc02 (non-PBQ certs)',
+      ['AZ900', 'AI900', 'SC900', 'CLFC02'].every(function (c) {
+        return !new RegExp('window\\.SIM_LAB_SEED_' + c + '\\b').test(js);
+      }));
+
+    // ── 3. Behavioral proof via the real _slBank resolver (vm), mirroring the
+    //      Task 15 extraction approach: drive the ACTUAL selection function,
+    //      not a re-implementation, across a PBQ cert (netplus) and a non-PBQ
+    //      cert (az900) with no seed-bank entry in _SL_SEED_GLOBALS.
+    var vm = require('vm');
+    var grab16 = function (name) {
+      var re = new RegExp('function ' + name + '\\([^)]*\\) \\{[\\s\\S]*?\\n\\}');
+      return (js.match(re) || [''])[0];
+    };
+    var seedBankBody16 = grab16('_seedBank');
+    var slBankBody16 = grab16('_slBank');
+    var slGlobalsMatch16 = js.match(/var _SL_SEED_GLOBALS\s*=\s*\{[\s\S]*?\};/);
+
+    if (!seedBankBody16 || !slBankBody16 || !slGlobalsMatch16) {
+      test('Task 16: bank-resolver helper extraction succeeded', false);
+      results.errors.push('could not extract _seedBank/_slBank/_SL_SEED_GLOBALS for Task 16 test; check names/indenting');
+    } else {
+      var bankCtx16 = { window: { SIM_LAB_SEED_NETPLUS: [{ id: 'x', archetype: 'diagram' }] } };
+      vm.createContext(bankCtx16);
+      vm.runInContext('var window = this.window;', bankCtx16);
+      vm.runInContext(seedBankBody16, bankCtx16);
+      vm.runInContext(slGlobalsMatch16[0], bankCtx16);
+      vm.runInContext(slBankBody16, bankCtx16);
+      vm.runInContext('globalThis.__netplusBank = _slBank("netplus"); globalThis.__az900Bank = _slBank("az900");', bankCtx16);
+
+      test('Task 16: _slBank("netplus") returns a non-empty bank (archetype content reachable)',
+        Array.isArray(bankCtx16.__netplusBank) && bankCtx16.__netplusBank.length === 1 && bankCtx16.__netplusBank[0].archetype === 'diagram');
+      test('Task 16: _slBank("az900") returns [] — no PBQ/archetype content for a non-PBQ cert',
+        Array.isArray(bankCtx16.__az900Bank) && bankCtx16.__az900Bank.length === 0);
+    }
+  } catch (err) {
+    test('Task 16: vm smoke test (threw)', false);
+    results.errors.push('Task 16 cert-aware entry smoke test threw: ' + err.message);
+  }
+})();
+
+// ── Task 17 (PBQ archetypes plan): archetype scenarios inside Exam mode ──
+// Confirms — behaviorally — that an archetype-tagged scenario (here: a
+// 'diagram' scenario with a configure×3 step, mirroring the Task 11 fixture)
+// flows correctly through the EXISTING Exam-mode block: picked into a round
+// via _slExamBlankState (the same session-state constructor _slExamStart
+// uses), survives flag-and-return navigation (_slToggleFlag + the
+// capture/restore pattern _slExamNav uses via _slCloneResp), gets scored via
+// the SAME simLabScoreScenario call _slExamSubmit makes per round, and rolls
+// up into the SAME _slAggregateSession the exam result screen reads. No new
+// exam/scoring code is introduced — archetype scenarios ride the existing
+// multi-round exam block by construction (scoring only ever inspects
+// step.type / step.answer, never scenario.archetype).
+(function () {
+  console.log('\n\x1b[1m── Sim Lab: archetypes in Exam mode (Task 17) ──\x1b[0m');
+  try {
+    var vm = require('vm');
+
+    var grab = function (name) {
+      var re = new RegExp('function ' + name + '\\([^)]*\\) \\{[\\s\\S]*?\\n\\}');
+      return (js.match(re) || [''])[0];
+    };
+
+    var blankStateBody   = grab('_slExamBlankState');
+    var isProBody        = grab('_slIsPro');
+    var cloneRespBody    = grab('_slCloneResp');
+    var scoreSlotsBody   = grab('_scoreConfigureSlots');
+    var scoreStepBody    = grab('_scoreStep');
+    var scoreScenarioBody = grab('simLabScoreScenario');
+    var aggregateBody    = grab('_slAggregateSession');
+    var normBody          = grab('_norm');
+    var normalizeMatchBody = grab('_simLabNormalizeMatch');
+    var arrEqBody         = grab('_arrEq');
+    var setEqBody         = grab('_setEq');
+
+    if (!blankStateBody || !scoreScenarioBody || !scoreSlotsBody || !scoreStepBody || !aggregateBody || !cloneRespBody) {
+      test('Task 17: exam/scoring vm extraction succeeded', false);
+      results.errors.push('could not extract _slExamBlankState/simLabScoreScenario/_slAggregateSession for Task 17 test; check names/indenting');
+      return;
+    }
+
+    var eCtx = { window: { CURRENT_CERT: 'netplus' }, Set: Set, Object: Object, Array: Array, String: String, Date: Date };
+    vm.createContext(eCtx);
+    // _slExamBlankState calls _slIsPro() — stub it in-context (irrelevant to scoring).
+    vm.runInContext('function _slIsPro() { return true; }', eCtx);
+    vm.runInContext(blankStateBody, eCtx);
+    vm.runInContext(cloneRespBody, eCtx);
+    vm.runInContext(normBody, eCtx);
+    vm.runInContext(normalizeMatchBody, eCtx);
+    vm.runInContext(arrEqBody, eCtx);
+    vm.runInContext(setEqBody, eCtx);
+    vm.runInContext(scoreSlotsBody, eCtx);
+    vm.runInContext(scoreStepBody, eCtx);
+    vm.runInContext(scoreScenarioBody, eCtx);
+    vm.runInContext(aggregateBody, eCtx);
+    vm.runInContext('globalThis.__blank = _slExamBlankState; globalThis.__score = simLabScoreScenario; globalThis.__agg = _slAggregateSession; globalThis.__clone = _slCloneResp;', eCtx);
+    var _slExamBlankState17  = eCtx.__blank;
+    var simLabScoreScenario17 = eCtx.__score;
+    var _slAggregateSession17 = eCtx.__agg;
+    var _slCloneResp17        = eCtx.__clone;
+
+    // Round 0: ordinary (non-archetype) order-step scenario.
+    var t17Ordinary = {
+      id: 't17-ordinary-1', cert: 'netplus', topic: 'Cabling',
+      scenario: 'Order the steps to terminate a Cat6 cable.', estMinutes: 2,
+      steps: [{
+        id: 'ord1', type: 'order', prompt: 'Order the steps.', explanation: 'Standard termination order.', points: 1,
+        payload: { items: ['Strip', 'Untwist', 'Crimp'] },
+        answer: { correctOrder: ['Strip', 'Untwist', 'Crimp'] }
+      }]
+    };
+
+    // Round 1: 'diagram' archetype scenario with a configure×3 step (per-slot
+    // scoring), mirroring the Task 11 fixture shape.
+    var t17Archetype = {
+      id: 't17-archetype-1', cert: 'netplus', archetype: 'diagram', topic: 'Diagram',
+      scenario: 'Correct PC-2’s misconfigured IP settings.', estMinutes: 4,
+      assets: { reference: { kind: 'network', devices: [], given: {} } },
+      steps: [{
+        id: 'fix1', type: 'configure', prompt: 'Correct PC-2’s IP configuration.', explanation: 'PC-2 was on the wrong VLAN.', points: 1,
+        deviceId: 'pc2',
+        payload: {
+          slots: [
+            { id: 'ip', label: 'IP Address', options: [{ id: 'ip_bad', text: '192.168.20.45' }, { id: 'ip_good', text: '192.168.10.45' }] },
+            { id: 'mask', label: 'Subnet Mask', options: [{ id: 'm_good', text: '255.255.255.0' }, { id: 'm_bad', text: '255.255.0.0' }] },
+            { id: 'gateway', label: 'Gateway', options: [{ id: 'gw_good', text: '192.168.10.1' }, { id: 'gw_bad', text: '192.168.20.1' }] }
+          ]
+        },
+        answer: { slots: { ip: 'ip_good', mask: 'm_good', gateway: 'gw_good' } }
+      }]
+    };
+
+    var t17Scenarios = [t17Ordinary, t17Archetype];
+    var t17Budget = 6 * 0.9 * 60000;
+    var sess = _slExamBlankState17(t17Scenarios, t17Budget);
+
+    test('Task 17: _slExamBlankState builds a 2-round exam session containing the archetype scenario',
+      sess && sess.mode === 'exam' && sess.rounds === 2 && sess.scenarios[1].archetype === 'diagram');
+
+    // ── Flag-and-return: flag round 1 (the archetype round), navigate away to
+    // round 0, then back — mirrors _slToggleFlag + _slExamNav's capture/restore
+    // (window.__slResponses -> answers[idx] via _slCloneResp) without needing
+    // the DOM mount path, since flag state and answer capture are pure data. ──
+    sess.flagged.add(1);
+    test('Task 17: flagging round 1 (archetype round) is tracked in session.flagged',
+      sess.flagged.has(1) === true);
+
+    // Simulate answering round 1 (archetype), navigating to round 0, back to 1
+    // — answers persist across nav (the real bug this would catch: an
+    // archetype's configure response getting dropped/overwritten on flag-return).
+    sess.answers[1] = _slCloneResp17({ fix1: { slots: { ip: 'ip_good', mask: 'm_good', gateway: 'gw_good' } } });
+    sess.idx = 0;   // navigated away
+    sess.idx = 1;   // navigated back (flag-and-return)
+    test('Task 17: archetype round answer survives flag-and-return navigation',
+      sess.answers[1] && sess.answers[1].fix1 && sess.answers[1].fix1.slots.ip === 'ip_good');
+
+    // Answer round 0 (ordinary) correctly too.
+    sess.answers[0] = _slCloneResp17({ ord1: { order: ['Strip', 'Untwist', 'Crimp'] } });
+
+    test('Task 17: flagged set is preserved through submit-time (flag-and-return does not clear flags)',
+      sess.flagged.has(1) === true);
+
+    // ── Submit: mirrors _slExamSubmit's exact per-round scoring loop ──
+    sess.results = sess.scenarios.map(function (scn, i) {
+      var resp = sess.answers[i] || {};
+      var score = simLabScoreScenario17(scn, resp);
+      return { scenario: scn, score: score, passed: score.fraction === 1 };
+    });
+
+    test('Task 17: archetype round scores correct === total via simLabScoreScenario (configure per-slot all correct)',
+      sess.results[1].score.correct === 3 && sess.results[1].score.total === 3 && sess.results[1].passed === true);
+    test('Task 17: archetype round perStep reflects per-slot configure breakdown ({total,correct} for the configure step)',
+      sess.results[1].score.perStep.fix1 && sess.results[1].score.perStep.fix1.total === 3 && sess.results[1].score.perStep.fix1.correct === 3);
+    test('Task 17: ordinary round also scores correctly (both rounds correct)',
+      sess.results[0].passed === true);
+
+    var agg = _slAggregateSession17(sess.results);
+    test('Task 17: _slAggregateSession reports correct === total across the exam block (2/2 rounds passed, 4/4 steps incl. 3 configure slots)',
+      agg.passed === 2 && agg.rounds === 2 && agg.stepsCorrect === 4 && agg.stepsTotal === 4 && agg.pct === 100);
+
+    // ── Negative control: one wrong configure slot in the archetype round
+    // must NOT score correct===total and must drag the aggregate below 100%,
+    // proving the assertions above aren't vacuously true. ──
+    var sess2 = _slExamBlankState17(t17Scenarios, t17Budget);
+    sess2.answers[0] = _slCloneResp17({ ord1: { order: ['Strip', 'Untwist', 'Crimp'] } });
+    sess2.answers[1] = _slCloneResp17({ fix1: { slots: { ip: 'ip_bad', mask: 'm_good', gateway: 'gw_good' } } });
+    sess2.results = sess2.scenarios.map(function (scn, i) {
+      var resp = sess2.answers[i] || {};
+      var score = simLabScoreScenario17(scn, resp);
+      return { scenario: scn, score: score, passed: score.fraction === 1 };
+    });
+    var agg2 = _slAggregateSession17(sess2.results);
+    test('Task 17 negative control: one wrong configure slot drops the archetype round below perfect and the aggregate below 100%',
+      sess2.results[1].score.correct === 2 && sess2.results[1].passed === false &&
+      agg2.passed === 1 && agg2.stepsCorrect === 3 && agg2.stepsTotal === 4 && agg2.pct !== 100);
+
+  } catch (err) {
+    test('Task 17: exam-mode archetype smoke test (threw)', false);
+    results.errors.push('Task 17 exam-mode archetype smoke test threw: ' + err.message);
+  }
+})();
+
 // ── Summary ──
 console.log('\n' + '═'.repeat(50));
 const total = results.pass + results.fail;

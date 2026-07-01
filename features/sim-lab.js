@@ -2,7 +2,7 @@
 (function () {
   'use strict';
 
-  var STEP_TYPES = ['order', 'categorize', 'match', 'analyze', 'fillin'];
+  var STEP_TYPES = ['order', 'categorize', 'match', 'analyze', 'fillin', 'configure'];
 
   var _SL_PBQ_CERTS = ['netplus', 'secplus', 'aplus-core1', 'aplus-core2'];
 
@@ -28,6 +28,16 @@
         return Array.isArray(p.fields) && p.fields.length >= 1 &&
                a && typeof a === 'object' &&
                p.fields.every(function (f) { return typeof f.id === 'string' && f.id && Array.isArray(a[f.id]) && a[f.id].length >= 1; });
+      case 'configure':
+        return Array.isArray(p.slots) && p.slots.length >= 1 &&
+               a.slots && typeof a.slots === 'object' && !Array.isArray(a.slots) &&
+               p.slots.every(function (sl) {
+                 return _isNonEmptyStr(sl.id) && _isNonEmptyStr(sl.label) &&
+                        Array.isArray(sl.options) && sl.options.length >= 2 &&
+                        sl.options.every(function (o) { return _isNonEmptyStr(o.id) && _isNonEmptyStr(o.text); }) &&
+                        _isNonEmptyStr(a.slots[sl.id]) &&
+                        sl.options.some(function (o) { return o.id === a.slots[sl.id]; });
+               });
       default: return false;
     }
   }
@@ -51,6 +61,116 @@
         if (!_validateStepPayload(st)) errs.push('step ' + i + ': bad payload/answer for ' + st.type);
       });
     }
+    if (s.assets && s.assets.reference) {
+      var ref = s.assets.reference, kinds = ['network', 'timeline', 'layered'];
+      if (kinds.indexOf(ref.kind) === -1) errs.push('reference: bad kind');
+      else if (ref.kind === 'network' && !Array.isArray(ref.devices)) errs.push('reference network: devices[] required');
+      else if (ref.kind === 'timeline' && !Array.isArray(ref.stages)) errs.push('reference timeline: stages[] required');
+      else if (ref.kind === 'layered' && !Array.isArray(ref.layers)) errs.push('reference layered: layers[] required');
+      if (ref.kind === 'layered' && ref.layout !== undefined && ['nested', 'stacked'].indexOf(ref.layout) === -1) {
+        errs.push('reference layered: bad layout');
+      }
+    }
+    if (s.archetype !== undefined && ['diagram', 'incident', 'defense'].indexOf(s.archetype) === -1) {
+      errs.push('bad archetype');
+    }
+    return { ok: errs.length === 0, errors: errs };
+  }
+
+  // --- subnetting/CIDR fidelity validator (Task 9) ---
+  // Pure math check that a Net+ `network` reference diagram is
+  // subnetting-sound, and that a paired `configure` step's correct answer
+  // actually fixes any flagged misconfiguration in-subnet.
+  //
+  // Slot -> field convention (kept minimal): a "reconfigure" configure step
+  // carries a `deviceId` naming which device it corrects. Slot ids are
+  // literally 'ip' / 'mask' / 'gateway'; each slot's correct option (per
+  // step.answer.slots[slotId]) is resolved to its option `text`, which is
+  // the corrected value for that field. Slots the step doesn't define are
+  // simply left unchanged on the device.
+
+  function _ipToInt(ip) {
+    var parts = String(ip).split('.').map(Number);
+    return (((parts[0] << 24) | (parts[1] << 16) | (parts[2] << 8) | parts[3]) >>> 0);
+  }
+
+  function _maskToInt(mask) {
+    return _ipToInt(mask);
+  }
+
+  function _inSubnet(ip, netId, mask) {
+    var m = _maskToInt(mask);
+    return (_ipToInt(ip) & m) === (_ipToInt(netId) & m);
+  }
+
+  // Resolve a configure step's correct answer for a given slot id to the
+  // option's text (the symbolic "corrected value"), or undefined if the
+  // step has no such slot.
+  function _slFidelityResolveSlot(step, slotId) {
+    if (!step || !step.payload || !Array.isArray(step.payload.slots)) return undefined;
+    if (!step.answer || !step.answer.slots) return undefined;
+    var correctOptId = step.answer.slots[slotId];
+    if (!correctOptId) return undefined;
+    var slot = step.payload.slots.filter(function (sl) { return sl.id === slotId; })[0];
+    if (!slot || !Array.isArray(slot.options)) return undefined;
+    var opt = slot.options.filter(function (o) { return o.id === correctOptId; })[0];
+    return opt ? opt.text : undefined;
+  }
+
+  function simLabValidateNetworkFidelity(networkModel, configureStep) {
+    var errs = [];
+    if (!networkModel || networkModel.kind !== 'network' || !Array.isArray(networkModel.devices)) {
+      return { ok: false, errors: ['fidelity: not a valid network reference'] };
+    }
+
+    var given = networkModel.given || {};
+    var netId = given.networkId, mask = given.mask;
+    var seenIps = {};
+    var flaggedDeviceId = configureStep && configureStep.deviceId;
+
+    networkModel.devices.forEach(function (dev) {
+      if (!dev || !dev.ip || !dev.mask || !dev.zone) return;
+      if (seenIps[dev.ip]) errs.push('duplicate IP: ' + dev.ip + ' (' + seenIps[dev.ip] + ', ' + (dev.label || dev.id) + ')');
+      else seenIps[dev.ip] = dev.label || dev.id;
+
+      // The device targeted by the configure step is expected to be
+      // out-of-subnet pre-fix (that's the scenario's intentional misconfig
+      // to correct) — its subnet membership is asserted post-fix below, not
+      // here. All other devices must already be subnet-sound.
+      if (dev.id === flaggedDeviceId) return;
+
+      if (netId && mask) {
+        if (!_inSubnet(dev.ip, netId, mask)) {
+          errs.push((dev.label || dev.id) + ': IP ' + dev.ip + ' is out of subnet ' + netId + '/' + mask);
+        }
+        if (dev.gateway && !_inSubnet(dev.gateway, netId, mask)) {
+          errs.push((dev.label || dev.id) + ': gateway ' + dev.gateway + ' is out of subnet ' + netId + '/' + mask);
+        }
+      }
+    });
+
+    // Apply the configure step's correct answer symbolically and re-check
+    // the corrected device.
+    if (configureStep && configureStep.deviceId) {
+      var dev2 = networkModel.devices.filter(function (d) { return d.id === configureStep.deviceId; })[0];
+      if (!dev2) {
+        errs.push('fidelity: configure step deviceId "' + configureStep.deviceId + '" not found in network reference');
+      } else {
+        var correctedIp = _slFidelityResolveSlot(configureStep, 'ip') || dev2.ip;
+        var correctedMask = _slFidelityResolveSlot(configureStep, 'mask') || dev2.mask;
+        var correctedGw = _slFidelityResolveSlot(configureStep, 'gateway') || dev2.gateway;
+
+        if (netId && correctedMask) {
+          if (!_inSubnet(correctedIp, netId, correctedMask)) {
+            errs.push('corrected ' + (dev2.label || dev2.id) + ': IP ' + correctedIp + ' is still out of subnet ' + netId + '/' + correctedMask);
+          }
+          if (correctedGw && !_inSubnet(correctedGw, netId, correctedMask)) {
+            errs.push('corrected ' + (dev2.label || dev2.id) + ': gateway ' + correctedGw + ' is still out of subnet ' + netId + '/' + correctedMask);
+          }
+        }
+      }
+    }
+
     return { ok: errs.length === 0, errors: errs };
   }
 
@@ -82,6 +202,15 @@
     return _arrEq(sa, sb);
   }
 
+  function _scoreConfigureSlots(step, resp) {
+    var ans = step.answer.slots, total = 0, correct = 0;
+    Object.keys(ans).forEach(function (slotId) {
+      total++;
+      if (resp && resp.slots && resp.slots[slotId] === ans[slotId]) correct++;
+    });
+    return { total: total, correct: correct };
+  }
+
   function _scoreStep(step, resp) {
     if (!resp) return false;
     switch (step.type) {
@@ -103,18 +232,27 @@
           var given = resp && resp[f.id];
           return _simLabNormalizeMatch(given, accept); // see _simLabNormalizeMatch above
         });
+      case 'configure':
+        var _sc = _scoreConfigureSlots(step, resp);
+        return _sc.total > 0 && _sc.correct === _sc.total;
       default: return false;
     }
   }
 
   function simLabScoreScenario(scn, responses) {
-    var perStep = {}, correct = 0;
+    var perStep = {}, correct = 0, total = 0;
     scn.steps.forEach(function (st) {
-      var ok = _scoreStep(st, responses ? responses[st.id] : null);
-      perStep[st.id] = ok;
-      if (ok) correct++;
+      var resp = responses ? responses[st.id] : null;
+      if (st.type === 'configure') {
+        var sc = _scoreConfigureSlots(st, resp);
+        perStep[st.id] = sc;            // { total, correct } breakdown for configure
+        correct += sc.correct; total += sc.total;
+      } else {
+        var ok = _scoreStep(st, resp);
+        perStep[st.id] = ok;            // boolean for existing types
+        if (ok) correct++; total++;
+      }
     });
-    var total = scn.steps.length;
     return { perStep: perStep, correct: correct, total: total, fraction: total ? correct / total : 0 };
   }
 
@@ -441,6 +579,41 @@
     return root;
   }
 
+  // --- configure renderer ---
+  // Renders one native <select> per slot. Native selects are chosen deliberately:
+  // they use the platform wheel picker on iOS and are universally accessible
+  // without custom ARIA. CSS comes in Task 4; class names are locked here.
+  function _slRenderConfigure(step, onChange, initial) {
+    var resp = (initial && initial.slots && typeof initial.slots === 'object')
+      ? Object.assign({}, initial.slots)
+      : {};
+    var root = _el('div', 'sl-cfg');
+    root.appendChild(_el('p', 'sl-prompt', _esc(step.prompt)));
+    step.payload.slots.forEach(function (sl) {
+      var wrap = _el('div', 'sl-cfg-slot');
+      wrap.appendChild(_el('label', 'sl-cfg-label', _esc(sl.label)));
+      var sel = document.createElement('select');
+      sel.className = 'sl-cfg-select';
+      sel.setAttribute('data-slot', sl.id);
+      var ph = document.createElement('option');
+      ph.value = ''; ph.textContent = 'Choose…'; sel.appendChild(ph);
+      sl.options.forEach(function (o) {
+        var op = document.createElement('option');
+        op.value = o.id; op.textContent = o.text;
+        if (resp[sl.id] === o.id) { op.selected = true; }
+        sel.appendChild(op);
+      });
+      sel.addEventListener('change', function () {
+        if (sel.value) { resp[sl.id] = sel.value; } else { delete resp[sl.id]; }
+        onChange({ slots: Object.assign({}, resp) });
+      });
+      wrap.appendChild(sel);
+      root.appendChild(wrap);
+    });
+    onChange({ slots: Object.assign({}, resp) }); // report initial state
+    return root;
+  }
+
   // --- renderStep dispatcher ---
   // `initial` (optional) seeds the widget with a prior response so it re-hydrates
   // visually — used by exam free-nav to restore a saved round. Omitted in
@@ -452,8 +625,397 @@
       case 'match': return _slRenderMatch(step, onChange, initial);
       case 'analyze': return _slRenderAnalyze(step, onChange, initial);
       case 'fillin': return _slRenderFillin(step, onChange, initial);
+      case 'configure': return _slRenderConfigure(step, onChange, initial);
       default: return _el('div', 'sl-unknown', 'Unsupported step');
     }
+  }
+
+  // --- reference asset renderers (Task 5 — stubs; replaced by Tasks 6-8) ---
+
+  // Real network reference renderer (Task 6). Data-driven: the mockups supply
+  // VISUAL STYLE only; layout is computed from each device's small-int grid
+  // coords so it works for any scenario, not just the dev fixture. Read-only
+  // (no listeners). SVG is built as a string and mounted via
+  // _el('div','sl-net', svg) so it is inert and trivially assertable. The
+  // glyph map lives inside the fn so the unit is self-contained.
+  function _slRenderRefNetwork(ref) {
+    // Monoline device glyphs (lifted from mockups/diagram-pbq-concept.html;
+    // each is drawn in a ~16px box and centered on the node by the renderer).
+    // Stroke is currentColor via .sl-glyph so state overlays recolour it.
+    var _SL_NET_GLYPHS = {
+      router:   { d: 'M1 8h7m-3.5-3.5v7M10 4l5 4-5 4', w: 16, h: 16 },
+      'switch': { d: 'M5 3l-5 5 5 5M13 3l5 5-5 5',     w: 18, h: 16 },
+      server:   { d: 'M0 3h16v10H0zM0 8h16',           w: 16, h: 16 },
+      pc:       { d: 'M0 3h16v9H0zM5 16h6',            w: 16, h: 18 },
+      firewall: { d: 'M0 2h16v12H0zM0 6h16M0 10h16M5 2v4M11 2v4M3 6v4M8 6v4M13 6v4', w: 16, h: 16 },
+      box:      { d: 'M1 3h14v10H1z',                  w: 16, h: 16 }
+    };
+    var root = _el('div', 'sl-net-ref');
+    if (!ref || !Array.isArray(ref.devices)) { return root; }
+
+    var CELL_W = 150, CELL_H = 110, NODE_W = 128, NODE_H = 62, PAD = 24;
+    var ZONE_PAD = 20, ZONE_LABEL_PAD = 34;
+    var devices = ref.devices, links = Array.isArray(ref.links) ? ref.links : [];
+
+    // index by id + precompute geometry; track max extents for the viewBox
+    var byId = {}, geo = {}, maxRight = 0, maxBottom = 0, i;
+    for (i = 0; i < devices.length; i++) {
+      var d = devices[i];
+      var nx = PAD + (d.x || 0) * CELL_W;
+      var ny = PAD + (d.y || 0) * CELL_H;
+      geo[d.id] = { nx: nx, ny: ny, cx: nx + NODE_W / 2, cy: ny + NODE_H / 2 };
+      byId[d.id] = d;
+      if (nx + NODE_W > maxRight) maxRight = nx + NODE_W;
+      if (ny + NODE_H > maxBottom) maxBottom = ny + NODE_H;
+    }
+    var W = maxRight + PAD, H = maxBottom + PAD;
+
+    // zones: bounding box per distinct (truthy) zone — devices with a falsy
+    // zone (router/firewall/internet) sit outside any zone box.
+    var zoneOrder = [], zoneBox = {};
+    for (i = 0; i < devices.length; i++) {
+      var dv = devices[i];
+      if (!dv.zone) continue;
+      var zg = geo[dv.id];
+      if (!zoneBox[dv.zone]) {
+        zoneOrder.push(dv.zone);
+        zoneBox[dv.zone] = { x1: zg.nx, y1: zg.ny, x2: zg.nx + NODE_W, y2: zg.ny + NODE_H };
+      } else {
+        var zb = zoneBox[dv.zone];
+        if (zg.nx < zb.x1) zb.x1 = zg.nx;
+        if (zg.ny < zb.y1) zb.y1 = zg.ny;
+        if (zg.nx + NODE_W > zb.x2) zb.x2 = zg.nx + NODE_W;
+        if (zg.ny + NODE_H > zb.y2) zb.y2 = zg.ny + NODE_H;
+      }
+    }
+
+    var svg = [];
+    svg.push('<svg class="sl-net-svg" viewBox="0 0 ' + W + ' ' + H + '" role="img" ' +
+             'aria-label="Network diagram reference" preserveAspectRatio="xMidYMid meet">');
+    // arrow marker for attack links (lifted from incident-response mockup)
+    svg.push('<defs><marker id="sl-net-arrow" markerWidth="7" markerHeight="7" refX="5.5" refY="3" orient="auto">' +
+             '<path d="M0 0L6 3L0 6z" class="sl-net-arrowhead"/></marker></defs>');
+
+    // zones first (behind nodes)
+    for (i = 0; i < zoneOrder.length; i++) {
+      var zname = zoneOrder[i], box = zoneBox[zname];
+      var zx = box.x1 - ZONE_PAD, zy = box.y1 - ZONE_LABEL_PAD;
+      var zw = (box.x2 - box.x1) + ZONE_PAD * 2;
+      var zh = (box.y2 - box.y1) + ZONE_LABEL_PAD + ZONE_PAD;
+      svg.push('<rect class="sl-vlan-zone" x="' + zx + '" y="' + zy + '" width="' + zw +
+               '" height="' + zh + '" rx="16"/>');
+      svg.push('<text class="sl-zone-lbl" x="' + (zx + 14) + '" y="' + (zy + 20) + '">' +
+               _esc(String(zname).toUpperCase()) + '</text>');
+    }
+
+    // links (node-center to node-center)
+    for (i = 0; i < links.length; i++) {
+      var lk = links[i];
+      var a = geo[lk.from], b = geo[lk.to];
+      if (!a || !b) continue;
+      var attack = lk.kind === 'attack';
+      svg.push('<line class="sl-link' + (attack ? ' attack' : '') + '" x1="' + a.cx + '" y1="' + a.cy +
+               '" x2="' + b.cx + '" y2="' + b.cy + '"' +
+               (attack ? ' marker-end="url(#sl-net-arrow)"' : '') + '/>');
+    }
+
+    // nodes (centered-stack: rect + glyph-on-top + name/ip centered)
+    for (i = 0; i < devices.length; i++) {
+      var nd = devices[i], ng = geo[nd.id];
+      var stateCls = nd.state === 'compromised' ? ' compromised'
+                   : (nd.state === 'affected' ? ' affected' : '');
+      var gl = _SL_NET_GLYPHS[nd.type] || _SL_NET_GLYPHS.box;
+      var glX = ng.nx + (NODE_W - gl.w) / 2;
+      var cxText = ng.nx + NODE_W / 2;
+      svg.push('<g class="sl-node' + stateCls + '">');
+      svg.push('<rect class="sl-node-box" x="' + ng.nx + '" y="' + ng.ny + '" width="' + NODE_W +
+               '" height="' + NODE_H + '" rx="12"/>');
+      svg.push('<path class="sl-glyph" transform="translate(' + glX + ',' + (ng.ny + 9) + ')" d="' + gl.d + '"/>');
+      svg.push('<text class="sl-node-name" x="' + cxText + '" y="' + (ng.ny + 40) + '">' + _esc(nd.label) + '</text>');
+      if (nd.ip) {
+        svg.push('<text class="sl-node-ip" x="' + cxText + '" y="' + (ng.ny + 54) + '">' + _esc(nd.ip) + '</text>');
+      }
+      svg.push('</g>');
+    }
+
+    svg.push('</svg>');
+    root.appendChild(_el('div', 'sl-net', svg.join('')));
+
+    // optional read-only given panel + mono CLI block
+    var given = ref.given;
+    if (given) {
+      if (given.networkId || given.mask) {
+        var rows = '';
+        if (given.networkId) rows += '<div class="sl-net-row"><span class="k">Network ID</span><span class="v">' + _esc(given.networkId) + '</span></div>';
+        if (given.mask) rows += '<div class="sl-net-row"><span class="k">Subnet mask</span><span class="v">' + _esc(given.mask) + '</span></div>';
+        root.appendChild(_el('div', 'sl-net-given', rows));
+      }
+      if (Array.isArray(given.cli) && given.cli.length) {
+        var lines = [];
+        for (i = 0; i < given.cli.length; i++) lines.push(_esc(given.cli[i]));
+        root.appendChild(_el('div', 'sl-net-cli', lines.join('<br>')));
+      }
+    }
+
+    return root;
+  }
+  // Real timeline reference renderer (Task 7). Data-driven: ref.stages[] drives
+  // one .sl-stage row per entry. Faithful lift from mockups/incident-response-pbq-concept.html
+  // (.timeline / .stage / .rail / .dot / .line / .body / .when / .what / .sevtag).
+  // severity → sev-low|sev-med|sev-high|sev-crit on the stage (drives --sev token).
+  // The .sl-line connector is OMITTED on the last stage. ES5, read-only.
+  function _slRenderRefTimeline(ref) {
+    var stages = Array.isArray(ref.stages) ? ref.stages : [];
+    var rows = [];
+    for (var i = 0; i < stages.length; i++) {
+      var st = stages[i];
+      var sev = st.severity || 'low';
+      var sevCls = 'sev-' + sev;
+      var isLast = (i === stages.length - 1);
+
+      // rail: dot + optional connecting line
+      var railInner = '<span class="sl-dot"></span>' + (isLast ? '' : '<span class="sl-line"></span>');
+      var rail = '<div class="sl-rail">' + railInner + '</div>';
+
+      // body: optional time, label, severity tag
+      var whenHtml = st.time ? '<div class="sl-when">' + _esc(st.time) + '</div>' : '';
+      var whatHtml = '<div class="sl-what">' + _esc(st.label) + '</div>';
+      var tagHtml  = '<span class="sl-sevtag">' + _esc(sev) + '</span>';
+      var body = '<div class="sl-body">' + whenHtml + whatHtml + tagHtml + '</div>';
+
+      rows.push('<div class="sl-stage ' + sevCls + '">' + rail + body + '</div>');
+    }
+    return _el('div', 'sl-timeline', rows.join(''));
+  }
+  function _slRenderRefLayered(ref) {
+    // Defense-in-depth nested-frames renderer (Task 8).
+    // Layout: concentric SVG rectangles — layers[0] = outermost frame, each
+    // subsequent layer inset INSET_X px left/right/bottom and INSET_TOP px top
+    // (room for the layer label), then the core innermost. viewBox scales with
+    // layer count: outer = CORE_W + 2*INSET_X*N wide, CORE_H + (INSET_X+INSET_TOP)*N tall.
+    var layers = Array.isArray(ref.layers) ? ref.layers : [];
+    var core   = ref.core || { label: 'Core', assets: [] };
+    var assets = Array.isArray(core.assets) ? core.assets : [];
+    var N = layers.length;
+
+    var INSET_X   = 46;   // left/right/bottom inset per level
+    var INSET_TOP = 52;   // top inset (label room) per level
+    var CORE_W    = 200;  // minimum core inner width
+    var CORE_H    = 120;  // minimum core inner height
+    var RX        = 14;   // corner radius for all frames
+    var DEV_W     = 90;   // device node width
+    var DEV_H     = 42;   // device node height
+    var DEV_GAP   = 12;   // gap between device nodes
+
+    // Outer frame dimensions grow outward from the core
+    var outerW = CORE_W + 2 * INSET_X * N;
+    var outerH = CORE_H + (INSET_X + INSET_TOP) * N;
+    // Add padding around the outer frame
+    var PAD = 8;
+    var VW  = outerW + PAD * 2;
+    var VH  = outerH + PAD * 2;
+
+    var parts = [];
+
+    // Render each layer frame, outer to inner (layers[0] = outer)
+    for (var i = 0; i < N; i++) {
+      var lyr  = layers[i];
+      var depth = i; // 0 = outermost
+      var lx = PAD + INSET_X * depth;
+      var ly = PAD + INSET_TOP * depth;
+      var lw = outerW - 2 * INSET_X * depth;
+      var lh = outerH - (INSET_X + INSET_TOP) * depth;
+      var isMissing = lyr.state === 'missing';
+      var frameCls = isMissing ? 'sl-misslayer' : 'sl-layer';
+      var labelText = _esc(lyr.label) + (lyr.control ? ' — ' + _esc(lyr.control) : '');
+      var missingTag = isMissing ? ' <tspan class="sl-misslayer-tag">missing</tspan>' : '';
+      parts.push(
+        '<rect class="' + frameCls + '" x="' + lx + '" y="' + ly +
+        '" width="' + lw + '" height="' + lh + '" rx="' + RX + '"/>' +
+        '<text class="sl-layer-lbl' + (isMissing ? ' sl-layer-lbl-miss' : '') + '" x="' + (lx + 14) + '" y="' + (ly + 22) + '">' +
+        labelText + missingTag + '</text>'
+      );
+    }
+
+    // Core frame — innermost rectangle
+    var coreX = PAD + INSET_X * N;
+    var coreY = PAD + INSET_TOP * N;
+    var coreW = CORE_W;
+    var coreH = CORE_H;
+    var anyExposed = assets.some(function (a) { return a.exposed; });
+    var coreCls = anyExposed ? 'sl-core-exposed' : 'sl-core';
+    var coreLabelCls = anyExposed ? 'sl-core-lbl sl-core-lbl-exp' : 'sl-core-lbl';
+    parts.push(
+      '<rect class="' + coreCls + '" x="' + coreX + '" y="' + coreY +
+      '" width="' + coreW + '" height="' + coreH + '" rx="' + RX + '"/>' +
+      '<text class="' + coreLabelCls + '" x="' + (coreX + 10) + '" y="' + (coreY + 16) + '">' +
+      _esc(core.label) + '</text>'
+    );
+
+    // Device nodes inside the core, laid out in a row centred horizontally
+    var totalDevW = assets.length * DEV_W + (assets.length - 1) * DEV_GAP;
+    var devStartX = coreX + Math.max(0, Math.floor((coreW - totalDevW) / 2));
+    var devY = coreY + coreH - DEV_H - 10;
+    for (var j = 0; j < assets.length; j++) {
+      var ast = assets[j];
+      var dx  = devStartX + j * (DEV_W + DEV_GAP);
+      var dy  = devY;
+      var expd = ast.exposed;
+      var devBoxCls  = expd ? 'sl-dev-box sl-dev-box-exp' : 'sl-dev-box';
+      var devNameCls = expd ? 'sl-dev-nm sl-dev-nm-exp'   : 'sl-dev-nm';
+      parts.push(
+        '<g class="sl-dev' + (expd ? ' exposed' : '') + '" transform="translate(' + dx + ',' + dy + ')">' +
+        '<rect class="' + devBoxCls + '" width="' + DEV_W + '" height="' + DEV_H + '" rx="7"/>' +
+        '<text class="' + devNameCls + '" x="' + Math.floor(DEV_W / 2) + '" y="' + Math.floor(DEV_H / 2 + 5) + '">' +
+        _esc(ast.label) + '</text>' +
+        '</g>'
+      );
+    }
+
+    var svgStr =
+      '<svg class="sl-layered-svg" viewBox="0 0 ' + VW + ' ' + VH + '" xmlns="http://www.w3.org/2000/svg">' +
+      parts.join('') +
+      '</svg>';
+
+    return _el('div', 'sl-layered', svgStr);
+  }
+
+  // Defense-in-depth "stacked-bands" renderer — faithful lift of
+  // mockups/defense-in-depth-secplus-concept.html (~lines 188-209).
+  // Layout convention: layers[0] = outer PERIMETER frame (present/missing
+  // styling + name label + mono control sublabel); layers[1..] = a vertical
+  // stack of horizontal interior BANDS, top-to-bottom, each either a solid
+  // accent band (present) or a red-dashed band (missing) with a mono
+  // sublabel; core = the bottom band containing device boxes from
+  // core.assets[] (exposed → red device styling, else accent/safe).
+  function _slRenderRefLayeredStacked(ref) {
+    var layers = Array.isArray(ref.layers) ? ref.layers : [];
+    var perimeter = layers[0] || { label: 'Perimeter', state: 'present' };
+    var bands = layers.slice(1);
+    var core = ref.core || { label: 'Core', assets: [] };
+    var assets = Array.isArray(core.assets) ? core.assets : [];
+    var N = bands.length;
+
+    var VW = 560;
+    var PAD_X = 16;
+    var PERIM_TOP = 40;
+    var BAND_X = 52;
+    var BAND_W = VW - BAND_X * 2;
+    var BAND_H = 38;
+    var BAND_GAP = 10;
+    var BAND_TOP = PERIM_TOP + 60; // room for perimeter label + sublabel
+    var CORE_H_PER_ASSET = 78;
+    var CORE_TOP_GAP = 30; // room for core label above device row
+    var CORE_MARGIN_X = 68;
+    var RX_PERIM = 18;
+    var RX_BAND = 11;
+    var RX_CORE = 14;
+    var RX_DEV = 11;
+    var DEV_W = 118;
+    var DEV_H = 78;
+    var DEV_GAP = 24;
+
+    var bandsBottom = BAND_TOP + N * BAND_H + Math.max(0, N - 1) * BAND_GAP;
+    var coreTop = bandsBottom + 20;
+    var coreH = CORE_TOP_GAP + CORE_H_PER_ASSET;
+    var coreBottom = coreTop + coreH;
+    var perimBottom = coreBottom + 16;
+    var VH = perimBottom + PAD_X;
+
+    var parts = [];
+
+    // ── Perimeter frame ──
+    var perimMissing = perimeter.state === 'missing';
+    var perimFrameCls = perimMissing ? 'sl-perim-missing' : 'sl-perim';
+    var perimLblCls = perimMissing ? 'sl-perim-lbl sl-perim-lbl-miss' : 'sl-perim-lbl';
+    var perimStateTag = perimMissing ? 'missing' : 'present';
+    var perimSub = _esc(perimeter.control || '') + (perimeter.control ? ' · ' : '') + perimStateTag;
+    parts.push(
+      '<rect class="' + perimFrameCls + '" x="' + PAD_X + '" y="' + PERIM_TOP +
+      '" width="' + (VW - PAD_X * 2) + '" height="' + (perimBottom - PERIM_TOP) + '" rx="' + RX_PERIM + '"/>' +
+      '<text class="' + perimLblCls + '" x="' + (PAD_X + 22) + '" y="' + (PERIM_TOP + 24) + '">' + _esc(perimeter.label) + '</text>' +
+      '<text class="sl-perim-sub" x="' + (PAD_X + 22) + '" y="' + (PERIM_TOP + 40) + '">' + perimSub + '</text>'
+    );
+
+    // ── Perimeter device box (FW-1, WAF-1, ...) — data-driven, optional ──
+    // Faithful lift of mockups/defense-in-depth-secplus-concept.html ~line 194
+    // (`.fw` device box), anchored top-right inside the perimeter frame.
+    if (perimeter.device && perimeter.device.label) {
+      var fwW = 64, fwH = 30;
+      var fwX = VW - PAD_X - 22 - fwW;
+      var fwY = PERIM_TOP + 10;
+      parts.push(
+        '<g class="sl-fw" transform="translate(' + fwX + ',' + fwY + ')">' +
+        '<rect class="sl-fw-box" width="' + fwW + '" height="' + fwH + '" rx="8"/>' +
+        '<g class="sl-fw-glyph" transform="translate(8,8)"><path d="M2 1v12M7 1v12M0 4h13M0 9h13"/></g>' +
+        '<text class="sl-fw-nm" x="42" y="20">' + _esc(perimeter.device.label) + '</text>' +
+        '</g>'
+      );
+    }
+
+    // ── Interior bands, top→bottom ──
+    for (var i = 0; i < N; i++) {
+      var b = bands[i];
+      var isMissing = b.state === 'missing';
+      var bandCls = isMissing ? 'sl-band-missing' : 'sl-band';
+      var bandLblCls = isMissing ? 'sl-band-lbl sl-band-lbl-miss' : 'sl-band-lbl';
+      var by = BAND_TOP + i * (BAND_H + BAND_GAP);
+      var stateTag = isMissing ? 'missing' : 'present';
+      var subText = _esc(b.control || '') + (b.control ? ' — ' : '') + stateTag;
+      parts.push(
+        '<rect class="' + bandCls + '" x="' + BAND_X + '" y="' + by +
+        '" width="' + BAND_W + '" height="' + BAND_H + '" rx="' + RX_BAND + '"/>' +
+        '<text class="' + bandLblCls + '" x="' + (BAND_X + 20) + '" y="' + (by + BAND_H / 2 + 5) + '">' + _esc(b.label) + '</text>' +
+        '<text class="sl-band-sub" x="' + (BAND_X + 20 + (String(b.label || '').length * 8 + 16)) + '" y="' + (by + BAND_H / 2 + 5) + '">' + subText + '</text>'
+      );
+    }
+
+    // ── Exposed/safe core band with device boxes ──
+    var anyExposed = assets.some(function (a) { return a.exposed; });
+    var coreCls = anyExposed ? 'sl-core-exposed' : 'sl-core';
+    var coreLblCls = anyExposed ? 'sl-core-lbl sl-core-lbl-exp' : 'sl-core-lbl';
+    var coreW = VW - CORE_MARGIN_X * 2;
+    parts.push(
+      '<rect class="' + coreCls + '" x="' + CORE_MARGIN_X + '" y="' + coreTop +
+      '" width="' + coreW + '" height="' + coreH + '" rx="' + RX_CORE + '"/>' +
+      '<text class="' + coreLblCls + '" x="' + (CORE_MARGIN_X + 22) + '" y="' + (coreTop + 24) + '">' + _esc(core.label) + (anyExposed ? ' · exposed' : ' · safe') + '</text>'
+    );
+
+    var totalDevW = assets.length * DEV_W + Math.max(0, assets.length - 1) * DEV_GAP;
+    var devStartX = CORE_MARGIN_X + Math.max(0, Math.floor((coreW - totalDevW) / 2));
+    var devY = coreTop + CORE_TOP_GAP + 8;
+    for (var j = 0; j < assets.length; j++) {
+      var ast = assets[j];
+      var dx = devStartX + j * (DEV_W + DEV_GAP);
+      var expd = ast.exposed;
+      var devBoxCls = expd ? 'sl-dev-box sl-dev-box-exp' : 'sl-dev-box';
+      var devNameCls = expd ? 'sl-dev-nm sl-dev-nm-exp' : 'sl-dev-nm';
+      parts.push(
+        '<g class="sl-dev' + (expd ? ' exposed' : '') + '" transform="translate(' + dx + ',' + devY + ')">' +
+        '<rect class="' + devBoxCls + '" width="' + DEV_W + '" height="' + DEV_H + '" rx="' + RX_DEV + '"/>' +
+        '<text class="' + devNameCls + '" x="' + Math.floor(DEV_W / 2) + '" y="' + Math.floor(DEV_H / 2 + 5) + '">' +
+        _esc(ast.label) + '</text>' +
+        '</g>'
+      );
+    }
+
+    var svgStr =
+      '<svg class="sl-layered-svg" viewBox="0 0 ' + VW + ' ' + VH + '" xmlns="http://www.w3.org/2000/svg">' +
+      parts.join('') +
+      '</svg>';
+
+    return _el('div', 'sl-stacked', svgStr);
+  }
+
+  function _slRenderReference(ref) {
+    if (!ref || !ref.kind) return null;
+    var panel = _el('div', 'sl-ref');
+    if (ref.kind === 'network') panel.appendChild(_slRenderRefNetwork(ref));
+    else if (ref.kind === 'timeline') panel.appendChild(_slRenderRefTimeline(ref));
+    else if (ref.kind === 'layered') {
+      panel.appendChild(ref.layout === 'stacked' ? _slRenderRefLayeredStacked(ref) : _slRenderRefLayered(ref));
+    }
+    return panel;
   }
 
   // --- scenario orchestrator (Task 10) ---
@@ -472,6 +1034,10 @@
       var pre = _el('pre', 'sl-scn-logs');
       pre.textContent = scn.assets.logs.join('\n');
       wrap.appendChild(pre);
+    }
+    if (scn.assets && scn.assets.reference) {
+      var refPanel = _slRenderReference(scn.assets.reference);
+      if (refPanel) wrap.appendChild(refPanel);
     }
     scn.steps.forEach(function (st, i) {
       var stepWrap = _el('div', 'sl-step');
@@ -1978,6 +2544,7 @@
 
   // --- exports (more added in later tasks) ---
   window.simLabValidateScenario = simLabValidateScenario;
+  window.simLabValidateNetworkFidelity = simLabValidateNetworkFidelity;
   window.simLabScoreScenario = simLabScoreScenario;
   window.simLabSubmitScenario = simLabSubmitScenario;
   window._simLab = window._simLab || {};

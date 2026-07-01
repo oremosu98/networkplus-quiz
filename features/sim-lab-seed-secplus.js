@@ -1265,5 +1265,1098 @@ window.SIM_LAB_SEED_SECPLUS = [
         },
         answer: { pairs: { gdpr: 'deureg', rtbf: 'ddelete', sovereignty: 'dlaws', minimization: 'donlyneed', anon: 'dstrip' } } }
     ]
+  },
+
+  // ===== Sec+ Incident Response PBQ bank (Task 13, 2-agent consensus gated) =====
+  // 1. Phishing/BEC — Detection & Analysis emphasis
+  {
+    id: 'sp-ir-bec-wiretransfer', cert: 'secplus', objective: '4.8', topic: 'Incident Response',
+    title: 'BEC wire-transfer fraud', estMinutes: 5, archetype: 'incident',
+    scenario: 'The CFO\'s assistant received an email that appeared to come from the CEO, urgently requesting a same-day wire transfer to a "new vendor." The domain was one character off from the real company domain. The assistant initiated the transfer before Accounting flagged it.',
+    assets: { reference: { kind: 'timeline', stages: [
+      { id: 's1', icon: 'mail', label: 'Spoofed "CEO" email arrives requesting urgent wire transfer', time: 'T+0m', severity: 'med' },
+      { id: 's2', icon: 'search', label: 'Assistant does not verify sender domain; replies to confirm details', time: 'T+12m', severity: 'med' },
+      { id: 's3', icon: 'bank', label: 'Wire transfer of $42,000 initiated to attacker-controlled account', time: 'T+40m', severity: 'high' },
+      { id: 's4', icon: 'alert', label: 'Accounting notices the vendor was never onboarded and halts further payments', time: 'T+70m', severity: 'crit' }
+    ] } },
+    steps: [
+      { id: 't1', type: 'configure', points: 1,
+        prompt: 'Triage this incident.',
+        explanation: 'A look-alike domain plus a spoofed executive identity requesting an urgent, unverified wire transfer is the classic pattern for Business Email Compromise (BEC). Given money already left the organization, this is high severity, and the first action is to stop further loss by contacting the bank and freezing the transaction where possible.',
+        payload: { slots: [
+          { id: 'sev', label: 'Severity', options: [
+            { id: 'low', text: 'Low' }, { id: 'med', text: 'Medium' },
+            { id: 'high', text: 'High' }, { id: 'crit', text: 'Critical' }
+          ] },
+          { id: 'first', label: 'First containment action', options: [
+            { id: 'bank', text: 'Contact the bank to attempt to recall or freeze the wire transfer' },
+            { id: 'reset', text: 'Reset the CFO assistant\'s email password' },
+            { id: 'block', text: 'Block the sender domain at the email gateway' },
+            { id: 'train', text: 'Schedule phishing-awareness training for Accounting' }
+          ] }
+        ] },
+        answer: { slots: { sev: 'high', first: 'bank' } } },
+      { id: 'o1', type: 'order', points: 1,
+        prompt: 'Order the response steps.',
+        explanation: 'NIST SP 800-61 sequencing: contain the financial loss (bank), then eradicate the vector (block spoofed domain), then recover (verify no other fraudulent payments) before lessons learned (payment-verification procedure).',
+        payload: { items: [
+          { id: 'a', label: 'Contact the bank to attempt to recall the wire transfer' },
+          { id: 'b', label: 'Block the look-alike domain at the email gateway' },
+          { id: 'c', label: 'Audit recent outgoing payments for other fraudulent transfers' },
+          { id: 'd', label: 'Implement a call-back verification policy for wire requests' }
+        ] },
+        answer: { correctOrder: ['a', 'b', 'c', 'd'] } }
+    ]
+  },
+
+  // 2. Ransomware — Containment emphasis
+  {
+    id: 'sp-ir-ransomware-fileserver', cert: 'secplus', objective: '4.8', topic: 'Incident Response',
+    title: 'Ransomware on the file server', estMinutes: 5, archetype: 'incident',
+    scenario: 'Employees report they can no longer open shared documents. File names on SRV-FILE now end in ".locked" and a ransom note appears in every folder. The backup server on the same VLAN is also showing signs of encryption activity.',
+    assets: { reference: { kind: 'timeline', stages: [
+      { id: 's1', icon: 'lock', label: 'Users report shared files renamed with .locked extension', time: 'T+0m', severity: 'high' },
+      { id: 's2', icon: 'note', label: 'Ransom note found in every network share', time: 'T+5m', severity: 'crit' },
+      { id: 's3', icon: 'disk', label: 'Backup server on the same VLAN shows encryption activity starting', time: 'T+9m', severity: 'crit' }
+    ] } },
+    steps: [
+      { id: 't1', type: 'configure', points: 1,
+        prompt: 'Triage this incident.',
+        explanation: 'Active ransomware spreading to the backup server is a critical incident — it threatens both production data and recovery capability. The first action must be to isolate the affected segment from the network to stop the encryption from spreading further, before any eradication or recovery work begins.',
+        payload: { slots: [
+          { id: 'sev', label: 'Severity', options: [
+            { id: 'low', text: 'Low' }, { id: 'med', text: 'Medium' },
+            { id: 'high', text: 'High' }, { id: 'crit', text: 'Critical' }
+          ] },
+          { id: 'first', label: 'First containment action', options: [
+            { id: 'isolate', text: 'Isolate SRV-FILE and the backup server from the network' },
+            { id: 'restore', text: 'Immediately restore SRV-FILE from the most recent backup' },
+            { id: 'pay', text: 'Pay the ransom to get the decryption key' },
+            { id: 'patch', text: 'Patch SRV-FILE\'s operating system' }
+          ] }
+        ] },
+        answer: { slots: { sev: 'crit', first: 'isolate' } } },
+      { id: 'o1', type: 'order', points: 1,
+        prompt: 'Order the response steps.',
+        explanation: 'Isolate first to stop the spread, then eradicate the ransomware binary/persistence, then recover from a verified clean, offline backup, and finally document lessons learned (e.g., segmenting backups, tightening RDP/exposed services).',
+        payload: { items: [
+          { id: 'a', label: 'Isolate the affected servers from the network' },
+          { id: 'b', label: 'Identify and remove the ransomware and any persistence mechanisms' },
+          { id: 'c', label: 'Restore data from a verified offline/immutable backup' },
+          { id: 'd', label: 'Document the incident and segment backups from production' }
+        ] },
+        answer: { correctOrder: ['a', 'b', 'c', 'd'] } }
+    ]
+  },
+
+  // 3. DDoS — Preparation/Detection emphasis
+  {
+    id: 'sp-ir-ddos-webstore', cert: 'secplus', objective: '4.8', topic: 'Incident Response',
+    title: 'Volumetric DDoS against the storefront', estMinutes: 4, archetype: 'incident',
+    scenario: 'The e-commerce site becomes unreachable. Monitoring shows inbound traffic spiking to 40x baseline from thousands of distinct source IPs, all hitting the homepage with identical GET requests. No unusual database queries or file changes are observed.',
+    assets: { reference: { kind: 'timeline', stages: [
+      { id: 's1', icon: 'chart', label: 'Inbound traffic spikes to 40x normal baseline', time: 'T+0m', severity: 'high' },
+      { id: 's2', icon: 'globe', label: 'Thousands of distinct source IPs send identical GET requests', time: 'T+2m', severity: 'high' },
+      { id: 's3', icon: 'down', label: 'Web servers become unresponsive; legitimate customers cannot check out', time: 'T+6m', severity: 'crit' }
+    ] } },
+    steps: [
+      { id: 't1', type: 'configure', points: 1,
+        prompt: 'Triage this incident.',
+        explanation: 'A volumetric flood from many distinct IPs with no data compromise is a distributed denial-of-service attack against availability. Because the storefront is fully down, this is critical. The first action is to engage upstream DDoS mitigation (scrubbing/rate limiting via the CDN or ISP), not to patch or investigate individual hosts.',
+        payload: { slots: [
+          { id: 'sev', label: 'Severity', options: [
+            { id: 'low', text: 'Low' }, { id: 'med', text: 'Medium' },
+            { id: 'high', text: 'High' }, { id: 'crit', text: 'Critical' }
+          ] },
+          { id: 'first', label: 'First containment action', options: [
+            { id: 'scrub', text: 'Enable upstream DDoS scrubbing / rate limiting via the CDN or ISP' },
+            { id: 'reboot', text: 'Reboot the web servers' },
+            { id: 'patch', text: 'Patch the web application for SQL injection' },
+            { id: 'forensics', text: 'Begin a full disk forensic image of the database server' }
+          ] }
+        ] },
+        answer: { slots: { sev: 'crit', first: 'scrub' } } },
+      { id: 'o1', type: 'order', points: 1,
+        prompt: 'Order the response steps.',
+        explanation: 'Contain by engaging upstream mitigation, eradicate by blackholing/blocking the worst offending sources, recover by confirming normal service, then apply lessons learned by adding a standing DDoS mitigation contract or capacity plan.',
+        payload: { items: [
+          { id: 'a', label: 'Engage upstream DDoS scrubbing / rate limiting' },
+          { id: 'b', label: 'Block or blackhole the highest-volume offending source ranges' },
+          { id: 'c', label: 'Confirm the storefront is reachable and responsive again' },
+          { id: 'd', label: 'Establish a standing DDoS mitigation service and capacity plan' }
+        ] },
+        answer: { correctOrder: ['a', 'b', 'c', 'd'] } }
+    ]
+  },
+
+  // 4. Insider threat — Lessons learned emphasis, network reference
+  {
+    id: 'sp-ir-insider-exfil', cert: 'secplus', objective: '4.8', topic: 'Incident Response',
+    title: 'Departing employee data theft', estMinutes: 5, archetype: 'incident',
+    scenario: 'A sales engineer submitted their resignation this morning. DLP logs show that last night, from their laptop, the entire customer contract repository was copied to a personal USB drive and uploaded to a personal cloud storage account.',
+    assets: { reference: { kind: 'network', devices: [
+      { id: 'lap', label: 'SE-LAPTOP', type: 'workstation', zone: 'internal', x: 60, y: 90, state: 'compromised' },
+      { id: 'usb', label: 'USB Drive', type: 'device', zone: 'internal', x: 220, y: 90, state: 'affected' },
+      { id: 'fs', label: 'CONTRACTS-SHARE', type: 'server', zone: 'internal', x: 60, y: 170, state: 'affected' },
+      { id: 'cloud', label: 'Personal Cloud', type: 'external', zone: 'external', x: 400, y: 90, state: 'clean' }
+    ], links: [
+      { from: 'fs', to: 'lap', kind: 'attack' },
+      { from: 'lap', to: 'usb', kind: 'attack' },
+      { from: 'lap', to: 'cloud', kind: 'attack' }
+    ] } },
+    steps: [
+      { id: 't1', type: 'configure', points: 1,
+        prompt: 'Triage this incident.',
+        explanation: 'A trusted insider exfiltrating an entire contract repository to personal storage right before departure is a high-severity insider threat and data-loss event. The first action is to immediately suspend the employee\'s account and access to prevent further exfiltration, before any conversation or investigation continues.',
+        payload: { slots: [
+          { id: 'sev', label: 'Severity', options: [
+            { id: 'low', text: 'Low' }, { id: 'med', text: 'Medium' },
+            { id: 'high', text: 'High' }, { id: 'crit', text: 'Critical' }
+          ] },
+          { id: 'first', label: 'First containment action', options: [
+            { id: 'suspend', text: 'Immediately suspend the employee\'s account and remote access' },
+            { id: 'confront', text: 'Have the employee\'s manager ask them about the USB drive' },
+            { id: 'wipe', text: 'Remote-wipe the laptop without preserving evidence' },
+            { id: 'ignore', text: 'Wait until the employee\'s last day to review the logs' }
+          ] }
+        ] },
+        answer: { slots: { sev: 'high', first: 'suspend' } } },
+      { id: 'o1', type: 'order', points: 1,
+        prompt: 'Order the response steps.',
+        explanation: 'Contain by cutting off access, preserve evidence (forensic image) before eradicating anything, involve HR/Legal for the personnel and possible legal action, then update DLP/offboarding policy as the lessons-learned output.',
+        payload: { items: [
+          { id: 'a', label: 'Suspend account access and revoke remote/VPN sessions' },
+          { id: 'b', label: 'Forensically preserve the laptop and DLP logs as evidence' },
+          { id: 'c', label: 'Loop in HR and Legal regarding the data theft' },
+          { id: 'd', label: 'Update the offboarding checklist and DLP policy' }
+        ] },
+        answer: { correctOrder: ['a', 'b', 'c', 'd'] } }
+    ]
+  },
+
+  // 5. Malware/C2 beacon — Detection & Analysis emphasis
+  {
+    id: 'sp-ir-c2-beacon', cert: 'secplus', objective: '4.9', topic: 'Incident Response',
+    title: 'Beaconing workstation', estMinutes: 4, archetype: 'incident',
+    scenario: 'The SIEM flags a workstation making a DNS query to a newly registered domain every 60 seconds, each time exchanging a small, consistent amount of data. No user is logged in overnight when the beaconing continues.',
+    assets: { reference: { kind: 'timeline', stages: [
+      { id: 's1', icon: 'radio', label: 'SIEM detects periodic DNS queries to a newly registered domain every 60s', time: 'T+0m', severity: 'med' },
+      { id: 's2', icon: 'moon', label: 'Beaconing continues overnight with no user logged in', time: 'T+8h', severity: 'high' },
+      { id: 's3', icon: 'data', label: 'Small, consistent data exchange on each beacon suggests command-and-control', time: 'T+8h5m', severity: 'high' }
+    ] } },
+    steps: [
+      { id: 't1', type: 'configure', points: 1,
+        prompt: 'Triage this incident.',
+        explanation: 'Regular, low-and-slow beaconing to a newly registered domain with no user activity is a textbook command-and-control (C2) indicator. This is high severity because an attacker likely has a foothold. The first action is to isolate the host from the network to cut off the C2 channel while preserving it for analysis.',
+        payload: { slots: [
+          { id: 'sev', label: 'Severity', options: [
+            { id: 'low', text: 'Low' }, { id: 'med', text: 'Medium' },
+            { id: 'high', text: 'High' }, { id: 'crit', text: 'Critical' }
+          ] },
+          { id: 'first', label: 'First containment action', options: [
+            { id: 'isolate', text: 'Isolate the workstation from the network (keep it powered on)' },
+            { id: 'poweroff', text: 'Power off the workstation immediately' },
+            { id: 'ignore', text: 'Whitelist the domain since it may be a false positive' },
+            { id: 'reimage', text: 'Reimage the workstation right away' }
+          ] }
+        ] },
+        answer: { slots: { sev: 'high', first: 'isolate' } } },
+      { id: 'o1', type: 'order', points: 1,
+        prompt: 'Order the response steps.',
+        explanation: 'Isolate to stop further C2 traffic while preserving volatile memory for analysis, analyze/eradicate the malware once identified, recover by reimaging or verifying clean, then feed the C2 domain into blocklists as lessons learned.',
+        payload: { items: [
+          { id: 'a', label: 'Isolate the host from the network without powering it off' },
+          { id: 'b', label: 'Capture memory and identify the malware and its persistence mechanism' },
+          { id: 'c', label: 'Reimage the host and restore from a known-good state' },
+          { id: 'd', label: 'Add the C2 domain to threat intel blocklists' }
+        ] },
+        answer: { correctOrder: ['a', 'b', 'c', 'd'] } }
+    ]
+  },
+
+  // 6. Web app attack — SQLi — Detection & Analysis emphasis
+  {
+    id: 'sp-ir-sqli-customerdb', cert: 'secplus', objective: '4.8', topic: 'Incident Response',
+    title: 'SQL injection against the customer portal', estMinutes: 5, archetype: 'incident',
+    scenario: 'WAF logs show a login form receiving requests with payloads like `\' OR 1=1--`. Shortly after, the database server logs an unusually large SELECT query returning the entire customers table, executed under the web application\'s service account.',
+    assets: { reference: { kind: 'network', devices: [
+      { id: 'atk', label: 'Attacker', type: 'external', zone: 'external', x: 40, y: 90, state: 'clean' },
+      { id: 'waf', label: 'WAF', type: 'firewall', zone: 'dmz', x: 200, y: 90, state: 'clean' },
+      { id: 'web', label: 'WEB-PORTAL', type: 'server', zone: 'dmz', x: 340, y: 90, state: 'affected' },
+      { id: 'db', label: 'CUSTOMER-DB', type: 'database', zone: 'internal', x: 480, y: 90, state: 'compromised' }
+    ], links: [
+      { from: 'atk', to: 'waf', kind: 'attack' },
+      { from: 'waf', to: 'web', kind: 'attack' },
+      { from: 'web', to: 'db', kind: 'attack' }
+    ] } },
+    steps: [
+      { id: 't1', type: 'configure', points: 1,
+        prompt: 'Triage this incident.',
+        explanation: 'A classic SQL injection payload followed by a bulk SELECT that dumped the entire customers table is a critical confirmed data breach. The first action is to take the vulnerable login form/endpoint offline (or block it at the WAF) to stop further injection while the application is fixed.',
+        payload: { slots: [
+          { id: 'sev', label: 'Severity', options: [
+            { id: 'low', text: 'Low' }, { id: 'med', text: 'Medium' },
+            { id: 'high', text: 'High' }, { id: 'crit', text: 'Critical' }
+          ] },
+          { id: 'first', label: 'First containment action', options: [
+            { id: 'block', text: 'Block the vulnerable endpoint at the WAF and take it offline' },
+            { id: 'rotate', text: 'Rotate all customer passwords immediately without investigating' },
+            { id: 'ignore', text: 'Monitor the endpoint for a few more days to gather evidence' },
+            { id: 'delete', text: 'Delete the WAF logs to reduce noise' }
+          ] }
+        ] },
+        answer: { slots: { sev: 'crit', first: 'block' } } },
+      { id: 'o1', type: 'order', points: 1,
+        prompt: 'Order the response steps.',
+        explanation: 'Contain by blocking the vulnerable endpoint, eradicate by patching the injection flaw (parameterized queries), recover by restoring the service and rotating exposed credentials, then notify affected customers/regulators as required and document lessons learned.',
+        payload: { items: [
+          { id: 'a', label: 'Block the vulnerable endpoint at the WAF' },
+          { id: 'b', label: 'Patch the application to use parameterized queries' },
+          { id: 'c', label: 'Rotate database credentials and restore the service' },
+          { id: 'd', label: 'Notify affected customers per breach-notification requirements' }
+        ] },
+        answer: { correctOrder: ['a', 'b', 'c', 'd'] } }
+    ]
+  },
+
+  // 7. Web app attack — XSS — Eradication emphasis
+  {
+    id: 'sp-ir-xss-comments', cert: 'secplus', objective: '4.8', topic: 'Incident Response',
+    title: 'Stored XSS harvesting session cookies', estMinutes: 4, archetype: 'incident',
+    scenario: 'A support forum\'s comment field was found to store `<script>` tags that quietly send visiting users\' session cookies to an external server. Several customer accounts have since shown logins from unfamiliar locations.',
+    assets: { reference: { kind: 'timeline', stages: [
+      { id: 's1', icon: 'code', label: 'Malicious script stored in a public comment field', time: 'T-3d', severity: 'med' },
+      { id: 's2', icon: 'cookie', label: 'Script silently exfiltrates visiting users\' session cookies', time: 'T-2d', severity: 'high' },
+      { id: 's3', icon: 'login', label: 'Multiple customer accounts show logins from unfamiliar locations', time: 'T+0m', severity: 'crit' }
+    ] } },
+    steps: [
+      { id: 't1', type: 'configure', points: 1,
+        prompt: 'Triage this incident.',
+        explanation: 'Stored XSS that has already led to session hijacking and unauthorized account access across multiple customers is a critical, active incident. The first action is to remove the malicious comment content and invalidate the stolen sessions so the attacker loses access even before the underlying flaw is patched.',
+        payload: { slots: [
+          { id: 'sev', label: 'Severity', options: [
+            { id: 'low', text: 'Low' }, { id: 'med', text: 'Medium' },
+            { id: 'high', text: 'High' }, { id: 'crit', text: 'Critical' }
+          ] },
+          { id: 'first', label: 'First containment action', options: [
+            { id: 'purge', text: 'Remove the malicious comment content and invalidate active sessions' },
+            { id: 'shutdown', text: 'Permanently shut down the forum feature' },
+            { id: 'ignore', text: 'Ask affected users to clear their browser cache' },
+            { id: 'wait', text: 'Wait for the next scheduled maintenance window to fix it' }
+          ] }
+        ] },
+        answer: { slots: { sev: 'crit', first: 'purge' } } },
+      { id: 'o1', type: 'order', points: 1,
+        prompt: 'Order the response steps.',
+        explanation: 'Contain by purging the payload and killing active sessions, eradicate the root cause by adding output encoding/CSP so injected scripts cannot execute, recover by having affected users re-authenticate, then document input-validation lessons learned.',
+        payload: { items: [
+          { id: 'a', label: 'Remove the malicious script and invalidate stolen sessions' },
+          { id: 'b', label: 'Add output encoding and a Content Security Policy to the comment field' },
+          { id: 'c', label: 'Force affected users to re-authenticate and reset passwords' },
+          { id: 'd', label: 'Add input-validation testing to the secure development lifecycle' }
+        ] },
+        answer: { correctOrder: ['a', 'b', 'c', 'd'] } }
+    ]
+  },
+
+  // 8. Credential stuffing / brute force — Forensics & Investigations (data-source selection, chain of custody)
+  {
+    id: 'sp-ir-credstuffing-login', cert: 'secplus', objective: '4.9', topic: 'Forensics & Investigations',
+    title: 'Credential stuffing against the customer login — evidence handling', estMinutes: 4, archetype: 'incident',
+    scenario: 'Tens of thousands of login attempts hit the customer login in an hour, using username/password pairs matching a recently leaked third-party breach dump. About 3% succeed. Legal has asked the security team to determine which requests came from which source IPs and to preserve evidence in case law enforcement gets involved.',
+    assets: { reference: { kind: 'timeline', stages: [
+      { id: 's1', icon: 'list', label: 'Tens of thousands of login attempts in one hour using leaked breach-dump credentials', time: 'T+0m', severity: 'med' },
+      { id: 's2', icon: 'unlock', label: 'About 3% of attempts succeed (password reuse)', time: 'T+35m', severity: 'high' },
+      { id: 's3', icon: 'key', label: 'Successful logins immediately followed by password-reset requests', time: 'T+36m', severity: 'high' }
+    ] } },
+    steps: [
+      { id: 't1', type: 'configure', points: 1,
+        prompt: 'Select the investigation approach.',
+        explanation: 'The application/authentication log is the correct data source here — it records username, source IP, timestamp, and outcome for every login attempt, which is exactly what\'s needed to correlate the attack pattern to specific accounts and sources. Once evidence is identified for a legal hold, the exported log data must be hashed at collection time so its integrity can be proven later; this is the starting point of chain of custody, not an optional extra step.',
+        payload: { slots: [
+          { id: 'source', label: 'Best data source to correlate attempts to accounts/IPs', options: [
+            { id: 'authlog', text: 'Authentication/application logs (username, source IP, timestamp, outcome)' },
+            { id: 'dnslog', text: 'DNS resolver query logs' },
+            { id: 'netflow', text: 'NetFlow summary records only' },
+            { id: 'antivirus', text: 'Endpoint antivirus logs' }
+          ] },
+          { id: 'first', label: 'First evidence-handling action', options: [
+            { id: 'hash', text: 'Export the relevant log data and generate a cryptographic hash of it' },
+            { id: 'editlogs', text: 'Edit the log file to remove unrelated entries before saving it' },
+            { id: 'emailself', text: 'Email the raw log file to your personal account for safekeeping' },
+            { id: 'deleteold', text: 'Delete older log entries to keep the file size manageable' }
+          ] }
+        ] },
+        answer: { slots: { source: 'authlog', first: 'hash' } } },
+      { id: 'o1', type: 'order', points: 1,
+        prompt: 'Order the evidence-handling steps to preserve a defensible chain of custody.',
+        explanation: 'Proper evidence handling: identify and collect the relevant log source first, hash it immediately at collection to prove integrity, document who collected it and when on a chain-of-custody form, then store the original in a access-controlled, tamper-evident location and work only from a copy going forward.',
+        payload: { items: [
+          { id: 'a', label: 'Identify and export the relevant authentication log records' },
+          { id: 'b', label: 'Generate a cryptographic hash of the exported log data' },
+          { id: 'c', label: 'Complete a chain-of-custody form documenting collector, time, and hash' },
+          { id: 'd', label: 'Store the original in a secured, access-controlled location and analyze only a copy' }
+        ] },
+        answer: { correctOrder: ['a', 'b', 'c', 'd'] } }
+    ]
+  },
+
+  // 9. Data exfiltration — Recovery emphasis
+  {
+    id: 'sp-ir-exfil-cloudstorage', cert: 'secplus', objective: '4.8', topic: 'Incident Response',
+    title: 'Large outbound transfer to unknown cloud storage', estMinutes: 5, archetype: 'incident',
+    scenario: 'DLP alerts on a database server sending 15GB to an unfamiliar cloud storage IP over HTTPS at 3am, well outside the nightly backup window. The transfer used credentials belonging to a service account that should only ever run internal batch jobs.',
+    assets: { reference: { kind: 'network', devices: [
+      { id: 'db', label: 'DB-PROD', type: 'database', zone: 'internal', x: 60, y: 90, state: 'compromised' },
+      { id: 'fw', label: 'FW-EDGE', type: 'firewall', zone: 'dmz', x: 240, y: 90, state: 'clean' },
+      { id: 'ext', label: 'Unknown Cloud Storage', type: 'external', zone: 'external', x: 420, y: 90, state: 'clean' }
+    ], links: [
+      { from: 'db', to: 'fw', kind: 'attack' },
+      { from: 'fw', to: 'ext', kind: 'attack' }
+    ] } },
+    steps: [
+      { id: 't1', type: 'configure', points: 1,
+        prompt: 'Triage this incident.',
+        explanation: 'A production database sending 15GB to unrecognized external cloud storage at an abnormal hour, using a service account outside its normal behavior, is a critical data-exfiltration event. The first action is to block outbound traffic to that destination and disable the misused service account to stop the ongoing transfer.',
+        payload: { slots: [
+          { id: 'sev', label: 'Severity', options: [
+            { id: 'low', text: 'Low' }, { id: 'med', text: 'Medium' },
+            { id: 'high', text: 'High' }, { id: 'crit', text: 'Critical' }
+          ] },
+          { id: 'first', label: 'First containment action', options: [
+            { id: 'blockeg', text: 'Block outbound traffic to the destination and disable the service account' },
+            { id: 'restart', text: 'Restart the database service' },
+            { id: 'ignorelog', text: 'Note it for the weekly security review' },
+            { id: 'grantmore', text: 'Grant the service account broader access to investigate' }
+          ] }
+        ] },
+        answer: { slots: { sev: 'crit', first: 'blockeg' } } },
+      { id: 'o1', type: 'order', points: 1,
+        prompt: 'Order the response steps.',
+        explanation: 'Contain by cutting the egress path and disabling the compromised credential, eradicate by finding how the credential was obtained (e.g., leaked key) and rotating it, recover by verifying database integrity and restoring least-privilege scope, then tighten egress filtering and DLP rules as lessons learned.',
+        payload: { items: [
+          { id: 'a', label: 'Block the outbound destination and disable the service account' },
+          { id: 'b', label: 'Determine how the credential was compromised and rotate it' },
+          { id: 'c', label: 'Verify database integrity and restore least-privilege scope' },
+          { id: 'd', label: 'Tighten egress filtering and DLP rules for service accounts' }
+        ] },
+        answer: { correctOrder: ['a', 'b', 'c', 'd'] } }
+    ]
+  },
+
+  // 10. Supply-chain — Preparation/Detection emphasis
+  {
+    id: 'sp-ir-supplychain-update', cert: 'secplus', objective: '4.8', topic: 'Incident Response',
+    title: 'Malicious vendor software update', estMinutes: 5, archetype: 'incident',
+    scenario: 'A routine update from a trusted network-monitoring vendor was pushed to 200 endpoints overnight. The next morning, EDR flags that the updated binary is contacting a command-and-control server not associated with the vendor at all.',
+    assets: { reference: { kind: 'timeline', stages: [
+      { id: 's1', icon: 'download', label: 'Trusted vendor pushes a routine software update to 200 endpoints', time: 'T-8h', severity: 'low' },
+      { id: 's2', icon: 'shield', label: 'EDR flags the updated binary contacting an unrecognized external server', time: 'T+0m', severity: 'crit' },
+      { id: 's3', icon: 'network', label: 'The same binary is now present across all 200 endpoints', time: 'T+0m', severity: 'crit' }
+    ] } },
+    steps: [
+      { id: 't1', type: 'configure', points: 1,
+        prompt: 'Triage this incident.',
+        explanation: 'A trusted vendor\'s update binary calling out to a server unrelated to that vendor, and already present across 200 machines, is a critical supply-chain compromise — the blast radius is organization-wide. The first action is to halt/roll back the update and block the malicious binary\'s network communication across all affected endpoints.',
+        payload: { slots: [
+          { id: 'sev', label: 'Severity', options: [
+            { id: 'low', text: 'Low' }, { id: 'med', text: 'Medium' },
+            { id: 'high', text: 'High' }, { id: 'crit', text: 'Critical' }
+          ] },
+          { id: 'first', label: 'First containment action', options: [
+            { id: 'rollback', text: 'Roll back the update and block the malicious binary\'s network access org-wide' },
+            { id: 'trustvendor', text: 'Contact the vendor and wait for their guidance before acting' },
+            { id: 'onehost', text: 'Isolate only the one endpoint that triggered the alert' },
+            { id: 'reinstall', text: 'Reinstall the vendor software on all endpoints' }
+          ] }
+        ] },
+        answer: { slots: { sev: 'crit', first: 'rollback' } } },
+      { id: 'o1', type: 'order', points: 1,
+        prompt: 'Order the response steps.',
+        explanation: 'Contain by rolling back the compromised update and blocking its C2 traffic fleet-wide, eradicate by removing the malicious binary from every endpoint, recover by validating a clean vendor build before redeploying, then add software supply-chain vetting (code signing verification, staged rollout) as lessons learned.',
+        payload: { items: [
+          { id: 'a', label: 'Roll back the update and block the malicious binary\'s C2 traffic fleet-wide' },
+          { id: 'b', label: 'Remove the malicious binary from all 200 endpoints' },
+          { id: 'c', label: 'Validate a clean vendor build before redeploying' },
+          { id: 'd', label: 'Add staged rollout and code-signing verification for vendor updates' }
+        ] },
+        answer: { correctOrder: ['a', 'b', 'c', 'd'] } }
+    ]
+  },
+
+  // 11. On-path / MITM — Detection & Analysis emphasis, network reference
+  {
+    id: 'sp-ir-onpath-conference', cert: 'secplus', objective: '4.8', topic: 'Incident Response',
+    title: 'On-path attack at the branch office', estMinutes: 5, archetype: 'incident',
+    scenario: 'Staff at a branch office report certificate warnings when reaching internal HR systems. Network captures show ARP tables listing a rogue laptop as the default gateway MAC address, and its traffic is being relayed on to the real gateway after being decrypted and re-encrypted.',
+    assets: { reference: { kind: 'network', devices: [
+      { id: 'wks', label: 'BRANCH-WKS', type: 'workstation', zone: 'internal', x: 40, y: 90, state: 'affected' },
+      { id: 'rogue', label: 'Rogue Laptop', type: 'attacker', zone: 'internal', x: 200, y: 150, state: 'compromised' },
+      { id: 'gw', label: 'GW-BRANCH', type: 'router', zone: 'internal', x: 360, y: 90, state: 'clean' },
+      { id: 'hr', label: 'HR-APP', type: 'server', zone: 'internal', x: 500, y: 90, state: 'clean' }
+    ], links: [
+      { from: 'wks', to: 'rogue', kind: 'attack' },
+      { from: 'rogue', to: 'gw', kind: 'attack' },
+      { from: 'gw', to: 'hr', kind: 'normal' }
+    ] } },
+    steps: [
+      { id: 't1', type: 'configure', points: 1,
+        prompt: 'Triage this incident.',
+        explanation: 'ARP spoofing that places a rogue device between clients and the real gateway, decrypting and re-encrypting traffic in transit, is a classic on-path (man-in-the-middle) attack capable of harvesting HR credentials. This is high severity given sensitive HR data is exposed. The first action is to physically or logically remove the rogue device from the network.',
+        payload: { slots: [
+          { id: 'sev', label: 'Severity', options: [
+            { id: 'low', text: 'Low' }, { id: 'med', text: 'Medium' },
+            { id: 'high', text: 'High' }, { id: 'crit', text: 'Critical' }
+          ] },
+          { id: 'first', label: 'First containment action', options: [
+            { id: 'removerogue', text: 'Disconnect the rogue laptop from the network' },
+            { id: 'ignorecerts', text: 'Tell users to click through the certificate warnings' },
+            { id: 'reboot', text: 'Reboot the branch gateway router' },
+            { id: 'patchhr', text: 'Patch the HR application server' }
+          ] }
+        ] },
+        answer: { slots: { sev: 'high', first: 'removerogue' } } },
+      { id: 'o1', type: 'order', points: 1,
+        prompt: 'Order the response steps.',
+        explanation: 'Contain by removing the rogue device, eradicate by clearing poisoned ARP tables and confirming no other rogue devices exist, recover by having affected users change passwords entered during the attack, then add dynamic ARP inspection / 802.1X port security as lessons learned.',
+        payload: { items: [
+          { id: 'a', label: 'Disconnect the rogue laptop from the network' },
+          { id: 'b', label: 'Clear poisoned ARP tables and sweep for other rogue devices' },
+          { id: 'c', label: 'Have affected users change passwords entered during the attack' },
+          { id: 'd', label: 'Enable dynamic ARP inspection and 802.1X port security' }
+        ] },
+        answer: { correctOrder: ['a', 'b', 'c', 'd'] } }
+    ]
+  },
+
+  // 12. DNS poisoning — Containment emphasis
+  {
+    id: 'sp-ir-dns-poison-portal', cert: 'secplus', objective: '4.8', topic: 'Incident Response',
+    title: 'DNS cache poisoning redirects the employee portal', estMinutes: 4, archetype: 'incident',
+    scenario: 'Employees typing the internal HR portal URL are landing on a convincing fake login page that harvests credentials. The internal DNS resolver\'s cache shows the portal\'s hostname now resolves to an external IP address that was never configured by IT.',
+    assets: { reference: { kind: 'timeline', stages: [
+      { id: 's1', icon: 'dns', label: 'Internal DNS resolver cache shows the portal hostname resolving to an unfamiliar external IP', time: 'T+0m', severity: 'high' },
+      { id: 's2', icon: 'globe', label: 'Employees are silently redirected to a fake login page', time: 'T+3m', severity: 'high' },
+      { id: 's3', icon: 'key', label: 'Several employees have already entered their credentials on the fake page', time: 'T+15m', severity: 'crit' }
+    ] } },
+    steps: [
+      { id: 't1', type: 'configure', points: 1,
+        prompt: 'Triage this incident.',
+        explanation: 'A poisoned DNS cache silently redirecting employees to a credential-harvesting page, with credentials already captured, is a critical incident. The first action is to flush the poisoned DNS cache and correct the record so users stop being redirected before any further credentials are stolen.',
+        payload: { slots: [
+          { id: 'sev', label: 'Severity', options: [
+            { id: 'low', text: 'Low' }, { id: 'med', text: 'Medium' },
+            { id: 'high', text: 'High' }, { id: 'crit', text: 'Critical' }
+          ] },
+          { id: 'first', label: 'First containment action', options: [
+            { id: 'flush', text: 'Flush the poisoned DNS cache and correct the record' },
+            { id: 'shutdownportal', text: 'Permanently decommission the HR portal' },
+            { id: 'emailall', text: 'Email all employees the new correct URL and take no other action' },
+            { id: 'ignoreit', text: 'Wait for the TTL to expire naturally' }
+          ] }
+        ] },
+        answer: { slots: { sev: 'crit', first: 'flush' } } },
+      { id: 'o1', type: 'order', points: 1,
+        prompt: 'Order the response steps.',
+        explanation: 'Contain by flushing and correcting the DNS cache, eradicate by identifying and closing the DNS server vulnerability that allowed poisoning, recover by forcing password resets for anyone who used the fake page, then enable DNSSEC as the lessons-learned control.',
+        payload: { items: [
+          { id: 'a', label: 'Flush the poisoned DNS cache and correct the record' },
+          { id: 'b', label: 'Identify and patch the DNS server vulnerability that allowed poisoning' },
+          { id: 'c', label: 'Force password resets for employees who used the fake login page' },
+          { id: 'd', label: 'Enable DNSSEC on the internal DNS infrastructure' }
+        ] },
+        answer: { correctOrder: ['a', 'b', 'c', 'd'] } }
+    ]
+  },
+
+  // 13. Privilege escalation — Eradication emphasis
+  {
+    id: 'sp-ir-privesc-admin', cert: 'secplus', objective: '4.8', topic: 'Incident Response',
+    title: 'Standard user escalates to domain admin', estMinutes: 5, archetype: 'incident',
+    scenario: 'A help-desk technician\'s standard account is observed creating a new account and adding it to the Domain Admins group, an action that account has no legitimate reason to perform. The new account then accesses several servers it has never touched before.',
+    assets: { reference: { kind: 'timeline', stages: [
+      { id: 's1', icon: 'user', label: 'Help-desk standard account creates a new user account', time: 'T+0m', severity: 'med' },
+      { id: 's2', icon: 'shield', label: 'New account is added to the Domain Admins group', time: 'T+1m', severity: 'crit' },
+      { id: 's3', icon: 'server', label: 'New privileged account accesses multiple servers never touched before', time: 'T+6m', severity: 'crit' }
+    ] } },
+    steps: [
+      { id: 't1', type: 'configure', points: 1,
+        prompt: 'Triage this incident.',
+        explanation: 'A low-privilege account performing a privilege-escalation action it has no business reason to perform, followed by that new privileged account touching unfamiliar servers, is a critical compromise — likely exploiting a vulnerability or stolen credentials to gain domain-wide control. The first action is to disable both the compromised account and the newly created rogue admin account.',
+        payload: { slots: [
+          { id: 'sev', label: 'Severity', options: [
+            { id: 'low', text: 'Low' }, { id: 'med', text: 'Medium' },
+            { id: 'high', text: 'High' }, { id: 'crit', text: 'Critical' }
+          ] },
+          { id: 'first', label: 'First containment action', options: [
+            { id: 'disableboth', text: 'Disable both the compromised help-desk account and the rogue admin account' },
+            { id: 'reset1', text: 'Just reset the help-desk account\'s password and continue monitoring' },
+            { id: 'ignoreacct', text: 'Leave the accounts active to see what else the attacker does' },
+            { id: 'promote', text: 'Promote a different account to admin to compare behavior' }
+          ] }
+        ] },
+        answer: { slots: { sev: 'crit', first: 'disableboth' } } },
+      { id: 'o1', type: 'order', points: 1,
+        prompt: 'Order the response steps.',
+        explanation: 'Contain by disabling both accounts, eradicate by finding and patching the privilege-escalation vector (misconfigured ACL or vulnerability) so it cannot be repeated, recover by auditing everything the rogue admin account touched and restoring integrity, then tighten group-membership change alerting as lessons learned.',
+        payload: { items: [
+          { id: 'a', label: 'Disable the compromised account and the rogue admin account' },
+          { id: 'b', label: 'Identify and fix the privilege-escalation vector (misconfigured ACL/vuln)' },
+          { id: 'c', label: 'Audit every server the rogue admin account touched and restore integrity' },
+          { id: 'd', label: 'Enable real-time alerting on privileged group membership changes' }
+        ] },
+        answer: { correctOrder: ['a', 'b', 'c', 'd'] } }
+    ]
+  },
+
+  // 14. Phishing/BEC — attachment dropper, single-step triage focus
+  {
+    id: 'sp-ir-phishing-macro-drop', cert: 'secplus', objective: '4.8', topic: 'Incident Response',
+    title: 'Macro-enabled attachment drops a loader', estMinutes: 4, archetype: 'incident',
+    scenario: 'An HR employee opened an attachment titled "Candidate_Resume.docm" and enabled macros when prompted. Within a minute, EDR observed the Office process spawning PowerShell, which downloaded a second-stage payload from a paste site.',
+    assets: { reference: { kind: 'timeline', stages: [
+      { id: 's1', icon: 'mail', label: 'HR employee opens "Candidate_Resume.docm" and enables macros', time: 'T+0m', severity: 'med' },
+      { id: 's2', icon: 'terminal', label: 'Office process spawns PowerShell (unusual parent-child relationship)', time: 'T+1m', severity: 'high' },
+      { id: 's3', icon: 'download', label: 'PowerShell downloads a second-stage payload from a paste site', time: 'T+1m30s', severity: 'high' }
+    ] } },
+    steps: [
+      { id: 't1', type: 'configure', points: 1,
+        prompt: 'Triage this incident.',
+        explanation: 'Office spawning PowerShell right after macros are enabled, followed by a payload download, is a well-known malicious-document infection chain (initial access via phishing, then execution). This is high severity since a second-stage payload is already on the host. The first action is to isolate the workstation from the network before the payload can call out again or spread.',
+        payload: { slots: [
+          { id: 'sev', label: 'Severity', options: [
+            { id: 'low', text: 'Low' }, { id: 'med', text: 'Medium' },
+            { id: 'high', text: 'High' }, { id: 'crit', text: 'Critical' }
+          ] },
+          { id: 'first', label: 'First containment action', options: [
+            { id: 'isolatehost', text: 'Isolate the HR employee\'s workstation from the network' },
+            { id: 'deletefile', text: 'Just delete the attachment from the mail server' },
+            { id: 'ignorepwsh', text: 'Assume PowerShell activity is normal admin scripting' },
+            { id: 'rebootonly', text: 'Reboot the workstation and move on' }
+          ] }
+        ] },
+        answer: { slots: { sev: 'high', first: 'isolatehost' } } },
+      { id: 'o1', type: 'order', points: 1,
+        prompt: 'Order the response steps.',
+        explanation: 'Contain by isolating the host, eradicate the dropper and any second-stage payload, recover by reimaging or verifying a clean state, then disable Office macros by default org-wide as lessons learned.',
+        payload: { items: [
+          { id: 'a', label: 'Isolate the workstation from the network' },
+          { id: 'b', label: 'Identify and remove the dropper and second-stage payload' },
+          { id: 'c', label: 'Reimage the workstation or verify it is clean before returning to service' },
+          { id: 'd', label: 'Disable Office macros by default across the organization' }
+        ] },
+        answer: { correctOrder: ['a', 'b', 'c', 'd'] } }
+    ]
+  },
+
+  // 15. Ransomware — double extortion, network reference
+  {
+    id: 'sp-ir-ransomware-doubleextortion', cert: 'secplus', objective: '4.8', topic: 'Incident Response',
+    title: 'Double-extortion ransomware with data leak threat', estMinutes: 5, archetype: 'incident',
+    scenario: 'Overnight, the accounting server was encrypted and a ransom note claims 200GB of financial data was also copied out before encryption, threatening to publish it if payment is not made within 72 hours. Firewall logs confirm a large outbound transfer to an unfamiliar IP just before the encryption began.',
+    assets: { reference: { kind: 'network', devices: [
+      { id: 'acct', label: 'ACCT-SRV', type: 'server', zone: 'internal', x: 60, y: 90, state: 'compromised' },
+      { id: 'fw', label: 'FW-CORE', type: 'firewall', zone: 'dmz', x: 240, y: 90, state: 'clean' },
+      { id: 'ext', label: 'Attacker Exfil Host', type: 'external', zone: 'external', x: 420, y: 90, state: 'clean' }
+    ], links: [
+      { from: 'acct', to: 'fw', kind: 'attack' },
+      { from: 'fw', to: 'ext', kind: 'attack' }
+    ] } },
+    steps: [
+      { id: 't1', type: 'configure', points: 1,
+        prompt: 'Triage this incident.',
+        explanation: 'Encryption combined with confirmed pre-encryption exfiltration and an extortion threat is double-extortion ransomware — a critical incident involving both availability loss and a confirmed breach. The first action is to isolate the accounting server and block the outbound path to the attacker\'s exfil host to stop any further data loss.',
+        payload: { slots: [
+          { id: 'sev', label: 'Severity', options: [
+            { id: 'low', text: 'Low' }, { id: 'med', text: 'Medium' },
+            { id: 'high', text: 'High' }, { id: 'crit', text: 'Critical' }
+          ] },
+          { id: 'first', label: 'First containment action', options: [
+            { id: 'isolateblock', text: 'Isolate the accounting server and block the outbound exfil path' },
+            { id: 'paynow', text: 'Pay the ransom before the 72-hour deadline' },
+            { id: 'restorefirst', text: 'Restore from backup immediately without isolating first' },
+            { id: 'publicstatement', text: 'Issue a public statement before containing the incident' }
+          ] }
+        ] },
+        answer: { slots: { sev: 'crit', first: 'isolateblock' } } },
+      { id: 'o1', type: 'order', points: 1,
+        prompt: 'Order the response steps.',
+        explanation: 'Contain by isolating the host and blocking exfil, eradicate the ransomware and access used for exfiltration, recover from clean backups once the environment is verified safe, then engage legal/breach-notification obligations given confirmed data theft as part of lessons learned.',
+        payload: { items: [
+          { id: 'a', label: 'Isolate the server and block the exfiltration path' },
+          { id: 'b', label: 'Remove the ransomware and close the access used for exfiltration' },
+          { id: 'c', label: 'Restore the server from a verified clean backup' },
+          { id: 'd', label: 'Engage legal counsel for breach-notification obligations' }
+        ] },
+        answer: { correctOrder: ['a', 'b', 'c', 'd'] } }
+    ]
+  },
+
+  // 16. Insider threat — sabotage variant, Recovery emphasis
+  {
+    id: 'sp-ir-insider-sabotage', cert: 'secplus', objective: '4.8', topic: 'Incident Response',
+    title: 'Disgruntled admin deletes production backups', estMinutes: 5, archetype: 'incident',
+    scenario: 'A system administrator who was passed over for promotion used their still-active credentials after hours to delete the last 30 days of production database backups. The deletion was discovered the next morning when a routine restore test failed.',
+    assets: { reference: { kind: 'timeline', stages: [
+      { id: 's1', icon: 'clock', label: 'Admin logs in after hours using still-active credentials', time: 'T-14h', severity: 'med' },
+      { id: 's2', icon: 'trash', label: '30 days of production database backups deleted', time: 'T-13h45m', severity: 'crit' },
+      { id: 's3', icon: 'alert', label: 'Routine restore test fails the next morning, revealing the deletion', time: 'T+0m', severity: 'crit' }
+    ] } },
+    steps: [
+      { id: 't1', type: 'configure', points: 1,
+        prompt: 'Triage this incident.',
+        explanation: 'Deliberate, after-hours deletion of a month of backups by a disgruntled insider is a critical sabotage incident — it directly threatens recovery capability if production data is ever lost. The first action is to revoke that administrator\'s credentials and access immediately to prevent further destructive actions.',
+        payload: { slots: [
+          { id: 'sev', label: 'Severity', options: [
+            { id: 'low', text: 'Low' }, { id: 'med', text: 'Medium' },
+            { id: 'high', text: 'High' }, { id: 'crit', text: 'Critical' }
+          ] },
+          { id: 'first', label: 'First containment action', options: [
+            { id: 'revoke', text: 'Revoke the administrator\'s credentials and access immediately' },
+            { id: 'talkfirst', text: 'Schedule a one-on-one conversation before taking any action' },
+            { id: 'restoreonly', text: 'Try to restore backups without addressing account access' },
+            { id: 'ignorepast', text: 'Take no action since the backups are already gone' }
+          ] }
+        ] },
+        answer: { slots: { sev: 'crit', first: 'revoke' } } },
+      { id: 'o1', type: 'order', points: 1,
+        prompt: 'Order the response steps.',
+        explanation: 'Contain by revoking access, eradicate by auditing for any other destructive actions or lingering access the admin retained, recover by pulling backups from an offsite/immutable copy if one exists and validating integrity, then require offboarding/access-review changes and separation-of-duties for backup deletion as lessons learned.',
+        payload: { items: [
+          { id: 'a', label: 'Revoke the administrator\'s credentials and access' },
+          { id: 'b', label: 'Audit for other destructive actions or retained access' },
+          { id: 'c', label: 'Recover backups from an offsite/immutable copy and validate integrity' },
+          { id: 'd', label: 'Require approval workflows and offsite immutability for backup deletion' }
+        ] },
+        answer: { correctOrder: ['a', 'b', 'c', 'd'] } }
+    ]
+  },
+
+  // 17. Malware — worm lateral spread, Containment emphasis, network reference
+  {
+    id: 'sp-ir-worm-lateral-spread', cert: 'secplus', objective: '4.8', topic: 'Incident Response',
+    title: 'Self-propagating worm spreading via SMB', estMinutes: 5, archetype: 'incident',
+    scenario: 'Within 20 minutes, three additional workstations became infected after the first one, each exploiting an unpatched SMB vulnerability to spread automatically with no user interaction. The infection rate is accelerating.',
+    assets: { reference: { kind: 'network', devices: [
+      { id: 'w1', label: 'WKS-01', type: 'workstation', zone: 'internal', x: 40, y: 60, state: 'compromised' },
+      { id: 'w2', label: 'WKS-02', type: 'workstation', zone: 'internal', x: 180, y: 60, state: 'compromised' },
+      { id: 'w3', label: 'WKS-03', type: 'workstation', zone: 'internal', x: 320, y: 60, state: 'affected' },
+      { id: 'w4', label: 'WKS-04', type: 'workstation', zone: 'internal', x: 460, y: 60, state: 'clean' }
+    ], links: [
+      { from: 'w1', to: 'w2', kind: 'attack' },
+      { from: 'w2', to: 'w3', kind: 'attack' },
+      { from: 'w3', to: 'w4', kind: 'normal' }
+    ] } },
+    steps: [
+      { id: 't1', type: 'configure', points: 1,
+        prompt: 'Triage this incident.',
+        explanation: 'A self-propagating worm exploiting an unpatched SMB vulnerability with no user interaction and an accelerating infection rate is a critical incident that can compromise the entire network quickly. The first action is to segment/disable SMB (or the affected VLAN) network-wide to halt the automatic spread before individual hosts are cleaned.',
+        payload: { slots: [
+          { id: 'sev', label: 'Severity', options: [
+            { id: 'low', text: 'Low' }, { id: 'med', text: 'Medium' },
+            { id: 'high', text: 'High' }, { id: 'crit', text: 'Critical' }
+          ] },
+          { id: 'first', label: 'First containment action', options: [
+            { id: 'blocksmb', text: 'Block or disable SMB network-wide to halt automatic spread' },
+            { id: 'cleanone', text: 'Clean only the first infected workstation and monitor' },
+            { id: 'patchfirst', text: 'Patch the SMB vulnerability on all hosts before containing anything' },
+            { id: 'waitandsee', text: 'Wait to see how many more hosts get infected before acting' }
+          ] }
+        ] },
+        answer: { slots: { sev: 'crit', first: 'blocksmb' } } },
+      { id: 'o1', type: 'order', points: 1,
+        prompt: 'Order the response steps.',
+        explanation: 'Contain by blocking the spreading vector network-wide, eradicate the worm from every infected host, recover by patching the vulnerability before re-enabling SMB, then apply network segmentation as the lessons-learned control to limit future lateral movement.',
+        payload: { items: [
+          { id: 'a', label: 'Block SMB network-wide to halt the spread' },
+          { id: 'b', label: 'Remove the worm from all infected hosts' },
+          { id: 'c', label: 'Patch the SMB vulnerability before re-enabling SMB traffic' },
+          { id: 'd', label: 'Segment the network to limit future lateral movement' }
+        ] },
+        answer: { correctOrder: ['a', 'b', 'c', 'd'] } }
+    ]
+  },
+
+  // 18. Web app attack — API abuse / broken access control, Detection emphasis
+  {
+    id: 'sp-ir-api-idor', cert: 'secplus', objective: '4.8', topic: 'Incident Response',
+    title: 'Broken access control exposes other customers\' orders', estMinutes: 4, archetype: 'incident',
+    scenario: 'A customer reports that changing an order ID number in the mobile app\'s API URL let them view a stranger\'s order details, including a shipping address and partial card number. Logs show the same technique being used by dozens of sequential requests from one IP over the past hour.',
+    assets: { reference: { kind: 'timeline', stages: [
+      { id: 's1', icon: 'bug', label: 'Customer reports viewing another customer\'s order by changing the ID in the URL', time: 'T+0m', severity: 'high' },
+      { id: 's2', icon: 'list', label: 'Logs show dozens of sequential order-ID requests from one IP over the past hour', time: 'T-1h', severity: 'crit' },
+      { id: 's3', icon: 'data', label: 'Exposed data includes shipping addresses and partial card numbers', time: 'T-1h', severity: 'crit' }
+    ] } },
+    steps: [
+      { id: 't1', type: 'configure', points: 1,
+        prompt: 'Triage this incident.',
+        explanation: 'An insecure direct object reference (IDOR) letting one user enumerate and view other customers\' orders — already actively exploited for at least an hour, exposing PII and partial payment data — is a critical incident. The first action is to disable or patch the vulnerable API endpoint immediately to stop further data exposure.',
+        payload: { slots: [
+          { id: 'sev', label: 'Severity', options: [
+            { id: 'low', text: 'Low' }, { id: 'med', text: 'Medium' },
+            { id: 'high', text: 'High' }, { id: 'crit', text: 'Critical' }
+          ] },
+          { id: 'first', label: 'First containment action', options: [
+            { id: 'disableapi', text: 'Disable or patch the vulnerable API endpoint immediately' },
+            { id: 'thankcustomer', text: 'Thank the reporting customer and take no further action' },
+            { id: 'blockip', text: 'Block only the one reporting customer\'s IP address' },
+            { id: 'ignoreapi', text: 'Schedule the fix for the next sprint' }
+          ] }
+        ] },
+        answer: { slots: { sev: 'crit', first: 'disableapi' } } },
+      { id: 'o1', type: 'order', points: 1,
+        prompt: 'Order the response steps.',
+        explanation: 'Contain by shutting off the exposed endpoint, eradicate by adding proper authorization checks to every order-lookup call, recover by determining the scope of exposed records and notifying affected customers, then add automated access-control testing as lessons learned.',
+        payload: { items: [
+          { id: 'a', label: 'Disable or patch the vulnerable API endpoint' },
+          { id: 'b', label: 'Add proper authorization checks to all order-lookup calls' },
+          { id: 'c', label: 'Determine the scope of exposed records and notify affected customers' },
+          { id: 'd', label: 'Add automated access-control testing to the release pipeline' }
+        ] },
+        answer: { correctOrder: ['a', 'b', 'c', 'd'] } }
+    ]
+  },
+
+  // 19. Credential/password attack — brute force against VPN — Forensics & Investigations (log-source selection, artifact correlation)
+  {
+    id: 'sp-ir-bruteforce-vpn', cert: 'secplus', objective: '4.9', topic: 'Forensics & Investigations',
+    title: 'Brute-force attack against the VPN gateway — investigating scope', estMinutes: 4, archetype: 'incident',
+    scenario: 'The VPN concentrator logs show over 5,000 failed login attempts against a single username from one external IP over 30 minutes, followed by one successful authentication using that same username. The investigator now needs to determine what the attacker actually did once inside, and to build a timeline other analysts can reproduce.',
+    assets: { reference: { kind: 'network', devices: [
+      { id: 'atk', label: 'Attacker', type: 'external', zone: 'external', x: 40, y: 90, state: 'clean' },
+      { id: 'vpn', label: 'VPN-GW', type: 'router', zone: 'dmz', x: 240, y: 90, state: 'affected' },
+      { id: 'internal', label: 'Internal Network', type: 'network', zone: 'internal', x: 440, y: 90, state: 'clean' }
+    ], links: [
+      { from: 'atk', to: 'vpn', kind: 'attack' },
+      { from: 'vpn', to: 'internal', kind: 'attack' }
+    ] } },
+    steps: [
+      { id: 't1', type: 'configure', points: 1,
+        prompt: 'Select the investigation approach.',
+        explanation: 'To see what the attacker did after authenticating — which internal hosts they touched and what actions they took — the investigator needs internal firewall/NetFlow records and endpoint/authentication logs from the systems the session reached, not just the VPN concentrator\'s own login log (which only proves the successful auth, not post-auth activity). Because clocks drift between devices, correlating the VPN log against those other sources first requires normalizing all timestamps to a common reference (e.g., UTC/NTP-synced) so events can be placed on one accurate timeline.',
+        payload: { slots: [
+          { id: 'source', label: 'Best additional data source for post-authentication activity', options: [
+            { id: 'internallogs', text: 'Internal firewall/NetFlow and endpoint logs for hosts reached via the VPN session' },
+            { id: 'dnszone', text: 'The public DNS zone file for the company domain' },
+            { id: 'vendoradvisory', text: 'The VPN vendor\'s public security advisory page' },
+            { id: 'helpdesk', text: 'General help-desk ticket volume for the day' }
+          ] },
+          { id: 'first', label: 'Prerequisite before correlating events across sources', options: [
+            { id: 'normalize', text: 'Normalize all log timestamps to a common time reference (e.g., UTC/NTP)' },
+            { id: 'deletevpn', text: 'Delete the VPN log once the internal logs are pulled' },
+            { id: 'guesstime', text: 'Estimate timing by eye without reconciling clocks' },
+            { id: 'skipauth', text: 'Skip the VPN log since the internal logs are more detailed' }
+          ] }
+        ] },
+        answer: { slots: { source: 'internallogs', first: 'normalize' } } },
+      { id: 'o1', type: 'order', points: 1,
+        prompt: 'Order the investigation steps to build a reproducible timeline.',
+        explanation: 'Sound artifact correlation: pull the VPN log establishing the successful-auth timestamp, gather internal firewall/NetFlow and endpoint logs covering that session window, normalize all timestamps to a common reference so events line up correctly, then correlate the sources into a single reproducible timeline of attacker activity.',
+        payload: { items: [
+          { id: 'a', label: 'Pull the VPN concentrator log establishing the successful-authentication timestamp' },
+          { id: 'b', label: 'Gather internal firewall/NetFlow and endpoint logs covering that session window' },
+          { id: 'c', label: 'Normalize timestamps across all sources to a common time reference' },
+          { id: 'd', label: 'Correlate the sources into a single reproducible timeline of attacker activity' }
+        ] },
+        answer: { correctOrder: ['a', 'b', 'c', 'd'] } }
+    ]
+  },
+
+  // 20. DDoS — application-layer variant, Lessons learned emphasis
+  {
+    id: 'sp-ir-ddos-applayer-api', cert: 'secplus', objective: '4.8', topic: 'Incident Response',
+    title: 'Application-layer DDoS against the search API', estMinutes: 4, archetype: 'incident',
+    scenario: 'The product search API begins timing out under a flood of expensive, complex search queries sent from a botnet of a few hundred hosts — low in volume compared to a typical flood, but each request consumes significant database CPU. The database server is pegged at 100% CPU.',
+    assets: { reference: { kind: 'timeline', stages: [
+      { id: 's1', icon: 'search', label: 'Search API receives a flood of expensive, complex queries from ~300 hosts', time: 'T+0m', severity: 'high' },
+      { id: 's2', icon: 'cpu', label: 'Database server CPU pegged at 100%', time: 'T+4m', severity: 'crit' },
+      { id: 's3', icon: 'down', label: 'Search functionality becomes unusable site-wide', time: 'T+6m', severity: 'crit' }
+    ] } },
+    steps: [
+      { id: 't1', type: 'configure', points: 1,
+        prompt: 'Triage this incident.',
+        explanation: 'A relatively low request volume causing full resource exhaustion is application-layer (Layer 7) DDoS — attackers targeting the most expensive operation rather than raw bandwidth. Because search is unusable site-wide, this is critical. The first action is to rate-limit or throttle the expensive search endpoint to relieve database load.',
+        payload: { slots: [
+          { id: 'sev', label: 'Severity', options: [
+            { id: 'low', text: 'Low' }, { id: 'med', text: 'Medium' },
+            { id: 'high', text: 'High' }, { id: 'crit', text: 'Critical' }
+          ] },
+          { id: 'first', label: 'First containment action', options: [
+            { id: 'throttle', text: 'Rate-limit or throttle the expensive search endpoint' },
+            { id: 'scaledb', text: 'Permanently upgrade database hardware as the only fix' },
+            { id: 'blockall', text: 'Block all inbound traffic to the entire site' },
+            { id: 'ignoreload', text: 'Ignore it since the flood volume is relatively low' }
+          ] }
+        ] },
+        answer: { slots: { sev: 'crit', first: 'throttle' } } },
+      { id: 'o1', type: 'order', points: 1,
+        prompt: 'Order the response steps.',
+        explanation: 'Contain by throttling the abused endpoint, eradicate by blocking the identified botnet source ranges, recover by confirming search returns to normal performance, then add query complexity limits and WAF rules as the lessons-learned control against future application-layer floods.',
+        payload: { items: [
+          { id: 'a', label: 'Rate-limit or throttle the expensive search endpoint' },
+          { id: 'b', label: 'Block the identified botnet source IP ranges' },
+          { id: 'c', label: 'Confirm search performance has returned to normal' },
+          { id: 'd', label: 'Add query complexity limits and WAF rules for future protection' }
+        ] },
+        answer: { correctOrder: ['a', 'b', 'c', 'd'] } }
+    ]
+  },
+
+  // ── Defense in Depth (Task 14, 2-agent gated) ──
+  { id: 'secplus-did-hollow-perimeter', cert: 'secplus',
+    objective: 'SY0-701 Domain 3.2 — Compare and contrast security implications of architecture models (defense in depth, control categories)',
+    topic: 'Defense in Depth', title: 'Strong wall, hollow inside', estMinutes: 6, archetype: 'defense',
+    scenario: 'A security review of Northwind HQ finds a capable next-gen firewall at the edge and almost nothing behind it. Endpoints are unmanaged, the database stores records in clear text, and one shared admin account opens everything. A single phishing click puts an attacker next to the crown jewels.',
+    assets: { reference: { kind: 'layered', layout: 'stacked',
+      layers: [
+        { id: 'perimeter', label: 'Perimeter', control: 'Next-gen firewall', state: 'present', device: { label: 'FW-1' } },
+        { id: 'endpoint', label: 'Endpoint', control: 'EDR and host hardening', state: 'missing' },
+        { id: 'data', label: 'Data', control: 'Encryption at rest and DLP', state: 'missing' },
+        { id: 'identity', label: 'Identity', control: 'MFA and least privilege', state: 'missing' }
+      ],
+      core: { label: 'Crown-jewel data', assets: [
+        { id: 'db1', label: 'DB-1 (customer records, clear text)', exposed: true },
+        { id: 'dc1', label: 'DC-1 (identity store)', exposed: true }
+      ] }
+    } },
+    steps: [
+      { id: 'd1', type: 'configure', points: 1,
+        prompt: 'What is the core flaw in this architecture?',
+        explanation: 'Everything rides on one control. Once the perimeter is bypassed, by phishing or an insider, nothing else slows the attacker before the data because there are no endpoint, data, or identity controls behind the firewall.',
+        payload: { slots: [ { id: 'flaw', label: 'Core flaw', options: [
+          { id: 'f1', text: 'It is a hard shell with a soft center: one perimeter, no inner controls' },
+          { id: 'f2', text: 'The firewall vendor is not on the approved list' },
+          { id: 'f3', text: 'The network uses too many subnets' },
+          { id: 'f4', text: 'The database server is running on outdated hardware' }
+        ] } ] },
+        answer: { slots: { flaw: 'f1' } } },
+      { id: 'f1', type: 'configure', points: 1,
+        prompt: 'Build the inner layers.',
+        explanation: 'EDR and hardening give each host its own line of defense, encryption and DLP protect the data itself, and MFA with least privilege shrinks what a stolen credential can do.',
+        payload: { slots: [
+          { id: 'endpoint', label: 'Endpoint layer', options: [
+            { id: 'a1', text: 'EDR plus host hardening' }, { id: 'a2', text: 'A louder antivirus pop-up' }, { id: 'a3', text: 'Local admin rights for every user' } ] },
+          { id: 'data', label: 'Data layer', options: [
+            { id: 'b1', text: 'Encryption at rest plus DLP' }, { id: 'b2', text: 'A nightly backup, nothing else' }, { id: 'b3', text: 'Public read access for convenience' } ] },
+          { id: 'identity', label: 'Identity layer', options: [
+            { id: 'c1', text: 'MFA plus least privilege' }, { id: 'c2', text: 'One shared admin account' }, { id: 'c3', text: 'Longer passwords, no other change' } ] }
+        ] },
+        answer: { slots: { endpoint: 'a1', data: 'b1', identity: 'c1' } } },
+      { id: 't1', type: 'configure', points: 1,
+        prompt: 'MFA is best classified as which control type?',
+        explanation: 'MFA is enforced by technology (technical) and stops misuse before it happens (preventive), not after an event has already occurred.',
+        payload: { slots: [ { id: 'type', label: 'Control type', options: [
+          { id: 't1', text: 'Technical, preventive' },
+          { id: 't2', text: 'Physical, detective' },
+          { id: 't3', text: 'Managerial, corrective' },
+          { id: 't4', text: 'Operational, compensating' }
+        ] } ] },
+        answer: { slots: { type: 't1' } } }
+    ]
+  },
+
+  { id: 'secplus-did-clinic-breach', cert: 'secplus',
+    objective: 'SY0-701 Domain 3.2 — Compare and contrast security implications of architecture models (zero trust, control categories)',
+    topic: 'Defense in Depth', title: 'A clinic that trusts anything already inside', estMinutes: 6, archetype: 'defense',
+    scenario: 'A regional clinic passed its firewall audit with flying colors, but once inside the network every workstation can reach the patient records database directly, there is no logging on that database, and staff share one login for the scheduling system. An attacker who lands on any workstation has an unmonitored path to patient data.',
+    assets: { reference: { kind: 'layered', layout: 'stacked',
+      layers: [
+        { id: 'perimeter', label: 'Perimeter', control: 'Audited edge firewall', state: 'present', device: { label: 'FW-1' } },
+        { id: 'network', label: 'Network segmentation', control: 'Micro-segmentation isolating the records database', state: 'missing' },
+        { id: 'monitoring', label: 'Monitoring', control: 'Database access logging and alerting', state: 'missing' },
+        { id: 'identity', label: 'Identity', control: 'Unique accounts and least privilege', state: 'missing' }
+      ],
+      core: { label: 'Patient records', assets: [
+        { id: 'phi1', label: 'PHI-DB (patient records)', exposed: true }
+      ] }
+    } },
+    steps: [
+      { id: 'd1', type: 'configure', points: 1,
+        prompt: 'What is the core flaw in this architecture?',
+        explanation: 'The design assumes anything past the firewall is safe. Every workstation has an unrestricted, unlogged path to the database, and shared logins mean no one can be held accountable for access. This is the opposite of zero trust.',
+        payload: { slots: [ { id: 'flaw', label: 'Core flaw', options: [
+          { id: 'f1', text: 'Implicit trust inside the network: no segmentation, no logging, no accountability' },
+          { id: 'f2', text: 'The firewall audit was performed by an unqualified vendor' },
+          { id: 'f3', text: 'The clinic uses too many workstations' },
+          { id: 'f4', text: 'The database server needs a hardware upgrade' }
+        ] } ] },
+        answer: { slots: { flaw: 'f1' } } },
+      { id: 'f1', type: 'configure', points: 1,
+        prompt: 'Build the inner layers.',
+        explanation: 'Micro-segmentation limits which hosts can reach the database at all, logging and alerting give visibility into who touches patient data, and unique accounts with least privilege restore accountability.',
+        payload: { slots: [
+          { id: 'network', label: 'Network layer', options: [
+            { id: 'a1', text: 'Micro-segmentation restricting database access to approved application servers' }, { id: 'a2', text: 'Allow every workstation to reach the database directly' }, { id: 'a3', text: 'Remove the firewall since it already passed audit' } ] },
+          { id: 'monitoring', label: 'Monitoring layer', options: [
+            { id: 'b1', text: 'Database access logging with alerting on anomalous queries' }, { id: 'b2', text: 'No logging, to save disk space' }, { id: 'b3', text: 'A monthly manual spreadsheet review' } ] },
+          { id: 'identity', label: 'Identity layer', options: [
+            { id: 'c1', text: 'Unique accounts per staff member with least privilege' }, { id: 'c2', text: 'One shared scheduling login for the whole clinic' }, { id: 'c3', text: 'Passwords that never expire' } ] }
+        ] },
+        answer: { slots: { network: 'a1', monitoring: 'b1', identity: 'c1' } } },
+      { id: 't1', type: 'configure', points: 1,
+        prompt: 'Database access logging and alerting is best classified as which control type?',
+        explanation: 'Logging and alerting are enforced through technology (technical) and identify malicious activity after it has started rather than preventing it outright, which makes it detective.',
+        payload: { slots: [ { id: 'type', label: 'Control type', options: [
+          { id: 't1', text: 'Technical, detective' },
+          { id: 't2', text: 'Managerial, preventive' },
+          { id: 't3', text: 'Physical, deterrent' },
+          { id: 't4', text: 'Operational, corrective' }
+        ] } ] },
+        answer: { slots: { type: 't1' } } }
+    ]
+  },
+
+  { id: 'secplus-did-cloud-bucket', cert: 'secplus',
+    objective: 'SY0-701 Domain 3.2 — Compare and contrast security implications of architecture models (cloud security, control categories)',
+    topic: 'Defense in Depth', title: 'A cloud app with one line of defense', estMinutes: 6, archetype: 'defense',
+    scenario: 'A startup moved its customer app to the cloud and configured a web application firewall in front of it. Behind the WAF, the storage bucket holding customer uploads is publicly readable, the application server runs with an overly permissive IAM role, and there is no vulnerability scanning of the container images before they deploy.',
+    assets: { reference: { kind: 'layered', layout: 'stacked',
+      layers: [
+        { id: 'perimeter', label: 'Perimeter', control: 'Web application firewall', state: 'present', device: { label: 'WAF-1' } },
+        { id: 'data', label: 'Data', control: 'Private bucket policy with least-privilege access', state: 'missing' },
+        { id: 'identity', label: 'Identity', control: 'Scoped IAM role for the application server', state: 'missing' },
+        { id: 'application', label: 'Application', control: 'Vulnerability scanning in the CI/CD pipeline', state: 'missing' }
+      ],
+      core: { label: 'Customer data', assets: [
+        { id: 'bkt1', label: 'BKT-1 (public storage bucket)', exposed: true }
+      ] }
+    } },
+    steps: [
+      { id: 'd1', type: 'configure', points: 1,
+        prompt: 'What is the core flaw in this architecture?',
+        explanation: 'The WAF only inspects web traffic to the app; it does nothing to protect a publicly readable storage bucket, an overprivileged IAM role, or unscanned container images. One control at the edge cannot cover every layer of a cloud stack.',
+        payload: { slots: [ { id: 'flaw', label: 'Core flaw', options: [
+          { id: 'f1', text: 'A single WAF is treated as sufficient while storage, identity, and the build pipeline are left uncontrolled' },
+          { id: 'f2', text: 'The WAF vendor is not FedRAMP certified' },
+          { id: 'f3', text: 'The application server is undersized for the traffic' },
+          { id: 'f4', text: 'The cloud region is too far from customers' }
+        ] } ] },
+        answer: { slots: { flaw: 'f1' } } },
+      { id: 'f1', type: 'configure', points: 1,
+        prompt: 'Build the inner layers.',
+        explanation: 'A private bucket policy stops public read access to customer uploads, a scoped IAM role limits what the app server can do if compromised, and pipeline scanning catches vulnerable images before they ever deploy.',
+        payload: { slots: [
+          { id: 'data', label: 'Data layer', options: [
+            { id: 'a1', text: 'Private bucket policy granting access only to the application role' }, { id: 'a2', text: 'Public read access so the app can serve files directly' }, { id: 'a3', text: 'No bucket policy, rely on the WAF' } ] },
+          { id: 'identity', label: 'Identity layer', options: [
+            { id: 'b1', text: 'IAM role scoped to only the permissions the app needs' }, { id: 'b2', text: 'Administrator role for the application server, to avoid access errors' }, { id: 'b3', text: 'Shared root credentials for all services' } ] },
+          { id: 'application', label: 'Application layer', options: [
+            { id: 'c1', text: 'Vulnerability scanning of container images in CI/CD' }, { id: 'c2', text: 'Skip scanning to speed up deployments' }, { id: 'c3', text: 'Scan images once per year' } ] }
+        ] },
+        answer: { slots: { data: 'a1', identity: 'b1', application: 'c1' } } },
+      { id: 't1', type: 'configure', points: 1,
+        prompt: 'Scoping the IAM role to least privilege is best classified as which control type?',
+        explanation: 'Least-privilege IAM scoping is enforced by the cloud platform itself (technical) and limits what an attacker can do before any damage occurs, making it preventive.',
+        payload: { slots: [ { id: 'type', label: 'Control type', options: [
+          { id: 't1', text: 'Technical, preventive' },
+          { id: 't2', text: 'Managerial, detective' },
+          { id: 't3', text: 'Physical, preventive' },
+          { id: 't4', text: 'Operational, corrective' }
+        ] } ] },
+        answer: { slots: { type: 't1' } } }
+    ]
+  },
+
+  { id: 'secplus-did-vendor-remote-access', cert: 'secplus',
+    objective: 'SY0-701 Domain 3.2 — Compare and contrast security implications of architecture models (third-party access, control categories)',
+    topic: 'Defense in Depth', title: 'A vendor with the keys to everything', estMinutes: 6, archetype: 'defense',
+    scenario: 'A manufacturing plant lets a third-party HVAC vendor remote into its network to service building controls. The vendor connects through a properly configured VPN, but from there the vendor account can reach the plant\'s production control systems, sessions are never recorded, and the vendor account has never been reviewed since it was created two years ago.',
+    assets: { reference: { kind: 'layered', layout: 'stacked',
+      layers: [
+        { id: 'perimeter', label: 'Perimeter', control: 'VPN gateway for vendor remote access', state: 'present', device: { label: 'VPN-1' } },
+        { id: 'network', label: 'Network segmentation', control: 'Jump host isolating vendor access from production systems', state: 'missing' },
+        { id: 'monitoring', label: 'Monitoring', control: 'Session recording for third-party access', state: 'missing' },
+        { id: 'identity', label: 'Identity', control: 'Periodic access review of vendor accounts', state: 'missing' }
+      ],
+      core: { label: 'Production control systems', assets: [
+        { id: 'ics1', label: 'ICS-1 (production controller)', exposed: true }
+      ] }
+    } },
+    steps: [
+      { id: 'd1', type: 'configure', points: 1,
+        prompt: 'What is the core flaw in this architecture?',
+        explanation: 'The VPN itself is fine, but past it the vendor has an unrestricted, unrecorded, never-reviewed path straight to production controllers. A compromised vendor credential or a disgruntled contractor would go unnoticed indefinitely.',
+        payload: { slots: [ { id: 'flaw', label: 'Core flaw', options: [
+          { id: 'f1', text: 'Third-party access is unrestricted, unmonitored, and never reviewed once inside the VPN' },
+          { id: 'f2', text: 'The VPN uses outdated encryption' },
+          { id: 'f3', text: 'The HVAC vendor is not licensed in the state' },
+          { id: 'f4', text: 'The production controllers need a firmware update' }
+        ] } ] },
+        answer: { slots: { flaw: 'f1' } } },
+      { id: 'f1', type: 'configure', points: 1,
+        prompt: 'Build the inner layers.',
+        explanation: 'A jump host limits the vendor to only the systems they need, session recording gives an audit trail of everything the vendor does, and periodic access review catches accounts that should have been revoked long ago.',
+        payload: { slots: [
+          { id: 'network', label: 'Network layer', options: [
+            { id: 'a1', text: 'Jump host restricting vendor access to HVAC systems only' }, { id: 'a2', text: 'Direct vendor access to the full production network' }, { id: 'a3', text: 'No restriction, since the VPN is already trusted' } ] },
+          { id: 'monitoring', label: 'Monitoring layer', options: [
+            { id: 'b1', text: 'Session recording for all third-party remote access' }, { id: 'b2', text: 'No session logging, to respect vendor privacy' }, { id: 'b3', text: 'A yearly vendor satisfaction survey' } ] },
+          { id: 'identity', label: 'Identity layer', options: [
+            { id: 'c1', text: 'Quarterly access review of vendor accounts' }, { id: 'c2', text: 'Vendor accounts that never expire or get reviewed' }, { id: 'c3', text: 'One shared vendor account for all contractors' } ] }
+        ] },
+        answer: { slots: { network: 'a1', monitoring: 'b1', identity: 'c1' } } },
+      { id: 't1', type: 'configure', points: 1,
+        prompt: 'Periodic access review of vendor accounts is best classified as which control type?',
+        explanation: 'Access reviews are a managerial policy activity, typically carried out on a schedule as part of governance, and they identify problems (like stale accounts) after the fact, which makes them detective.',
+        payload: { slots: [ { id: 'type', label: 'Control type', options: [
+          { id: 't1', text: 'Managerial, detective' },
+          { id: 't2', text: 'Technical, preventive' },
+          { id: 't3', text: 'Physical, deterrent' },
+          { id: 't4', text: 'Operational, compensating' }
+        ] } ] },
+        answer: { slots: { type: 't1' } } }
+    ]
+  },
+
+  { id: 'secplus-did-branch-office-ransomware', cert: 'secplus',
+    objective: 'SY0-701 Domain 3.2 — Compare and contrast security implications of architecture models (defense in depth, control categories)',
+    topic: 'Defense in Depth', title: 'One phishing email away from total loss', estMinutes: 6, archetype: 'defense',
+    scenario: 'A law firm\'s branch office relies on email spam filtering as its only defense against ransomware. Endpoints have no EDR, backups are stored on a network share reachable from every workstation, and there is no security awareness training, so staff routinely click on suspicious attachments.',
+    assets: { reference: { kind: 'layered', layout: 'stacked',
+      layers: [
+        { id: 'perimeter', label: 'Perimeter', control: 'Email spam filtering', state: 'present', device: { label: 'SEG-1' } },
+        { id: 'endpoint', label: 'Endpoint', control: 'EDR with ransomware behavior detection', state: 'missing' },
+        { id: 'backup', label: 'Backup', control: 'Immutable, network-isolated backups', state: 'missing' },
+        { id: 'awareness', label: 'Personnel', control: 'Security awareness training', state: 'missing' }
+      ],
+      core: { label: 'Case files and client data', assets: [
+        { id: 'case-files', label: 'Case files & client data', exposed: true },
+        { id: 'shr1', label: 'SHR-1 (backup share reachable from every workstation)', exposed: true }
+      ] }
+    } },
+    steps: [
+      { id: 'd1', type: 'configure', points: 1,
+        prompt: 'What is the core flaw in this architecture?',
+        explanation: 'Spam filtering alone is not defense in depth. With no EDR to catch what slips through, no isolated backups to fall back on, and no trained staff to hesitate before clicking, one successful phishing email can encrypt both production data and its own backup.',
+        payload: { slots: [ { id: 'flaw', label: 'Core flaw', options: [
+          { id: 'f1', text: 'A single email filter is the only defense, with no endpoint, backup, or human layer behind it' },
+          { id: 'f2', text: 'The law firm uses too much email' },
+          { id: 'f3', text: 'The spam filter vendor changed pricing' },
+          { id: 'f4', text: 'The office needs a faster printer' }
+        ] } ] },
+        answer: { slots: { flaw: 'f1' } } },
+      { id: 'f1', type: 'configure', points: 1,
+        prompt: 'Build the inner layers.',
+        explanation: 'EDR catches ransomware behavior that slips past email filtering, immutable and network-isolated backups survive an encryption event, and trained staff are far less likely to trigger the infection in the first place.',
+        payload: { slots: [
+          { id: 'endpoint', label: 'Endpoint layer', options: [
+            { id: 'a1', text: 'EDR with ransomware behavior detection' }, { id: 'a2', text: 'Rely on spam filtering alone' }, { id: 'a3', text: 'Disable antivirus to improve performance' } ] },
+          { id: 'backup', label: 'Backup layer', options: [
+            { id: 'b1', text: 'Immutable backups isolated from the production network' }, { id: 'b2', text: 'Backups on a share reachable from every workstation' }, { id: 'b3', text: 'No backups, restore from vendor support instead' } ] },
+          { id: 'awareness', label: 'Personnel layer', options: [
+            { id: 'c1', text: 'Regular security awareness training with phishing simulations' }, { id: 'c2', text: 'No training, trust staff judgment' }, { id: 'c3', text: 'A one-time training video at hiring only' } ] }
+        ] },
+        answer: { slots: { endpoint: 'a1', backup: 'b1', awareness: 'c1' } } },
+      { id: 't1', type: 'configure', points: 1,
+        prompt: 'Security awareness training is best classified as which control type?',
+        explanation: 'Awareness training is a managerial/administrative program that reduces the likelihood of an incident before it happens, which makes it preventive rather than detective or corrective.',
+        payload: { slots: [ { id: 'type', label: 'Control type', options: [
+          { id: 't1', text: 'Managerial, preventive' },
+          { id: 't2', text: 'Technical, detective' },
+          { id: 't3', text: 'Physical, compensating' },
+          { id: 't4', text: 'Operational, corrective' }
+        ] } ] },
+        answer: { slots: { type: 't1' } } }
+    ]
   }
 ];

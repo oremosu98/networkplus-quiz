@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Diagram PBQ · concept</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ── CertAnvil MOCKUP STARTER TOKEN BLOCK (verbatim from brand/mockup-starter-tokens.css) ── */
+:root, [data-theme="dark"] {
+  --bg: oklch(0.17 0.008 275); --surface: oklch(0.205 0.009 275); --surface-2: oklch(0.23 0.009 275);
+  --ink: oklch(0.96 0.006 275); --ink-soft: oklch(0.80 0.012 275); --muted: oklch(0.725 0.013 275);
+  --border: oklch(0.32 0.011 275); --border-soft: oklch(0.255 0.010 275);
+  --accent: oklch(0.80 0.155 64); --accent-deep: oklch(0.86 0.135 64); --on-accent: oklch(0.18 0.020 275);
+  --pass: oklch(0.74 0.150 152); --fail: oklch(0.66 0.17 25);
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+}
+[data-theme="light"] {
+  --bg: oklch(0.975 0.007 85); --surface: oklch(0.992 0.004 85); --surface-2: oklch(0.965 0.010 84);
+  --ink: oklch(0.22 0.015 280); --ink-soft: oklch(0.36 0.014 280); --muted: oklch(0.50 0.013 280);
+  --border: oklch(0.86 0.008 85); --border-soft: oklch(0.91 0.006 85);
+  --accent: oklch(0.50 0.155 55); --accent-deep: oklch(0.42 0.150 52); --on-accent: oklch(0.985 0.010 85);
+  --pass: oklch(0.50 0.15 150); --fail: oklch(0.52 0.19 25);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { background: var(--bg); color: var(--ink); font-family: Inter, system-ui, sans-serif; }
+body { min-height: 100dvh; padding: clamp(14px, 3vw, 32px); -webkit-font-smoothing: antialiased; }
+.wrap { max-width: 1180px; margin: 0 auto; }
+
+/* top chrome */
+.topbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 22px; }
+.brand { display: flex; align-items: center; gap: 11px; }
+.brand svg { width: 30px; height: 30px; }
+.brand b { font-weight: 700; font-size: 15px; letter-spacing: -0.01em; }
+.brand .sub { color: var(--muted); font-size: 12px; font-weight: 600; }
+.theme-btn { font: inherit; font-size: 12px; font-weight: 600; color: var(--ink-soft); background: var(--surface);
+  border: 1px solid var(--border); border-radius: 9px; padding: 8px 13px; cursor: pointer; transition: transform .15s var(--ease); }
+.theme-btn:active { transform: scale(0.97); }
+
+/* scenario header */
+.eyebrow { font-size: 10.5px; font-weight: 800; letter-spacing: 0.13em; text-transform: uppercase; color: var(--accent); }
+.scn-head { margin-bottom: 18px; }
+.scn-title { font-family: Fraunces, Georgia, serif; font-weight: 600; font-size: clamp(24px, 3.4vw, 33px);
+  letter-spacing: -0.02em; line-height: 1.05; margin: 7px 0 9px; }
+.scn-prose { color: var(--ink-soft); font-size: 14.5px; line-height: 1.55; max-width: 70ch; }
+.metstrip { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.met { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 600; color: var(--ink-soft);
+  background: var(--surface); border: 1px solid var(--border); border-radius: 999px; padding: 6px 12px; }
+.met svg { width: 13px; height: 13px; stroke: var(--accent); }
+.met .timer { font-variant-numeric: tabular-nums; }
+
+/* the decoupled split */
+.split { display: grid; grid-template-columns: 1.35fr 1fr; gap: 18px; align-items: start; }
+@media (max-width: 860px) { .split { grid-template-columns: 1fr; } }
+
+/* diagram panel (read-only reference) */
+.panel { background: var(--surface); border: 1px solid var(--border); border-radius: 18px; overflow: hidden;
+  box-shadow: 0 1px 0 color-mix(in oklab, var(--ink) 4%, transparent), 0 18px 40px -22px color-mix(in oklab, var(--ink) 20%, transparent); }
+.panel-head { display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 13px 16px; border-bottom: 1px solid var(--border-soft); }
+.panel-head .lbl { font-size: 10.5px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+.zoomhint { font-size: 11px; color: var(--muted); font-weight: 600; }
+.diagram { padding: 8px; }
+.diagram svg { width: 100%; height: auto; display: block; touch-action: pan-x pan-y pinch-zoom; }
+
+/* diagram primitives */
+.vlan-zone { fill: color-mix(in oklab, var(--accent) 7%, transparent); stroke: color-mix(in oklab, var(--accent) 26%, var(--border)); stroke-width: 1; }
+.vlan-zone.guest { fill: color-mix(in oklab, var(--muted) 9%, transparent); stroke: color-mix(in oklab, var(--muted) 30%, var(--border)); }
+.zone-lbl { font: 800 10.5px Inter, sans-serif; letter-spacing: 0.1em; text-transform: uppercase; fill: var(--muted); }
+.link { stroke: color-mix(in oklab, var(--ink) 34%, transparent); stroke-width: 1.6; fill: none; }
+.node rect { fill: var(--surface-2); stroke: var(--border); stroke-width: 1.2; }
+.node.flag rect.box { stroke: var(--fail); stroke-width: 1.8; }
+.node .name { font: 700 13px Inter, sans-serif; fill: var(--ink); text-anchor: middle; }
+.node .ip { font: 600 11px ui-monospace, Menlo, monospace; fill: var(--ink-soft); text-anchor: middle; }
+.node .glyph { stroke: var(--accent); stroke-width: 1.8; fill: none; }
+.node.flag .glyph { stroke: var(--fail); }
+.flag-dot { fill: var(--fail); }
+.halo { fill: none; stroke: var(--fail); stroke-width: 2; opacity: 0; transform-box: fill-box; transform-origin: center; }
+
+/* read-only given reference */
+.given { margin: 2px 8px 10px; border-top: 1px solid var(--border-soft); padding-top: 11px; display: grid; gap: 9px; }
+.given .row { display: flex; align-items: baseline; gap: 10px; font-size: 12.5px; }
+.given .k { color: var(--muted); font-weight: 700; min-width: 86px; }
+.given .v { font-family: ui-monospace, Menlo, monospace; color: var(--ink); font-size: 12px; }
+.cli { margin: 0 8px 8px; background: color-mix(in oklab, var(--ink) 5%, var(--surface)); border: 1px solid var(--border-soft);
+  border-radius: 11px; padding: 11px 13px; font-family: ui-monospace, Menlo, monospace; font-size: 11.5px; line-height: 1.6; color: var(--ink-soft); }
+.cli .c { color: var(--accent-deep); }
+
+/* answer rail */
+.rail { display: grid; gap: 14px; }
+.phase-tabs { display: flex; gap: 7px; }
+.ptab { flex: 1; text-align: center; font-size: 11.5px; font-weight: 700; padding: 9px; border-radius: 9px;
+  border: 1px solid var(--border); background: var(--surface); color: var(--muted);
+  transition: color .2s var(--ease), border-color .2s var(--ease), background-color .2s var(--ease); }
+.ptab.on { color: var(--accent); border-color: color-mix(in oklab, var(--accent) 34%, var(--border)); background: color-mix(in oklab, var(--accent) 9%, transparent); }
+.ptab.done { color: var(--pass); border-color: color-mix(in oklab, var(--pass) 30%, var(--border)); }
+.ptab .n { font-variant-numeric: tabular-nums; opacity: .65; margin-right: 5px; }
+
+.qcard { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 16px;
+  transition: opacity .22s var(--ease), transform .22s var(--ease), filter .22s var(--ease); }
+.qcard.entering { opacity: 0; transform: translateY(8px); filter: blur(2px); }
+.qcard.leaving { opacity: 0; transform: translateY(-6px); filter: blur(2px); }
+.qcard .q { font-size: 14px; font-weight: 650; line-height: 1.4; margin-bottom: 13px; }
+.slot { display: grid; gap: 6px; margin-bottom: 13px; }
+.slot:last-of-type { margin-bottom: 0; }
+.slot label { font-size: 12px; font-weight: 700; color: var(--ink-soft); display: flex; align-items: center; gap: 7px; }
+.slot label .pin { color: var(--accent); cursor: pointer; font-size: 11px; font-weight: 700; transition: transform .15s var(--ease); }
+.slot label .pin:active { transform: scale(0.95); }
+.sel { position: relative; }
+.sel select { width: 100%; appearance: none; -webkit-appearance: none; font: inherit; font-size: 13.5px; font-weight: 600;
+  color: var(--ink); background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px;
+  padding: 11px 38px 11px 13px; cursor: pointer; transition: border-color .18s var(--ease), box-shadow .18s var(--ease); }
+.sel select:focus { outline: none; border-color: color-mix(in oklab, var(--accent) 55%, var(--border)); box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 18%, transparent); }
+.sel::after { content: ""; position: absolute; right: 14px; top: 50%; width: 8px; height: 8px; pointer-events: none;
+  border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted); transform: translateY(-65%) rotate(45deg); }
+.sel.correct select { border-color: color-mix(in oklab, var(--pass) 60%, var(--border)); box-shadow: 0 0 0 3px color-mix(in oklab, var(--pass) 15%, transparent); }
+.sel.wrong select { border-color: color-mix(in oklab, var(--fail) 60%, var(--border)); box-shadow: 0 0 0 3px color-mix(in oklab, var(--fail) 14%, transparent); }
+.verdict { font-size: 11.5px; font-weight: 600; line-height: 1.45; margin-top: 4px; display: none;
+  opacity: 0; transform: translateY(-3px); transition: opacity .25s var(--ease), transform .25s var(--ease); }
+.slot.graded.ok .verdict.ok { display: block; color: var(--pass); }
+.slot.graded.no .verdict.no { display: block; color: var(--fail); }
+.verdict.in { opacity: 1; transform: none; }
+.verdict b { font-family: ui-monospace, Menlo, monospace; font-weight: 700; }
+
+/* primary action */
+.actions { display: flex; gap: 10px; }
+.btn { font: inherit; font-size: 13.5px; font-weight: 700; border-radius: 11px; padding: 12px 18px; cursor: pointer;
+  transition: transform .15s var(--ease), filter .15s var(--ease); border: 1px solid transparent; }
+.btn:active { transform: scale(0.97); }
+.btn-primary { background: var(--accent); color: var(--on-accent); border-color: var(--accent-deep); flex: 1; }
+.btn-ghost { background: transparent; color: var(--accent); border-color: color-mix(in oklab, var(--accent) 30%, var(--border)); }
+@media (hover: hover) and (pointer: fine) { .btn-primary:hover { filter: brightness(1.05); } }
+
+/* result */
+.result { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 18px; text-align: center;
+  display: none; opacity: 0; transform: translateY(10px) scale(0.99); transition: opacity .38s var(--ease), transform .38s var(--ease); }
+.result.show { display: block; }
+.result.in { opacity: 1; transform: none; }
+.score-fig { font-family: Fraunces, Georgia, serif; font-weight: 600; font-size: 62px; line-height: 1; letter-spacing: -0.03em;
+  font-variant-numeric: lining-nums tabular-nums; font-feature-settings: "lnum","tnum"; color: var(--ink);
+  opacity: 0; transform: scale(0.96); transition: opacity .5s var(--ease) .08s, transform .5s var(--ease) .08s; }
+.result.in .score-fig { opacity: 1; transform: none; }
+.score-cap { margin-top: 9px; font-size: 11.5px; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; color: var(--muted); }
+.score-sub { margin-top: 12px; font-size: 13px; color: var(--ink-soft); line-height: 1.5; }
+
+/* Pro gate (fires at peak-end, after the free daily PBQ) */
+.pro { margin-top: 18px; text-align: left; background: var(--accent); color: var(--on-accent); border-radius: 16px; padding: 18px 18px 16px; }
+.pro .pe { font-size: 10px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; opacity: .82; }
+.pro h3 { font-family: Fraunces, Georgia, serif; font-weight: 600; font-size: 21px; letter-spacing: -0.02em; line-height: 1.12; margin: 7px 0 8px; }
+.pro p { font-size: 12.5px; line-height: 1.5; opacity: .92; margin-bottom: 14px; }
+.btn-white { background: var(--on-accent); color: var(--accent); border: none; width: 100%; }
+.freestate { margin-top: 13px; font-size: 12px; color: var(--muted); font-weight: 600; }
+
+/* reveal (matches dg-system .reveal entrance) */
+.reveal { opacity: 0; transform: translateY(14px); transition: opacity .5s var(--ease), transform .5s var(--ease); }
+.reveal.vis { opacity: 1; transform: none; }
+@media (prefers-reduced-motion: reduce) {
+  .reveal, .qcard, .verdict, .result, .score-fig { transition-property: opacity !important; transform: none !important; filter: none !important; }
+  .reveal { opacity: 1 !important; }
+  .btn:active, .theme-btn:active, .pin:active { transform: none; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="topbar">
+    <div class="brand">
+      <svg viewBox="0 0 40 40" fill="none" aria-hidden="true">
+        <path d="M27 11.5a11 11 0 1 0 0 17" stroke="var(--accent)" stroke-width="7" stroke-linecap="round"/>
+        <path d="M13 28 27 12" stroke="var(--accent)" stroke-width="5" stroke-linecap="round" opacity="0.55"/>
+        <path d="M14 28.5a11 11 0 0 1 0-17" stroke="var(--accent)" stroke-width="7" stroke-linecap="round"/>
+      </svg>
+      <div><b>CertAnvil</b> &nbsp;<span class="sub">Sim Lab · Diagram PBQ</span></div>
+    </div>
+    <button class="theme-btn" id="themeBtn">Dark</button>
+  </div>
+
+  <div class="scn-head reveal" style="transition-delay:.04s">
+    <div class="eyebrow">Network+ · Objective 2.1 · VLANs &amp; addressing</div>
+    <h1 class="scn-title">The Mercer &amp; Hale branch office</h1>
+    <p class="scn-prose">Two VLANs serve this office: Staff (VLAN 10) and Guest (VLAN 20). A user on the Staff network reports they cannot reach the internal file server or the internet, while everyone else is fine. Inspect the diagram and the device configs, then fix it.</p>
+    <div class="metstrip">
+      <span class="met"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M12 7v5l3 2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span class="timer" id="timer">00:42</span></span>
+      <span class="met"><svg viewBox="0 0 24 24" fill="none"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>2 steps · partial credit</span>
+      <span class="met"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3l8 4v5c0 4.5-3.5 7.5-8 9-4.5-1.5-8-4.5-8-9V7l8-4z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>Practice mode</span>
+    </div>
+  </div>
+
+  <div class="split">
+
+    <!-- DIAGRAM: read-only reference -->
+    <div class="panel reveal" style="transition-delay:.08s">
+      <div class="panel-head">
+        <span class="lbl">Network diagram · reference</span>
+        <span class="zoomhint">pinch / scroll to zoom</span>
+      </div>
+      <div class="diagram">
+        <svg viewBox="0 0 800 500" role="img" aria-label="Office network diagram">
+          <!-- VLAN zones (wide gap between them) -->
+          <rect class="vlan-zone" x="28" y="100" width="344" height="372" rx="16"/>
+          <text class="zone-lbl" x="48" y="130">VLAN 10 · Staff · 192.168.10.0/24</text>
+          <rect class="vlan-zone guest" x="428" y="100" width="344" height="372" rx="16"/>
+          <text class="zone-lbl" x="448" y="130">VLAN 20 · Guest · 192.168.20.0/24</text>
+
+          <!-- links -->
+          <path class="link" d="M400 98 L200 176"/>
+          <path class="link" d="M400 98 L600 176"/>
+          <path class="link" d="M200 238 L116 360"/>
+          <path class="link" d="M200 238 L284 360"/>
+          <path class="link" d="M600 238 L600 360"/>
+
+          <!-- router (gateway), centered above both zones -->
+          <g class="node" transform="translate(324,36)">
+            <rect class="box" width="152" height="62" rx="12"/>
+            <g class="glyph" transform="translate(67,11)"><path d="M1 8h7m-3.5-3.5v7M10 4l5 4-5 4"/></g>
+            <text class="name" x="76" y="42">RTR-1</text>
+            <text class="ip" x="76" y="56">gw .10.1 / .20.1</text>
+          </g>
+
+          <!-- switch staff -->
+          <g class="node" transform="translate(136,176)">
+            <rect class="box" width="128" height="62" rx="12"/>
+            <g class="glyph" transform="translate(55,11)"><path d="M5 3l-5 5 5 5M13 3l5 5-5 5"/></g>
+            <text class="name" x="64" y="42">SW-A</text>
+            <text class="ip" x="64" y="56">access v10</text>
+          </g>
+          <!-- switch guest -->
+          <g class="node" transform="translate(536,176)">
+            <rect class="box" width="128" height="62" rx="12"/>
+            <g class="glyph" transform="translate(55,11)"><path d="M5 3l-5 5 5 5M13 3l5 5-5 5"/></g>
+            <text class="name" x="64" y="42">SW-B</text>
+            <text class="ip" x="64" y="56">access v20</text>
+          </g>
+
+          <!-- file server (staff) -->
+          <g class="node" transform="translate(52,360)">
+            <rect class="box" width="128" height="62" rx="12"/>
+            <g class="glyph" transform="translate(56,11)"><path d="M0 3h16v10H0zM0 8h16"/></g>
+            <text class="name" x="64" y="42">FS-1</text>
+            <text class="ip" x="64" y="56">.10.20</text>
+          </g>
+          <!-- the flagged PC (staff zone, wrong subnet) -->
+          <g class="node flag" id="flagNode" transform="translate(220,360)">
+            <rect class="halo" x="-7" y="-7" width="142" height="76" rx="15"/>
+            <rect class="box" width="128" height="62" rx="12"/>
+            <circle class="flag-dot" cx="116" cy="11" r="5"/>
+            <g class="glyph" transform="translate(56,11)"><path d="M0 3h16v9H0zM5 16h6"/></g>
+            <text class="name" x="64" y="42">PC-2</text>
+            <text class="ip" x="64" y="56">.20.45 ?</text>
+          </g>
+          <!-- guest PC -->
+          <g class="node" transform="translate(536,360)">
+            <rect class="box" width="128" height="62" rx="12"/>
+            <g class="glyph" transform="translate(56,11)"><path d="M0 3h16v9H0zM5 16h6"/></g>
+            <text class="name" x="64" y="42">PC-7</text>
+            <text class="ip" x="64" y="56">.20.31</text>
+          </g>
+        </svg>
+      </div>
+
+      <div class="given">
+        <div class="row"><span class="k">Network ID</span><span class="v">192.168.10.0</span></div>
+        <div class="row"><span class="k">Subnet mask</span><span class="v">255.255.255.0  (/24)</span></div>
+        <div class="row"><span class="k">Staff gateway</span><span class="v">192.168.10.1</span></div>
+      </div>
+      <div class="cli"><span class="c">PC-2&gt;</span> ipconfig<br>&nbsp;&nbsp;IPv4 Address . . : 192.168.<b>20</b>.45<br>&nbsp;&nbsp;Subnet Mask . . : 255.255.255.0<br>&nbsp;&nbsp;Default Gateway : 192.168.<b>20</b>.1<br><span class="c">PC-2&gt;</span> ping 192.168.10.20<br>&nbsp;&nbsp;Request timed out.</div>
+    </div>
+
+    <!-- ANSWER RAIL -->
+    <div class="rail reveal" style="transition-delay:.12s">
+      <div class="phase-tabs">
+        <div class="ptab on" id="tab1"><span class="n">1</span>Diagnose</div>
+        <div class="ptab" id="tab2"><span class="n">2</span>Reconfigure</div>
+      </div>
+
+      <!-- PHASE 1: diagnose -->
+      <div class="qcard" id="phase1">
+        <div class="q">What is wrong with this network?</div>
+        <div class="slot" data-answer="d2">
+          <div class="sel">
+            <select id="dx">
+              <option value="">Select the problem…</option>
+              <option value="d1">The Staff and Guest VLANs are using the same subnet</option>
+              <option value="d2">PC-2 is assigned an IP from the Guest subnet, not its own VLAN</option>
+              <option value="d3">The subnet mask on PC-2 is too small for the host count</option>
+              <option value="d4">RTR-1 is missing a route between the two VLANs</option>
+            </select>
+          </div>
+          <p class="verdict ok">Correct. PC-2 sits in VLAN 10 but holds a 192.168.20.x address and .20.1 gateway, so it is stranded on the Guest subnet.</p>
+          <p class="verdict no">Not quite. Compare PC-2's <b>192.168.20.45</b> against its VLAN 10 subnet <b>192.168.10.0/24</b>.</p>
+        </div>
+      </div>
+
+      <!-- PHASE 2: reconfigure -->
+      <div class="qcard" id="phase2" style="display:none">
+        <div class="q">Fix <b>PC-2</b>'s configuration.</div>
+        <div class="slot" data-answer="a2">
+          <label>IP address <span class="pin" data-pin="PC-2">locate</span></label>
+          <div class="sel"><select>
+            <option value="">Choose…</option>
+            <option value="a1">192.168.20.45</option>
+            <option value="a2">192.168.10.45</option>
+            <option value="a3">10.0.10.45</option>
+          </select></div>
+          <p class="verdict ok">Right. A VLAN 10 host needs a 192.168.10.x address.</p>
+          <p class="verdict no">Correct answer: <b>192.168.10.45</b> (inside the VLAN 10 subnet).</p>
+        </div>
+        <div class="slot" data-answer="b1">
+          <label>Subnet mask</label>
+          <div class="sel"><select>
+            <option value="">Choose…</option>
+            <option value="b1">255.255.255.0</option>
+            <option value="b2">255.255.255.192</option>
+            <option value="b3">255.255.0.0</option>
+          </select></div>
+          <p class="verdict ok">Right. /24 matches the documented subnet.</p>
+          <p class="verdict no">Correct answer: <b>255.255.255.0</b> (the /24 in the given config).</p>
+        </div>
+        <div class="slot" data-answer="c1">
+          <label>Default gateway</label>
+          <div class="sel"><select>
+            <option value="">Choose…</option>
+            <option value="c1">192.168.10.1</option>
+            <option value="c2">192.168.20.1</option>
+            <option value="c3">192.168.1.1</option>
+          </select></div>
+          <p class="verdict ok">Right. The Staff gateway is 192.168.10.1.</p>
+          <p class="verdict no">Correct answer: <b>192.168.10.1</b> (the VLAN 10 gateway).</p>
+        </div>
+      </div>
+
+      <div class="actions" id="actions">
+        <button class="btn btn-primary" id="primary">Check answer</button>
+      </div>
+
+      <!-- RESULT -->
+      <div class="result" id="result">
+        <div class="score-fig" id="scoreFig">4/4</div>
+        <div class="score-cap" id="scoreCap">slots correct · 100%</div>
+        <p class="score-sub" id="scoreSub">Clean fix. You found the host on the wrong subnet and moved it back into VLAN 10.</p>
+
+        <div class="pro">
+          <div class="pe">CertAnvil Pro</div>
+          <h3>Make PBQs muscle memory.</h3>
+          <p>You just worked a live network end to end. Pro opens unlimited PBQs across every cert, plus timed Exam mode and weak-spot tracking, so the most-feared part of the test becomes the part you have drilled most.</p>
+          <button class="btn btn-white" id="goPro">Go Pro</button>
+        </div>
+
+        <div class="freestate" id="freestate">That was today's free PBQ. The next one unlocks in 22h.</div>
+        <div class="actions" style="margin-top:12px;justify-content:center">
+          <button class="btn btn-ghost" id="again">Review this scenario</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+const root = document.documentElement, tb = document.getElementById('themeBtn');
+tb.onclick = () => { const d = root.getAttribute('data-theme') === 'dark'; root.setAttribute('data-theme', d ? 'light' : 'dark'); tb.textContent = d ? 'Dark' : 'Light'; };
+
+requestAnimationFrame(() => document.querySelectorAll('.reveal').forEach(e => e.classList.add('vis')));
+
+let t = 42; const tEl = document.getElementById('timer');
+setInterval(() => { t++; tEl.textContent = String(Math.floor(t/60)).padStart(2,'0') + ':' + String(t%60).padStart(2,'0'); }, 1000);
+
+const primary = document.getElementById('primary');
+const p1 = document.getElementById('phase1'), p2 = document.getElementById('phase2');
+const tab1 = document.getElementById('tab1'), tab2 = document.getElementById('tab2');
+let stage = 'diagnose';            // diagnose -> diagnosed -> reconfigure -> done
+let tally = { total: 0, correct: 0 };
+
+// grade a phase's slots, ease the verdicts in
+function gradeSlots(scope){
+  let total = 0, correct = 0;
+  scope.querySelectorAll('.slot').forEach(slot => {
+    total++;
+    const sel = slot.querySelector('select'), got = sel.value, want = slot.dataset.answer;
+    const wrap = slot.querySelector('.sel');
+    const ok = got === want;
+    if (ok) correct++;
+    slot.classList.add('graded', ok ? 'ok' : 'no');
+    wrap.classList.add(ok ? 'correct' : 'wrong');
+    sel.disabled = true;
+    const v = slot.querySelector(ok ? '.verdict.ok' : '.verdict.no');
+    requestAnimationFrame(() => requestAnimationFrame(() => v.classList.add('in')));  // ease in after paint
+  });
+  return { total, correct };
+}
+
+// crossfade phase cards (blur-masked, brand ease)
+function swapPhase(outEl, inEl, after){
+  outEl.classList.add('leaving');
+  setTimeout(() => {
+    outEl.style.display = 'none'; outEl.classList.remove('leaving');
+    inEl.style.display = 'block'; inEl.classList.add('entering');
+    requestAnimationFrame(() => requestAnimationFrame(() => { inEl.classList.remove('entering'); after && after(); }));
+  }, 220);
+}
+
+primary.onclick = () => {
+  if (stage === 'diagnose') {
+    const r = gradeSlots(p1); tally.total += r.total; tally.correct += r.correct;
+    stage = 'diagnosed';
+    tab1.classList.add('done');
+    primary.textContent = 'Continue to reconfigure';
+  } else if (stage === 'diagnosed') {
+    stage = 'reconfigure';
+    tab1.classList.remove('on'); tab2.classList.add('on');
+    primary.textContent = 'Submit fix';
+    swapPhase(p1, p2);
+  } else if (stage === 'reconfigure') {
+    const r = gradeSlots(p2); tally.total += r.total; tally.correct += r.correct;
+    stage = 'done';
+    tab2.classList.add('done');
+    primary.textContent = 'See result';
+  } else {
+    document.getElementById('actions').style.display = 'none';
+    p2.classList.add('leaving');
+    const pct = Math.round(tally.correct / tally.total * 100);
+    document.getElementById('scoreFig').textContent = tally.correct + '/' + tally.total;
+    document.getElementById('scoreCap').textContent = 'slots correct · ' + pct + '%';
+    if (pct < 100) document.getElementById('scoreSub').textContent = 'Each slot is scored on its own, so you keep credit for every one you got right.';
+    const res = document.getElementById('result');
+    res.classList.add('show');
+    requestAnimationFrame(() => requestAnimationFrame(() => res.classList.add('in')));
+  }
+};
+
+// "locate on diagram": transform+opacity halo pulse (GPU)
+document.querySelectorAll('[data-pin]').forEach(p => p.onclick = () => {
+  const halo = document.querySelector('#flagNode .halo');
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    halo.animate([{ opacity: 0 }, { opacity: .9 }, { opacity: 0 }], { duration: 600 });
+    return;
+  }
+  halo.animate(
+    [ { opacity: 0, transform: 'scale(0.96)' }, { opacity: .9, transform: 'scale(1.04)' }, { opacity: 0, transform: 'scale(1.12)' } ],
+    { duration: 720, easing: 'cubic-bezier(0.16,1,0.3,1)' }
+  );
+});
+
+document.getElementById('again')?.addEventListener('click', () => location.reload());
+document.getElementById('next')?.addEventListener('click', () => location.reload());
+</script>
+</body>
+</html>

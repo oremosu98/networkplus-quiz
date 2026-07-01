@@ -115,11 +115,11 @@ npx playwright test              # E2E (tests/e2e/app.spec.js)
 
 | Version | Features Added |
 |---|---|
+| v7.61.0 | Sim Lab PBQ archetypes: Diagram, Incident Response, Defense in Depth |
 | v7.60.0 | Per-cert milestones + 12 drill milestones (Sim Lab/Decision Lab/Why-Not/Gauntlet) + orphan cleanup + bronze celebration toast |
 | v7.59.0 | Decision Lab: cloud-cert scenario decision drill (engine + 4 seed banks) |
-| v7.58.0 | Sim Lab: A+ Core 1 (220-1201) + Core 2 (220-1202) PBQ seed banks live (cert rollout) |
 
-_Older releases (v7.55.0 and back) live in [CHANGELOG.md](./CHANGELOG.md) — v7.55.0 + v7.54.1 + v7.54.0 ported during the 2026-06-25 v7.56.0 night-end consolidation (Sim Lab session-mode marathon)._
+_Older releases (v7.58.0 and back) live in [CHANGELOG.md](./CHANGELOG.md). The v7.60.1–v7.60.5 CSS `?v=` cache-bump stubs from the PBQ-archetypes build were collapsed into this single v7.61.0 ship at consolidation._
 
 ## CSS Theme System
 Dark theme in `:root`, light theme in `[data-theme="light"]`. Key variables: `--bg`, `--surface`, `--accent`, `--text`, `--green`, `--red`, `--yellow`. Toggle via `toggleTheme()`.
@@ -133,6 +133,8 @@ Dark theme in `:root`, light theme in `[data-theme="light"]`. Key variables: `--
 - `hasAnswer` checks must include `Object.keys(a.topoState || {}).length > 0`
 - `setQuestionText(el, raw)` order is **escape-THEN-highlight** (`escHtml` → `highlightExamKeywords` → `innerHTML`). Reversing it is an XSS hole since question text is AI-generated.
 - The `_fnBody(src, name)` helper used by UAT extracts function bodies via brace-depth walking. **Prefix-match trap**: `tbShowCoach` will match `tbShowCoachModalLoading`. When writing UAT for a function, pick a name that's either unique or specify the exact suffix.
+- Sim Lab `layered` references support an optional `layout: 'nested' | 'stacked'` field (default `'nested'`); `_slRenderReference` dispatches on it — Sec+ Defense in Depth uses `'stacked'` (perimeter + interior bands + exposed core), Net+ keeps `'nested'` (concentric frames).
+- The stacked layout's perimeter layer (`layers[0]`) supports an optional `device: { label }` field (e.g. `'FW-1'`, `'WAF-1'`) rendered as a decorative device box (`.sl-fw`) top-right inside the perimeter frame; absent = no extra markup, fully backward-compatible.
 
 **Testing**
 - Don't tune `validateQuestions()` without running `node tests/validation-audit.js` first — the `MIN_CATCH_RATE = 60` / `MAX_FP_RATE = 0` floor is CI-enforced inside UAT

@@ -3984,7 +3984,7 @@ mark.gnt-hinge{background:color-mix(in oklab,var(--red) 26%,transparent);color:i
 #page-sim-lab-result .sls-r{display:flex;align-items:center;gap:12px;padding:13px 2px;border-bottom:1px solid var(--border-soft,var(--border))}
 #page-sim-lab-result .sls-r-ic{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font:800 12px/1 Inter,sans-serif;flex:none}
 #page-sim-lab-result .sls-r-ic.ok{color:var(--green,var(--pass));background:color-mix(in oklab,var(--green,var(--pass)) 14%,transparent)}
-#page-sim-lab-result .sls-r-ic.no{color:var(--red,var(--fail));background:color-mix(in oklab,var(--red,var(--fail)) 14%,transparent)}
+#page-sim-lab-result .sls-r-ic.no{color:var(--red,var(--red));background:color-mix(in oklab,var(--red,var(--red)) 14%,transparent)}
 #page-sim-lab-result .sls-r-body{flex:1;min-width:0}
 #page-sim-lab-result .sls-r-title{font:600 14px/1.3 Inter,sans-serif;color:var(--text)}
 #page-sim-lab-result .sls-r-why{font:400 12.5px/1.4 Inter,sans-serif;color:var(--text-dim);margin-top:2px}
@@ -4092,6 +4092,16 @@ mark.gnt-hinge{background:color-mix(in oklab,var(--red) 26%,transparent);color:i
 #page-sim-lab-result .slp-pr-val.over{color:var(--yellow,var(--warn))}
 #page-sim-lab-result .slp-pr-val.under{color:var(--green,var(--pass))}
 @media (prefers-reduced-motion:reduce){#page-sim-lab-result .slp-par-fill,#page-sim-lab-result .slp-pr-bar i{transition:none;transform:scaleX(1)}}
+/* Sim Lab session: configure step dropdowns (Task 4) - grading task toggles .is-correct/.is-wrong on .sl-cfg-select */
+#page-sim-lab .sl-cfg{display:grid;gap:13px}
+#page-sim-lab .sl-cfg-slot{display:grid;gap:6px}
+#page-sim-lab .sl-cfg-label{font:700 12px/1 Inter,sans-serif;color:var(--text-dim)}
+#page-sim-lab .sl-cfg-select{width:100%;appearance:none;-webkit-appearance:none;font:inherit;font-size:13.5px;font-weight:600;color:var(--text);background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:11px 38px 11px 13px;cursor:pointer;transition:border-color .18s var(--ease),box-shadow .18s var(--ease);background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpolyline points='2,3 5,7 8,3' fill='none' stroke='%23888' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 13px center}
+#page-sim-lab .sl-cfg-select:focus{outline:none;border-color:color-mix(in oklab,var(--accent) 55%,var(--border));box-shadow:0 0 0 3px color-mix(in oklab,var(--accent) 18%,transparent)}
+#page-sim-lab .sl-cfg-select.is-correct{border-color:color-mix(in oklab,var(--pass) 60%,var(--border));box-shadow:0 0 0 3px color-mix(in oklab,var(--pass) 15%,transparent)}
+#page-sim-lab .sl-cfg-select.is-wrong{border-color:color-mix(in oklab,var(--red) 60%,var(--border));box-shadow:0 0 0 3px color-mix(in oklab,var(--red) 14%,transparent)}
+@media (hover:hover) and (pointer:fine){#page-sim-lab .sl-cfg-select:hover{border-color:color-mix(in oklab,var(--accent) 30%,var(--border))}}
+@media (prefers-reduced-motion:reduce){#page-sim-lab .sl-cfg-select{transition:none}}
 /* Decision Lab: per-option why reveal + teach block (Task 2) — v7.59.0 */
 #page-decision-lab .dl-opt .dl-why{font:500 12.5px/1.45 Inter,sans-serif;color:var(--text-dim);margin-top:4px;display:grid;grid-template-rows:0fr;opacity:0;overflow:hidden;transition:grid-template-rows .16s var(--ease,cubic-bezier(.16,1,.3,1)),opacity .16s,transform .16s;transform:translateY(2px)}
 #page-decision-lab .dl-graded .dl-opt .dl-why{grid-template-rows:1fr;opacity:1;transform:none}
@@ -4274,3 +4284,150 @@ html[data-theme="light"] body .celebration-toast{
 }
 html[data-theme] body .celebration-toast-title{color:var(--text)}
 html[data-theme] body .celebration-toast-sub{color:var(--text-dim,rgba(255,255,255,.75));opacity:1}
+
+/* ════════════════════════════════════════════════════════════════════════
+   SIM LAB · network reference renderer (Task 6) — diagram + incident overlay
+   ────────────────────────────────────────────────────────────────────────
+   Faithful STYLE lift of mockups/diagram-pbq-concept.html (.vlan-zone /
+   centered-stack .node / .link / given+CLI) + the incident overlay states
+   from mockups/incident-response-pbq-concept.html (.compromised / .affected
+   / .link.attack animated dashes + marker#arrow). Layout is computed in JS
+   (data-driven); these are presentation only. Mockup tokens mapped to the
+   app's dg tokens: --ink→--text, --ink-soft→--text-mid, --muted→--text-dim,
+   --surface-2→--surface2, --fail→--red. The mockups' affected-state used
+   --warn, which is NOT defined in this stylesheet — the app's defined amber
+   is --yellow, so affected uses --yellow (matches the existing .sl-clock
+   .is-low precedent at line ~4168). Scoped to both labs that mount a
+   reference panel (#page-sim-lab + #page-decision-lab). 0 hardcoded hex. */
+#page-sim-lab .sl-net,#page-decision-lab .sl-net{padding:8px}
+#page-sim-lab .sl-net-svg,#page-decision-lab .sl-net-svg{width:100%;height:auto;display:block;touch-action:pan-x pan-y pinch-zoom}
+
+/* zones */
+#page-sim-lab .sl-vlan-zone,#page-decision-lab .sl-vlan-zone{fill:color-mix(in oklab,var(--accent) 7%,transparent);stroke:color-mix(in oklab,var(--accent) 26%,var(--border));stroke-width:1}
+#page-sim-lab .sl-zone-lbl,#page-decision-lab .sl-zone-lbl{font:800 10.5px Inter,sans-serif;letter-spacing:.1em;text-transform:uppercase;fill:var(--text-dim)}
+
+/* links */
+#page-sim-lab .sl-link,#page-decision-lab .sl-link{stroke:color-mix(in oklab,var(--text) 34%,transparent);stroke-width:1.6;fill:none}
+#page-sim-lab .sl-link.attack,#page-decision-lab .sl-link.attack{stroke:var(--red);stroke-width:2.2;fill:none;stroke-dasharray:5 6}
+#page-sim-lab .sl-net-arrowhead,#page-decision-lab .sl-net-arrowhead{fill:var(--red)}
+@media (prefers-reduced-motion:no-preference){#page-sim-lab .sl-link.attack,#page-decision-lab .sl-link.attack{animation:sl-net-flow 1s linear infinite}}
+@keyframes sl-net-flow{to{stroke-dashoffset:-22}}
+
+/* nodes — centered stack (rect + glyph-on-top + name/ip centered) */
+#page-sim-lab .sl-node-box,#page-decision-lab .sl-node-box{fill:var(--surface2);stroke:var(--border);stroke-width:1.2}
+#page-sim-lab .sl-node-name,#page-decision-lab .sl-node-name{font:700 13px Inter,sans-serif;fill:var(--text);text-anchor:middle}
+#page-sim-lab .sl-node-ip,#page-decision-lab .sl-node-ip{font:600 11px ui-monospace,Menlo,monospace;fill:var(--text-mid);text-anchor:middle}
+#page-sim-lab .sl-glyph,#page-decision-lab .sl-glyph{stroke:var(--accent);stroke-width:1.8;fill:none}
+
+/* incident overlay states */
+#page-sim-lab .sl-node.compromised .sl-node-box,#page-decision-lab .sl-node.compromised .sl-node-box{stroke:var(--red);stroke-width:2}
+#page-sim-lab .sl-node.compromised .sl-node-name,#page-decision-lab .sl-node.compromised .sl-node-name{fill:var(--red)}
+#page-sim-lab .sl-node.compromised .sl-glyph,#page-decision-lab .sl-node.compromised .sl-glyph{stroke:var(--red)}
+#page-sim-lab .sl-node.affected .sl-node-box,#page-decision-lab .sl-node.affected .sl-node-box{stroke:var(--yellow);stroke-width:1.8}
+#page-sim-lab .sl-node.affected .sl-node-name,#page-decision-lab .sl-node.affected .sl-node-name{fill:var(--yellow)}
+#page-sim-lab .sl-node.affected .sl-glyph,#page-decision-lab .sl-node.affected .sl-glyph{stroke:var(--yellow)}
+
+/* read-only given reference + CLI block */
+#page-sim-lab .sl-net-given,#page-decision-lab .sl-net-given{margin:2px 8px 10px;border-top:1px solid var(--border);padding-top:11px;display:grid;gap:9px}
+#page-sim-lab .sl-net-row,#page-decision-lab .sl-net-row{display:flex;align-items:baseline;gap:10px;font-size:12.5px}
+#page-sim-lab .sl-net-row .k,#page-decision-lab .sl-net-row .k{color:var(--text-dim);font-weight:700;min-width:86px}
+#page-sim-lab .sl-net-row .v,#page-decision-lab .sl-net-row .v{font-family:ui-monospace,Menlo,monospace;color:var(--text);font-size:12px}
+#page-sim-lab .sl-net-cli,#page-decision-lab .sl-net-cli{margin:0 8px 8px;background:color-mix(in oklab,var(--text) 5%,var(--surface));border:1px solid var(--border);border-radius:11px;padding:11px 13px;font-family:ui-monospace,Menlo,monospace;font-size:11.5px;line-height:1.6;color:var(--text-mid);white-space:pre-wrap;word-break:break-word}
+
+/* ── Sim Lab: attack-timeline reference renderer (Task 7) ──────────────────
+   Vertical timeline: each .sl-stage row = left rail (.sl-dot + .sl-line) +
+   right body (.sl-when / .sl-what / .sl-sevtag). severity drives --sev token.
+   .sev-med uses --yellow (same precedent as .sl-clock .is-low, Task 6).
+   Scoped to #page-sim-lab + #page-decision-lab; 0 hardcoded hex. */
+#page-sim-lab .sl-timeline,#page-decision-lab .sl-timeline{display:grid;gap:0;padding:16px 16px 6px}
+#page-sim-lab .sl-stage,#page-decision-lab .sl-stage{display:grid;grid-template-columns:22px 1fr;gap:12px}
+#page-sim-lab .sl-rail,#page-decision-lab .sl-rail{display:flex;flex-direction:column;align-items:center}
+#page-sim-lab .sl-dot,#page-decision-lab .sl-dot{width:13px;height:13px;border-radius:999px;margin-top:3px;flex-shrink:0;background:var(--sev,var(--muted));box-shadow:0 0 0 3px color-mix(in oklab,var(--sev,var(--muted)) 22%,transparent)}
+#page-sim-lab .sl-line,#page-decision-lab .sl-line{flex:1;width:2px;background:color-mix(in oklab,var(--sev,var(--muted)) 28%,var(--border));min-height:18px;margin:3px 0}
+#page-sim-lab .sl-body,#page-decision-lab .sl-body{padding-bottom:18px;min-width:0}
+#page-sim-lab .sl-when,#page-decision-lab .sl-when{font:700 11px ui-monospace,Menlo,monospace;color:var(--text-dim);margin-bottom:3px}
+#page-sim-lab .sl-what,#page-decision-lab .sl-what{font-size:13px;line-height:1.45;color:var(--text);margin-bottom:6px}
+#page-sim-lab .sl-sevtag,#page-decision-lab .sl-sevtag{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--sev,var(--muted));background:color-mix(in oklab,var(--sev,var(--muted)) 12%,transparent);border:1px solid color-mix(in oklab,var(--sev,var(--muted)) 30%,var(--border));border-radius:999px;padding:2px 8px}
+
+/* severity → --sev token (--yellow for med: no --warn in dg-system.css) */
+#page-sim-lab .sev-low,#page-decision-lab .sev-low{--sev:var(--muted)}
+#page-sim-lab .sev-med,#page-decision-lab .sev-med{--sev:var(--yellow)}
+#page-sim-lab .sev-high,#page-decision-lab .sev-high{--sev:color-mix(in oklab,var(--red) 80%,var(--yellow))}
+#page-sim-lab .sev-crit,#page-decision-lab .sev-crit{--sev:var(--red)}
+
+/* ── Sim Lab: layered defense-in-depth reference renderer (Task 8) ────────
+   Nested-frames SVG layout. Layers ordered outer→inner; each frame is either
+   present (.sl-layer, accent stroke) or missing (.sl-misslayer, red dashed).
+   Core is .sl-core (safe) or .sl-core-exposed (any asset exposed = red fill).
+   Device nodes inside core: .sl-dev (normal) or .sl-dev.exposed (red).
+   Lifted from mockups/defense-in-depth-{netplus,secplus}-concept.html; tokens
+   only, 0 hardcoded hex. --red = red/missing/exposed; --accent = present. */
+#page-sim-lab .sl-layered,#page-decision-lab .sl-layered{padding:8px}
+#page-sim-lab .sl-layered-svg,#page-decision-lab .sl-layered-svg{width:100%;height:auto;display:block;touch-action:pan-x pan-y pinch-zoom}
+
+/* present layer frame */
+#page-sim-lab .sl-layer,#page-decision-lab .sl-layer{fill:color-mix(in oklab,var(--accent) 6%,transparent);stroke:color-mix(in oklab,var(--accent) 50%,var(--border));stroke-width:1.4}
+
+/* missing layer frame — red dashed */
+#page-sim-lab .sl-misslayer,#page-decision-lab .sl-misslayer{fill:color-mix(in oklab,var(--red) 5%,transparent);stroke:var(--red);stroke-width:1.5;stroke-dasharray:6 5}
+
+/* layer labels */
+#page-sim-lab .sl-layer-lbl,#page-decision-lab .sl-layer-lbl{font:700 11px Inter,sans-serif;fill:var(--text-mid)}
+#page-sim-lab .sl-layer-lbl-miss,#page-decision-lab .sl-layer-lbl-miss{fill:var(--red)}
+#page-sim-lab .sl-misslayer-tag,#page-decision-lab .sl-misslayer-tag{font-weight:400;font-size:10px;opacity:.85}
+
+/* core: safe */
+#page-sim-lab .sl-core,#page-decision-lab .sl-core{fill:color-mix(in oklab,var(--accent) 10%,transparent);stroke:color-mix(in oklab,var(--accent) 40%,var(--border));stroke-width:1.4}
+/* core: exposed (one or more assets are exposed) */
+#page-sim-lab .sl-core-exposed,#page-decision-lab .sl-core-exposed{fill:color-mix(in oklab,var(--red) 9%,transparent);stroke:var(--red);stroke-width:1.7}
+
+/* core labels */
+#page-sim-lab .sl-core-lbl,#page-decision-lab .sl-core-lbl{font:700 11px Inter,sans-serif;fill:var(--text-mid)}
+#page-sim-lab .sl-core-lbl-exp,#page-decision-lab .sl-core-lbl-exp{fill:var(--red)}
+
+/* device node box (safe) */
+#page-sim-lab .sl-dev-box,#page-decision-lab .sl-dev-box{fill:var(--surface);stroke:var(--border);stroke-width:1.2}
+/* device node box (exposed) */
+#page-sim-lab .sl-dev-box-exp,#page-decision-lab .sl-dev-box-exp{stroke:var(--red);stroke-width:1.8}
+
+/* device node labels */
+#page-sim-lab .sl-dev-nm,#page-decision-lab .sl-dev-nm{font:700 10.5px Inter,sans-serif;fill:var(--text);text-anchor:middle}
+#page-sim-lab .sl-dev-nm-exp,#page-decision-lab .sl-dev-nm-exp{fill:var(--red)}
+
+/* ── Sim Lab: layered defense-in-depth "stacked-bands" reference renderer ──
+   Faithful lift of mockups/defense-in-depth-secplus-concept.html (~lines
+   63-85 CSS / 188-209 SVG). Layout: a strong PERIMETER frame + a vertical
+   stack of horizontal interior BANDS + an exposed/safe CORE band with
+   device boxes. Reuses .sl-core/.sl-core-exposed/.sl-dev-box*/.sl-dev-nm*
+   from the nested renderer above (same core semantics). Present = accent
+   solid; missing/exposed = --red dashed/solid. Tokens only, 0 hardcoded
+   hex. Scoped to #page-sim-lab + #page-decision-lab. */
+#page-sim-lab .sl-stacked,#page-decision-lab .sl-stacked{padding:8px}
+
+/* perimeter frame: present */
+#page-sim-lab .sl-perim,#page-decision-lab .sl-perim{fill:color-mix(in oklab,var(--accent) 5%,transparent);stroke:color-mix(in oklab,var(--accent) 55%,var(--border));stroke-width:1.4}
+/* perimeter frame: missing */
+#page-sim-lab .sl-perim-missing,#page-decision-lab .sl-perim-missing{fill:color-mix(in oklab,var(--red) 5%,transparent);stroke:var(--red);stroke-width:1.5;stroke-dasharray:6 5}
+
+/* perimeter labels */
+#page-sim-lab .sl-perim-lbl,#page-decision-lab .sl-perim-lbl{font:800 10.5px Inter,sans-serif;letter-spacing:.1em;text-transform:uppercase;fill:var(--accent)}
+#page-sim-lab .sl-perim-lbl-miss,#page-decision-lab .sl-perim-lbl-miss{fill:var(--red)}
+#page-sim-lab .sl-perim-sub,#page-decision-lab .sl-perim-sub{font:600 10.5px ui-monospace,Menlo,monospace;fill:var(--text-mid)}
+
+/* interior band: present */
+#page-sim-lab .sl-band,#page-decision-lab .sl-band{fill:color-mix(in oklab,var(--accent) 6%,transparent);stroke:color-mix(in oklab,var(--accent) 50%,var(--border));stroke-width:1.4}
+/* interior band: missing */
+#page-sim-lab .sl-band-missing,#page-decision-lab .sl-band-missing{fill:color-mix(in oklab,var(--red) 5%,transparent);stroke:var(--red);stroke-width:1.5;stroke-dasharray:6 5}
+
+/* band labels */
+#page-sim-lab .sl-band-lbl,#page-decision-lab .sl-band-lbl{font:800 10.5px Inter,sans-serif;letter-spacing:.06em;text-transform:uppercase;fill:var(--text)}
+#page-sim-lab .sl-band-lbl-miss,#page-decision-lab .sl-band-lbl-miss{fill:var(--red)}
+#page-sim-lab .sl-band-sub,#page-decision-lab .sl-band-sub{font:600 9.5px ui-monospace,Menlo,monospace;fill:var(--text-dim)}
+
+/* perimeter device box (FW-1, WAF-1, ...) — faithful lift of the mockup's
+   .fw device box (~lines 79-81, 194): surface box, border stroke, accent
+   glyph, text label. Optional — only rendered when layers[0].device.label
+   is present on a stacked-layout scenario. Tokens only, 0 hardcoded hex. */
+#page-sim-lab .sl-fw-box,#page-decision-lab .sl-fw-box{fill:var(--surface);stroke:var(--border);stroke-width:1.2}
+#page-sim-lab .sl-fw-nm,#page-decision-lab .sl-fw-nm{font:700 11px Inter,sans-serif;fill:var(--text);text-anchor:middle}
+#page-sim-lab .sl-fw-glyph,#page-decision-lab .sl-fw-glyph{stroke:var(--accent);stroke-width:1.7;fill:none}

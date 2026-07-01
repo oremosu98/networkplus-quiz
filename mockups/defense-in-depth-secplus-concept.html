@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Defense in Depth PBQ (Sec+) · concept</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ── CertAnvil MOCKUP STARTER TOKEN BLOCK (verbatim) + --warn from BRAND.md §3 ── */
+:root, [data-theme="dark"] {
+  --bg: oklch(0.17 0.008 275); --surface: oklch(0.205 0.009 275); --surface-2: oklch(0.23 0.009 275);
+  --ink: oklch(0.96 0.006 275); --ink-soft: oklch(0.80 0.012 275); --muted: oklch(0.725 0.013 275);
+  --border: oklch(0.32 0.011 275); --border-soft: oklch(0.255 0.010 275);
+  --accent: oklch(0.80 0.155 64); --accent-deep: oklch(0.86 0.135 64); --on-accent: oklch(0.18 0.020 275);
+  --pass: oklch(0.74 0.150 152); --fail: oklch(0.66 0.17 25); --warn: oklch(0.80 0.130 75);
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+}
+[data-theme="light"] {
+  --bg: oklch(0.975 0.007 85); --surface: oklch(0.992 0.004 85); --surface-2: oklch(0.965 0.010 84);
+  --ink: oklch(0.22 0.015 280); --ink-soft: oklch(0.36 0.014 280); --muted: oklch(0.50 0.013 280);
+  --border: oklch(0.86 0.008 85); --border-soft: oklch(0.91 0.006 85);
+  --accent: oklch(0.50 0.155 55); --accent-deep: oklch(0.42 0.150 52); --on-accent: oklch(0.985 0.010 85);
+  --pass: oklch(0.50 0.15 150); --fail: oklch(0.52 0.19 25); --warn: oklch(0.62 0.14 70);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { background: var(--bg); color: var(--ink); font-family: Inter, system-ui, sans-serif; }
+body { min-height: 100dvh; padding: clamp(14px, 3vw, 32px); -webkit-font-smoothing: antialiased; }
+.wrap { max-width: 1180px; margin: 0 auto; }
+
+.topbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 22px; }
+.brand { display: flex; align-items: center; gap: 11px; }
+.brand svg { width: 30px; height: 30px; }
+.brand b { font-weight: 700; font-size: 15px; letter-spacing: -0.01em; }
+.brand .sub { color: var(--muted); font-size: 12px; font-weight: 600; }
+.theme-btn { font: inherit; font-size: 12px; font-weight: 600; color: var(--ink-soft); background: var(--surface);
+  border: 1px solid var(--border); border-radius: 9px; padding: 8px 13px; cursor: pointer; transition: transform .15s var(--ease); }
+.theme-btn:active { transform: scale(0.97); }
+
+.eyebrow { font-size: 10.5px; font-weight: 800; letter-spacing: 0.13em; text-transform: uppercase; color: var(--accent); }
+.scn-head { margin-bottom: 18px; }
+.scn-title { font-family: Fraunces, Georgia, serif; font-weight: 600; font-size: clamp(24px, 3.4vw, 33px);
+  letter-spacing: -0.02em; line-height: 1.05; margin: 7px 0 9px; }
+.scn-prose { color: var(--ink-soft); font-size: 14.5px; line-height: 1.55; max-width: 70ch; }
+.metstrip { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.met { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 600; color: var(--ink-soft);
+  background: var(--surface); border: 1px solid var(--border); border-radius: 999px; padding: 6px 12px; }
+.met svg { width: 13px; height: 13px; stroke: var(--accent); }
+.met .timer { font-variant-numeric: tabular-nums; }
+
+.split { display: grid; grid-template-columns: 1.35fr 1fr; gap: 18px; align-items: start; }
+@media (max-width: 880px) { .split { grid-template-columns: 1fr; } }
+
+.panel { background: var(--surface); border: 1px solid var(--border); border-radius: 18px; overflow: hidden;
+  box-shadow: 0 1px 0 color-mix(in oklab, var(--ink) 4%, transparent), 0 18px 40px -22px color-mix(in oklab, var(--ink) 20%, transparent); }
+.panel-head { display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 13px 16px; border-bottom: 1px solid var(--border-soft); }
+.panel-head .lbl { font-size: 10.5px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+.panel-head .gap { font-size: 11px; font-weight: 700; color: var(--fail); }
+
+/* ── layered defense diagram (nested frames + missing inner layers) ── */
+.diagram { padding: 12px; }
+.diagram svg { width: 100%; height: auto; display: block; }
+.layer { fill: none; stroke-width: 1.4; }
+.layer.l1 { stroke: color-mix(in oklab, var(--accent) 55%, var(--border)); }
+.layer.fill1 { fill: color-mix(in oklab, var(--accent) 5%, transparent); }
+.lname { font: 800 10.5px Inter, sans-serif; letter-spacing: 0.1em; text-transform: uppercase; }
+.lname.on { fill: var(--accent); } .lname.bad { fill: var(--fail); }
+.lctrl { font: 600 10.5px ui-monospace, Menlo, monospace; fill: var(--ink-soft); }
+.misslayer { fill: color-mix(in oklab, var(--fail) 5%, transparent); stroke: var(--fail); stroke-width: 1.5; stroke-dasharray: 6 5; }
+.misslbl { font: 800 10.5px Inter, sans-serif; letter-spacing: 0.06em; text-transform: uppercase; fill: var(--fail); }
+.misssub { font: 600 9.5px ui-monospace, Menlo, monospace; fill: color-mix(in oklab, var(--fail) 78%, var(--ink-soft)); }
+.core-exposed { fill: color-mix(in oklab, var(--fail) 9%, transparent); stroke: var(--fail); stroke-width: 1.7; }
+.dev .box { fill: var(--surface); stroke: var(--fail); stroke-width: 1.5; }
+.dev .nm { font: 700 10.5px Inter, sans-serif; fill: var(--fail); text-anchor: middle; }
+.dev .glyph { stroke: var(--fail); stroke-width: 1.7; fill: none; }
+.fw .box { fill: var(--surface); stroke: var(--border); stroke-width: 1.2; }
+.fw .nm { font: 700 11px Inter, sans-serif; fill: var(--ink); text-anchor: middle; }
+.fw .glyph { stroke: var(--accent); stroke-width: 1.7; fill: none; }
+.legend { display: flex; gap: 14px; flex-wrap: wrap; padding: 0 16px 14px; font-size: 11px; color: var(--muted); font-weight: 600; }
+.legend i { display: inline-block; width: 9px; height: 9px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+.legend .ok i { background: color-mix(in oklab, var(--accent) 45%, var(--border)); }
+.legend .bad i { background: var(--fail); }
+
+/* ── answer rail (shared) ── */
+.rail { display: grid; gap: 14px; }
+.phase-tabs { display: flex; gap: 7px; }
+.ptab { flex: 1; text-align: center; font-size: 11.5px; font-weight: 700; padding: 9px; border-radius: 9px;
+  border: 1px solid var(--border); background: var(--surface); color: var(--muted);
+  transition: color .2s var(--ease), border-color .2s var(--ease), background-color .2s var(--ease); }
+.ptab.on { color: var(--accent); border-color: color-mix(in oklab, var(--accent) 34%, var(--border)); background: color-mix(in oklab, var(--accent) 9%, transparent); }
+.ptab.done { color: var(--pass); border-color: color-mix(in oklab, var(--pass) 30%, var(--border)); }
+.ptab .n { font-variant-numeric: tabular-nums; opacity: .65; margin-right: 5px; }
+
+.qcard { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 16px;
+  transition: opacity .22s var(--ease), transform .22s var(--ease), filter .22s var(--ease); }
+.qcard.entering { opacity: 0; transform: translateY(8px); filter: blur(2px); }
+.qcard.leaving { opacity: 0; transform: translateY(-6px); filter: blur(2px); }
+.qcard .q { font-size: 14px; font-weight: 650; line-height: 1.4; margin-bottom: 13px; }
+.slot { display: grid; gap: 6px; margin-bottom: 13px; }
+.slot:last-of-type { margin-bottom: 0; }
+.slot label { font-size: 12px; font-weight: 700; color: var(--ink-soft); }
+.sel { position: relative; }
+.sel select { width: 100%; appearance: none; -webkit-appearance: none; font: inherit; font-size: 13.5px; font-weight: 600;
+  color: var(--ink); background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px;
+  padding: 11px 38px 11px 13px; cursor: pointer; transition: border-color .18s var(--ease), box-shadow .18s var(--ease); }
+.sel select:focus { outline: none; border-color: color-mix(in oklab, var(--accent) 55%, var(--border)); box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 18%, transparent); }
+.sel::after { content: ""; position: absolute; right: 14px; top: 50%; width: 8px; height: 8px; pointer-events: none;
+  border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted); transform: translateY(-65%) rotate(45deg); }
+.sel.correct select { border-color: color-mix(in oklab, var(--pass) 60%, var(--border)); box-shadow: 0 0 0 3px color-mix(in oklab, var(--pass) 15%, transparent); }
+.sel.wrong select { border-color: color-mix(in oklab, var(--fail) 60%, var(--border)); box-shadow: 0 0 0 3px color-mix(in oklab, var(--fail) 14%, transparent); }
+.verdict { font-size: 11.5px; font-weight: 600; line-height: 1.45; margin-top: 4px; display: none;
+  opacity: 0; transform: translateY(-3px); transition: opacity .25s var(--ease), transform .25s var(--ease); }
+.slot.graded.ok .verdict.ok { display: block; color: var(--pass); }
+.slot.graded.no .verdict.no { display: block; color: var(--fail); }
+.verdict.in { opacity: 1; transform: none; }
+.verdict b { font-family: ui-monospace, Menlo, monospace; font-weight: 700; }
+
+.actions { display: flex; gap: 10px; }
+.btn { font: inherit; font-size: 13.5px; font-weight: 700; border-radius: 11px; padding: 12px 18px; cursor: pointer;
+  transition: transform .15s var(--ease), filter .15s var(--ease); border: 1px solid transparent; }
+.btn:active { transform: scale(0.97); }
+.btn-primary { background: var(--accent); color: var(--on-accent); border-color: var(--accent-deep); flex: 1; }
+.btn-ghost { background: transparent; color: var(--accent); border-color: color-mix(in oklab, var(--accent) 30%, var(--border)); }
+@media (hover: hover) and (pointer: fine) { .btn-primary:hover { filter: brightness(1.05); } }
+
+.result { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 18px; text-align: center;
+  display: none; opacity: 0; transform: translateY(10px) scale(0.99); transition: opacity .38s var(--ease), transform .38s var(--ease); }
+.result.show { display: block; } .result.in { opacity: 1; transform: none; }
+.score-fig { font-family: Fraunces, Georgia, serif; font-weight: 600; font-size: 62px; line-height: 1; letter-spacing: -0.03em;
+  font-variant-numeric: lining-nums tabular-nums; font-feature-settings: "lnum","tnum"; color: var(--ink);
+  opacity: 0; transform: scale(0.96); transition: opacity .5s var(--ease) .08s, transform .5s var(--ease) .08s; }
+.result.in .score-fig { opacity: 1; transform: none; }
+.score-cap { margin-top: 9px; font-size: 11.5px; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; color: var(--muted); }
+.score-sub { margin-top: 12px; font-size: 13px; color: var(--ink-soft); line-height: 1.5; }
+.pro { margin-top: 18px; text-align: left; background: var(--accent); color: var(--on-accent); border-radius: 16px; padding: 18px 18px 16px; }
+.pro .pe { font-size: 10px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; opacity: .82; }
+.pro h3 { font-family: Fraunces, Georgia, serif; font-weight: 600; font-size: 21px; letter-spacing: -0.02em; line-height: 1.12; margin: 7px 0 8px; }
+.pro p { font-size: 12.5px; line-height: 1.5; opacity: .92; margin-bottom: 14px; }
+.btn-white { background: var(--on-accent); color: var(--accent); border: none; width: 100%; }
+.freestate { margin-top: 13px; font-size: 12px; color: var(--muted); font-weight: 600; }
+
+.reveal { opacity: 0; transform: translateY(14px); transition: opacity .5s var(--ease), transform .5s var(--ease); }
+.reveal.vis { opacity: 1; transform: none; }
+@media (prefers-reduced-motion: reduce) {
+  .reveal, .qcard, .verdict, .result, .score-fig { transition-property: opacity !important; transform: none !important; filter: none !important; }
+  .reveal { opacity: 1 !important; }
+  .btn:active, .theme-btn:active { transform: none; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="topbar">
+    <div class="brand">
+      <svg viewBox="0 0 40 40" fill="none" aria-hidden="true">
+        <path d="M27 11.5a11 11 0 1 0 0 17" stroke="var(--accent)" stroke-width="7" stroke-linecap="round"/>
+        <path d="M13 28 27 12" stroke="var(--accent)" stroke-width="5" stroke-linecap="round" opacity="0.55"/>
+        <path d="M14 28.5a11 11 0 0 1 0-17" stroke="var(--accent)" stroke-width="7" stroke-linecap="round"/>
+      </svg>
+      <div><b>CertAnvil</b> &nbsp;<span class="sub">Sim Lab · Defense in Depth (Sec+)</span></div>
+    </div>
+    <button class="theme-btn" id="themeBtn">Dark</button>
+  </div>
+
+  <div class="scn-head reveal" style="transition-delay:.04s">
+    <div class="eyebrow">Security+ · Domain 3 · Security architecture</div>
+    <h1 class="scn-title">Strong wall, hollow inside</h1>
+    <p class="scn-prose">A security review of Northwind HQ. There is a capable next-gen firewall at the edge and almost nothing behind it: endpoints are unmanaged, the database stores records in clear text, and one shared admin account opens everything. A single phishing click puts an attacker next to the crown jewels. Name the flaw, then build the inner layers.</p>
+    <div class="metstrip">
+      <span class="met"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M12 7v5l3 2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span class="timer" id="timer">01:24</span></span>
+      <span class="met"><svg viewBox="0 0 24 24" fill="none"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>2 steps · partial credit</span>
+      <span class="met"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3l8 4v5c0 4.5-3.5 7.5-8 9-4.5-1.5-8-4.5-8-9V7l8-4z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>Practice mode</span>
+    </div>
+  </div>
+
+  <div class="split">
+
+    <!-- LAYERED DEFENSE DIAGRAM (read-only) -->
+    <div class="panel reveal" style="transition-delay:.08s">
+      <div class="panel-head">
+        <span class="lbl">Defense layers · current state</span>
+        <span class="gap">3 inner layers missing</span>
+      </div>
+      <div class="diagram">
+        <svg viewBox="0 0 560 432" role="img" aria-label="Defense in depth, strong perimeter with hollow interior">
+          <!-- perimeter (present) -->
+          <rect class="layer l1 fill1" x="16" y="40" width="528" height="376" rx="18"/>
+          <text class="lname on" x="38" y="64">Perimeter</text>
+          <text class="lctrl" x="38" y="80">next-gen firewall · present</text>
+          <g class="fw" transform="translate(462,50)"><rect class="box" width="64" height="30" rx="8"/><g class="glyph" transform="translate(8,8)"><path d="M2 1v12M7 1v12M0 4h13M0 9h13"/></g><text class="nm" x="42" y="20">FW-1</text></g>
+
+          <!-- missing inner layers -->
+          <rect class="misslayer" x="52" y="100" width="456" height="38" rx="11"/>
+          <text class="misslbl" x="72" y="118">Endpoint</text><text class="misssub" x="146" y="124">EDR / hardening — missing</text>
+          <rect class="misslayer" x="52" y="148" width="456" height="38" rx="11"/>
+          <text class="misslbl" x="72" y="166">Data</text><text class="misssub" x="118" y="172">encryption + DLP — missing</text>
+          <rect class="misslayer" x="52" y="196" width="456" height="38" rx="11"/>
+          <text class="misslbl" x="72" y="214">Identity</text><text class="misssub" x="132" y="220">MFA / least privilege — missing</text>
+
+          <!-- exposed core -->
+          <rect class="core-exposed" x="120" y="256" width="320" height="146" rx="14"/>
+          <text class="lname bad" x="142" y="280">Crown-jewel data · exposed</text>
+          <g class="dev" transform="translate(150,298)"><rect class="box" width="118" height="78" rx="11"/><g class="glyph" transform="translate(50,12)"><path d="M0 3c0-1.6 3.6-3 8-3s8 1.4 8 3v10c0 1.6-3.6 3-8 3s-8-1.4-8-3zM0 3c0 1.6 3.6 3 8 3s8-1.4 8-3"/></g><text class="nm" x="59" y="58">DB-1 · records</text></g>
+          <g class="dev" transform="translate(292,298)"><rect class="box" width="118" height="78" rx="11"/><g class="glyph" transform="translate(50,12)"><path d="M6 5a3 3 0 1 1 0 6 3 3 0 0 1 0-6M9 8h7M14 8v3"/></g><text class="nm" x="59" y="58">DC-1 · identity</text></g>
+        </svg>
+      </div>
+      <div class="legend">
+        <span class="ok"><i></i>layer present</span>
+        <span class="bad"><i></i>missing layer / exposed asset</span>
+      </div>
+    </div>
+
+    <!-- ANSWER RAIL -->
+    <div class="rail reveal" style="transition-delay:.12s">
+      <div class="phase-tabs">
+        <div class="ptab on" id="tab1"><span class="n">1</span>Diagnose</div>
+        <div class="ptab" id="tab2"><span class="n">2</span>Build layers</div>
+      </div>
+
+      <!-- PHASE 1: diagnose -->
+      <div class="qcard" id="phase1">
+        <div class="q">What is the core flaw in this architecture?</div>
+        <div class="slot" data-answer="d2">
+          <div class="sel"><select>
+            <option value="">Select the flaw…</option>
+            <option value="d1">The firewall vendor is not on the approved list</option>
+            <option value="d2">It is a hard shell with a soft center: one perimeter, no inner controls</option>
+            <option value="d3">The network uses too many subnets</option>
+            <option value="d4">The database server is running on outdated hardware</option>
+          </select></div>
+          <p class="verdict ok">Correct. Everything rides on one control. Once the perimeter is bypassed, by phishing or an insider, nothing else slows the attacker before the data.</p>
+          <p class="verdict no">Look past the firewall. There are no endpoint, data, or identity controls, so a single bypass reaches the crown jewels unopposed.</p>
+        </div>
+      </div>
+
+      <!-- PHASE 2: build the inner layers -->
+      <div class="qcard" id="phase2" style="display:none">
+        <div class="q">Build the inner layers, and classify one control.</div>
+        <div class="slot" data-answer="a1">
+          <label>Endpoint layer:</label>
+          <div class="sel"><select>
+            <option value="">Choose…</option>
+            <option value="a1">EDR plus host hardening</option>
+            <option value="a2">A louder antivirus pop-up</option>
+            <option value="a3">Local admin rights for every user</option>
+          </select></div>
+          <p class="verdict ok">Right. EDR and hardening give each host its own line of defense.</p>
+          <p class="verdict no">Correct answer: <b>EDR + host hardening</b>. Each endpoint should defend itself, not rely on the edge.</p>
+        </div>
+        <div class="slot" data-answer="b1">
+          <label>Data layer:</label>
+          <div class="sel"><select>
+            <option value="">Choose…</option>
+            <option value="b1">Encryption at rest plus DLP</option>
+            <option value="b2">A nightly backup, nothing else</option>
+            <option value="b3">Public read access for convenience</option>
+          </select></div>
+          <p class="verdict ok">Right. Encryption protects the records if they are reached; DLP catches them leaving.</p>
+          <p class="verdict no">Correct answer: <b>encryption at rest + DLP</b>. Protect the data itself, not just the path to it.</p>
+        </div>
+        <div class="slot" data-answer="c1">
+          <label>Identity layer:</label>
+          <div class="sel"><select>
+            <option value="">Choose…</option>
+            <option value="c1">MFA plus least privilege</option>
+            <option value="c2">One shared admin account</option>
+            <option value="c3">Longer passwords, no other change</option>
+          </select></div>
+          <p class="verdict ok">Right. MFA and least privilege shrink what a stolen credential can do.</p>
+          <p class="verdict no">Correct answer: <b>MFA + least privilege</b>. The shared admin account is a single key to everything.</p>
+        </div>
+        <div class="slot" data-answer="t1">
+          <label>MFA is best classified as which control type?</label>
+          <div class="sel"><select>
+            <option value="">Choose…</option>
+            <option value="t1">Technical, preventive</option>
+            <option value="t2">Physical, detective</option>
+            <option value="t3">Managerial, corrective</option>
+            <option value="t4">Operational, compensating</option>
+          </select></div>
+          <p class="verdict ok">Right. MFA is enforced by technology (technical) and stops misuse before it happens (preventive).</p>
+          <p class="verdict no">Correct answer: <b>technical, preventive</b>. It is enforced by a system and acts before an event, not after.</p>
+        </div>
+      </div>
+
+      <div class="actions" id="actions">
+        <button class="btn btn-primary" id="primary">Check answer</button>
+      </div>
+
+      <!-- RESULT -->
+      <div class="result" id="result">
+        <div class="score-fig" id="scoreFig">5/5</div>
+        <div class="score-cap" id="scoreCap">correct · 100%</div>
+        <p class="score-sub" id="scoreSub">Real depth. Endpoint, data, and identity now each stand on their own, and you classified the control correctly. The soft center is gone.</p>
+
+        <div class="pro">
+          <div class="pe">CertAnvil Pro</div>
+          <h3>See the soft center instantly.</h3>
+          <p>Architecture questions reward a trained eye. Pro opens unlimited defense-in-depth PBQs across Net+ and Sec+, plus timed Exam mode and weak-spot tracking, so by exam day you spot the missing layer before you finish reading.</p>
+          <button class="btn btn-white" id="goPro">Go Pro</button>
+        </div>
+
+        <div class="freestate">That was today's free PBQ. The next one unlocks in 22h.</div>
+        <div class="actions" style="margin-top:12px;justify-content:center">
+          <button class="btn btn-ghost" id="again">Review this scenario</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+const root = document.documentElement, tb = document.getElementById('themeBtn');
+tb.onclick = () => { const d = root.getAttribute('data-theme') === 'dark'; root.setAttribute('data-theme', d ? 'light' : 'dark'); tb.textContent = d ? 'Dark' : 'Light'; };
+requestAnimationFrame(() => document.querySelectorAll('.reveal').forEach(e => e.classList.add('vis')));
+
+let t = 84; const tEl = document.getElementById('timer');
+setInterval(() => { t++; tEl.textContent = String(Math.floor(t/60)).padStart(2,'0') + ':' + String(t%60).padStart(2,'0'); }, 1000);
+
+const primary = document.getElementById('primary');
+const p1 = document.getElementById('phase1'), p2 = document.getElementById('phase2');
+const tab1 = document.getElementById('tab1'), tab2 = document.getElementById('tab2');
+let stage = 'diagnose';
+let tally = { total: 0, correct: 0 };
+
+function gradeSlots(scope){
+  let total = 0, correct = 0;
+  scope.querySelectorAll('.slot').forEach(slot => {
+    total++;
+    const sel = slot.querySelector('select'), ok = sel.value === slot.dataset.answer;
+    if (ok) correct++;
+    slot.classList.add('graded', ok ? 'ok' : 'no');
+    slot.querySelector('.sel').classList.add(ok ? 'correct' : 'wrong');
+    sel.disabled = true;
+    const v = slot.querySelector(ok ? '.verdict.ok' : '.verdict.no');
+    requestAnimationFrame(() => requestAnimationFrame(() => v.classList.add('in')));
+  });
+  return { total, correct };
+}
+function swapPhase(outEl, inEl){
+  outEl.classList.add('leaving');
+  setTimeout(() => {
+    outEl.style.display = 'none'; outEl.classList.remove('leaving');
+    inEl.style.display = 'block'; inEl.classList.add('entering');
+    requestAnimationFrame(() => requestAnimationFrame(() => inEl.classList.remove('entering')));
+  }, 220);
+}
+primary.onclick = () => {
+  if (stage === 'diagnose') {
+    const r = gradeSlots(p1); tally.total += r.total; tally.correct += r.correct;
+    stage = 'diagnosed'; tab1.classList.add('done'); primary.textContent = 'Continue to layers';
+  } else if (stage === 'diagnosed') {
+    stage = 'layers'; tab1.classList.remove('on'); tab2.classList.add('on');
+    primary.textContent = 'Submit design'; swapPhase(p1, p2);
+  } else if (stage === 'layers') {
+    const r = gradeSlots(p2); tally.total += r.total; tally.correct += r.correct;
+    stage = 'done'; tab2.classList.add('done'); primary.textContent = 'See result';
+  } else {
+    document.getElementById('actions').style.display = 'none';
+    p2.classList.add('leaving');
+    const pct = Math.round(tally.correct / tally.total * 100);
+    document.getElementById('scoreFig').textContent = tally.correct + '/' + tally.total;
+    document.getElementById('scoreCap').textContent = 'correct · ' + pct + '%';
+    if (pct < 100) document.getElementById('scoreSub').textContent = 'Each layer is scored on its own, so you keep credit for every one you got right. Depth means no single control is the only thing standing.';
+    const res = document.getElementById('result');
+    res.classList.add('show');
+    requestAnimationFrame(() => requestAnimationFrame(() => res.classList.add('in')));
+  }
+};
+document.getElementById('again')?.addEventListener('click', () => location.reload());
+</script>
+</body>
+</html>
