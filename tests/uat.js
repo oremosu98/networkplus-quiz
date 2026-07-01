@@ -20924,6 +20924,25 @@ console.log('\n\x1b[1m── T7: DRILLS ANALYTICS GROUP + FINAL COPY + BRONZE TO
     test('reference validation: valid layered reference passes',
       simLabValidateScenario(_scnLy).ok === true);
 
+    // ── Task 10: optional scenario.archetype tag ──
+    // 7. Absent archetype still passes (backward compat — all existing scenarios).
+    var _scnNoArch = _baseScn();
+    test('archetype validation: absent archetype still passes',
+      simLabValidateScenario(_scnNoArch).ok === true);
+
+    // 8. Known archetype passes.
+    var _scnGoodArch = _baseScn();
+    _scnGoodArch.archetype = 'incident';
+    test('archetype validation: known archetype passes',
+      simLabValidateScenario(_scnGoodArch).ok === true);
+
+    // 9. Unknown archetype rejected.
+    var _scnBadArch = _baseScn();
+    _scnBadArch.archetype = 'not-a-real-archetype';
+    var _badArchResult = simLabValidateScenario(_scnBadArch);
+    test('archetype validation: unknown archetype rejected',
+      _badArchResult.ok === false && _badArchResult.errors.some(function (e) { return /archetype/i.test(e); }));
+
     // ── Mount test — vm-sandbox + DOM shim ──
     var elBody            = grab('_el');
     var escBody           = grabLine('_esc');

@@ -68,6 +68,9 @@
       else if (ref.kind === 'timeline' && !Array.isArray(ref.stages)) errs.push('reference timeline: stages[] required');
       else if (ref.kind === 'layered' && !Array.isArray(ref.layers)) errs.push('reference layered: layers[] required');
     }
+    if (s.archetype !== undefined && ['diagram', 'incident', 'defense'].indexOf(s.archetype) === -1) {
+      errs.push('bad archetype');
+    }
     return { ok: errs.length === 0, errors: errs };
   }
 
