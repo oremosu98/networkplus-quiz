@@ -4393,3 +4393,33 @@ html[data-theme] body .celebration-toast-sub{color:var(--text-dim,rgba(255,255,2
 /* device node labels */
 #page-sim-lab .sl-dev-nm,#page-decision-lab .sl-dev-nm{font:700 10.5px Inter,sans-serif;fill:var(--text);text-anchor:middle}
 #page-sim-lab .sl-dev-nm-exp,#page-decision-lab .sl-dev-nm-exp{fill:var(--red)}
+
+/* ── Sim Lab: layered defense-in-depth "stacked-bands" reference renderer ──
+   Faithful lift of mockups/defense-in-depth-secplus-concept.html (~lines
+   63-85 CSS / 188-209 SVG). Layout: a strong PERIMETER frame + a vertical
+   stack of horizontal interior BANDS + an exposed/safe CORE band with
+   device boxes. Reuses .sl-core/.sl-core-exposed/.sl-dev-box*/.sl-dev-nm*
+   from the nested renderer above (same core semantics). Present = accent
+   solid; missing/exposed = --red dashed/solid. Tokens only, 0 hardcoded
+   hex. Scoped to #page-sim-lab + #page-decision-lab. */
+#page-sim-lab .sl-stacked,#page-decision-lab .sl-stacked{padding:8px}
+
+/* perimeter frame: present */
+#page-sim-lab .sl-perim,#page-decision-lab .sl-perim{fill:color-mix(in oklab,var(--accent) 5%,transparent);stroke:color-mix(in oklab,var(--accent) 55%,var(--border));stroke-width:1.4}
+/* perimeter frame: missing */
+#page-sim-lab .sl-perim-missing,#page-decision-lab .sl-perim-missing{fill:color-mix(in oklab,var(--red) 5%,transparent);stroke:var(--red);stroke-width:1.5;stroke-dasharray:6 5}
+
+/* perimeter labels */
+#page-sim-lab .sl-perim-lbl,#page-decision-lab .sl-perim-lbl{font:800 10.5px Inter,sans-serif;letter-spacing:.1em;text-transform:uppercase;fill:var(--accent)}
+#page-sim-lab .sl-perim-lbl-miss,#page-decision-lab .sl-perim-lbl-miss{fill:var(--red)}
+#page-sim-lab .sl-perim-sub,#page-decision-lab .sl-perim-sub{font:600 10.5px ui-monospace,Menlo,monospace;fill:var(--text-mid)}
+
+/* interior band: present */
+#page-sim-lab .sl-band,#page-decision-lab .sl-band{fill:color-mix(in oklab,var(--accent) 6%,transparent);stroke:color-mix(in oklab,var(--accent) 50%,var(--border));stroke-width:1.4}
+/* interior band: missing */
+#page-sim-lab .sl-band-missing,#page-decision-lab .sl-band-missing{fill:color-mix(in oklab,var(--red) 5%,transparent);stroke:var(--red);stroke-width:1.5;stroke-dasharray:6 5}
+
+/* band labels */
+#page-sim-lab .sl-band-lbl,#page-decision-lab .sl-band-lbl{font:800 10.5px Inter,sans-serif;letter-spacing:.06em;text-transform:uppercase;fill:var(--text)}
+#page-sim-lab .sl-band-lbl-miss,#page-decision-lab .sl-band-lbl-miss{fill:var(--red)}
+#page-sim-lab .sl-band-sub,#page-decision-lab .sl-band-sub{font:600 9.5px ui-monospace,Menlo,monospace;fill:var(--text-dim)}

@@ -2107,7 +2107,7 @@ window.SIM_LAB_SEED_SECPLUS = [
     objective: 'SY0-701 Domain 3.2 — Compare and contrast security implications of architecture models (defense in depth, control categories)',
     topic: 'Defense in Depth', title: 'Strong wall, hollow inside', estMinutes: 6, archetype: 'defense',
     scenario: 'A security review of Northwind HQ finds a capable next-gen firewall at the edge and almost nothing behind it. Endpoints are unmanaged, the database stores records in clear text, and one shared admin account opens everything. A single phishing click puts an attacker next to the crown jewels.',
-    assets: { reference: { kind: 'layered',
+    assets: { reference: { kind: 'layered', layout: 'stacked',
       layers: [
         { id: 'perimeter', label: 'Perimeter', control: 'Next-gen firewall', state: 'present' },
         { id: 'endpoint', label: 'Endpoint', control: 'EDR and host hardening', state: 'missing' },
@@ -2159,7 +2159,7 @@ window.SIM_LAB_SEED_SECPLUS = [
     objective: 'SY0-701 Domain 3.2 — Compare and contrast security implications of architecture models (zero trust, control categories)',
     topic: 'Defense in Depth', title: 'A clinic that trusts anything already inside', estMinutes: 6, archetype: 'defense',
     scenario: 'A regional clinic passed its firewall audit with flying colors, but once inside the network every workstation can reach the patient records database directly, there is no logging on that database, and staff share one login for the scheduling system. An attacker who lands on any workstation has an unmonitored path to patient data.',
-    assets: { reference: { kind: 'layered',
+    assets: { reference: { kind: 'layered', layout: 'stacked',
       layers: [
         { id: 'perimeter', label: 'Perimeter', control: 'Audited edge firewall', state: 'present' },
         { id: 'network', label: 'Network segmentation', control: 'Micro-segmentation isolating the records database', state: 'missing' },
@@ -2210,7 +2210,7 @@ window.SIM_LAB_SEED_SECPLUS = [
     objective: 'SY0-701 Domain 3.2 — Compare and contrast security implications of architecture models (cloud security, control categories)',
     topic: 'Defense in Depth', title: 'A cloud app with one line of defense', estMinutes: 6, archetype: 'defense',
     scenario: 'A startup moved its customer app to the cloud and configured a web application firewall in front of it. Behind the WAF, the storage bucket holding customer uploads is publicly readable, the application server runs with an overly permissive IAM role, and there is no vulnerability scanning of the container images before they deploy.',
-    assets: { reference: { kind: 'layered',
+    assets: { reference: { kind: 'layered', layout: 'stacked',
       layers: [
         { id: 'perimeter', label: 'Perimeter', control: 'Web application firewall', state: 'present' },
         { id: 'data', label: 'Data', control: 'Private bucket policy with least-privilege access', state: 'missing' },
@@ -2261,7 +2261,7 @@ window.SIM_LAB_SEED_SECPLUS = [
     objective: 'SY0-701 Domain 3.2 — Compare and contrast security implications of architecture models (third-party access, control categories)',
     topic: 'Defense in Depth', title: 'A vendor with the keys to everything', estMinutes: 6, archetype: 'defense',
     scenario: 'A manufacturing plant lets a third-party HVAC vendor remote into its network to service building controls. The vendor connects through a properly configured VPN, but from there the vendor account can reach the plant\'s production control systems, sessions are never recorded, and the vendor account has never been reviewed since it was created two years ago.',
-    assets: { reference: { kind: 'layered',
+    assets: { reference: { kind: 'layered', layout: 'stacked',
       layers: [
         { id: 'perimeter', label: 'Perimeter', control: 'VPN gateway for vendor remote access', state: 'present' },
         { id: 'network', label: 'Network segmentation', control: 'Jump host isolating vendor access from production systems', state: 'missing' },
@@ -2312,7 +2312,7 @@ window.SIM_LAB_SEED_SECPLUS = [
     objective: 'SY0-701 Domain 3.2 — Compare and contrast security implications of architecture models (defense in depth, control categories)',
     topic: 'Defense in Depth', title: 'One phishing email away from total loss', estMinutes: 6, archetype: 'defense',
     scenario: 'A law firm\'s branch office relies on email spam filtering as its only defense against ransomware. Endpoints have no EDR, backups are stored on a network share reachable from every workstation, and there is no security awareness training, so staff routinely click on suspicious attachments.',
-    assets: { reference: { kind: 'layered',
+    assets: { reference: { kind: 'layered', layout: 'stacked',
       layers: [
         { id: 'perimeter', label: 'Perimeter', control: 'Email spam filtering', state: 'present' },
         { id: 'endpoint', label: 'Endpoint', control: 'EDR with ransomware behavior detection', state: 'missing' },

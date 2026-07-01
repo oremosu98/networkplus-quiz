@@ -20924,6 +20924,25 @@ console.log('\n\x1b[1m── T7: DRILLS ANALYTICS GROUP + FINAL COPY + BRONZE TO
     test('reference validation: valid layered reference passes',
       simLabValidateScenario(_scnLy).ok === true);
 
+    // 6b. layout:'stacked' layered scenario validates (stacked-bands layout)
+    var _scnStacked = _baseScn();
+    _scnStacked.assets = { reference: { kind: 'layered', layout: 'stacked', layers: [{ id: 'l1', label: 'Perimeter', state: 'present' }], core: { label: 'Core', assets: [] } } };
+    test('reference validation: layout:"stacked" layered reference passes',
+      simLabValidateScenario(_scnStacked).ok === true);
+
+    // 6c. layout:'nested' is also explicitly valid (not just absent)
+    var _scnNested = _baseScn();
+    _scnNested.assets = { reference: { kind: 'layered', layout: 'nested', layers: [{ id: 'l1', label: 'Perimeter', state: 'present' }], core: { label: 'Core', assets: [] } } };
+    test('reference validation: layout:"nested" layered reference passes',
+      simLabValidateScenario(_scnNested).ok === true);
+
+    // 6d. Invalid layout value rejected
+    var _scnBadLayout = _baseScn();
+    _scnBadLayout.assets = { reference: { kind: 'layered', layout: 'sideways', layers: [{ id: 'l1', label: 'Perimeter', state: 'present' }], core: { label: 'Core', assets: [] } } };
+    var _badLayoutResult = simLabValidateScenario(_scnBadLayout);
+    test('reference validation: invalid layout value rejected',
+      _badLayoutResult.ok === false && _badLayoutResult.errors.some(function (e) { return /layout/i.test(e); }));
+
     // ── Task 10: optional scenario.archetype tag ──
     // 7. Absent archetype still passes (backward compat — all existing scenarios).
     var _scnNoArch = _baseScn();
@@ -21728,6 +21747,204 @@ console.log('\n\x1b[1m── T7: DRILLS ANALYTICS GROUP + FINAL COPY + BRONZE TO
   } catch (err) {
     test('layered renderer: vm smoke test (threw)', false);
     results.errors.push('layered renderer smoke test threw: ' + err.message);
+  }
+})();
+
+// ── Sim Lab: layered defense-in-depth "stacked-bands" reference renderer ──
+// Faithful lift of mockups/defense-in-depth-secplus-concept.html: a
+// perimeter frame + a vertical stack of interior bands + an exposed-core
+// band. Data-driven via ref.layout — 'stacked' routes here, absent/other
+// (e.g. 'nested') keeps routing to the existing nested renderer (Task 8).
+// Same vm-sandbox + DOM-shim pattern as Task 8. Read-only.
+(function () {
+  console.log('\n\x1b[1m── Sim Lab: layered defense-in-depth stacked-bands renderer ──\x1b[0m');
+  try {
+    var vm = require('vm');
+
+    var grab = function (name) {
+      var re = new RegExp('function ' + name + '\\([^)]*\\) \\{[\\s\\S]*?\\n\\}');
+      return (js.match(re) || [''])[0];
+    };
+    var grabLine = function (name) {
+      var re = new RegExp('function ' + name + '\\([^\\n]*\\)\\s*\\{[^\\n]*\\}');
+      return (js.match(re) || [''])[0];
+    };
+
+    test('stacked renderer: _slRenderRefLayeredStacked defined',
+      /function _slRenderRefLayeredStacked\(/.test(js));
+
+    // ── DEV FIXTURE — Sec+ DID scenario, stacked layout ──
+    // layers[0] = perimeter (present), layers[1..] = 3 interior bands
+    // (2 missing, 1 present — proves present/missing both render), core has
+    // 2 assets, 1 exposed.
+    var _stackedFix = {
+      kind: 'layered',
+      layout: 'stacked',
+      layers: [
+        { id: 'perimeter', label: 'Perimeter', control: 'Next-gen firewall', state: 'present' },
+        { id: 'endpoint',  label: 'Endpoint',  control: 'EDR / hardening',       state: 'missing' },
+        { id: 'data',      label: 'Data',      control: 'encryption + DLP',      state: 'present' },
+        { id: 'identity',  label: 'Identity',  control: 'MFA / least privilege', state: 'missing' }
+      ],
+      core: {
+        label: 'Crown-jewel data',
+        assets: [
+          { id: 'db1', label: 'DB-1', exposed: true },
+          { id: 'dc1', label: 'DC-1', exposed: false }
+        ]
+      }
+    };
+
+    var refStackedBody = grab('_slRenderRefLayeredStacked');
+    var elBody          = grab('_el');
+    var escBody         = grabLine('_esc');
+
+    if (!refStackedBody || !elBody || !escBody) {
+      test('stacked renderer: vm extraction succeeded', false);
+      results.errors.push('could not extract _slRenderRefLayeredStacked / helpers; check names/indenting');
+      return;
+    }
+
+    var htmlEscSt = function (s) {
+      return String(s == null ? '' : s)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    };
+    var makeElSt = function (tag) {
+      var attrs = {}, children = [], cls = '', inner = '';
+      var el = {
+        tagName: tag.toUpperCase(),
+        get className() { return cls; },
+        set className(v) { cls = v; },
+        get innerHTML() { return inner; },
+        set innerHTML(v) { inner = v; children = []; },
+        get textContent() { return ''; },
+        set textContent(v) { inner = htmlEscSt(v); },
+        style: {},
+        get _children() { return children; },
+        setAttribute: function (k, v) { attrs[k] = v; },
+        getAttribute: function (k) { return attrs[k] || null; },
+        appendChild: function (c) { children.push(c); return c; }
+      };
+      return el;
+    };
+    var docShimSt = { createElement: function (tag) { return makeElSt(tag); } };
+
+    var sCtx = { document: docShimSt, window: { CSS: null }, Object: Object, Array: Array, String: String, Math: Math };
+    vm.createContext(sCtx);
+    vm.runInContext(elBody, sCtx);
+    vm.runInContext(escBody, sCtx);
+    vm.runInContext(refStackedBody, sCtx);
+
+    sCtx.fixStacked = _stackedFix;
+    var rootSt = vm.runInContext('_slRenderRefLayeredStacked(fixStacked);', sCtx);
+
+    test('stacked renderer: returns an sl-stacked root',
+      rootSt && rootSt.className === 'sl-stacked');
+
+    var svgSt = rootSt ? rootSt.innerHTML : '';
+
+    test('stacked renderer: SVG emitted with viewBox',
+      /viewBox="0 0 \d+ \d+"/.test(svgSt));
+
+    // Perimeter frame present
+    test('stacked renderer: perimeter frame rendered (sl-perim)',
+      /class="sl-perim"/.test(svgSt));
+    test('stacked renderer: perimeter label rendered',
+      /Perimeter/.test(svgSt));
+
+    // One band per interior layer (3 bands: endpoint missing, data present, identity missing)
+    var bandRects = (svgSt.match(/class="sl-band"/g) || []).length;
+    var missBandRects = (svgSt.match(/class="sl-band-missing"/g) || []).length;
+    test('stacked renderer: 1 present interior band (sl-band)', bandRects === 1);
+    test('stacked renderer: 2 missing interior bands (sl-band-missing)', missBandRects === 2);
+    test('stacked renderer: total interior bands === layers.length - 1',
+      (bandRects + missBandRects) === (_stackedFix.layers.length - 1));
+
+    // Band labels rendered
+    test('stacked renderer: Endpoint band label rendered', /Endpoint/.test(svgSt));
+    test('stacked renderer: Data band label rendered', /Data/.test(svgSt));
+    test('stacked renderer: Identity band label rendered', /Identity/.test(svgSt));
+
+    // Exposed core (one asset exposed => core-exposed class)
+    test('stacked renderer: exposed-core class rendered (sl-core-exposed)',
+      /sl-core-exposed/.test(svgSt));
+    test('stacked renderer: core label rendered', /Crown-jewel data/.test(svgSt));
+
+    // Device boxes for core assets, exposed one flagged
+    test('stacked renderer: DB-1 device box rendered', /DB-1/.test(svgSt));
+    test('stacked renderer: DC-1 device box rendered', /DC-1/.test(svgSt));
+    test('stacked renderer: exposed device gets exposed class',
+      /class="sl-dev exposed"/.test(svgSt));
+
+    // ── Safe-core fixture: no assets exposed => sl-core (not sl-core-exposed) ──
+    var _safeCoreFix = {
+      kind: 'layered', layout: 'stacked',
+      layers: [{ id: 'perimeter', label: 'Perimeter', state: 'present' }],
+      core: { label: 'Safe core', assets: [{ id: 'a1', label: 'SRV-1', exposed: false }] }
+    };
+    sCtx.fixSafe = _safeCoreFix;
+    var rootSafe = vm.runInContext('_slRenderRefLayeredStacked(fixSafe);', sCtx);
+    var svgSafe = rootSafe ? rootSafe.innerHTML : '';
+    test('stacked renderer: safe core (no exposed assets) gets sl-core, not sl-core-exposed',
+      /class="sl-core"/.test(svgSafe) && !/sl-core-exposed/.test(svgSafe));
+
+    // XSS: label escaping
+    var xssStFix = {
+      kind: 'layered', layout: 'stacked',
+      layers: [
+        { id: 'x', label: '<script>alert(1)</script>', state: 'present' },
+        { id: 'y', label: '<i>band</i>', state: 'missing' }
+      ],
+      core: { label: '<b>core</b>', assets: [{ id: 'a', label: '<img>', exposed: false }] }
+    };
+    sCtx.xssStFix = xssStFix;
+    var rootStX = vm.runInContext('_slRenderRefLayeredStacked(xssStFix);', sCtx);
+    var svgStX  = rootStX ? rootStX.innerHTML : '';
+    test('stacked renderer: perimeter label XSS-escaped',
+      !/<script>/.test(svgStX) && /&lt;script&gt;/.test(svgStX));
+    test('stacked renderer: band label XSS-escaped',
+      !/<i>band<\/i>/.test(svgStX) && /&lt;i&gt;band&lt;\/i&gt;/.test(svgStX));
+    test('stacked renderer: core label XSS-escaped',
+      !/<b>core<\/b>/.test(svgStX) && /&lt;b&gt;core&lt;\/b&gt;/.test(svgStX));
+
+    // ── Regression: layered ref WITHOUT layout still routes to nested renderer ──
+    var refNestedBody = grab('_slRenderRefLayered');
+    var refDispBody    = grab('_slRenderReference');
+    if (!refNestedBody || !refDispBody) {
+      test('stacked renderer: dispatch regression vm extraction succeeded', false);
+      results.errors.push('could not extract _slRenderRefLayered / _slRenderReference for dispatch regression check');
+    } else {
+      var dCtx = { document: docShimSt, window: { CSS: null }, Object: Object, Array: Array, String: String, Math: Math };
+      vm.createContext(dCtx);
+      vm.runInContext(elBody, dCtx);
+      vm.runInContext(escBody, dCtx);
+      vm.runInContext(refNestedBody, dCtx);
+      vm.runInContext(refStackedBody, dCtx);
+      vm.runInContext(grab('_slRenderRefNetwork'), dCtx);
+      vm.runInContext(grab('_slRenderRefTimeline'), dCtx);
+      vm.runInContext(refDispBody, dCtx);
+
+      var _noLayoutFix = {
+        kind: 'layered',
+        layers: [{ id: 'l1', label: 'Perimeter', state: 'present' }],
+        core: { label: 'Core', assets: [] }
+      };
+      dCtx.noLayoutFix = _noLayoutFix;
+      var panelNoLayout = vm.runInContext('_slRenderReference(noLayoutFix);', dCtx);
+      var childNoLayout = panelNoLayout && panelNoLayout._children && panelNoLayout._children[0];
+      test('reference dispatch: layered ref WITHOUT layout still routes to nested renderer (sl-layered)',
+        childNoLayout && childNoLayout.className === 'sl-layered');
+
+      dCtx.stackedFix2 = _stackedFix;
+      var panelStacked = vm.runInContext('_slRenderReference(stackedFix2);', dCtx);
+      var childStacked = panelStacked && panelStacked._children && panelStacked._children[0];
+      test('reference dispatch: layered ref WITH layout:"stacked" routes to stacked renderer (sl-stacked)',
+        childStacked && childStacked.className === 'sl-stacked');
+    }
+
+  } catch (err) {
+    test('stacked renderer: vm smoke test (threw)', false);
+    results.errors.push('stacked renderer smoke test threw: ' + err.message);
   }
 })();
 

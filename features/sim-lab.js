@@ -67,6 +67,9 @@
       else if (ref.kind === 'network' && !Array.isArray(ref.devices)) errs.push('reference network: devices[] required');
       else if (ref.kind === 'timeline' && !Array.isArray(ref.stages)) errs.push('reference timeline: stages[] required');
       else if (ref.kind === 'layered' && !Array.isArray(ref.layers)) errs.push('reference layered: layers[] required');
+      if (ref.kind === 'layered' && ref.layout !== undefined && ['nested', 'stacked'].indexOf(ref.layout) === -1) {
+        errs.push('reference layered: bad layout');
+      }
     }
     if (s.archetype !== undefined && ['diagram', 'incident', 'defense'].indexOf(s.archetype) === -1) {
       errs.push('bad archetype');
@@ -876,12 +879,126 @@
 
     return _el('div', 'sl-layered', svgStr);
   }
+
+  // Defense-in-depth "stacked-bands" renderer — faithful lift of
+  // mockups/defense-in-depth-secplus-concept.html (~lines 188-209).
+  // Layout convention: layers[0] = outer PERIMETER frame (present/missing
+  // styling + name label + mono control sublabel); layers[1..] = a vertical
+  // stack of horizontal interior BANDS, top-to-bottom, each either a solid
+  // accent band (present) or a red-dashed band (missing) with a mono
+  // sublabel; core = the bottom band containing device boxes from
+  // core.assets[] (exposed → red device styling, else accent/safe).
+  function _slRenderRefLayeredStacked(ref) {
+    var layers = Array.isArray(ref.layers) ? ref.layers : [];
+    var perimeter = layers[0] || { label: 'Perimeter', state: 'present' };
+    var bands = layers.slice(1);
+    var core = ref.core || { label: 'Core', assets: [] };
+    var assets = Array.isArray(core.assets) ? core.assets : [];
+    var N = bands.length;
+
+    var VW = 560;
+    var PAD_X = 16;
+    var PERIM_TOP = 40;
+    var BAND_X = 52;
+    var BAND_W = VW - BAND_X * 2;
+    var BAND_H = 38;
+    var BAND_GAP = 10;
+    var BAND_TOP = PERIM_TOP + 60; // room for perimeter label + sublabel
+    var CORE_H_PER_ASSET = 78;
+    var CORE_TOP_GAP = 30; // room for core label above device row
+    var CORE_MARGIN_X = 68;
+    var RX_PERIM = 18;
+    var RX_BAND = 11;
+    var RX_CORE = 14;
+    var RX_DEV = 11;
+    var DEV_W = 118;
+    var DEV_H = 78;
+    var DEV_GAP = 24;
+
+    var bandsBottom = BAND_TOP + N * BAND_H + Math.max(0, N - 1) * BAND_GAP;
+    var coreTop = bandsBottom + 20;
+    var coreH = CORE_TOP_GAP + CORE_H_PER_ASSET;
+    var coreBottom = coreTop + coreH;
+    var perimBottom = coreBottom + 16;
+    var VH = perimBottom + PAD_X;
+
+    var parts = [];
+
+    // ── Perimeter frame ──
+    var perimMissing = perimeter.state === 'missing';
+    var perimFrameCls = perimMissing ? 'sl-perim-missing' : 'sl-perim';
+    var perimLblCls = perimMissing ? 'sl-perim-lbl sl-perim-lbl-miss' : 'sl-perim-lbl';
+    var perimStateTag = perimMissing ? 'missing' : 'present';
+    var perimSub = _esc(perimeter.control || '') + (perimeter.control ? ' · ' : '') + perimStateTag;
+    parts.push(
+      '<rect class="' + perimFrameCls + '" x="' + PAD_X + '" y="' + PERIM_TOP +
+      '" width="' + (VW - PAD_X * 2) + '" height="' + (perimBottom - PERIM_TOP) + '" rx="' + RX_PERIM + '"/>' +
+      '<text class="' + perimLblCls + '" x="' + (PAD_X + 22) + '" y="' + (PERIM_TOP + 24) + '">' + _esc(perimeter.label) + '</text>' +
+      '<text class="sl-perim-sub" x="' + (PAD_X + 22) + '" y="' + (PERIM_TOP + 40) + '">' + perimSub + '</text>'
+    );
+
+    // ── Interior bands, top→bottom ──
+    for (var i = 0; i < N; i++) {
+      var b = bands[i];
+      var isMissing = b.state === 'missing';
+      var bandCls = isMissing ? 'sl-band-missing' : 'sl-band';
+      var bandLblCls = isMissing ? 'sl-band-lbl sl-band-lbl-miss' : 'sl-band-lbl';
+      var by = BAND_TOP + i * (BAND_H + BAND_GAP);
+      var stateTag = isMissing ? 'missing' : 'present';
+      var subText = _esc(b.control || '') + (b.control ? ' — ' : '') + stateTag;
+      parts.push(
+        '<rect class="' + bandCls + '" x="' + BAND_X + '" y="' + by +
+        '" width="' + BAND_W + '" height="' + BAND_H + '" rx="' + RX_BAND + '"/>' +
+        '<text class="' + bandLblCls + '" x="' + (BAND_X + 20) + '" y="' + (by + BAND_H / 2 + 5) + '">' + _esc(b.label) + '</text>' +
+        '<text class="sl-band-sub" x="' + (BAND_X + 20 + (String(b.label || '').length * 8 + 16)) + '" y="' + (by + BAND_H / 2 + 5) + '">' + subText + '</text>'
+      );
+    }
+
+    // ── Exposed/safe core band with device boxes ──
+    var anyExposed = assets.some(function (a) { return a.exposed; });
+    var coreCls = anyExposed ? 'sl-core-exposed' : 'sl-core';
+    var coreLblCls = anyExposed ? 'sl-core-lbl sl-core-lbl-exp' : 'sl-core-lbl';
+    var coreW = VW - CORE_MARGIN_X * 2;
+    parts.push(
+      '<rect class="' + coreCls + '" x="' + CORE_MARGIN_X + '" y="' + coreTop +
+      '" width="' + coreW + '" height="' + coreH + '" rx="' + RX_CORE + '"/>' +
+      '<text class="' + coreLblCls + '" x="' + (CORE_MARGIN_X + 22) + '" y="' + (coreTop + 24) + '">' + _esc(core.label) + (anyExposed ? ' · exposed' : ' · safe') + '</text>'
+    );
+
+    var totalDevW = assets.length * DEV_W + Math.max(0, assets.length - 1) * DEV_GAP;
+    var devStartX = CORE_MARGIN_X + Math.max(0, Math.floor((coreW - totalDevW) / 2));
+    var devY = coreTop + CORE_TOP_GAP + 8;
+    for (var j = 0; j < assets.length; j++) {
+      var ast = assets[j];
+      var dx = devStartX + j * (DEV_W + DEV_GAP);
+      var expd = ast.exposed;
+      var devBoxCls = expd ? 'sl-dev-box sl-dev-box-exp' : 'sl-dev-box';
+      var devNameCls = expd ? 'sl-dev-nm sl-dev-nm-exp' : 'sl-dev-nm';
+      parts.push(
+        '<g class="sl-dev' + (expd ? ' exposed' : '') + '" transform="translate(' + dx + ',' + devY + ')">' +
+        '<rect class="' + devBoxCls + '" width="' + DEV_W + '" height="' + DEV_H + '" rx="' + RX_DEV + '"/>' +
+        '<text class="' + devNameCls + '" x="' + Math.floor(DEV_W / 2) + '" y="' + Math.floor(DEV_H / 2 + 5) + '">' +
+        _esc(ast.label) + '</text>' +
+        '</g>'
+      );
+    }
+
+    var svgStr =
+      '<svg class="sl-layered-svg" viewBox="0 0 ' + VW + ' ' + VH + '" xmlns="http://www.w3.org/2000/svg">' +
+      parts.join('') +
+      '</svg>';
+
+    return _el('div', 'sl-stacked', svgStr);
+  }
+
   function _slRenderReference(ref) {
     if (!ref || !ref.kind) return null;
     var panel = _el('div', 'sl-ref');
     if (ref.kind === 'network') panel.appendChild(_slRenderRefNetwork(ref));
     else if (ref.kind === 'timeline') panel.appendChild(_slRenderRefTimeline(ref));
-    else if (ref.kind === 'layered') panel.appendChild(_slRenderRefLayered(ref));
+    else if (ref.kind === 'layered') {
+      panel.appendChild(ref.layout === 'stacked' ? _slRenderRefLayeredStacked(ref) : _slRenderRefLayered(ref));
+    }
     return panel;
   }
 
