@@ -4423,3 +4423,11 @@ html[data-theme] body .celebration-toast-sub{color:var(--text-dim,rgba(255,255,2
 #page-sim-lab .sl-band-lbl,#page-decision-lab .sl-band-lbl{font:800 10.5px Inter,sans-serif;letter-spacing:.06em;text-transform:uppercase;fill:var(--text)}
 #page-sim-lab .sl-band-lbl-miss,#page-decision-lab .sl-band-lbl-miss{fill:var(--red)}
 #page-sim-lab .sl-band-sub,#page-decision-lab .sl-band-sub{font:600 9.5px ui-monospace,Menlo,monospace;fill:var(--text-dim)}
+
+/* perimeter device box (FW-1, WAF-1, ...) — faithful lift of the mockup's
+   .fw device box (~lines 79-81, 194): surface box, border stroke, accent
+   glyph, text label. Optional — only rendered when layers[0].device.label
+   is present on a stacked-layout scenario. Tokens only, 0 hardcoded hex. */
+#page-sim-lab .sl-fw-box,#page-decision-lab .sl-fw-box{fill:var(--surface);stroke:var(--border);stroke-width:1.2}
+#page-sim-lab .sl-fw-nm,#page-decision-lab .sl-fw-nm{font:700 11px Inter,sans-serif;fill:var(--text);text-anchor:middle}
+#page-sim-lab .sl-fw-glyph,#page-decision-lab .sl-fw-glyph{stroke:var(--accent);stroke-width:1.7;fill:none}

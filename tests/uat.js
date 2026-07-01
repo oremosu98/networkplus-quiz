@@ -21876,6 +21876,42 @@ console.log('\n\x1b[1m── T7: DRILLS ANALYTICS GROUP + FINAL COPY + BRONZE TO
     test('stacked renderer: exposed device gets exposed class',
       /class="sl-dev exposed"/.test(svgSt));
 
+    // ── Perimeter device box (FW-1, WAF-1, ...) — optional, data-driven ──
+    // _stackedFix's perimeter layer has no `device` field, so no .sl-fw
+    // should render (backward-compatible default).
+    test('stacked renderer: no perimeter device configured => no .sl-fw rendered',
+      !/class="sl-fw"/.test(svgSt));
+
+    var _stackedFwFix = {
+      kind: 'layered',
+      layout: 'stacked',
+      layers: [
+        { id: 'perimeter', label: 'Perimeter', control: 'Next-gen firewall', state: 'present', device: { label: 'FW-1' } }
+      ],
+      core: { label: 'Core', assets: [] }
+    };
+    sCtx.fixStackedFw = _stackedFwFix;
+    var rootStFw = vm.runInContext('_slRenderRefLayeredStacked(fixStackedFw);', sCtx);
+    var svgStFw = rootStFw ? rootStFw.innerHTML : '';
+    test('stacked renderer: perimeter device configured => .sl-fw rendered',
+      /class="sl-fw"/.test(svgStFw));
+    test('stacked renderer: .sl-fw contains the escaped device label (FW-1)',
+      /class="sl-fw"[\s\S]*?FW-1/.test(svgStFw));
+
+    var _stackedFwXssFix = {
+      kind: 'layered',
+      layout: 'stacked',
+      layers: [
+        { id: 'perimeter', label: 'Perimeter', state: 'present', device: { label: '<script>alert(1)</script>' } }
+      ],
+      core: { label: 'Core', assets: [] }
+    };
+    sCtx.fixStackedFwXss = _stackedFwXssFix;
+    var rootStFwX = vm.runInContext('_slRenderRefLayeredStacked(fixStackedFwXss);', sCtx);
+    var svgStFwX = rootStFwX ? rootStFwX.innerHTML : '';
+    test('stacked renderer: .sl-fw device label is XSS-escaped',
+      !/<script>/.test(svgStFwX) && /&lt;script&gt;/.test(svgStFwX));
+
     // ── Safe-core fixture: no assets exposed => sl-core (not sl-core-exposed) ──
     var _safeCoreFix = {
       kind: 'layered', layout: 'stacked',

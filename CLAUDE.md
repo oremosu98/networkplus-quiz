@@ -134,6 +134,7 @@ Dark theme in `:root`, light theme in `[data-theme="light"]`. Key variables: `--
 - `setQuestionText(el, raw)` order is **escape-THEN-highlight** (`escHtml` → `highlightExamKeywords` → `innerHTML`). Reversing it is an XSS hole since question text is AI-generated.
 - The `_fnBody(src, name)` helper used by UAT extracts function bodies via brace-depth walking. **Prefix-match trap**: `tbShowCoach` will match `tbShowCoachModalLoading`. When writing UAT for a function, pick a name that's either unique or specify the exact suffix.
 - Sim Lab `layered` references support an optional `layout: 'nested' | 'stacked'` field (default `'nested'`); `_slRenderReference` dispatches on it — Sec+ Defense in Depth uses `'stacked'` (perimeter + interior bands + exposed core), Net+ keeps `'nested'` (concentric frames).
+- The stacked layout's perimeter layer (`layers[0]`) supports an optional `device: { label }` field (e.g. `'FW-1'`, `'WAF-1'`) rendered as a decorative device box (`.sl-fw`) top-right inside the perimeter frame; absent = no extra markup, fully backward-compatible.
 
 **Testing**
 - Don't tune `validateQuestions()` without running `node tests/validation-audit.js` first — the `MIN_CATCH_RATE = 60` / `MAX_FP_RATE = 0` floor is CI-enforced inside UAT

@@ -937,6 +937,22 @@
       '<text class="sl-perim-sub" x="' + (PAD_X + 22) + '" y="' + (PERIM_TOP + 40) + '">' + perimSub + '</text>'
     );
 
+    // ── Perimeter device box (FW-1, WAF-1, ...) — data-driven, optional ──
+    // Faithful lift of mockups/defense-in-depth-secplus-concept.html ~line 194
+    // (`.fw` device box), anchored top-right inside the perimeter frame.
+    if (perimeter.device && perimeter.device.label) {
+      var fwW = 64, fwH = 30;
+      var fwX = VW - PAD_X - 22 - fwW;
+      var fwY = PERIM_TOP + 10;
+      parts.push(
+        '<g class="sl-fw" transform="translate(' + fwX + ',' + fwY + ')">' +
+        '<rect class="sl-fw-box" width="' + fwW + '" height="' + fwH + '" rx="8"/>' +
+        '<g class="sl-fw-glyph" transform="translate(8,8)"><path d="M2 1v12M7 1v12M0 4h13M0 9h13"/></g>' +
+        '<text class="sl-fw-nm" x="42" y="20">' + _esc(perimeter.device.label) + '</text>' +
+        '</g>'
+      );
+    }
+
     // ── Interior bands, top→bottom ──
     for (var i = 0; i < N; i++) {
       var b = bands[i];
