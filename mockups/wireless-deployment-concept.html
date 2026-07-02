@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Wireless Deployment PBQ · concept</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ── CertAnvil MOCKUP STARTER TOKEN BLOCK (verbatim from brand/mockup-starter-tokens.css) ── */
+:root, [data-theme="dark"] {
+  --bg: oklch(0.17 0.008 275); --surface: oklch(0.205 0.009 275); --surface-2: oklch(0.23 0.009 275);
+  --ink: oklch(0.96 0.006 275); --ink-soft: oklch(0.80 0.012 275); --muted: oklch(0.725 0.013 275);
+  --border: oklch(0.32 0.011 275); --border-soft: oklch(0.255 0.010 275);
+  --accent: oklch(0.80 0.155 64); --accent-deep: oklch(0.86 0.135 64); --on-accent: oklch(0.18 0.020 275);
+  --pass: oklch(0.74 0.150 152); --fail: oklch(0.66 0.17 25);
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+}
+[data-theme="light"] {
+  --bg: oklch(0.975 0.007 85); --surface: oklch(0.992 0.004 85); --surface-2: oklch(0.965 0.010 84);
+  --ink: oklch(0.22 0.015 280); --ink-soft: oklch(0.36 0.014 280); --muted: oklch(0.50 0.013 280);
+  --border: oklch(0.86 0.008 85); --border-soft: oklch(0.91 0.006 85);
+  --accent: oklch(0.50 0.155 55); --accent-deep: oklch(0.42 0.150 52); --on-accent: oklch(0.985 0.010 85);
+  --pass: oklch(0.50 0.15 150); --fail: oklch(0.52 0.19 25);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { background: var(--bg); color: var(--ink); font-family: Inter, system-ui, sans-serif; }
+body { min-height: 100dvh; padding: clamp(14px, 3vw, 32px); -webkit-font-smoothing: antialiased; }
+.wrap { max-width: 1180px; margin: 0 auto; }
+
+/* top chrome */
+.topbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 22px; }
+.brand { display: flex; align-items: center; gap: 11px; }
+.brand svg { width: 30px; height: 30px; }
+.brand b { font-weight: 700; font-size: 15px; letter-spacing: -0.01em; }
+.brand .sub { color: var(--muted); font-size: 12px; font-weight: 600; }
+.theme-btn { font: inherit; font-size: 12px; font-weight: 600; color: var(--ink-soft); background: var(--surface);
+  border: 1px solid var(--border); border-radius: 9px; padding: 8px 13px; cursor: pointer; transition: transform .15s var(--ease); }
+.theme-btn:active { transform: scale(0.97); }
+
+/* scenario header */
+.eyebrow { font-size: 10.5px; font-weight: 800; letter-spacing: 0.13em; text-transform: uppercase; color: var(--accent); }
+.scn-head { margin-bottom: 18px; }
+.scn-title { font-family: Fraunces, Georgia, serif; font-weight: 600; font-size: clamp(24px, 3.4vw, 33px);
+  letter-spacing: -0.02em; line-height: 1.05; margin: 7px 0 9px; }
+.scn-prose { color: var(--ink-soft); font-size: 14.5px; line-height: 1.55; max-width: 70ch; }
+.metstrip { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.met { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 600; color: var(--ink-soft);
+  background: var(--surface); border: 1px solid var(--border); border-radius: 999px; padding: 6px 12px; }
+.met svg { width: 13px; height: 13px; stroke: var(--accent); }
+.met .timer { font-variant-numeric: tabular-nums; }
+
+/* the decoupled split */
+.split { display: grid; grid-template-columns: 1.35fr 1fr; gap: 18px; align-items: start; }
+@media (max-width: 860px) { .split { grid-template-columns: 1fr; } }
+
+/* reference panel */
+.panel { background: var(--surface); border: 1px solid var(--border); border-radius: 18px; overflow: hidden;
+  box-shadow: 0 1px 0 color-mix(in oklab, var(--ink) 4%, transparent), 0 18px 40px -22px color-mix(in oklab, var(--ink) 20%, transparent); }
+.panel-head { display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 13px 16px; border-bottom: 1px solid var(--border-soft); }
+.panel-head .lbl { font-size: 10.5px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+.zoomhint { font-size: 11px; color: var(--muted); font-weight: 600; }
+.diagram { padding: 8px; }
+.diagram svg { width: 100%; height: auto; display: block; touch-action: pan-x pan-y pinch-zoom; }
+
+/* floorplan + AP primitives */
+.room { fill: color-mix(in oklab, var(--accent) 5%, transparent); stroke: color-mix(in oklab, var(--accent) 24%, var(--border)); stroke-width: 1; }
+.room.outside { fill: color-mix(in oklab, var(--muted) 7%, transparent); stroke: color-mix(in oklab, var(--muted) 28%, var(--border)); }
+.room-lbl { font: 800 10.5px Inter, sans-serif; letter-spacing: 0.1em; text-transform: uppercase; fill: var(--muted); }
+.coverage { fill: color-mix(in oklab, var(--accent) 8%, transparent); stroke: color-mix(in oklab, var(--accent) 36%, transparent); stroke-width: 1.2; stroke-dasharray: 3 4; }
+.coverage.foreign { fill: color-mix(in oklab, var(--fail) 7%, transparent); stroke: color-mix(in oklab, var(--fail) 45%, transparent); }
+.interfere { stroke: var(--fail); stroke-width: 2; fill: none; stroke-dasharray: 5 6; }
+.interfere-lbl { font: 700 10.5px ui-monospace, Menlo, monospace; fill: var(--fail); }
+.node rect { fill: var(--surface-2); stroke: var(--border); stroke-width: 1.2; }
+.node .name { font: 700 12.5px Inter, sans-serif; fill: var(--ink); text-anchor: middle; }
+.node .meta { font: 600 10.5px ui-monospace, Menlo, monospace; fill: var(--ink-soft); text-anchor: middle; }
+.node .glyph { stroke: var(--accent); stroke-width: 1.8; fill: none; }
+.node.foreign rect { stroke: var(--fail); stroke-width: 1.6; }
+.node.foreign .glyph { stroke: var(--fail); }
+.node.foreign .name, .node.foreign .meta { fill: var(--fail); }
+.chan-tag { font: 800 11px ui-monospace, Menlo, monospace; fill: var(--accent); text-anchor: middle; }
+.node.foreign .chan-tag { fill: var(--fail); }
+
+/* requirement card (read-only, replaces .given) */
+.given { margin: 2px 8px 10px; border-top: 1px solid var(--border-soft); padding-top: 11px; display: grid; gap: 9px; }
+.given .row { display: flex; align-items: baseline; gap: 10px; font-size: 12.5px; }
+.given .k { color: var(--muted); font-weight: 700; min-width: 118px; }
+.given .v { color: var(--ink); font-weight: 600; font-size: 12.5px; line-height: 1.45; }
+.given .v code { font-family: ui-monospace, Menlo, monospace; font-size: 11.5px; background: color-mix(in oklab, var(--ink) 6%, transparent); border-radius: 5px; padding: 1px 5px; }
+
+/* answer rail */
+.rail { display: grid; gap: 14px; }
+.phase-tabs { display: flex; gap: 7px; }
+.ptab { flex: 1; text-align: center; font-size: 11.5px; font-weight: 700; padding: 9px; border-radius: 9px;
+  border: 1px solid var(--border); background: var(--surface); color: var(--muted);
+  transition: color .2s var(--ease), border-color .2s var(--ease), background-color .2s var(--ease); }
+.ptab.on { color: var(--accent); border-color: color-mix(in oklab, var(--accent) 34%, var(--border)); background: color-mix(in oklab, var(--accent) 9%, transparent); }
+.ptab.done { color: var(--pass); border-color: color-mix(in oklab, var(--pass) 30%, var(--border)); }
+.ptab .n { font-variant-numeric: tabular-nums; opacity: .65; margin-right: 5px; }
+
+.qcard { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 16px;
+  transition: opacity .22s var(--ease), transform .22s var(--ease), filter .22s var(--ease); }
+.qcard.entering { opacity: 0; transform: translateY(8px); filter: blur(2px); }
+.qcard.leaving { opacity: 0; transform: translateY(-6px); filter: blur(2px); }
+.qcard .q { font-size: 14px; font-weight: 650; line-height: 1.4; margin-bottom: 13px; }
+.ap-group { border: 1px solid var(--border-soft); border-radius: 12px; padding: 12px; margin-bottom: 12px; }
+.ap-group:last-of-type { margin-bottom: 0; }
+.ap-group .ap-name { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent); margin-bottom: 10px; }
+.slot { display: grid; gap: 6px; margin-bottom: 13px; }
+.slot:last-of-type { margin-bottom: 0; }
+.slot label { font-size: 12px; font-weight: 700; color: var(--ink-soft); display: flex; align-items: center; gap: 7px; }
+.slot label .pin { color: var(--accent); cursor: pointer; font-size: 11px; font-weight: 700; transition: transform .15s var(--ease); }
+.slot label .pin:active { transform: scale(0.95); }
+.sel { position: relative; }
+.sel select { width: 100%; appearance: none; -webkit-appearance: none; font: inherit; font-size: 13.5px; font-weight: 600;
+  color: var(--ink); background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px;
+  padding: 11px 38px 11px 13px; cursor: pointer; transition: border-color .18s var(--ease), box-shadow .18s var(--ease); }
+.sel select:focus { outline: none; border-color: color-mix(in oklab, var(--accent) 55%, var(--border)); box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 18%, transparent); }
+.sel::after { content: ""; position: absolute; right: 14px; top: 50%; width: 8px; height: 8px; pointer-events: none;
+  border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted); transform: translateY(-65%) rotate(45deg); }
+.sel.correct select { border-color: color-mix(in oklab, var(--pass) 60%, var(--border)); box-shadow: 0 0 0 3px color-mix(in oklab, var(--pass) 15%, transparent); }
+.sel.wrong select { border-color: color-mix(in oklab, var(--fail) 60%, var(--border)); box-shadow: 0 0 0 3px color-mix(in oklab, var(--fail) 14%, transparent); }
+.verdict { font-size: 11.5px; font-weight: 600; line-height: 1.45; margin-top: 4px; display: none;
+  opacity: 0; transform: translateY(-3px); transition: opacity .25s var(--ease), transform .25s var(--ease); }
+.slot.graded.ok .verdict.ok { display: block; color: var(--pass); }
+.slot.graded.no .verdict.no { display: block; color: var(--fail); }
+.verdict.in { opacity: 1; transform: none; }
+.verdict b { font-family: ui-monospace, Menlo, monospace; font-weight: 700; }
+
+/* primary action */
+.actions { display: flex; gap: 10px; }
+.btn { font: inherit; font-size: 13.5px; font-weight: 700; border-radius: 11px; padding: 12px 18px; cursor: pointer;
+  transition: transform .15s var(--ease), filter .15s var(--ease); border: 1px solid transparent; }
+.btn:active { transform: scale(0.97); }
+.btn-primary { background: var(--accent); color: var(--on-accent); border-color: var(--accent-deep); flex: 1; }
+.btn-ghost { background: transparent; color: var(--accent); border-color: color-mix(in oklab, var(--accent) 30%, var(--border)); }
+@media (hover: hover) and (pointer: fine) { .btn-primary:hover { filter: brightness(1.05); } }
+
+/* result */
+.result { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 18px; text-align: center;
+  display: none; opacity: 0; transform: translateY(10px) scale(0.99); transition: opacity .38s var(--ease), transform .38s var(--ease); }
+.result.show { display: block; }
+.result.in { opacity: 1; transform: none; }
+.score-fig { font-family: Fraunces, Georgia, serif; font-weight: 600; font-size: 62px; line-height: 1; letter-spacing: -0.03em;
+  font-variant-numeric: lining-nums tabular-nums; font-feature-settings: "lnum","tnum"; color: var(--ink);
+  opacity: 0; transform: scale(0.96); transition: opacity .5s var(--ease) .08s, transform .5s var(--ease) .08s; }
+.result.in .score-fig { opacity: 1; transform: none; }
+.score-cap { margin-top: 9px; font-size: 11.5px; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; color: var(--muted); }
+.score-sub { margin-top: 12px; font-size: 13px; color: var(--ink-soft); line-height: 1.5; }
+
+/* Pro gate */
+.pro { margin-top: 18px; text-align: left; background: var(--accent); color: var(--on-accent); border-radius: 16px; padding: 18px 18px 16px; }
+.pro .pe { font-size: 10px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; opacity: .82; }
+.pro h3 { font-family: Fraunces, Georgia, serif; font-weight: 600; font-size: 21px; letter-spacing: -0.02em; line-height: 1.12; margin: 7px 0 8px; }
+.pro p { font-size: 12.5px; line-height: 1.5; opacity: .92; margin-bottom: 14px; }
+.btn-white { background: var(--on-accent); color: var(--accent); border: none; width: 100%; }
+.freestate { margin-top: 13px; font-size: 12px; color: var(--muted); font-weight: 600; }
+
+/* reveal */
+.reveal { opacity: 0; transform: translateY(14px); transition: opacity .5s var(--ease), transform .5s var(--ease); }
+.reveal.vis { opacity: 1; transform: none; }
+@media (prefers-reduced-motion: reduce) {
+  .reveal, .qcard, .verdict, .result, .score-fig { transition-property: opacity !important; transform: none !important; filter: none !important; }
+  .reveal { opacity: 1 !important; }
+  .btn:active, .theme-btn:active, .pin:active { transform: none; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="topbar">
+    <div class="brand">
+      <svg viewBox="0 0 40 40" fill="none" aria-hidden="true">
+        <path d="M27 11.5a11 11 0 1 0 0 17" stroke="var(--accent)" stroke-width="7" stroke-linecap="round"/>
+        <path d="M13 28 27 12" stroke="var(--accent)" stroke-width="5" stroke-linecap="round" opacity="0.55"/>
+        <path d="M14 28.5a11 11 0 0 1 0-17" stroke="var(--accent)" stroke-width="7" stroke-linecap="round"/>
+      </svg>
+      <div><b>CertAnvil</b> &nbsp;<span class="sub">Sim Lab · Wireless PBQ</span></div>
+    </div>
+    <button class="theme-btn" id="themeBtn">Dark</button>
+  </div>
+
+  <div class="scn-head reveal" style="transition-delay:.04s">
+    <div class="eyebrow">Network+ · Objective 2.3 · Wireless devices</div>
+    <h1 class="scn-title">Harbor &amp; Finch, two floors of bad Wi-Fi</h1>
+    <p class="scn-prose">This coffee roastery just fitted two access points. The warehouse barcode scanners only speak 2.4 GHz, the café upstairs streams on 5 GHz, and the print shop next door runs its own AP loud on channel 6. Configure both APs so everything connects and nothing collides.</p>
+    <div class="metstrip">
+      <span class="met"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M12 7v5l3 2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span class="timer" id="timer">01:07</span></span>
+      <span class="met"><svg viewBox="0 0 24 24" fill="none"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>2 steps · partial credit</span>
+      <span class="met"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3l8 4v5c0 4.5-3.5 7.5-8 9-4.5-1.5-8-4.5-8-9V7l8-4z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>Practice mode</span>
+    </div>
+  </div>
+
+  <div class="split">
+
+    <!-- FLOORPLAN: read-only reference -->
+    <div class="panel reveal" style="transition-delay:.08s">
+      <div class="panel-head">
+        <span class="lbl">Site plan · reference</span>
+        <span class="zoomhint">pinch / scroll to zoom</span>
+      </div>
+      <div class="diagram">
+        <svg viewBox="0 0 800 470" role="img" aria-label="Two-floor site plan with two access points and a neighboring interfering access point">
+          <!-- rooms -->
+          <rect class="room" x="28" y="28" width="500" height="196" rx="16"/>
+          <text class="room-lbl" x="48" y="58">Café · upstairs</text>
+          <rect class="room" x="28" y="248" width="500" height="196" rx="16"/>
+          <text class="room-lbl" x="48" y="278">Warehouse · ground floor</text>
+          <rect class="room outside" x="560" y="120" width="212" height="230" rx="16"/>
+          <text class="room-lbl" x="580" y="150">Print shop · neighbor</text>
+
+          <!-- coverage circles -->
+          <circle class="coverage" cx="278" cy="130" r="92"/>
+          <circle class="coverage" cx="278" cy="350" r="92"/>
+          <circle class="coverage foreign" cx="666" cy="240" r="104"/>
+
+          <!-- interference edge -->
+          <path class="interfere" d="M562 240 L372 300"/>
+          <text class="interfere-lbl" x="398" y="256">ch 6 · loud</text>
+
+          <!-- AP-1 café -->
+          <g class="node" transform="translate(214,100)">
+            <rect width="128" height="58" rx="12"/>
+            <g class="glyph" transform="translate(54,10)"><path d="M2 12a10 10 0 0 1 16 0M5 15a6 6 0 0 1 10 0M10 18h.01"/></g>
+            <text class="name" x="64" y="40">AP-1</text>
+            <text class="meta" x="64" y="52">café · unset</text>
+          </g>
+          <text class="chan-tag" x="278" y="86">ch ?</text>
+
+          <!-- AP-2 warehouse -->
+          <g class="node" transform="translate(214,320)">
+            <rect width="128" height="58" rx="12"/>
+            <g class="glyph" transform="translate(54,10)"><path d="M2 12a10 10 0 0 1 16 0M5 15a6 6 0 0 1 10 0M10 18h.01"/></g>
+            <text class="name" x="64" y="40">AP-2</text>
+            <text class="meta" x="64" y="52">warehouse · unset</text>
+          </g>
+          <text class="chan-tag" x="278" y="306">ch ?</text>
+
+          <!-- neighbor AP -->
+          <g class="node foreign" transform="translate(602,212)">
+            <rect width="128" height="58" rx="12"/>
+            <g class="glyph" transform="translate(54,10)"><path d="M2 12a10 10 0 0 1 16 0M5 15a6 6 0 0 1 10 0M10 18h.01"/></g>
+            <text class="name" x="64" y="40">Neighbor AP</text>
+            <text class="meta" x="64" y="52">2.4 GHz · ch 6</text>
+          </g>
+
+          <!-- clients -->
+          <g class="node" transform="translate(70,150)">
+            <rect width="110" height="46" rx="10"/>
+            <text class="name" x="55" y="21" style="font-size:11.5px">Laptops</text>
+            <text class="meta" x="55" y="36">5 GHz capable</text>
+          </g>
+          <g class="node" transform="translate(70,370)">
+            <rect width="110" height="46" rx="10"/>
+            <text class="name" x="55" y="21" style="font-size:11.5px">Scanners</text>
+            <text class="meta" x="55" y="36">2.4 GHz only</text>
+          </g>
+        </svg>
+      </div>
+
+      <div class="given">
+        <div class="row"><span class="k">Requirement</span><span class="v">Café SSID <code>HF-Cafe</code> on the fast band for streaming laptops</span></div>
+        <div class="row"><span class="k">Requirement</span><span class="v">Warehouse SSID <code>HF-Ops</code> must reach the 2.4 GHz-only scanners</span></div>
+        <div class="row"><span class="k">Requirement</span><span class="v">Security policy: WPA3-Personal everywhere</span></div>
+        <div class="row"><span class="k">Constraint</span><span class="v">Neighbor AP is broadcasting on 2.4 GHz <code>channel 6</code></span></div>
+      </div>
+    </div>
+
+    <!-- ANSWER RAIL -->
+    <div class="rail reveal" style="transition-delay:.12s">
+      <div class="phase-tabs">
+        <div class="ptab on" id="tab1"><span class="n">1</span>Plan the channels</div>
+        <div class="ptab" id="tab2"><span class="n">2</span>Configure the APs</div>
+      </div>
+
+      <!-- PHASE 1: channel reasoning -->
+      <div class="qcard" id="phase1">
+        <div class="q">AP-2 must run on 2.4 GHz for the scanners. Which channel keeps it clear of the neighbor?</div>
+        <div class="slot" data-answer="d3">
+          <div class="sel">
+            <select id="dx">
+              <option value="">Select a channel plan…</option>
+              <option value="d1">Channel 6, matching the neighbor so they share politely</option>
+              <option value="d2">Channel 8, halfway between 6 and 11</option>
+              <option value="d3">Channel 1 or 11, the non-overlapping channels away from 6</option>
+              <option value="d4">Any channel, because WPA3 prevents interference</option>
+            </select>
+          </div>
+          <p class="verdict ok">Correct. In 2.4 GHz only channels <b>1, 6, 11</b> avoid overlap, and the neighbor already owns 6.</p>
+          <p class="verdict no">Not quite. Only <b>1, 6, 11</b> avoid overlap in 2.4 GHz, and the neighbor is parked on 6, so AP-2 needs 1 or 11.</p>
+        </div>
+      </div>
+
+      <!-- PHASE 2: configure both APs -->
+      <div class="qcard" id="phase2" style="display:none">
+        <div class="q">Set each access point to satisfy the requirement card.</div>
+
+        <div class="ap-group">
+          <div class="ap-name">AP-1 · café</div>
+          <div class="slot" data-answer="a2">
+            <label>Band <span class="pin" data-pin="ap1">locate</span></label>
+            <div class="sel"><select>
+              <option value="">Choose…</option>
+              <option value="a1">2.4 GHz</option>
+              <option value="a2">5 GHz</option>
+            </select></div>
+            <p class="verdict ok">Right. The streaming laptops are 5 GHz capable, so the café rides the fast band.</p>
+            <p class="verdict no">Correct answer: <b>5 GHz</b>. The laptops support it, and it clears the crowded 2.4 spectrum.</p>
+          </div>
+          <div class="slot" data-answer="b2">
+            <label>Security</label>
+            <div class="sel"><select>
+              <option value="">Choose…</option>
+              <option value="b1">WPA2-Personal</option>
+              <option value="b2">WPA3-Personal</option>
+              <option value="b3">WEP</option>
+              <option value="b4">Open with captive portal</option>
+            </select></div>
+            <p class="verdict ok">Right. The policy names WPA3-Personal, and both APs support it.</p>
+            <p class="verdict no">Correct answer: <b>WPA3-Personal</b>. The requirement card sets the policy for every SSID.</p>
+          </div>
+        </div>
+
+        <div class="ap-group">
+          <div class="ap-name">AP-2 · warehouse</div>
+          <div class="slot" data-answer="c1">
+            <label>Band</label>
+            <div class="sel"><select>
+              <option value="">Choose…</option>
+              <option value="c1">2.4 GHz</option>
+              <option value="c2">5 GHz</option>
+            </select></div>
+            <p class="verdict ok">Right. The barcode scanners only speak 2.4 GHz.</p>
+            <p class="verdict no">Correct answer: <b>2.4 GHz</b>. The scanners cannot see a 5 GHz network at all.</p>
+          </div>
+          <div class="slot" data-answer="e3">
+            <label>Channel <span class="pin" data-pin="neighbor">show neighbor</span></label>
+            <div class="sel"><select>
+              <option value="">Choose…</option>
+              <option value="e1">3</option>
+              <option value="e2">6</option>
+              <option value="e3">11</option>
+              <option value="e4">8</option>
+            </select></div>
+            <p class="verdict ok">Right. 11 is non-overlapping and well clear of the neighbor on 6.</p>
+            <p class="verdict no">Correct answer: <b>11</b> (1 also works). It must be a non-overlapping channel that is not 6.</p>
+          </div>
+          <div class="slot" data-answer="f2">
+            <label>Security</label>
+            <div class="sel"><select>
+              <option value="">Choose…</option>
+              <option value="f1">WPA2-Personal</option>
+              <option value="f2">WPA3-Personal</option>
+              <option value="f3">MAC filtering only</option>
+            </select></div>
+            <p class="verdict ok">Right. Same policy, both APs.</p>
+            <p class="verdict no">Correct answer: <b>WPA3-Personal</b>. MAC filtering is not encryption.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="actions" id="actions">
+        <button class="btn btn-primary" id="primary">Check answer</button>
+      </div>
+
+      <!-- RESULT -->
+      <div class="result" id="result">
+        <div class="score-fig" id="scoreFig">6/6</div>
+        <div class="score-cap" id="scoreCap">slots correct · 100%</div>
+        <p class="score-sub" id="scoreSub">Clean deployment. Each band matches its clients, and the channel plan steers well clear of the neighbor on 6.</p>
+
+        <div class="pro">
+          <div class="pe">CertAnvil Pro</div>
+          <h3>Wireless questions, wired reflexes.</h3>
+          <p>You just planned channels around a real interferer. Pro opens unlimited PBQs across every cert, timed Exam mode, and weak-spot tracking, so exam day feels like a rerun.</p>
+          <button class="btn btn-white" id="goPro">Go Pro</button>
+        </div>
+
+        <div class="freestate" id="freestate">That was today's free PBQ. The next one unlocks in 22h.</div>
+        <div class="actions" style="margin-top:12px;justify-content:center">
+          <button class="btn btn-ghost" id="again">Review this scenario</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+const root = document.documentElement, tb = document.getElementById('themeBtn');
+tb.onclick = () => { const d = root.getAttribute('data-theme') === 'dark'; root.setAttribute('data-theme', d ? 'light' : 'dark'); tb.textContent = d ? 'Dark' : 'Light'; };
+
+requestAnimationFrame(() => document.querySelectorAll('.reveal').forEach(e => e.classList.add('vis')));
+
+let t = 67; const tEl = document.getElementById('timer');
+setInterval(() => { t++; tEl.textContent = String(Math.floor(t/60)).padStart(2,'0') + ':' + String(t%60).padStart(2,'0'); }, 1000);
+
+const primary = document.getElementById('primary');
+const p1 = document.getElementById('phase1'), p2 = document.getElementById('phase2');
+const tab1 = document.getElementById('tab1'), tab2 = document.getElementById('tab2');
+let stage = 'plan';                 // plan -> planned -> configure -> done
+let tally = { total: 0, correct: 0 };
+
+function gradeSlots(scope){
+  let total = 0, correct = 0;
+  scope.querySelectorAll('.slot').forEach(slot => {
+    total++;
+    const sel = slot.querySelector('select'), got = sel.value, want = slot.dataset.answer;
+    const wrap = slot.querySelector('.sel');
+    const ok = got === want;
+    if (ok) correct++;
+    slot.classList.add('graded', ok ? 'ok' : 'no');
+    wrap.classList.add(ok ? 'correct' : 'wrong');
+    sel.disabled = true;
+    const v = slot.querySelector(ok ? '.verdict.ok' : '.verdict.no');
+    requestAnimationFrame(() => requestAnimationFrame(() => v.classList.add('in')));
+  });
+  return { total, correct };
+}
+
+function swapPhase(outEl, inEl, after){
+  outEl.classList.add('leaving');
+  setTimeout(() => {
+    outEl.style.display = 'none'; outEl.classList.remove('leaving');
+    inEl.style.display = 'block'; inEl.classList.add('entering');
+    requestAnimationFrame(() => requestAnimationFrame(() => { inEl.classList.remove('entering'); after && after(); }));
+  }, 220);
+}
+
+primary.onclick = () => {
+  if (stage === 'plan') {
+    const r = gradeSlots(p1); tally.total += r.total; tally.correct += r.correct;
+    stage = 'planned';
+    tab1.classList.add('done');
+    primary.textContent = 'Continue to configure';
+  } else if (stage === 'planned') {
+    stage = 'configure';
+    tab1.classList.remove('on'); tab2.classList.add('on');
+    primary.textContent = 'Submit configuration';
+    swapPhase(p1, p2);
+  } else if (stage === 'configure') {
+    const r = gradeSlots(p2); tally.total += r.total; tally.correct += r.correct;
+    stage = 'done';
+    tab2.classList.add('done');
+    primary.textContent = 'See result';
+  } else {
+    document.getElementById('actions').style.display = 'none';
+    p2.classList.add('leaving');
+    const pct = Math.round(tally.correct / tally.total * 100);
+    document.getElementById('scoreFig').textContent = tally.correct + '/' + tally.total;
+    document.getElementById('scoreCap').textContent = 'slots correct · ' + pct + '%';
+    if (pct < 100) document.getElementById('scoreSub').textContent = 'Each slot is scored on its own, so every correct setting keeps its credit.';
+    const res = document.getElementById('result');
+    res.classList.add('show');
+    requestAnimationFrame(() => requestAnimationFrame(() => res.classList.add('in')));
+  }
+};
+
+// "locate": pulse the relevant coverage ring (opacity only; SVG transforms misbehave in Safari)
+document.querySelectorAll('[data-pin]').forEach(p => p.onclick = () => {
+  const which = p.dataset.pin === 'neighbor' ? '.coverage.foreign' : '.coverage';
+  const ring = document.querySelector(which);
+  ring.animate(
+    [ { opacity: 1 }, { opacity: .25 }, { opacity: 1 }, { opacity: .25 }, { opacity: 1 } ],
+    { duration: 820, easing: 'cubic-bezier(0.16,1,0.3,1)' }
+  );
+});
+
+document.getElementById('again')?.addEventListener('click', () => location.reload());
+</script>
+</body>
+</html>
